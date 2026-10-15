@@ -128,7 +128,7 @@ fn unreachable(url: &Url) -> String {
 /// The server's address: the one connected in Settings, or — for Ollama and
 /// LM Studio — their usual address on this machine, so a fresh install talks
 /// to a local model without any setup.
-fn base_url(server: &Server) -> Result<Url, String> {
+pub fn base_url(server: &Server) -> Result<Url, String> {
     if server.url.trim().is_empty() {
         if let Some(usual) = usual_address(server.id) {
             return net::normalise_server_url(&usual);

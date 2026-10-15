@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "What Groovy's windows are allowed to do. Everything that touches the OS goes through Groovy's own commands.",
-  "windows": ["island", "settings", "mochi", "studio"],
+  "windows": ["island", "settings", "mochi", "studio", "pill"],
   "permissions": ["core:default", "autostart:default"]
 }

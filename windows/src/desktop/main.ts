@@ -215,7 +215,7 @@ class DesktopMochi {
       engine.lookX = g.lookX;
       engine.lookY = g.lookY;
     }
-    // Dances while Spotify plays (Linux), by the compact island's rules.
+    // Dances while Spotify plays, by the compact island's rules.
     engine.setDancing(this.snap.dancing && !this.asleep);
     engine.update(dt);
     const dpr = this.dpr();

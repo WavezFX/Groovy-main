@@ -1,6 +1,7 @@
-// Settings window — the place where anything that writes to disk is confirmed.
-// Stage 2 covers the Claude Code hooks and the general preferences; API keys and
-// integrations land here too in a later stage.
+// The Control Centre window (settings.html): every setting of Groovy, Flow
+// dictation, the Notetaker and « OK Groovy » — the place where anything that
+// writes to disk is confirmed. The window's frame and the voice and dictation
+// pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
@@ -16,6 +17,8 @@ import {
   sanitizeDeclared, toggleDeclared, type PillDefinition,
 } from "../core/pills";
 import { h, clear } from "../views/dom";
+import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
+import { FLOW_PAGE_RENDERERS } from "../hub/pages";
 import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { voiceSection } from "./voice";
@@ -42,7 +45,12 @@ const KEY_STORE = navigator.userAgent.includes("Windows")
 let settings: Settings = { ...DEFAULT_SETTINGS };
 let version = "";
 
-const root = document.getElementById("settings-root")!;
+const windowRoot = document.getElementById("hub")!;
+/** Where the page being shown draws its sections. */
+let root: HTMLElement = windowRoot;
+let hub: { redraw(): void; current(): PageId } | null = null;
+/** The Groovy page being shown. */
+let groovyPage: GroovyPageId = "assistant";
 
 async function save() {
   await Bridge.saveSettings(settings);
@@ -1291,30 +1299,7 @@ function applyLanguage() {
 
 function applyDirection() {
   document.documentElement.dir = isRtl() ? "rtl" : "ltr";
-  document.title = t("Settings — Groovy");
-}
-
-let rendering: Promise<void> | null = null;
-let renderAgain = false;
-
-/** Redraws every section from fresh state, keeping the scroll position. */
-async function rerender() {
-  if (rendering) {
-    renderAgain = true;
-    return;
-  }
-  const scroll = document.scrollingElement?.scrollTop ?? 0;
-  rendering = render();
-  try {
-    await rendering;
-  } finally {
-    rendering = null;
-  }
-  if (document.scrollingElement) document.scrollingElement.scrollTop = scroll;
-  if (renderAgain) {
-    renderAgain = false;
-    await rerender();
-  }
+  document.title = t("Groovy Control Centre");
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -1327,11 +1312,19 @@ async function main() {
   }
   setLanguage(resolveLanguage(settings.language, systemLanguages()));
   applyDirection();
+  hub = await startHub(windowRoot, {
+    version,
+    flowPages: FLOW_PAGE_RENDERERS,
+    renderGroovy: async (page, container) => {
+      groovyPage = page;
+      root = container;
+      await render();
+    },
+  });
   onLanguageChange(() => {
     applyDirection();
-    void rerender();
+    hub?.redraw();
   });
-  await render();
 
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
   void onEvent<Settings>("settings-changed", (s) => {
@@ -1389,73 +1382,30 @@ async function render() {
   shortcutsListener = null;
   clear(root);
 
-  const groups: [string, HTMLElement[]][] = [
-    [N_("Assistant"), [assistantSection(settings, () => void save(), toggle)]],
-    [N_("Wardrobe"), [wardrobeSection(settings, () => void save())]],
-    [N_("Models"), [modelsSection(settings, () => void save())]],
-    [N_("Memory"), [memorySection(settings, () => void save(), toggle)]],
-    [N_("Reminders"), [tasksSection()]],
-    [N_("Music"), [musicSection()]],
-    [N_("Voice"), [voiceSection(settings, () => void save(), toggle, KEY_STORE)]],
-    [N_("Chat providers"), [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)]],
-    [N_("Coding agents"), [claudeSection(status), agentsSection(agents), planSection(status)]],
-    [N_("Pills and integrations"), [activePillsSection(connected), integrationsSection(present)]],
-    [N_("Android phone"), [phoneSection(settings.phoneLink ?? false, toggle, settings)]],
-    [N_("Breaks"), [breaksSection(settings, () => void save())]],
-    [N_("General"), [generalSection(), shortcutsSection(shortcutReport)]],
-    [N_("Permissions"), [permissionsSection()]],
-    [N_("System"), [systemSection()]],
-  ];
-  root.append(controlCentre(groups));
-}
-
-/**
- * The Control Centre: a sidebar with one entry per group of sections, and the
- * sections themselves in one scrolling column. The entry of the group in view
- * is highlighted; on a narrow window the sidebar becomes a strip on top.
- */
-function controlCentre(groups: [string, HTMLElement[]][]): HTMLElement {
-  const nav = h("nav", { class: "cc-nav", "aria-label": t("Sections") });
-  const content = h("main", { class: "cc-content" });
-  const links = new Map<Element, HTMLElement>();
-  groups.forEach(([label, sections], i) => {
-    const group = h("div", { class: "cc-group", id: `group-${i}` }, ...sections);
-    const link = h("button", { class: i === 0 ? "cc-link on" : "cc-link", text: t(label) });
-    link.addEventListener("click", () => group.scrollIntoView({ behavior: "smooth", block: "start" }));
-    links.set(group, link);
-    nav.append(link);
-    content.append(group);
-  });
-  content.append(
-    h("div", {
+  const pages: Record<GroovyPageId, () => HTMLElement[]> = {
+    assistant: () => [assistantSection(settings, () => void save(), toggle)],
+    wardrobe: () => [wardrobeSection(settings, () => void save())],
+    models: () => [modelsSection(settings, () => void save())],
+    memory: () => [memorySection(settings, () => void save(), toggle)],
+    reminders: () => [tasksSection()],
+    music: () => [musicSection()],
+    calls: () => [voiceSection(settings, () => void save(), toggle, KEY_STORE)],
+    chat: () => [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)],
+    agents: () => [claudeSection(status), agentsSection(agents), planSection(status)],
+    pills: () => [activePillsSection(connected), integrationsSection(present)],
+    phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
+    breaks: () => [breaksSection(settings, () => void save())],
+    general: () => [generalSection(), shortcutsSection(shortcutReport)],
+    permissions: () => [permissionsSection()],
+    system: () => [systemSection()],
+  };
+  root.append(...pages[groovyPage]());
+  if (groovyPage === "general") {
+    root.append(h("div", {
       class: "hint",
       text: t("No telemetry. Network requests only go to the services you configure yourself."),
-    }),
-  );
-  if ("IntersectionObserver" in window) {
-    const seen = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          for (const l of links.values()) l.classList.remove("on");
-          links.get(e.target)?.classList.add("on");
-        }
-      },
-      { rootMargin: "-10% 0px -80% 0px" },
-    );
-    for (const g of links.keys()) seen.observe(g);
+    }));
   }
-  return h(
-    "div",
-    { class: "cc" },
-    h(
-      "header",
-      { class: "cc-header" },
-      h("h1", {}, h("span", { text: t("Groovy Control Centre") }), h("span", { class: "version", text: version })),
-    ),
-    nav,
-    content,
-  );
 }
 
 void main();

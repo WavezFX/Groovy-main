@@ -38,6 +38,9 @@ pub struct AssistantPrefs {
     pub gpu_layers: u32,
     /// Online messages allowed per day; 0 = no limit.
     pub daily_online_limit: u32,
+    /// Who answers « OK Groovy », Flow's clean-up and the call notes:
+    /// "local" (the local model above) or "claude" (the user's key).
+    pub brain: String,
     pub memory_enabled: bool,
     pub history_enabled: bool,
     /// Chat history older than this is deleted; 0 = keep forever.
@@ -61,6 +64,7 @@ impl Default for AssistantPrefs {
             local_model: String::new(),
             gpu_layers: 0,
             daily_online_limit: 0,
+            brain: "local".into(),
             memory_enabled: true,
             history_enabled: true,
             history_retention_days: 90,
@@ -88,6 +92,7 @@ impl AssistantPrefs {
         one_of(&mut self.proactivity, &["low", "normal", "high"], &d.proactivity);
         one_of(&mut self.ai_mode, &["hybrid", "local", "online"], &d.ai_mode);
         one_of(&mut self.local_provider, LOCAL_PROVIDERS, &d.local_provider);
+        one_of(&mut self.brain, &["local", "claude"], &d.brain);
         one_of(&mut self.performance_profile, &["lightweight", "balanced", "performance"], &d.performance_profile);
         self.humour = self.humour.min(10);
         self.gpu_layers = self.gpu_layers.min(999);

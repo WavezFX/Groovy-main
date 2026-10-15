@@ -118,6 +118,8 @@ export interface AssistantPrefs {
   gpuLayers: number;
   /** Online messages per day; 0 = no limit. */
   dailyOnlineLimit: number;
+  /** What answers « OK Groovy », cleans up dictation and summarises notes (brain_ai.rs). */
+  brain: "local" | "claude";
   memoryEnabled: boolean;
   historyEnabled: boolean;
   /** Days; 0 = keep forever. */
@@ -138,6 +140,7 @@ export const DEFAULT_ASSISTANT: AssistantPrefs = {
   localModel: "",
   gpuLayers: 0,
   dailyOnlineLimit: 0,
+  brain: "local",
   memoryEnabled: true,
   historyEnabled: true,
   historyRetentionDays: 90,

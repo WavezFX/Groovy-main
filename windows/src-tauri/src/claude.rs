@@ -160,8 +160,48 @@ pub async fn send(
     Ok(ChatReply::text(text))
 }
 
+/// One question, one answer, no history (brain_ai.rs, when Claude is chosen).
+pub async fn complete(model: &str, system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
+    let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
+    let endpoint = endpoint()?;
+    let body = json!({
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": [{ "role": "user", "content": user }],
+    });
+    let response = call_with_timeout(&endpoint, &key, &body, timeout).await?;
+    let text: String = response["content"]
+        .as_array()
+        .map(|blocks| blocks.iter().filter_map(|b| b["text"].as_str()).collect())
+        .unwrap_or_default();
+    if text.trim().is_empty() {
+        return Err("empty answer".into());
+    }
+    Ok(text)
+}
+
+/// One turn of « OK Groovy »'s conversation with tools: the API's whole answer
+/// (content blocks and stop_reason).
+pub async fn voice_turn(model: &str, system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
+    let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
+    let endpoint = endpoint()?;
+    let body = json!({
+        "model": model,
+        "max_tokens": 1024,
+        "system": system,
+        "messages": messages,
+        "tools": tools,
+    });
+    call_with_timeout(&endpoint, &key, &body, Duration::from_secs(45)).await
+}
+
 async fn call(endpoint: &Url, key: &str, body: &Value) -> Result<Value, String> {
-    let response = net::client(endpoint, Duration::from_secs(90))?
+    call_with_timeout(endpoint, key, body, Duration::from_secs(90)).await
+}
+
+async fn call_with_timeout(endpoint: &Url, key: &str, body: &Value, timeout: Duration) -> Result<Value, String> {
+    let response = net::client(endpoint, timeout)?
         .post(endpoint.clone())
         .header("x-api-key", key)
         .header("anthropic-version", ANTHROPIC_VERSION)

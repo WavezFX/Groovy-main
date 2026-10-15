@@ -22,6 +22,8 @@ pub const KNOWN_KEYS: &[&str] = &[
     "calcom-api-key",
     "livekit-api-key",
     "livekit-api-secret",
+    // « OK Groovy »'s answers in an ElevenLabs voice (optional; the system voice is the default).
+    "elevenlabs-api-key",
 ];
 
 fn entry(key: &str) -> Option<Entry> {

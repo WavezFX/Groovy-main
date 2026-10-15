@@ -3,6 +3,7 @@
 mod agent_hooks;
 mod agents;
 mod assistant;
+mod brain_ai;
 mod chat;
 mod claude;
 mod codex_plan;
@@ -10,6 +11,7 @@ mod config_file;
 mod db;
 mod desktop;
 mod files;
+mod flow;
 mod github;
 mod hooks;
 mod i18n;
@@ -22,6 +24,8 @@ mod log;
 mod memory;
 mod models;
 mod music;
+mod notes;
+mod okgroovy;
 mod net;
 mod ollama;
 mod openai_compat;
@@ -36,6 +40,7 @@ mod session_window;
 mod settings;
 mod shortcuts;
 mod sounds;
+mod speech;
 mod spotify;
 mod studio;
 mod system;
@@ -635,6 +640,10 @@ fn secret_set(app: AppHandle, key: String, value: String) -> Result<(), String> 
             integrations::github_token_changed(&app);
         }
     }
+    // A Claude key can make « OK Groovy » available (brain_ai.rs).
+    if key == claude::KEY {
+        okgroovy::sync(&app);
+    }
     Ok(())
 }
 
@@ -644,6 +653,9 @@ fn secret_clear(app: AppHandle, key: String) -> Result<(), String> {
     secrets::clear(&key)?;
     if had {
         integrations::github_token_changed(&app);
+    }
+    if key == claude::KEY {
+        okgroovy::sync(&app);
     }
     Ok(())
 }
@@ -746,19 +758,60 @@ fn create_settings_window(app: &AppHandle) {
     }
 }
 
+/// The Control Centre window (every setting, Flow dictation, the Notetaker…),
+/// labelled "settings" since it grew out of the settings window. The ported
+/// Coucou 0.5.0 code calls it the hub.
+pub const HUB_LABEL: &str = "settings";
+
 pub fn show_settings_window(app: &AppHandle) {
-    let Some(win) = app.get_webview_window("settings") else {
+    show_hub(app, None);
+}
+
+/// Shows the Control Centre, on `page` when given ("dictation", "notes",
+/// "assistant"…: the id of one of its sections).
+pub fn show_hub(app: &AppHandle, page: Option<&str>) {
+    let Some(win) = app.get_webview_window(HUB_LABEL) else {
         log::line("settings window missing");
         return;
     };
     let _ = win.unminimize();
     let _ = win.show();
     let _ = win.set_focus();
+    if let Some(page) = page {
+        let _ = win.emit("hub-page", page.to_string());
+    }
+}
+
+/// The argument the login item starts Groovy with.
+const AUTOSTART_ARG: &str = "--autostart";
+
+/// Groovy started with the computer, not opened by the user: the window stays hidden.
+pub fn launched_at_login() -> bool {
+    std::env::args().any(|a| a == AUTOSTART_ARG)
+}
+
+/// The panel is laid out in CSS px against the window's own scale. If the webview
+/// reports a different devicePixelRatio (it ends up bigger than the window and gets
+/// cut), correct its zoom so one CSS px is one logical px again.
+#[tauri::command]
+fn fit_zoom(app: AppHandle, dpr: f64) -> bool {
+    let Some(win) = island::window(&app) else { return false };
+    let scale = win.scale_factor().unwrap_or(1.0);
+    static ZOOM: std::sync::Mutex<f64> = std::sync::Mutex::new(1.0);
+    let mut zoom = ZOOM.lock().unwrap();
+    if let Some(new_zoom) = island::calculate_zoom_correction(*zoom, scale, dpr) {
+        *zoom = new_zoom;
+        log::line(format!("webview dpr {dpr} != window scale {scale} — setting zoom {new_zoom:.3}"));
+        let _ = win.set_zoom(new_zoom);
+        true
+    } else {
+        false
+    }
 }
 
 #[tauri::command]
-fn open_settings_window(app: AppHandle) {
-    show_settings_window(&app);
+fn open_settings_window(app: AppHandle, page: Option<String>) {
+    show_hub(&app, page.as_deref());
 }
 
 pub fn run() {
@@ -796,7 +849,7 @@ pub fn run() {
                 }
             }
         }))
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![AUTOSTART_ARG])))
         .plugin(tauri_plugin_dialog::init());
     // Where no global shortcut can work, the plugin isn't even started.
     if platform::global_shortcuts_blocked().is_none() {
@@ -965,6 +1018,41 @@ pub fn run() {
             music::music_volume,
             music::music_set_mode,
             db::usage_today,
+            fit_zoom,
+            flow::flow_status,
+            flow::flow_set_prefs,
+            flow::flow_history,
+            flow::flow_delete,
+            flow::flow_clear,
+            flow::flow_stats,
+            flow::flow_words,
+            flow::flow_set_words,
+            flow::flow_snippets,
+            flow::flow_set_snippets,
+            flow::flow_styles,
+            flow::flow_set_styles,
+            flow::flow_running_apps,
+            flow::flow_copy,
+            flow::flow_paste_again,
+            flow::flow_models_download,
+            flow::flow_models_remove,
+            flow::pill_state,
+            flow::pill_hot,
+            flow::pill_hover,
+            flow::pill_action,
+            notes::notes_state,
+            notes::notes_start,
+            notes::notes_stop,
+            notes::notes_rename,
+            notes::notes_rename_speaker,
+            notes::notes_toggle_todo,
+            notes::notes_delete,
+            notes::notes_summarize,
+            notes::notes_retry,
+            notes::notes_markdown,
+            notes::notes_export,
+            okgroovy::voice_done,
+            okgroovy::voice_say_native,
             studio::studio_workspaces,
             studio::studio_add_workspace,
             studio::studio_new_project,
@@ -1030,6 +1118,18 @@ pub fn run() {
                 }
             }
             tasks::spawn(handle.clone());
+            brain_ai::init(&handle);
+            flow::setup(&handle);
+            notes::setup(&handle);
+            if loaded.autostart {
+                // Login items written before this version start Groovy without
+                // --autostart: writing it again adds it, so the window stays hidden at login.
+                let _ = handle.autolaunch().enable();
+            }
+            let open_window = flow::get(&handle).map(|f| f.store.lock().unwrap().prefs.open_at_launch).unwrap_or(false);
+            if open_window && !launched_at_login() && !first_run {
+                show_hub(&handle, None);
+            }
             music::init(&handle);
             models::spawn_idle_reaper();
             hooks::ensure_hook_exe(&handle);
@@ -1049,6 +1149,7 @@ pub fn run() {
                 // The local model server is ours: it never outlives Groovy.
                 models::stop();
                 music::stop_on_exit();
+                notes::shutdown(app);
             }
         });
 }

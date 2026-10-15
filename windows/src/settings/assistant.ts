@@ -35,6 +35,11 @@ const MODES: [AssistantPrefs["aiMode"], string, string][] = [
   ["online", N_("Online only"), N_("Always the provider picked in the chat, never a fallback.")],
 ];
 
+const BRAINS: [AssistantPrefs["brain"], string][] = [
+  ["local", N_("The local model (free, private)")],
+  ["claude", N_("Claude (your key)")],
+];
+
 const LOCALS: [AssistantPrefs["localProvider"], string][] = [
   ["llamacpp", N_("Groovy's engine (Settings → Models)")],
   ["ollama", "Ollama"],
@@ -115,6 +120,8 @@ export function assistantSection(settings: Settings, save: () => void, toggle: T
     h("div", { class: "row" }, h("label", { text: t("AI mode") }), mode),
     modeHint,
     h("div", { class: "row" }, h("label", { text: t("Local model") }), select(LOCALS, p.localProvider, (v) => set("localProvider", v))),
+    h("div", { class: "row" }, h("label", { text: t("Voice and dictation") }), select(BRAINS, p.brain, (v) => set("brain", v))),
+    h("div", { class: "hint", text: t("What answers « OK Groovy », cleans up dictation and summarises notes. Claude is used only with a key and never in “This PC only” mode; the local model takes over when Claude can't answer in Hybrid.") }),
     h("div", { class: "row" }, h("label", { text: t("Online messages per day") }), limit, h("span", { class: "hint", text: t("0 = no limit") })),
     h(
       "div",
