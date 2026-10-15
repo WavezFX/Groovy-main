@@ -66,7 +66,13 @@ pub struct Chat {
     instructions: Mutex<Instructions>,
     /// The chat history row this conversation is saved under (memory.rs).
     saved_as: Mutex<Option<i64>>,
+    /// This turn was spoken in a voice call: short answers, for the ear.
+    spoken: std::sync::atomic::AtomicBool,
 }
+
+/// Added to the system prompt for a voice call turn: light local models
+/// answer quickly, and every answer is easy to listen to.
+pub const VOICE_RULE: &str = "This is a spoken voice call: reply in 1-2 sentences unless asked for more, in plain words (no lists, headings, markdown or emoji).";
 
 #[derive(Default, Clone)]
 struct Instructions {
@@ -126,7 +132,13 @@ impl Chat {
         }
         let name = if i.name.is_empty() { "Groovy" } else { i.name.as_str() };
         let base = system_prompt_for(name, crate::identity::first_name(), web_search);
-        if i.text.is_empty() { base } else { format!("{base}\n\n{}", i.text) }
+        let base = if i.text.is_empty() { base } else { format!("{base}\n\n{}", i.text) };
+        if self.spoken.load(std::sync::atomic::Ordering::Relaxed) { format!("{base}\n\n{VOICE_RULE}") } else { base }
+    }
+
+    /// Whether the next turn comes from a voice call.
+    pub fn set_spoken(&self, spoken: bool) {
+        self.spoken.store(spoken, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// Starts a turn with `provider`, converting the history if another
@@ -347,6 +359,15 @@ pub fn target(settings: &Settings) -> (String, bool) {
     (route.primary, local)
 }
 
+/// "Test my voice setup": one spoken-style question to whoever answers the
+/// chat now, outside the conversation (nothing saved). Returns (answer, who).
+pub async fn probe(app: &AppHandle, settings: &Settings, question: &str) -> Result<(String, String), String> {
+    let (who, _) = target(settings);
+    let system = format!("{}\n\n{VOICE_RULE}", system_prompt_for("Groovy", crate::identity::first_name(), false));
+    let answer = complete(app, settings, &system, question.to_string(), |_| {}).await?;
+    Ok((answer, who))
+}
+
 /// One question with its own system prompt, outside the chat's conversation
 /// (the Coding Studio). Same routing and fallback as the chat; `on_delta`
 /// gets the text so far (streamed by local models, at once by the others).
@@ -537,6 +558,20 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_spoken_turn_asks_for_a_short_answer() {
+        let chat = Chat::default();
+        assert!(!chat.system_prompt(false).contains(VOICE_RULE));
+        chat.set_spoken(true);
+        assert!(chat.system_prompt(false).ends_with(VOICE_RULE));
+        chat.set_spoken(false);
+        assert!(!chat.system_prompt(false).contains(VOICE_RULE));
+        // The Coding Studio's own prompt is left alone.
+        let studio = Chat::with_system("studio");
+        studio.set_spoken(true);
+        assert_eq!(studio.system_prompt(false), "studio");
+    }
 
     fn turn_texts(history: &[Value]) -> Vec<(String, Value)> {
         history

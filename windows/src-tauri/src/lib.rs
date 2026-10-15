@@ -493,9 +493,31 @@ async fn chat_send(
     chat: State<'_, Chat>,
     query: String,
     context: Option<ChatContext>,
+    spoken: Option<bool>,
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
+    chat.set_spoken(spoken.unwrap_or(false));
     chat::send(&app, &chat, &settings, query, context).await
+}
+
+/// "Test my voice setup", step 3: "say hello" to the brain the calls use.
+#[tauri::command]
+async fn voice_probe(app: AppHandle, shared: State<'_, Shared>) -> Result<serde_json::Value, String> {
+    let settings = shared.settings.lock().unwrap().clone();
+    let started = std::time::Instant::now();
+    let r = chat::probe(&app, &settings, "Say hello in one short sentence.").await;
+    match &r {
+        Ok((answer, who)) => log::voice(format!("test: brain {who} answered in {:.1}s ({} chars)", started.elapsed().as_secs_f64(), answer.len())),
+        Err(e) => log::voice(format!("test: brain failed: {e}")),
+    }
+    let (answer, who) = r?;
+    Ok(serde_json::json!({ "answer": answer, "brain": who }))
+}
+
+/// One line for voice.log from the island (the call's stages).
+#[tauri::command]
+fn voice_log(line: String) {
+    log::voice(line.chars().take(400).collect::<String>());
 }
 
 /// Dragging the island along the top of the screen: `fraction` 0 = left edge,
@@ -557,19 +579,43 @@ async fn ollama_setup(app: AppHandle, shared: State<'_, Shared>) -> Result<Strin
 
 /// One spoken segment to text, with the Whisper model chosen in Settings.
 #[tauri::command]
-async fn voice_transcribe(shared: State<'_, Shared>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
+async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
     let (model, language) = {
         let s = shared.settings.lock().unwrap();
         (s.voice_model.clone(), s.voice_language.clone())
     };
     let language = voice::language_for(&model, &language);
-    voice::transcribe(model, language, samples, wake).await
+    // One speech engine for everything (round 2): calls use what dictation,
+    // the Notetaker and « OK Groovy » use — Parakeet, or Whisper when chosen.
+    let whisper = flow::uses_whisper(&app);
+    if whisper {
+        return voice::transcribe(model, language, samples, wake).await;
+    }
+    let started = std::time::Instant::now();
+    let n = samples.len();
+    let text = tauri::async_runtime::spawn_blocking(move || {
+        let pcm: Vec<f32> = samples.iter().map(|&s| s as f32 / 32768.0).collect();
+        speech::transcribe(&pcm).map(|t| t.text)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| i18n::t("The speech model isn't downloaded yet: set it up in Groovy → Voice and dictation."))?;
+    if !wake {
+        log::voice(format!("heard {:.1}s of speech in {:.1}s: {} chars", n as f64 / 16000.0, started.elapsed().as_secs_f64(), text.len()));
+    }
+    Ok(text)
 }
 
 #[tauri::command]
-fn voice_status(shared: State<'_, Shared>) -> voice::VoiceStatus {
+fn voice_status(app: AppHandle, shared: State<'_, Shared>) -> voice::VoiceStatus {
     let model = shared.settings.lock().unwrap().voice_model.clone();
-    voice::status(&model)
+    let mut status = voice::status(&model);
+    if !flow::uses_whisper(&app) {
+        // Parakeet: the shared engine, always built in.
+        status.available = true;
+        status.ready = speech::is_ready();
+    }
+    status
 }
 
 /// Settings → Voice → Download: only on the user's click.
@@ -1071,6 +1117,8 @@ pub fn run() {
             models::models_status,
             models::memory_hogs,
             models::models_load_anyway,
+            voice_probe,
+            voice_log,
             models::models_install_runtime,
             models::models_download,
             models::models_cancel_download,

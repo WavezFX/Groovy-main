@@ -6,6 +6,7 @@
 // model name above the text field opens the picker: provider chips, then the
 // models of the chosen provider, asked for only once it is picked.
 
+import { FIX_LABELS, FIX_PAGES, stageText } from "../voice/stages";
 import { h, svg, clear } from "./dom";
 import { ICONS } from "./icons";
 import { renderMarkdown } from "./markdown";
@@ -280,7 +281,11 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
   interruptBtn.addEventListener("click", () => CallControl.interrupt());
   const endBtn = h("button", { class: "call-btn small end", title: tl(STRINGS.hangUp) }, svg(ICONS.xmark, 10));
   endBtn.addEventListener("click", () => CallControl.toggle());
-  const callBar = h("div", { class: "call-bar", role: "status" }, viz, callText, h("div", { class: "grow" }), interruptBtn, muteBtn, endBtn);
+  // A failed stage's one fix (Download speech model, Choose an AI, Pick a voice).
+  const fixBtn = h("button", { class: "call-chip", onclick: () => {
+    if (State.callFix) void Bridge.openSettingsWindow(FIX_PAGES[State.callFix]);
+  } });
+  const callBar = h("div", { class: "call-bar", role: "status" }, viz, callText, h("div", { class: "grow" }), fixBtn, interruptBtn, muteBtn, endBtn);
   const bars = Array.from(viz.children) as HTMLElement[];
   MicLevel.listeners.add((level) => {
     if (!callBar.isConnected || callBar.style.display === "none") return;
@@ -341,7 +346,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     log.scrollTop = log.scrollHeight;
   });
 
-  async function submit() {
+  async function submit(spoken = false) {
     const query = input.value.trim();
     if (!query || sending) return;
     if (picker.isOpen) picker.close();
@@ -369,7 +374,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       State.chatHistory.length === 1 && file ? { kind: "file", name: file.name, path: file.path } : null;
 
     try {
-      const reply = await Bridge.chatSend(query, context);
+      const reply = await Bridge.chatSend(query, context, spoken);
       State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text, action: reply.action });
       State.stateOverride = null;
       Sound.play("finish");
@@ -444,7 +449,12 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       dictateBtn.style.display = State.voiceCall ? "none" : "";
       callBar.style.display = State.voiceCall ? "" : "none";
       callBar.dataset.state = State.callState;
-      callText.textContent = State.voiceCall ? (State.voiceCaption && State.callState === "listening" ? State.voiceCaption : t(callLabel(State.callState))) : "";
+      callText.textContent = State.voiceCall
+        ? State.voiceCaption && State.callState === "listening" ? State.voiceCaption : stageText(State.callState, State.callHeard, State.callBrain, State.callReason)
+        : "";
+      const fix = State.callState === "error" ? State.callFix : null;
+      fixBtn.style.display = fix ? "" : "none";
+      if (fix) fixBtn.textContent = t(FIX_LABELS[fix]);
       muteBtn.classList.toggle("on", State.callState === "muted");
       muteBtn.title = t(State.callState === "muted" ? STRINGS.unmute : STRINGS.mute);
       interruptBtn.style.display = State.voiceSpeaking ? "" : "none";
@@ -462,7 +472,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       if (State.voiceQuery && !sending && State.view === "prompt") {
         input.value = State.voiceQuery;
         State.voiceQuery = null;
-        void submit();
+        void submit(true);
       }
     },
     focus() {

@@ -3966,17 +3966,6 @@
    "ru": "Прилив",
    "id": "Pasang"
   },
-  "On this computer (Whisper)": {
-   "zh-Hans": "在这台电脑上（Whisper）",
-   "hi": "इसी कंप्यूटर पर (Whisper)",
-   "es": "En este ordenador (Whisper)",
-   "ar": "على هذا الكمبيوتر (Whisper)",
-   "fr": "Sur cet ordinateur (Whisper)",
-   "bn": "এই কম্পিউটারে (Whisper)",
-   "pt-BR": "Neste computador (Whisper)",
-   "ru": "На этом компьютере (Whisper)",
-   "id": "Di komputer ini (Whisper)"
-  },
   "LiveKit conversation": {
    "zh-Hans": "LiveKit 对话",
    "hi": "LiveKit बातचीत",
@@ -4119,17 +4108,6 @@
    "pt-BR": "Diga “Groovy”, “Hey Groovy” ou “Yo Groovy” e depois o que quiser.",
    "ru": "Скажите «Groovy», «Hey Groovy» или «Yo Groovy», а затем что вам нужно.",
    "id": "Ucapkan “Groovy”, “Hey Groovy”, atau “Yo Groovy”, lalu apa yang Anda mau."
-  },
-  "Download a speech model to use your voice.": {
-   "zh-Hans": "下载语音模型即可用声音操作。",
-   "hi": "अपनी आवाज़ इस्तेमाल करने के लिए स्पीच मॉडल डाउनलोड करें।",
-   "es": "Descarga un modelo de voz para usar tu voz.",
-   "ar": "نزّل نموذج كلام لاستخدام صوتك.",
-   "fr": "Téléchargez un modèle vocal pour utiliser votre voix.",
-   "bn": "আপনার কণ্ঠ ব্যবহার করতে একটি স্পিচ মডেল ডাউনলোড করুন।",
-   "pt-BR": "Baixe um modelo de voz para usar sua voz.",
-   "ru": "Скачайте речевую модель, чтобы пользоваться голосом.",
-   "id": "Unduh model suara untuk memakai suara Anda."
   },
   "Listen for “Hey Groovy”": {
    "zh-Hans": "监听“Hey Groovy”",
@@ -4537,17 +4515,6 @@
    "pt-BR": "Pronto! Fazendo sua pergunta agora.",
    "ru": "Готово! Задаю ваш вопрос.",
    "id": "Siap! Mengajukan pertanyaan Anda sekarang."
-  },
-  "Getting my ears ready… {0}%": {
-   "zh-Hans": "正在准备耳朵… {0}%",
-   "hi": "कान तैयार हो रहे हैं… {0}%",
-   "es": "Preparando mis oídos… {0}%",
-   "ar": "أجهّز أذنيّ… {0}%",
-   "fr": "Je prépare mes oreilles… {0} %",
-   "bn": "কান তৈরি হচ্ছে… {0}%",
-   "pt-BR": "Preparando meus ouvidos… {0}%",
-   "ru": "Настраиваю уши… {0}%",
-   "id": "Menyiapkan telingaku… {0}%"
   },
   "Always show Groovy": {
    "zh-Hans": "始终显示 Groovy",
@@ -12842,6 +12809,424 @@
    "pt-BR": "Só há {free} MB de memória livre agora e este modelo precisa de cerca de {needed} MB. Feche alguns apps ou escolha \"Carregar mesmo assim\" em Groovy → Modelos.",
    "ru": "Сейчас свободно только {free} МБ памяти, а этой модели нужно около {needed} МБ. Закройте часть приложений или выберите «Всё равно загрузить» в Groovy → Модели.",
    "id": "Saat ini hanya {free} MB memori yang kosong dan model ini butuh sekitar {needed} MB. Tutup beberapa aplikasi, atau pilih \"Muat saja\" di Groovy → Model."
+  },
+  "Calls need the speech model. It's downloaded once and used for dictation too.": {
+   "zh-Hans": "通话需要语音模型。只需下载一次，听写也会用到。",
+   "hi": "कॉल के लिए स्पीच मॉडल चाहिए। यह एक बार डाउनलोड होता है और डिक्टेशन में भी काम आता है।",
+   "es": "Las llamadas necesitan el modelo de voz. Se descarga una vez y también sirve para el dictado.",
+   "ar": "تحتاج المكالمات إلى نموذج الكلام. يُنزَّل مرة واحدة ويُستخدم للإملاء أيضًا.",
+   "fr": "Les appels ont besoin du modèle vocal. Il se télécharge une fois et sert aussi à la dictée.",
+   "bn": "কলের জন্য স্পিচ মডেল দরকার। এটি একবার ডাউনলোড হয় এবং ডিক্টেশনেও কাজে লাগে।",
+   "pt-BR": "As chamadas precisam do modelo de fala. Ele é baixado uma vez e serve também para o ditado.",
+   "ru": "Для звонков нужна речевая модель. Она скачивается один раз и подходит и для диктовки.",
+   "id": "Panggilan butuh model suara. Diunduh sekali dan dipakai juga untuk dikte."
+  },
+  "Groovy can't use the microphone.": {
+   "zh-Hans": "Groovy 无法使用麦克风。",
+   "hi": "Groovy माइक्रोफ़ोन इस्तेमाल नहीं कर पा रहा।",
+   "es": "Groovy no puede usar el micrófono.",
+   "ar": "لا يستطيع Groovy استخدام الميكروفون.",
+   "fr": "Groovy ne peut pas utiliser le micro.",
+   "bn": "Groovy মাইক্রোফোন ব্যবহার করতে পারছে না।",
+   "pt-BR": "O Groovy não consegue usar o microfone.",
+   "ru": "Groovy не может использовать микрофон.",
+   "id": "Groovy tidak bisa memakai mikrofon."
+  },
+  "The AI didn't answer.": {
+   "zh-Hans": "AI 没有回答。",
+   "hi": "AI ने जवाब नहीं दिया।",
+   "es": "La IA no respondió.",
+   "ar": "لم يُجب الذكاء الاصطناعي.",
+   "fr": "L'IA n'a pas répondu.",
+   "bn": "AI উত্তর দেয়নি।",
+   "pt-BR": "A IA não respondeu.",
+   "ru": "ИИ не ответил.",
+   "id": "AI tidak menjawab."
+  },
+  "On this computer": {
+   "zh-Hans": "在这台电脑上",
+   "hi": "इसी कंप्यूटर पर",
+   "es": "En este ordenador",
+   "ar": "على هذا الحاسوب",
+   "fr": "Sur cet ordinateur",
+   "bn": "এই কম্পিউটারে",
+   "pt-BR": "Neste computador",
+   "ru": "На этом компьютере",
+   "id": "Di komputer ini"
+  },
+  "Parakeet (fast, 25 languages)": {
+   "zh-Hans": "Parakeet（快速，25 种语言）",
+   "hi": "Parakeet (तेज़, 25 भाषाएँ)",
+   "es": "Parakeet (rápido, 25 idiomas)",
+   "ar": "Parakeet (سريع، 25 لغة)",
+   "fr": "Parakeet (rapide, 25 langues)",
+   "bn": "Parakeet (দ্রুত, ২৫টি ভাষা)",
+   "pt-BR": "Parakeet (rápido, 25 idiomas)",
+   "ru": "Parakeet (быстро, 25 языков)",
+   "id": "Parakeet (cepat, 25 bahasa)"
+  },
+  "Whisper (more languages)": {
+   "zh-Hans": "Whisper（更多语言）",
+   "hi": "Whisper (ज़्यादा भाषाएँ)",
+   "es": "Whisper (más idiomas)",
+   "ar": "Whisper (لغات أكثر)",
+   "fr": "Whisper (plus de langues)",
+   "bn": "Whisper (আরও ভাষা)",
+   "pt-BR": "Whisper (mais idiomas)",
+   "ru": "Whisper (больше языков)",
+   "id": "Whisper (lebih banyak bahasa)"
+  },
+  "Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».": {
+   "zh-Hans": "下载一次，处处可用：通话、听写、笔记助手和 « OK Groovy »。",
+   "hi": "एक बार डाउनलोड, हर जगह इस्तेमाल: कॉल, डिक्टेशन, नोटटेकर और « OK Groovy »।",
+   "es": "Se descarga una vez y se usa en todo: llamadas, dictado, el Notetaker y « OK Groovy ».",
+   "ar": "يُنزَّل مرة واحدة ويُستخدم في كل مكان: المكالمات والإملاء ومدوّن الملاحظات و« OK Groovy ».",
+   "fr": "Téléchargé une fois, utilisé partout : appels, dictée, le Notetaker et « OK Groovy ».",
+   "bn": "একবার ডাউনলোড, সব জায়গায় ব্যবহার: কল, ডিক্টেশন, নোটটেকার ও « OK Groovy »।",
+   "pt-BR": "Baixado uma vez e usado em tudo: chamadas, ditado, o Notetaker e « OK Groovy ».",
+   "ru": "Скачивается один раз и работает везде: звонки, диктовка, Notetaker и « OK Groovy ».",
+   "id": "Diunduh sekali dan dipakai di mana saja: panggilan, dikte, Notetaker, dan « OK Groovy »."
+  },
+  "Not downloaded yet": {
+   "zh-Hans": "尚未下载",
+   "hi": "अभी डाउनलोड नहीं हुआ",
+   "es": "Aún no descargado",
+   "ar": "لم يُنزَّل بعد",
+   "fr": "Pas encore téléchargé",
+   "bn": "এখনো ডাউনলোড হয়নি",
+   "pt-BR": "Ainda não baixado",
+   "ru": "Ещё не скачано",
+   "id": "Belum diunduh"
+  },
+  "Set up the speech model to use your voice.": {
+   "zh-Hans": "设置语音模型即可用声音操作。",
+   "hi": "अपनी आवाज़ इस्तेमाल करने के लिए स्पीच मॉडल सेट करें।",
+   "es": "Configura el modelo de voz para usar tu voz.",
+   "ar": "اضبط نموذج الكلام لتستخدم صوتك.",
+   "fr": "Configurez le modèle vocal pour utiliser votre voix.",
+   "bn": "নিজের কণ্ঠ ব্যবহার করতে স্পিচ মডেল সেট আপ করুন।",
+   "pt-BR": "Configure o modelo de fala para usar sua voz.",
+   "ru": "Настройте речевую модель, чтобы пользоваться голосом.",
+   "id": "Siapkan model suara untuk memakai suara Anda."
+  },
+  "Check": {
+   "zh-Hans": "检查",
+   "hi": "जाँच",
+   "es": "Comprobar",
+   "ar": "فحص",
+   "fr": "Vérifier",
+   "bn": "যাচাই",
+   "pt-BR": "Verificar",
+   "ru": "Проверка",
+   "id": "Periksa"
+  },
+  "Level {0} %": {
+   "zh-Hans": "音量 {0}%",
+   "hi": "स्तर {0} %",
+   "es": "Nivel {0} %",
+   "ar": "المستوى {0} %",
+   "fr": "Niveau {0} %",
+   "bn": "স্তর {0} %",
+   "pt-BR": "Nível {0} %",
+   "ru": "Уровень {0} %",
+   "id": "Level {0} %"
+  },
+  "Too quiet ({0} %): check the microphone, or speak closer.": {
+   "zh-Hans": "太小声（{0}%）：请检查麦克风，或靠近一点说话。",
+   "hi": "बहुत धीमा ({0} %): माइक्रोफ़ोन जाँचें, या पास से बोलें।",
+   "es": "Demasiado bajo ({0} %): revisa el micrófono o habla más cerca.",
+   "ar": "الصوت منخفض جدًا ({0} %): افحص الميكروفون أو تحدّث عن قرب.",
+   "fr": "Trop faible ({0} %) : vérifiez le micro, ou parlez plus près.",
+   "bn": "খুব কম ({0} %): মাইক্রোফোন দেখুন, বা কাছে থেকে বলুন।",
+   "pt-BR": "Baixo demais ({0} %): verifique o microfone ou fale mais perto.",
+   "ru": "Слишком тихо ({0} %): проверьте микрофон или говорите ближе.",
+   "id": "Terlalu pelan ({0} %): periksa mikrofon, atau bicara lebih dekat."
+  },
+  "Nothing was understood.": {
+   "zh-Hans": "没有听懂任何内容。",
+   "hi": "कुछ समझ नहीं आया।",
+   "es": "No se entendió nada.",
+   "ar": "لم يُفهم شيء.",
+   "fr": "Rien n'a été compris.",
+   "bn": "কিছুই বোঝা যায়নি।",
+   "pt-BR": "Nada foi entendido.",
+   "ru": "Ничего не распознано.",
+   "id": "Tidak ada yang dipahami."
+  },
+  "Skipped: the microphone didn't hear you.": {
+   "zh-Hans": "已跳过：麦克风没有听到你。",
+   "hi": "छोड़ा गया: माइक्रोफ़ोन ने आपको नहीं सुना।",
+   "es": "Omitido: el micrófono no te oyó.",
+   "ar": "تم التخطي: لم يسمعك الميكروفون.",
+   "fr": "Ignoré : le micro ne vous a pas entendu.",
+   "bn": "বাদ দেওয়া হয়েছে: মাইক্রোফোন আপনাকে শোনেনি।",
+   "pt-BR": "Pulado: o microfone não ouviu você.",
+   "ru": "Пропущено: микрофон вас не услышал.",
+   "id": "Dilewati: mikrofon tidak mendengar Anda."
+  },
+  "{brain}: “{answer}”": {
+   "zh-Hans": "{brain}：“{answer}”",
+   "hi": "{brain}: “{answer}”",
+   "es": "{brain}: «{answer}»",
+   "ar": "{brain}: «{answer}»",
+   "fr": "{brain} : « {answer} »",
+   "bn": "{brain}: “{answer}”",
+   "pt-BR": "{brain}: “{answer}”",
+   "ru": "{brain}: «{answer}»",
+   "id": "{brain}: “{answer}”"
+  },
+  "{brain} gave an empty answer.": {
+   "zh-Hans": "{brain} 给出了空回答。",
+   "hi": "{brain} ने खाली जवाब दिया।",
+   "es": "{brain} dio una respuesta vacía.",
+   "ar": "أعطى {brain} إجابة فارغة.",
+   "fr": "{brain} a donné une réponse vide.",
+   "bn": "{brain} খালি উত্তর দিয়েছে।",
+   "pt-BR": "{brain} deu uma resposta vazia.",
+   "ru": "{brain} дал пустой ответ.",
+   "id": "{brain} memberi jawaban kosong."
+  },
+  "Hello, I'm Groovy.": {
+   "zh-Hans": "你好，我是 Groovy。",
+   "hi": "नमस्ते, मैं Groovy हूँ।",
+   "es": "Hola, soy Groovy.",
+   "ar": "مرحبًا، أنا Groovy.",
+   "fr": "Bonjour, je suis Groovy.",
+   "bn": "হ্যালো, আমি Groovy।",
+   "pt-BR": "Olá, eu sou o Groovy.",
+   "ru": "Привет, я Groovy.",
+   "id": "Halo, saya Groovy."
+  },
+  "Spoken aloud.": {
+   "zh-Hans": "已朗读出来。",
+   "hi": "बोलकर सुनाया गया।",
+   "es": "Leído en voz alta.",
+   "ar": "قُرئ بصوت عالٍ.",
+   "fr": "Lu à voix haute.",
+   "bn": "জোরে পড়ে শোনানো হয়েছে।",
+   "pt-BR": "Lido em voz alta.",
+   "ru": "Произнесено вслух.",
+   "id": "Diucapkan dengan suara."
+  },
+  "2. Speech to text (3 s)": {
+   "zh-Hans": "2. 语音转文字（3 秒）",
+   "hi": "2. बोली से टेक्स्ट (3 सेकंड)",
+   "es": "2. Voz a texto (3 s)",
+   "ar": "2. تحويل الكلام إلى نص (3 ث)",
+   "fr": "2. Parole en texte (3 s)",
+   "bn": "২. কথা থেকে লেখা (৩ সেকেন্ড)",
+   "pt-BR": "2. Fala para texto (3 s)",
+   "ru": "2. Речь в текст (3 с)",
+   "id": "2. Suara ke teks (3 dtk)"
+  },
+  "3. The AI answers": {
+   "zh-Hans": "3. AI 回答",
+   "hi": "3. AI जवाब देता है",
+   "es": "3. La IA responde",
+   "ar": "3. يُجيب الذكاء الاصطناعي",
+   "fr": "3. L'IA répond",
+   "bn": "৩. AI উত্তর দেয়",
+   "pt-BR": "3. A IA responde",
+   "ru": "3. ИИ отвечает",
+   "id": "3. AI menjawab"
+  },
+  "4. The answer is spoken": {
+   "zh-Hans": "4. 朗读回答",
+   "hi": "4. जवाब बोला जाता है",
+   "es": "4. Se lee la respuesta",
+   "ar": "4. تُقرأ الإجابة بصوت",
+   "fr": "4. La réponse est lue",
+   "bn": "৪. উত্তর বলে শোনানো হয়",
+   "pt-BR": "4. A resposta é falada",
+   "ru": "4. Ответ произносится",
+   "id": "4. Jawaban diucapkan"
+  },
+  "Test my voice setup": {
+   "zh-Hans": "测试我的语音设置",
+   "hi": "मेरा वॉइस सेटअप जाँचें",
+   "es": "Probar mi configuración de voz",
+   "ar": "اختبر إعداد الصوت",
+   "fr": "Tester ma configuration vocale",
+   "bn": "আমার ভয়েস সেটআপ পরীক্ষা করুন",
+   "pt-BR": "Testar minha configuração de voz",
+   "ru": "Проверить мои голосовые настройки",
+   "id": "Uji pengaturan suara saya"
+  },
+  "Say something when asked: first anything, then a short sentence.": {
+   "zh-Hans": "按提示说话：先随便说点什么，再说一句短句。",
+   "hi": "पूछे जाने पर बोलें: पहले कुछ भी, फिर एक छोटा वाक्य।",
+   "es": "Habla cuando se te pida: primero cualquier cosa, luego una frase corta.",
+   "ar": "تكلّم عند الطلب: أولًا أي شيء، ثم جملة قصيرة.",
+   "fr": "Parlez quand on vous le demande : d'abord n'importe quoi, puis une courte phrase.",
+   "bn": "বলতে বললে বলুন: প্রথমে যা খুশি, তারপর একটি ছোট বাক্য।",
+   "pt-BR": "Fale quando pedido: primeiro qualquer coisa, depois uma frase curta.",
+   "ru": "Говорите, когда попросят: сначала что угодно, потом короткую фразу.",
+   "id": "Bicara saat diminta: pertama apa saja, lalu satu kalimat pendek."
+  },
+  "Say anything now…": {
+   "zh-Hans": "现在随便说点什么…",
+   "hi": "अब कुछ भी बोलें…",
+   "es": "Di algo ahora…",
+   "ar": "قل أي شيء الآن…",
+   "fr": "Dites quelque chose maintenant…",
+   "bn": "এখন যা খুশি বলুন…",
+   "pt-BR": "Fale qualquer coisa agora…",
+   "ru": "Скажите что-нибудь…",
+   "id": "Ucapkan apa saja sekarang…"
+  },
+  "Now say a short sentence (3 seconds)…": {
+   "zh-Hans": "现在说一句短句（3 秒）…",
+   "hi": "अब एक छोटा वाक्य बोलें (3 सेकंड)…",
+   "es": "Ahora di una frase corta (3 segundos)…",
+   "ar": "الآن قل جملة قصيرة (3 ثوانٍ)…",
+   "fr": "Dites maintenant une courte phrase (3 secondes)…",
+   "bn": "এখন একটি ছোট বাক্য বলুন (৩ সেকেন্ড)…",
+   "pt-BR": "Agora diga uma frase curta (3 segundos)…",
+   "ru": "Теперь скажите короткую фразу (3 секунды)…",
+   "id": "Sekarang ucapkan satu kalimat pendek (3 detik)…"
+  },
+  "Asking the AI…": {
+   "zh-Hans": "正在询问 AI…",
+   "hi": "AI से पूछा जा रहा है…",
+   "es": "Preguntando a la IA…",
+   "ar": "جارٍ سؤال الذكاء الاصطناعي…",
+   "fr": "Question à l'IA…",
+   "bn": "AI-কে জিজ্ঞেস করা হচ্ছে…",
+   "pt-BR": "Perguntando à IA…",
+   "ru": "Спрашиваем ИИ…",
+   "id": "Bertanya ke AI…"
+  },
+  "Checks each stage of a call in turn. Details go to %LOCALAPPDATA%\\Groovy\\logs\\voice.log.": {
+   "zh-Hans": "依次检查通话的每个环节。详情写入 %LOCALAPPDATA%\\Groovy\\logs\\voice.log。",
+   "hi": "कॉल के हर चरण को बारी-बारी जाँचता है। विवरण %LOCALAPPDATA%\\Groovy\\logs\\voice.log में जाते हैं।",
+   "es": "Comprueba cada paso de una llamada. Los detalles van a %LOCALAPPDATA%\\Groovy\\logs\\voice.log.",
+   "ar": "يفحص كل مرحلة من المكالمة بالترتيب. تُكتب التفاصيل في %LOCALAPPDATA%\\Groovy\\logs\\voice.log.",
+   "fr": "Vérifie chaque étape d'un appel tour à tour. Les détails vont dans %LOCALAPPDATA%\\Groovy\\logs\\voice.log.",
+   "bn": "কলের প্রতিটি ধাপ পরপর যাচাই করে। বিস্তারিত যায় %LOCALAPPDATA%\\Groovy\\logs\\voice.log-এ।",
+   "pt-BR": "Verifica cada etapa de uma chamada. Os detalhes vão para %LOCALAPPDATA%\\Groovy\\logs\\voice.log.",
+   "ru": "Проверяет каждый этап звонка по очереди. Подробности — в %LOCALAPPDATA%\\Groovy\\logs\\voice.log.",
+   "id": "Memeriksa setiap tahap panggilan secara berurutan. Detail dicatat di %LOCALAPPDATA%\\Groovy\\logs\\voice.log."
+  },
+  "This computer has no text-to-speech.": {
+   "zh-Hans": "这台电脑没有文字转语音功能。",
+   "hi": "इस कंप्यूटर में टेक्स्ट-टू-स्पीच नहीं है।",
+   "es": "Este ordenador no tiene texto a voz.",
+   "ar": "لا يتوفر تحويل النص إلى كلام على هذا الحاسوب.",
+   "fr": "Cet ordinateur n'a pas de synthèse vocale.",
+   "bn": "এই কম্পিউটারে টেক্সট-টু-স্পিচ নেই।",
+   "pt-BR": "Este computador não tem conversão de texto em fala.",
+   "ru": "На этом компьютере нет синтеза речи.",
+   "id": "Komputer ini tidak punya teks-ke-suara."
+  },
+  "No voice is installed for reading answers aloud (Windows Settings → Time & language → Speech).": {
+   "zh-Hans": "没有安装用于朗读回答的语音（Windows 设置 → 时间和语言 → 语音）。",
+   "hi": "जवाब पढ़कर सुनाने के लिए कोई आवाज़ इंस्टॉल नहीं है (Windows सेटिंग्स → समय और भाषा → स्पीच)।",
+   "es": "No hay ninguna voz instalada para leer las respuestas (Configuración de Windows → Hora e idioma → Voz).",
+   "ar": "لا يوجد صوت مثبت لقراءة الإجابات (إعدادات Windows ← الوقت واللغة ← الكلام).",
+   "fr": "Aucune voix n'est installée pour lire les réponses (Paramètres Windows → Heure et langue → Voix).",
+   "bn": "উত্তর পড়ে শোনানোর কোনো ভয়েস ইনস্টল নেই (Windows সেটিংস → সময় ও ভাষা → স্পিচ)।",
+   "pt-BR": "Nenhuma voz instalada para ler as respostas (Configurações do Windows → Hora e idioma → Fala).",
+   "ru": "Не установлен голос для чтения ответов (Параметры Windows → Время и язык → Речь).",
+   "id": "Tidak ada suara terpasang untuk membacakan jawaban (Pengaturan Windows → Waktu & bahasa → Ucapan)."
+  },
+  "The voice couldn't speak ({0}).": {
+   "zh-Hans": "语音无法朗读（{0}）。",
+   "hi": "आवाज़ बोल नहीं सकी ({0})।",
+   "es": "La voz no pudo hablar ({0}).",
+   "ar": "تعذّر على الصوت النطق ({0}).",
+   "fr": "La voix n'a pas pu parler ({0}).",
+   "bn": "ভয়েস বলতে পারেনি ({0})।",
+   "pt-BR": "A voz não conseguiu falar ({0}).",
+   "ru": "Голос не смог произнести ({0}).",
+   "id": "Suara tidak bisa berbicara ({0})."
+  },
+  "Download speech model": {
+   "zh-Hans": "下载语音模型",
+   "hi": "स्पीच मॉडल डाउनलोड करें",
+   "es": "Descargar el modelo de voz",
+   "ar": "تنزيل نموذج الكلام",
+   "fr": "Télécharger le modèle vocal",
+   "bn": "স্পিচ মডেল ডাউনলোড করুন",
+   "pt-BR": "Baixar o modelo de fala",
+   "ru": "Скачать речевую модель",
+   "id": "Unduh model suara"
+  },
+  "Choose an AI": {
+   "zh-Hans": "选择 AI",
+   "hi": "AI चुनें",
+   "es": "Elegir una IA",
+   "ar": "اختر ذكاءً اصطناعيًا",
+   "fr": "Choisir une IA",
+   "bn": "একটি AI বেছে নিন",
+   "pt-BR": "Escolher uma IA",
+   "ru": "Выбрать ИИ",
+   "id": "Pilih AI"
+  },
+  "Pick a voice": {
+   "zh-Hans": "选择声音",
+   "hi": "आवाज़ चुनें",
+   "es": "Elegir una voz",
+   "ar": "اختر صوتًا",
+   "fr": "Choisir une voix",
+   "bn": "একটি ভয়েস বেছে নিন",
+   "pt-BR": "Escolher uma voz",
+   "ru": "Выбрать голос",
+   "id": "Pilih suara"
+  },
+  "Local {model}": {
+   "zh-Hans": "本地 {model}",
+   "hi": "लोकल {model}",
+   "es": "Local {model}",
+   "ar": "{model} المحلي",
+   "fr": "{model} en local",
+   "bn": "লোকাল {model}",
+   "pt-BR": "Local {model}",
+   "ru": "Локальная {model}",
+   "id": "Lokal {model}"
+  },
+  "the local model": {
+   "zh-Hans": "本地模型",
+   "hi": "लोकल मॉडल",
+   "es": "el modelo local",
+   "ar": "النموذج المحلي",
+   "fr": "le modèle local",
+   "bn": "লোকাল মডেল",
+   "pt-BR": "o modelo local",
+   "ru": "локальная модель",
+   "id": "model lokal"
+  },
+  "Thinking ({brain})…": {
+   "zh-Hans": "思考中（{brain}）…",
+   "hi": "सोच रहा है ({brain})…",
+   "es": "Pensando ({brain})…",
+   "ar": "يفكّر ({brain})…",
+   "fr": "Réflexion ({brain})…",
+   "bn": "ভাবছে ({brain})…",
+   "pt-BR": "Pensando ({brain})…",
+   "ru": "Думает ({brain})…",
+   "id": "Berpikir ({brain})…"
+  },
+  "Heard “{text}”": {
+   "zh-Hans": "听到“{text}”",
+   "hi": "सुना “{text}”",
+   "es": "Oído: «{text}»",
+   "ar": "سُمع: «{text}»",
+   "fr": "Entendu : « {text} »",
+   "bn": "শোনা গেছে “{text}”",
+   "pt-BR": "Ouvido: “{text}”",
+   "ru": "Услышано: «{text}»",
+   "id": "Terdengar “{text}”"
+  },
+  "The speech model isn't downloaded yet: set it up in Groovy → Voice and dictation.": {
+   "zh-Hans": "语音模型尚未下载：请在 Groovy → 语音和听写 中设置。",
+   "hi": "स्पीच मॉडल अभी डाउनलोड नहीं हुआ: Groovy → आवाज़ और डिक्टेशन में सेट करें।",
+   "es": "El modelo de voz aún no está descargado: configúralo en Groovy → Voz y dictado.",
+   "ar": "لم يُنزَّل نموذج الكلام بعد: اضبطه في Groovy ← الصوت والإملاء.",
+   "fr": "Le modèle vocal n'est pas encore téléchargé : configurez-le dans Groovy → Voix et dictée.",
+   "bn": "স্পিচ মডেল এখনো ডাউনলোড হয়নি: Groovy → ভয়েস ও ডিক্টেশন-এ সেট আপ করুন।",
+   "pt-BR": "O modelo de fala ainda não foi baixado: configure em Groovy → Voz e ditado.",
+   "ru": "Речевая модель ещё не скачана: настройте её в Groovy → Голос и диктовка.",
+   "id": "Model suara belum diunduh: siapkan di Groovy → Suara dan dikte."
   }
  }
 }

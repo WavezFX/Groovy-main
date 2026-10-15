@@ -351,6 +351,13 @@ class AppState {
   voiceSpeaking = false;
   /** Where the voice call is (voice/call-state.ts). */
   callState: import("../voice/call-state").CallState = "idle";
+  /** The call's last turn, as heard (shown while Groovy thinks). */
+  callHeard: string | null = null;
+  /** Who answers the call ("Gemini", "Local Gemma 3 1B"). */
+  callBrain = "";
+  /** Why the call stopped working, and the button that fixes it. */
+  callReason: string | null = null;
+  callFix: import("../voice/stages").CallFix | null = null;
   /** Colours and accessories being tried on in the Wardrobe Studio (not saved yet). */
   appearancePreview: import("../mochi/appearance").Appearance | null = null;
   /** Dictation is listening for one message to put in the text field. */

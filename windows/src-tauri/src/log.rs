@@ -7,16 +7,30 @@ use std::io::Write;
 use crate::{platform, settings};
 
 pub fn line(message: impl AsRef<str>) {
+    append(&settings::local_dir(), "groovy.log", message.as_ref());
+}
+
+/// Voice calls, stage by stage (heard, brain, spoken, what failed), at
+/// %LOCALAPPDATA%\Groovy\logs\voice.log, so a call that goes wrong can be
+/// diagnosed. What was said is not written, only its length.
+pub fn voice(message: impl AsRef<str>) {
+    append(&voice_dir(), "voice.log", message.as_ref());
+}
+
+pub fn voice_dir() -> std::path::PathBuf {
+    settings::local_dir().join("logs")
+}
+
+fn append(dir: &std::path::Path, name: &str, message: &str) {
     let t = platform::local_time();
     let stamp = format!(
         "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
         t.year, t.month, t.day, t.hour, t.minute, t.second
     );
-    let dir = settings::local_dir();
-    if platform::ensure_private_dir(&dir).is_err() {
+    if platform::ensure_private_dir(dir).is_err() {
         return;
     }
-    let path = dir.join("groovy.log");
+    let path = dir.join(name);
     // Keep it from growing forever: start fresh past ~1 MB.
     if std::fs::metadata(&path).map(|m| m.len() > 1_000_000).unwrap_or(false) {
         let _ = std::fs::remove_file(&path);
@@ -27,7 +41,7 @@ pub fn line(message: impl AsRef<str>) {
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
     if let Ok(mut file) = options.open(path) {
-        let _ = writeln!(file, "{stamp} {}", message.as_ref());
+        let _ = writeln!(file, "{stamp} {}", message.replace(['\r', '\n'], " "));
     }
 }
 

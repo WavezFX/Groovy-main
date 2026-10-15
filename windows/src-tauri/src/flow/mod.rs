@@ -459,6 +459,11 @@ pub struct FlowStatus {
 
 /// Points the speech layer at Parakeet or Whisper, from Flow's preferences and
 /// the voice settings (model and language). Called at start, and when either changes.
+/// Whisper is the chosen speech engine (Flow's preference), else Parakeet.
+pub fn uses_whisper(app: &AppHandle) -> bool {
+    get(app).map(|f| f.store.lock().unwrap().prefs.engine == "whisper").unwrap_or(false)
+}
+
 pub fn sync_engine(app: &AppHandle) {
     let whisper = get(app).map(|f| f.store.lock().unwrap().prefs.engine == "whisper").unwrap_or(false);
     let choice = whisper.then(|| {

@@ -3,6 +3,8 @@
 // computer; Edge's "Online (Natural)" voices need the internet, so they are only
 // used when picked by name.
 
+import { t } from "../i18n/i18n";
+
 /** Markdown and code turned into something worth hearing. */
 export function speakable(markdown: string, max = 700): string {
   let s = markdown
@@ -66,28 +68,30 @@ export function pickVoice(list: SpeechSynthesisVoice[], wanted: string): SpeechS
 
 let current: SpeechSynthesisUtterance | null = null;
 
-/** Says `text`; resolves when it is done (or was stopped). */
-export async function speak(text: string, voiceName = "", rate = 1): Promise<void> {
+/** Says `text`; resolves when it is done (or was stopped): null, or why it couldn't be said. */
+export async function speak(text: string, voiceName = "", rate = 1, queue = false): Promise<string | null> {
   const s = synth();
   const words = speakable(text);
-  if (!s || !words) return;
-  stopSpeaking();
+  if (!s) return t("This computer has no text-to-speech.");
+  if (!words) return null;
+  if (!queue) stopSpeaking();
   const voice = pickVoice(await voices(), voiceName);
-  await new Promise<void>((resolve) => {
+  if (!voice) return t("No voice is installed for reading answers aloud (Windows Settings → Time & language → Speech).");
+  return await new Promise<string | null>((resolve) => {
     const u = new SpeechSynthesisUtterance(words);
-    if (voice) {
-      u.voice = voice;
-      u.lang = voice.lang;
-    }
+    u.voice = voice;
+    u.lang = voice.lang;
     u.rate = rate;
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
+    u.onend = () => resolve(null);
+    // "interrupted"/"canceled" is us stopping it, not a failure.
+    u.onerror = (e) => resolve(e.error === "interrupted" || e.error === "canceled" ? null : t("The voice couldn't speak ({0}).", { 0: e.error }));
     current = u;
     s.speak(u);
     // A voice that never reports its end must not hold the call forever.
-    setTimeout(resolve, 2000 + words.length * 120);
+    setTimeout(() => resolve(null), 2000 + words.length * 120);
+  }).finally(() => {
+    current = null;
   });
-  current = null;
 }
 
 export function stopSpeaking() {

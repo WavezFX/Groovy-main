@@ -1,6 +1,8 @@
 // Settings → Voice: the wake words, where speech is turned into text, and the
 // optional LiveKit conversation mode.
 
+import { FlowBridge, type FlowPrefs } from "../core/flow";
+import { voiceTestBlock } from "./voicetest";
 import { Bridge, onEvent, type VoiceStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { h, clear } from "../views/dom";
@@ -46,7 +48,7 @@ export function voiceSection(
   // ── Engine ──
   const engine = h("select", {}) as HTMLSelectElement;
   engine.append(
-    h("option", { value: "local", text: t("On this computer (Whisper)") }),
+    h("option", { value: "local", text: t("On this computer") }),
     h("option", { value: "livekit", text: t("LiveKit conversation") }),
   );
   engine.value = settings.voiceEngine;
@@ -236,35 +238,61 @@ export function voiceSection(
     text: t("Speech is turned into text on this computer: no audio leaves it. The model is downloaded once from Hugging Face (whisper.cpp)."),
   });
 
+  // ── Recognition: the one speech engine calls, dictation, notes and « OK Groovy » share ──
+  const recognition = h("select", {},
+    h("option", { value: "parakeet", text: t("Parakeet (fast, 25 languages)") }),
+    h("option", { value: "whisper", text: t("Whisper (more languages)") }),
+  ) as HTMLSelectElement;
+  let flowPrefs: FlowPrefs | null = null;
+  let parakeetReady = false;
+  recognition.addEventListener("change", () => {
+    if (!flowPrefs) return;
+    flowPrefs = { ...flowPrefs, engine: recognition.value === "whisper" ? "whisper" : "parakeet" };
+    void FlowBridge.setPrefs(flowPrefs).then(() => refresh());
+  });
+  const setupSpeech = h("button", { text: t("Set up speech"), onclick: () => void Bridge.openSettingsWindow("speechsetup") });
+  const parakeetState = h("span", { class: "hint" });
+  const recognitionRow = h("div", { class: "row" }, h("label", { text: t("Recognition") }), recognition, parakeetState, setupSpeech);
+  const recognitionHint = h("div", { class: "hint", text: t("Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».") });
+
   function draw() {
     const local = settings.voiceEngine !== "livekit";
+    const whisper = flowPrefs?.engine === "whisper";
     const available = status?.available ?? true;
     const installed = status?.installed.includes(model.value) ?? false;
-    // The wake word is always heard by Whisper, LiveKit or not.
-    modelRow.style.display = "";
-    modelHint.style.display = local ? "" : "none";
+    // Whisper's own models only matter when Whisper is the engine.
+    modelRow.style.display = whisper ? "" : "none";
+    modelHint.style.display = local && whisper ? "" : "none";
+    parakeetState.textContent = whisper ? "" : parakeetReady ? t("Ready") : t("Not downloaded yet");
+    setupSpeech.style.display = !whisper && !parakeetReady ? "" : "none";
     livekitRows.style.display = local ? "none" : "";
     speakRows.style.display = local ? "" : "none";
     const multilingual = !model.value.endsWith(".en");
-    languageRow.style.display = local && multilingual ? "" : "none";
-    languageHint.style.display = local ? "" : "none";
+    languageRow.style.display = local && whisper && multilingual ? "" : "none";
+    languageHint.style.display = local && whisper ? "" : "none";
     interruptRow.style.display = local ? "" : "none";
     download.style.display = installed || !available ? "none" : "";
     download.disabled = downloading != null;
     download.textContent = downloading ? t("Downloading…") : t("Download");
     remove.style.display = installed && !downloading ? "" : "none";
     if (!downloading) bar.style.display = "none";
-    const ready = available && installed;
+    const ready = status?.ready ?? (available && installed);
     dot.style.background = ready ? "#22c55e" : "#f4505e";
     state.textContent = !available
       ? t("This build of Groovy has no speech engine.")
       : ready
         ? t("Say “Groovy”, “Hey Groovy” or “Yo Groovy”, then what you want.")
-        : t("Download a speech model to use your voice.");
+        : t("Set up the speech model to use your voice.");
   }
 
   async function refresh() {
     status = await Bridge.voiceStatus();
+    const flow = await FlowBridge.status();
+    if (flow) {
+      flowPrefs = flow.prefs;
+      parakeetReady = flow.models.parakeet.state === "ready";
+      recognition.value = flow.prefs.engine;
+    }
     draw();
   }
   void refresh();
@@ -279,6 +307,8 @@ export function voiceSection(
       toggle(settings.voiceEnabled, (v) => { settings.voiceEnabled = v; save(); }),
     ),
     h("div", { class: "row" }, h("label", { text: t("Voice engine") }), engine),
+    recognitionRow,
+    recognitionHint,
     speakRows,
     interruptRow,
     micRow,
@@ -287,6 +317,8 @@ export function voiceSection(
     languageHint,
     modelHint,
     livekitRows,
+    h("div", { class: "subhead", text: t("Check") }),
+    voiceTestBlock(settings),
     feedback,
   );
 }

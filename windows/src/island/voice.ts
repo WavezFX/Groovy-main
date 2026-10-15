@@ -19,6 +19,8 @@ import { power } from "../voice/vad";
 import { openMic, type Mic } from "../voice/mic";
 import { startLiveKit, type LiveKitSession } from "../voice/livekit";
 import { speak, stopSpeaking } from "../voice/speak";
+import { SentenceSpeaker } from "../voice/sentences";
+import { brainName, type CallFix } from "../voice/stages";
 import { t } from "../i18n/i18n";
 
 /** In a call, how long he waits for you to start speaking before hanging up. */
@@ -43,6 +45,12 @@ export class VoiceHost {
   private bargeIn = new BargeIn();
   private meter = new LevelMeter();
   private lastLevel = 0;
+  /** Reads the answer sentence by sentence as it streams in. */
+  private speaker: SentenceSpeaker | null = null;
+  /** The last transcription failed (not just silence): why. */
+  private transcribeError: string | null = null;
+  /** When the current turn was asked, for the log. */
+  private askedAt = 0;
 
   private engine: BotEngine;
   private actions: VoiceHostActions;
@@ -51,7 +59,19 @@ export class VoiceHost {
     this.engine = engine;
     this.actions = actions;
     this.controller = new VoiceController(
-      (pcm, purpose) => Bridge.voiceTranscribe(toInt16(pcm), purpose === "wake"),
+      async (pcm, purpose) => {
+        try {
+          const text = await Bridge.voiceTranscribe(toInt16(pcm), purpose === "wake");
+          if (purpose === "command") this.transcribeError = null;
+          return text;
+        } catch (e) {
+          if (purpose === "command") {
+            this.transcribeError = String(e).replace(/^Error:\s*/, "");
+            log(`transcription failed: ${this.transcribeError}`);
+          }
+          throw e;
+        }
+      },
       {
         onWake: () => this.heard(),
         onCommand: (text) => this.command(text),
@@ -66,6 +86,21 @@ export class VoiceHost {
     CallControl.mute = () => this.toggleMute();
     CallControl.interrupt = () => this.interrupt();
     CallControl.dictate = () => void this.dictate();
+    // The answer streams in: each finished sentence is read out at once.
+    void onEvent<string>("chat-delta", (text) => {
+      if (this.awaiting != null && this.speaker && text) this.speaker.feed(text);
+    });
+  }
+
+  /** A stage failed: the call stays up showing why, with the button that fixes it. */
+  private failCall(reason: string, fix: CallFix | null) {
+    State.callReason = reason;
+    State.callFix = fix;
+    log(`call failed (${fix ?? "no fix"}): ${reason}`);
+    this.call("fail");
+    State.voiceListening = false;
+    State.voiceSpeaking = false;
+    State.notify();
   }
 
   /** Called whenever the state changes: the microphone, and answers to read out. */
@@ -94,23 +129,13 @@ export class VoiceHost {
           return false;
         }
         if (!status.ready) {
-          // First time: fetch the speech model now instead of sending you to Settings.
-          State.voiceProblem = t("Getting my ears ready… {0}%", { 0: 0 });
-          State.notify();
-          const stop = await onEvent<{ model: string; done: number; total: number }>("voice-model-progress", (p) => {
-            const pct = p.total > 0 ? Math.floor((p.done / p.total) * 100) : 0;
-            State.voiceProblem = t("Getting my ears ready… {0}%", { 0: pct });
-            State.notify();
-          });
-          try {
-            await Bridge.voiceDownloadModel(State.settings.voiceModel || "base.en");
-          } catch (e) {
-            State.voiceProblem = String(e).replace(/^Error:\s*/, "");
-            this.gaveUp = true;
-            return false;
-          } finally {
-            stop?.();
-          }
+          // One speech model for calls, dictation, notes and « OK Groovy »:
+          // set up once in Voice and dictation, not a second download here.
+          State.voiceProblem = t("Calls need the speech model. It's downloaded once and used for dictation too.");
+          State.callFix = "speech";
+          log("speech model missing");
+          this.gaveUp = true;
+          return false;
         }
         this.mic = await openMic((frame) => this.frame(frame), 1024, State.settings.voiceMic ?? "", () => this.micLost());
         State.voiceProblem = null;
@@ -186,6 +211,7 @@ export class VoiceHost {
   /** Stop talking and listen: the call button while he speaks, or speaking over him. */
   private interrupt() {
     if (!State.voiceSpeaking) return;
+    this.speaker?.stop();
     stopSpeaking();
     State.voiceSpeaking = false;
     this.bargeIn.reset();
@@ -256,13 +282,17 @@ export class VoiceHost {
     this.gaveUp = false;
     State.voiceCall = true;
     State.dictating = false;
+    State.callReason = null;
+    State.callFix = null;
+    State.callHeard = null;
+    State.callBrain = brainName(State.settings);
     this.call("start");
+    log(`call started (brain ${State.callBrain}, speech ${State.settings.voiceSpeak ? "on" : "off"})`);
     State.notify(); // opens the microphone through sync()
     if (!(await this.open())) {
-      State.voiceCall = false;
-      this.call("fail");
+      // The call bar stays, saying why and how to fix it.
       this.actions.openChat();
-      State.notify();
+      this.failCall(State.voiceProblem ?? t("Groovy can't use the microphone."), State.callFix);
       return;
     }
     Sound.play("open");
@@ -277,15 +307,22 @@ export class VoiceHost {
     State.voiceListening = false;
     State.voiceSpeaking = false;
     this.awaiting = null;
+    this.speaker?.stop();
+    this.speaker = null;
     stopSpeaking();
     this.controller.resume();
     this.call("end");
     MicLevel.set(0);
-    if (was) Sound.play("close");
+    if (was) {
+      Sound.play("close");
+      log("call ended");
+    }
     State.notify();
   }
 
   private listenForTurn() {
+    State.callReason = null;
+    State.callFix = null;
     State.voiceListening = true;
     State.voiceSpeaking = false;
     this.actions.openChat();
@@ -337,6 +374,11 @@ export class VoiceHost {
     // Not listening while he thinks and answers: he'd hear himself.
     this.controller.pause();
     this.awaiting = State.chatHistory.length;
+    State.callHeard = text;
+    State.callBrain = brainName(State.settings);
+    this.askedAt = performance.now();
+    log(`heard ${text.length} chars; asking ${State.callBrain}`);
+    this.speaker = State.settings.voiceSpeak ? this.newSpeaker() : null;
     State.voiceQuery = text;
     this.actions.openChat();
     State.notify();
@@ -349,6 +391,13 @@ export class VoiceHost {
       return;
     }
     if (State.voiceCall) {
+      // Not silence: the speech engine failed. Say why instead of hanging up.
+      if (this.transcribeError) {
+        const why = this.transcribeError;
+        this.transcribeError = null;
+        this.failCall(why, "speech");
+        return;
+      }
       this.endCall();
       return;
     }
@@ -363,6 +412,21 @@ export class VoiceHost {
     State.notify();
   }
 
+  private newSpeaker(): SentenceSpeaker {
+    return new SentenceSpeaker(
+      (sentence) => speak(sentence, State.settings.voiceTts, 1, true),
+      () => {
+        // The first sentence is ready: he starts talking before the answer is done.
+        log(`first sentence after ${((performance.now() - this.askedAt) / 1000).toFixed(1)}s`);
+        this.call("answered");
+        State.voiceSpeaking = true;
+        this.bargeIn.reset();
+        this.engine.triggerEmote("happy", 0.8);
+        State.notify();
+      },
+    );
+  }
+
   /** The answer to a spoken question arrived: read it out, then listen again in a call. */
   private watchAnswer() {
     if (this.awaiting == null) return;
@@ -371,23 +435,34 @@ export class VoiceHost {
     if (!answer && !failed) return;
     this.awaiting = null;
     if (failed) {
-      if (State.voiceCall) this.endCall();
-      else this.controller.resume();
+      this.speaker?.stop();
+      this.speaker = null;
+      if (State.voiceCall) {
+        // The brain didn't answer: the chat shows the call bar with why.
+        const why = State.noteMessage ?? t("The AI didn't answer.");
+        State.view = "prompt";
+        this.failCall(why, "ai");
+      } else this.controller.resume();
       return;
     }
+    log(`answered in ${((performance.now() - this.askedAt) / 1000).toFixed(1)}s (${answer!.content.length} chars)`);
     void this.say(answer!.content);
   }
 
   private async say(text: string) {
-    if (State.settings.voiceSpeak) {
-      this.call("answered");
-      State.voiceSpeaking = true;
-      this.bargeIn.reset();
-      State.notify();
-      this.engine.triggerEmote("happy", 0.8);
-      await speak(text, State.settings.voiceTts);
+    const speaker = this.speaker;
+    if (speaker) {
+      // Kept until it's done, so interrupting stops what's still queued.
+      await speaker.finish(text);
+      if (this.speaker === speaker) this.speaker = null;
+      if (speaker.failure) {
+        if (State.voiceCall) this.failCall(speaker.failure, "voice");
+        else this.controller.resume();
+        return;
+      }
       if (!State.voiceSpeaking) return; // interrupted: already listening again
       State.voiceSpeaking = false;
+      log("spoken");
       this.call("spoke");
     } else {
       this.call("silent");
@@ -443,4 +518,9 @@ export class VoiceHost {
       },
     });
   }
+}
+
+/** One line in voice.log: stages and timings, never what was said. */
+function log(line: string) {
+  void Bridge.voiceLog(line);
 }

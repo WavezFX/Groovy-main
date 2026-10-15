@@ -634,8 +634,12 @@ export const Bridge = {
 
   // ── Chat, files, secrets ──────────────────────────────────────────────────
   /** One chat turn. The API key and any file bytes never leave Rust. */
-  chatSend: (query: string, context: ChatContext | null) =>
-    callOrThrow<{ text: string; action?: { id: number; tool: string; label: string } }>("chat_send", { query, context }),
+  chatSend: (query: string, context: ChatContext | null, spoken = false) =>
+    callOrThrow<{ text: string; action?: { id: number; tool: string; label: string } }>("chat_send", { query, context, spoken }),
+  /** "Test my voice setup": "say hello" to the brain the calls use. */
+  voiceProbe: () => callOrThrow<{ answer: string; brain: string }>("voice_probe"),
+  /** One line in %LOCALAPPDATA%\Groovy\logs\voice.log. */
+  voiceLog: (line: string) => call<void>("voice_log", { line }),
   /** Answers a tool's approval question: "once" | "always" | "deny". Returns what happened. */
   toolsDecide: (id: number, decision: "once" | "always" | "deny") => callOrThrow<string>("tools_decide", { id, decision }),
   toolsList: () => callOrThrow<ToolInfo[]>("tools_list"),
