@@ -8,6 +8,7 @@
 // ~/.local/share/groovy/Models (Linux). From then on everything runs offline.
 
 pub mod audio;
+pub mod check;
 
 use std::io::Write;
 use std::path::PathBuf;

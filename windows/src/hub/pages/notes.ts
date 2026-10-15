@@ -53,6 +53,11 @@ export async function notesPage(page: HTMLElement, ctx: HubContext) {
       return b;
     }
     const b = button(t("Record a call"), () => {
+      // The speech model first: the guided setup says how.
+      if (!ctx.status.engineReady) {
+        ctx.navigate("speechsetup");
+        return;
+      }
       startError = "";
       FlowBridge.startNote().then((id) => {
         selected = id;

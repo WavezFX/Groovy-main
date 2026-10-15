@@ -2,6 +2,7 @@
 // model, the Notetaker's summaries, the window and the history. Port of
 // FlowHubSettings.swift.
 
+import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
 import { onEvent } from "../../core/bridge";
@@ -70,7 +71,10 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
   const edges: [Edge, string][] = [["bottom", t("Bottom")], ["left", t("Left")], ["right", t("Right")]];
   page.append(label(t("Keys")));
   const keysCard = card(
-    row(t("Hold a key to dictate anywhere"), null, toggle(prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
+    row(t("Hold a key to dictate anywhere"), null, toggle(prefs.enabled, (on) => {
+      if (on && needsSetup(ctx, "dictation")) return;
+      void ctx.setPrefs((p) => (p.enabled = on));
+    })),
     divider(),
     status.keys === "wayland"
       ? row(t("Hold to dictate"), null, keyKeycap("wayland", status.platform))

@@ -236,7 +236,7 @@ pub fn toggle(app: &AppHandle) {
         stop(app);
     } else if let Err(err) = start(app) {
         let (text, action) = if err == "models" {
-            (t("Download the voice model first, in Groovy → Settings → Recognition."), Some((t("Open Settings"), "openSettings")))
+            (t("The speech model isn't ready yet: set it up in Groovy → Voice and dictation."), Some((t("Set up"), "openSpeechSetup")))
         } else {
             (err, None)
         };
@@ -408,7 +408,7 @@ fn words_in(path: &std::path::Path) -> Result<(Vec<TimedWord>, Vec<f32>), String
         return Ok((Vec::new(), Vec::new()));
     }
     let samples = audio::read_wav(path).map_err(|e| e.to_string())?;
-    let transcript = speech::transcribe(&samples).ok_or_else(|| t("Download the voice model first, in Groovy → Settings → Recognition."))?;
+    let transcript = speech::transcribe(&samples).ok_or_else(|| t("The speech model isn't ready yet: set it up in Groovy → Voice and dictation."))?;
     Ok((transcript.words, samples))
 }
 
@@ -618,7 +618,7 @@ pub fn notes_state(taker: State<Arc<NoteTaker>>) -> NotesState {
 #[tauri::command]
 pub async fn notes_start(app: AppHandle) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        start(&app).map_err(|e| if e == "models" { t("Download the voice model first, in Groovy → Settings → Recognition.") } else { e })
+        start(&app).map_err(|e| if e == "models" { t("The speech model isn't ready yet: set it up in Groovy → Voice and dictation.") } else { e })
     })
     .await
     .map_err(|e| e.to_string())?

@@ -301,8 +301,8 @@ fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
             app,
             "download",
             "#3B9EFF",
-            t("Download the voice model first, in Groovy → Settings → Recognition."),
-            Some((t("Open Settings"), "openSettings")),
+            t("Dictation needs its speech model: set it up once (about 2 minutes)."),
+            Some((t("Set up"), "openSpeechSetup")),
             10,
         );
         return None;
@@ -721,6 +721,7 @@ pub fn pill_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: O
                         Some("openNotes") => crate::show_hub(&app, Some("notes")),
                         Some("openSkills") => crate::show_hub(&app, Some("skills")),
                         Some("openAssistant") => crate::show_hub(&app, Some("assistant")),
+                        Some("openSpeechSetup") => crate::show_hub(&app, Some("speechsetup")),
                         _ => {}
                     }
                 }

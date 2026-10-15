@@ -245,6 +245,7 @@ function render() {
   const length = open ? openLength(l) : RESTING_LENGTH;
   const thickness = open ? OPEN_THICKNESS : RESTING_THICKNESS;
   root.className = `${state.edge}${vertical() ? " vertical" : ""}`;
+  root.title = state.enabled ? t("Hold {0} to dictate", { 0: keyLabel(state.key, platform) }) : "";
   const key = `${l}|${state.edge}|${state.phase}|${state.key}|${state.noteStartedAt}|${platform}|${state.voice?.phase ?? ""}`;
   if (!capsule || key !== lastKey) {
     lastKey = key;

@@ -43,6 +43,8 @@ export interface FlowPrefs {
   summaryEngine: "ai" | "off";
   /** Parakeet (25 European languages) or Whisper (≈99, Settings → Voice calls' model). */
   engine: "parakeet" | "whisper";
+  /** The guided speech setup was done once. */
+  speechSetupDone: boolean;
   openAtLaunch: boolean;
   /** « OK Groovy »: listen for it and answer with Groovy's AI (local by default). */
   voice: boolean;

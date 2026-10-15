@@ -2,6 +2,7 @@
 // way to the Notetaker. Until dictation is set up, the steps to get there.
 // Port of FlowHubHome.swift.
 
+import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
 import { onEvent } from "../../core/bridge";
@@ -141,6 +142,7 @@ function setup(ctx: HubContext): HTMLElement {
     h("div", { class: "hub-note", style: "color:#b7bbc2;font-size:13px", text: t("Hold {0} in any app, speak, let go: your words are pasted where you type.", { 0: key }) }),
   );
   body.append(row(t("Turn on dictation"), null, toggle(status.prefs.enabled, (on) => {
+    if (on && needsSetup(ctx, "dictation")) return;
     void ctx.setPrefs((p) => (p.enabled = on)).then(() => ctx.navigate("dictation"));
   })));
   body.append(row(t("Parakeet, on your computer"), t("The most accurate, offline, 25 languages. Downloaded once (about {0} MB).", { 0: number(status.models.downloadMb) }), modelsControl(ctx, () => ctx.navigate("dictation"))));

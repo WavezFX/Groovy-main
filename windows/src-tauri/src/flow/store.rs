@@ -106,6 +106,8 @@ pub struct Prefs {
     /// most accurate) or "whisper" (≈99 languages, the model and language of
     /// Settings → Voice calls).
     pub engine: String,
+    /// The guided speech setup (microphone, model, a test) was done once.
+    pub speech_setup_done: bool,
     /// Open the Groovy window when Groovy is opened (not when it starts with the computer).
     pub open_at_launch: bool,
     /// « OK Groovy »: listen for it and answer with Groovy's AI (local by default).
@@ -128,6 +130,7 @@ impl Default for Prefs {
             default_style: Style::Natural,
             summary_engine: SummaryEngine::Ai,
             engine: "parakeet".into(),
+            speech_setup_done: false,
             open_at_launch: true,
             voice: false,
             voice_output: "system".into(),

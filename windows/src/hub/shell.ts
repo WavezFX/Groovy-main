@@ -13,7 +13,7 @@ import { hero, liveGroovy } from "./hero";
 import { icon, keyLabel } from "./ui";
 
 export type PageId =
-  | "dictation" | "notes" | "insights" | "dictionary" | "snippets" | "styles" | "flowsettings" | "voice" | "skills"
+  | "dictation" | "notes" | "insights" | "dictionary" | "snippets" | "styles" | "flowsettings" | "voice" | "skills" | "speechsetup"
   | GroovyPageId;
 
 /** The pages drawn by settings/main.ts from Groovy's own sections. */
@@ -59,7 +59,10 @@ export const GROOVY_PAGES: PageDef[] = [
   { id: "system", icon: "sliders", title: () => t("System"), subtitle: () => t("Performance, logs and diagnostics.") },
 ];
 
-const ALL = [...GROOVY_PAGES, ...FLOW_PAGES];
+/** Pages reached from other pages, not listed in the sidebar. */
+const HIDDEN_PAGES: PageDef[] = [{ id: "speechsetup", icon: "mic", title: () => t("Set up speech") }];
+
+const ALL = [...GROOVY_PAGES, ...FLOW_PAGES, ...HIDDEN_PAGES];
 
 /** What a page gets to draw itself and reach the rest of the window. */
 export interface HubContext {
@@ -87,7 +90,7 @@ export interface HubOptions {
 const DEFAULT_STATUS: FlowStatus = {
   prefs: {
     enabled: false, key: "right_ctrl", edge: "bottom", mic: "", keepDays: 30, cleanup: false,
-    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female",
+    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", speechSetupDone: false, openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female",
   },
   models: { parakeet: { state: "missing" }, downloadMb: 700 },
   keys: "ok",

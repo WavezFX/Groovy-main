@@ -1,6 +1,7 @@
 // « OK Groovy »: say it, then ask anything. Turning it on, how Groovy answers
 // out loud, and what leaves the computer. Port of the Mac's Settings → Voice.
 
+import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
 import { Bridge } from "../../core/bridge";
@@ -49,7 +50,10 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
   page.append(label(t("Listening")));
   const main = card(
     row(t("Listen for « OK Groovy »"), t("The microphone stays open; only what follows « OK Groovy » goes further."),
-      toggle(prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)).then(() => ctx.navigate("voice")))),
+      toggle(prefs.voice, (on) => {
+        if (on && needsSetup(ctx, "voice")) return;
+        void ctx.setPrefs((p) => (p.voice = on)).then(() => ctx.navigate("voice"));
+      })),
     divider(),
     row(t("Parakeet, on your computer"), t("Hears « OK Groovy » here, without the internet."), modelsControl(ctx, () => ctx.navigate("voice"))),
   );

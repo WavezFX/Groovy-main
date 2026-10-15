@@ -9653,17 +9653,6 @@
    "ru": "Claude (ваш ключ)",
    "id": "Claude (kuncimu)"
   },
-  "Download the voice model first, in Groovy → Settings → Recognition.": {
-   "zh-Hans": "请先在“Groovy → 设置 → 识别”中下载语音模型。",
-   "hi": "पहले Groovy → सेटिंग्स → पहचान में वॉइस मॉडल डाउनलोड करें।",
-   "es": "Descarga primero el modelo de voz, en Groovy → Ajustes → Reconocimiento.",
-   "ar": "نزّل نموذج الصوت أولًا، في Groovy ← الإعدادات ← التعرّف.",
-   "fr": "Télécharge d'abord le modèle de voix, dans Groovy → Réglages → Reconnaissance.",
-   "bn": "আগে Groovy → সেটিংস → রিকগনিশন-এ ভয়েস মডেল ডাউনলোড করুন।",
-   "pt-BR": "Baixe primeiro o modelo de voz, em Groovy → Ajustes → Reconhecimento.",
-   "ru": "Сначала скачайте голосовую модель: Groovy → Настройки → Распознавание.",
-   "id": "Unduh model suara dulu, di Groovy → Pengaturan → Pengenalan."
-  },
   "Groovy can't hear you: the microphone is not allowed or not available.": {
    "zh-Hans": "Groovy 听不到你：麦克风未获允许或不可用。",
    "hi": "Groovy आपको सुन नहीं पा रहा: माइक्रोफ़ोन की अनुमति नहीं है या वह उपलब्ध नहीं।",
@@ -11742,6 +11731,292 @@
    "pt-BR": "Nenhum modelo local carregado",
    "ru": "Локальная модель не загружена",
    "id": "Tidak ada model lokal yang dimuat"
+  },
+  "Set up speech": {
+   "zh-Hans": "设置语音",
+   "hi": "स्पीच सेट करें",
+   "es": "Configurar la voz",
+   "ar": "إعداد الكلام",
+   "fr": "Configurer la voix",
+   "bn": "স্পিচ সেট আপ করুন",
+   "pt-BR": "Configurar a fala",
+   "ru": "Настройка речи",
+   "id": "Atur ucapan"
+  },
+  "Three steps, about two minutes: the microphone, the speech model, and a test.": {
+   "zh-Hans": "三步，约两分钟：麦克风、语音模型和一次测试。",
+   "hi": "तीन चरण, लगभग दो मिनट: माइक्रोफ़ोन, स्पीच मॉडल, और एक टेस्ट।",
+   "es": "Tres pasos, unos dos minutos: el micrófono, el modelo de voz y una prueba.",
+   "ar": "ثلاث خطوات، نحو دقيقتين: الميكروفون ونموذج الكلام واختبار.",
+   "fr": "Trois étapes, environ deux minutes : le micro, le modèle vocal et un test.",
+   "bn": "তিনটি ধাপ, প্রায় দুই মিনিট: মাইক্রোফোন, স্পিচ মডেল, আর একটি টেস্ট।",
+   "pt-BR": "Três passos, cerca de dois minutos: o microfone, o modelo de fala e um teste.",
+   "ru": "Три шага, около двух минут: микрофон, модель речи и проверка.",
+   "id": "Tiga langkah, sekitar dua menit: mikrofon, model ucapan, dan tes."
+  },
+  "Speak: the bar should move. If it doesn't, pick another microphone.": {
+   "zh-Hans": "说话时进度条应该会动。如果不动，请换一个麦克风。",
+   "hi": "बोलिए: पट्टी हिलनी चाहिए। न हिले तो दूसरा माइक्रोफ़ोन चुनें।",
+   "es": "Habla: la barra debería moverse. Si no, elige otro micrófono.",
+   "ar": "تحدّث: يجب أن يتحرك الشريط. إن لم يتحرك، اختر ميكروفونًا آخر.",
+   "fr": "Parle : la barre doit bouger. Sinon, choisis un autre micro.",
+   "bn": "কথা বলুন: বারটি নড়া উচিত। না নড়লে অন্য মাইক্রোফোন বেছে নিন।",
+   "pt-BR": "Fale: a barra deve se mexer. Se não mexer, escolha outro microfone.",
+   "ru": "Говорите: полоска должна двигаться. Если нет, выберите другой микрофон.",
+   "id": "Bicaralah: bilahnya harus bergerak. Jika tidak, pilih mikrofon lain."
+  },
+  "1. Microphone": {
+   "zh-Hans": "1. 麦克风",
+   "hi": "1. माइक्रोफ़ोन",
+   "es": "1. Micrófono",
+   "ar": "1. الميكروفون",
+   "fr": "1. Micro",
+   "bn": "১. মাইক্রোফোন",
+   "pt-BR": "1. Microfone",
+   "ru": "1. Микрофон",
+   "id": "1. Mikrofon"
+  },
+  "Parakeet (25 European languages)": {
+   "zh-Hans": "Parakeet（25 种欧洲语言）",
+   "hi": "Parakeet (25 यूरोपीय भाषाएँ)",
+   "es": "Parakeet (25 idiomas europeos)",
+   "ar": "Parakeet (‏25 لغة أوروبية)",
+   "fr": "Parakeet (25 langues européennes)",
+   "bn": "Parakeet (২৫টি ইউরোপীয় ভাষা)",
+   "pt-BR": "Parakeet (25 idiomas europeus)",
+   "ru": "Parakeet (25 европейских языков)",
+   "id": "Parakeet (25 bahasa Eropa)"
+  },
+  "Whisper (99 languages, chosen in Voice calls)": {
+   "zh-Hans": "Whisper（99 种语言，在语音通话中选择）",
+   "hi": "Whisper (99 भाषाएँ, वॉइस कॉल में चुनी गई)",
+   "es": "Whisper (99 idiomas, elegido en Llamadas de voz)",
+   "ar": "Whisper (‏99 لغة، يُختار في المكالمات الصوتية)",
+   "fr": "Whisper (99 langues, choisi dans Appels vocaux)",
+   "bn": "Whisper (৯৯টি ভাষা, ভয়েস কল-এ বাছাই করা)",
+   "pt-BR": "Whisper (99 idiomas, escolhido em Chamadas de voz)",
+   "ru": "Whisper (99 языков, выбирается в «Голосовых звонках»)",
+   "id": "Whisper (99 bahasa, dipilih di Panggilan suara)"
+  },
+  "The Whisper model is ready.": {
+   "zh-Hans": "Whisper 模型已就绪。",
+   "hi": "Whisper मॉडल तैयार है।",
+   "es": "El modelo Whisper está listo.",
+   "ar": "نموذج Whisper جاهز.",
+   "fr": "Le modèle Whisper est prêt.",
+   "bn": "Whisper মডেল প্রস্তুত।",
+   "pt-BR": "O modelo Whisper está pronto.",
+   "ru": "Модель Whisper готова.",
+   "id": "Model Whisper siap."
+  },
+  "Open Voice calls": {
+   "zh-Hans": "打开语音通话",
+   "hi": "वॉइस कॉल खोलें",
+   "es": "Abrir Llamadas de voz",
+   "ar": "فتح المكالمات الصوتية",
+   "fr": "Ouvrir Appels vocaux",
+   "bn": "ভয়েস কল খুলুন",
+   "pt-BR": "Abrir Chamadas de voz",
+   "ru": "Открыть «Голосовые звонки»",
+   "id": "Buka Panggilan suara"
+  },
+  "2. Speech model": {
+   "zh-Hans": "2. 语音模型",
+   "hi": "2. स्पीच मॉडल",
+   "es": "2. Modelo de voz",
+   "ar": "2. نموذج الكلام",
+   "fr": "2. Modèle vocal",
+   "bn": "২. স্পিচ মডেল",
+   "pt-BR": "2. Modelo de fala",
+   "ru": "2. Модель речи",
+   "id": "2. Model ucapan"
+  },
+  "Press Test, then say a sentence. Five seconds.": {
+   "zh-Hans": "按“测试”，然后说一句话。五秒钟。",
+   "hi": "“टेस्ट” दबाएँ, फिर एक वाक्य बोलें। पाँच सेकंड।",
+   "es": "Pulsa Probar y di una frase. Cinco segundos.",
+   "ar": "اضغط «اختبار» ثم قل جملة. خمس ثوانٍ.",
+   "fr": "Appuie sur Tester, puis dis une phrase. Cinq secondes.",
+   "bn": "“টেস্ট” চাপুন, তারপর একটি বাক্য বলুন। পাঁচ সেকেন্ড।",
+   "pt-BR": "Aperte Testar e diga uma frase. Cinco segundos.",
+   "ru": "Нажмите «Проверить» и скажите фразу. Пять секунд.",
+   "id": "Tekan Tes, lalu ucapkan satu kalimat. Lima detik."
+  },
+  "Test (5 s)": {
+   "zh-Hans": "测试（5 秒）",
+   "hi": "टेस्ट (5 सेकंड)",
+   "es": "Probar (5 s)",
+   "ar": "اختبار (5 ث)",
+   "fr": "Tester (5 s)",
+   "bn": "টেস্ট (৫ সে.)",
+   "pt-BR": "Testar (5 s)",
+   "ru": "Проверить (5 с)",
+   "id": "Tes (5 dtk)"
+  },
+  "Listening… {0}": {
+   "zh-Hans": "正在听… {0}",
+   "hi": "सुन रहा है… {0}",
+   "es": "Escuchando… {0}",
+   "ar": "يستمع… {0}",
+   "fr": "J'écoute… {0}",
+   "bn": "শুনছি… {0}",
+   "pt-BR": "Ouvindo… {0}",
+   "ru": "Слушаю… {0}",
+   "id": "Mendengarkan… {0}"
+  },
+  "Writing it down…": {
+   "zh-Hans": "正在转写…",
+   "hi": "लिख रहा है…",
+   "es": "Escribiéndolo…",
+   "ar": "يدوّن ذلك…",
+   "fr": "Je l'écris…",
+   "bn": "লিখছি…",
+   "pt-BR": "Escrevendo…",
+   "ru": "Записываю…",
+   "id": "Menuliskannya…"
+  },
+  "Heard: “{0}”": {
+   "zh-Hans": "听到：“{0}”",
+   "hi": "सुना: “{0}”",
+   "es": "Oído: «{0}»",
+   "ar": "سُمع: «{0}»",
+   "fr": "Entendu : « {0} »",
+   "bn": "শোনা গেছে: “{0}”",
+   "pt-BR": "Ouvi: “{0}”",
+   "ru": "Услышано: «{0}»",
+   "id": "Terdengar: “{0}”"
+  },
+  "Done: turn on « OK Groovy »": {
+   "zh-Hans": "完成：开启 « OK Groovy »",
+   "hi": "हो गया: « OK Groovy » चालू करें",
+   "es": "Listo: activar « OK Groovy »",
+   "ar": "تم: تشغيل « OK Groovy »",
+   "fr": "Terminé : activer « OK Groovy »",
+   "bn": "সম্পন্ন: « OK Groovy » চালু করুন",
+   "pt-BR": "Pronto: ligar o « OK Groovy »",
+   "ru": "Готово: включить « OK Groovy »",
+   "id": "Selesai: nyalakan « OK Groovy »"
+  },
+  "Done: turn on dictation": {
+   "zh-Hans": "完成：开启听写",
+   "hi": "हो गया: डिक्टेशन चालू करें",
+   "es": "Listo: activar el dictado",
+   "ar": "تم: تشغيل الإملاء",
+   "fr": "Terminé : activer la dictée",
+   "bn": "সম্পন্ন: ডিক্টেশন চালু করুন",
+   "pt-BR": "Pronto: ligar o ditado",
+   "ru": "Готово: включить диктовку",
+   "id": "Selesai: nyalakan dikte"
+  },
+  "3. Test": {
+   "zh-Hans": "3. 测试",
+   "hi": "3. टेस्ट",
+   "es": "3. Prueba",
+   "ar": "3. الاختبار",
+   "fr": "3. Test",
+   "bn": "৩. টেস্ট",
+   "pt-BR": "3. Teste",
+   "ru": "3. Проверка",
+   "id": "3. Tes"
+  },
+  "Hold {0} to dictate": {
+   "zh-Hans": "按住 {0} 进行听写",
+   "hi": "डिक्टेट करने के लिए {0} दबाए रखें",
+   "es": "Mantén {0} para dictar",
+   "ar": "اضغط مطولًا على {0} للإملاء",
+   "fr": "Maintiens {0} pour dicter",
+   "bn": "ডিক্টেট করতে {0} চেপে ধরুন",
+   "pt-BR": "Segure {0} para ditar",
+   "ru": "Удерживайте {0} для диктовки",
+   "id": "Tahan {0} untuk dikte"
+  },
+  "Dictation needs its speech model: set it up once (about 2 minutes).": {
+   "zh-Hans": "听写需要语音模型：设置一次即可（约 2 分钟）。",
+   "hi": "डिक्टेशन को अपना स्पीच मॉडल चाहिए: इसे एक बार सेट करें (लगभग 2 मिनट)।",
+   "es": "El dictado necesita su modelo de voz: configúralo una vez (unos 2 minutos).",
+   "ar": "يحتاج الإملاء إلى نموذج الكلام: أعدّه مرة واحدة (نحو دقيقتين).",
+   "fr": "La dictée a besoin de son modèle vocal : configure-le une fois (environ 2 minutes).",
+   "bn": "ডিক্টেশনের জন্য স্পিচ মডেল দরকার: একবার সেট আপ করুন (প্রায় ২ মিনিট)।",
+   "pt-BR": "O ditado precisa do modelo de fala: configure uma vez (cerca de 2 minutos).",
+   "ru": "Для диктовки нужна модель речи: настройте её один раз (около 2 минут).",
+   "id": "Dikte butuh model ucapannya: atur sekali saja (sekitar 2 menit)."
+  },
+  "Set up": {
+   "zh-Hans": "设置",
+   "hi": "सेट करें",
+   "es": "Configurar",
+   "ar": "إعداد",
+   "fr": "Configurer",
+   "bn": "সেট আপ",
+   "pt-BR": "Configurar",
+   "ru": "Настроить",
+   "id": "Atur"
+  },
+  "The speech model isn't ready yet: set it up in Groovy → Voice and dictation.": {
+   "zh-Hans": "语音模型尚未就绪：请在 Groovy → 语音与听写 中设置。",
+   "hi": "स्पीच मॉडल अभी तैयार नहीं: Groovy → आवाज़ और डिक्टेशन में सेट करें।",
+   "es": "El modelo de voz aún no está listo: configúralo en Groovy → Voz y dictado.",
+   "ar": "نموذج الكلام ليس جاهزًا بعد: أعدّه في Groovy ← الصوت والإملاء.",
+   "fr": "Le modèle vocal n'est pas encore prêt : configure-le dans Groovy → Voix et dictée.",
+   "bn": "স্পিচ মডেল এখনও প্রস্তুত নয়: Groovy → ভয়েস ও ডিক্টেশন-এ সেট আপ করুন।",
+   "pt-BR": "O modelo de fala ainda não está pronto: configure em Groovy → Voz e ditado.",
+   "ru": "Модель речи ещё не готова: настройте её в Groovy → Голос и диктовка.",
+   "id": "Model ucapan belum siap: atur di Groovy → Suara dan dikte."
+  },
+  "The microphone can't be opened: {0}": {
+   "zh-Hans": "无法打开麦克风：{0}",
+   "hi": "माइक्रोफ़ोन खोला नहीं जा सकता: {0}",
+   "es": "No se puede abrir el micrófono: {0}",
+   "ar": "تعذّر فتح الميكروفون: {0}",
+   "fr": "Le micro ne peut pas être ouvert : {0}",
+   "bn": "মাইক্রোফোন খোলা যাচ্ছে না: {0}",
+   "pt-BR": "Não foi possível abrir o microfone: {0}",
+   "ru": "Не удаётся открыть микрофон: {0}",
+   "id": "Mikrofon tidak bisa dibuka: {0}"
+  },
+  "The microphone is not open.": {
+   "zh-Hans": "麦克风未打开。",
+   "hi": "माइक्रोफ़ोन खुला नहीं है।",
+   "es": "El micrófono no está abierto.",
+   "ar": "الميكروفون غير مفتوح.",
+   "fr": "Le micro n'est pas ouvert.",
+   "bn": "মাইক্রোফোন খোলা নেই।",
+   "pt-BR": "O microfone não está aberto.",
+   "ru": "Микрофон не открыт.",
+   "id": "Mikrofon tidak terbuka."
+  },
+  "Nothing was recorded: check the microphone.": {
+   "zh-Hans": "没有录到任何声音：请检查麦克风。",
+   "hi": "कुछ रिकॉर्ड नहीं हुआ: माइक्रोफ़ोन जाँचें।",
+   "es": "No se grabó nada: revisa el micrófono.",
+   "ar": "لم يُسجَّل شيء: تحقّق من الميكروفون.",
+   "fr": "Rien n'a été enregistré : vérifie le micro.",
+   "bn": "কিছু রেকর্ড হয়নি: মাইক্রোফোন পরীক্ষা করুন।",
+   "pt-BR": "Nada foi gravado: verifique o microfone.",
+   "ru": "Ничего не записано: проверьте микрофон.",
+   "id": "Tidak ada yang terekam: periksa mikrofon."
+  },
+  "The speech model isn't ready yet: download it first.": {
+   "zh-Hans": "语音模型尚未就绪：请先下载。",
+   "hi": "स्पीच मॉडल अभी तैयार नहीं: पहले इसे डाउनलोड करें।",
+   "es": "El modelo de voz aún no está listo: descárgalo primero.",
+   "ar": "نموذج الكلام ليس جاهزًا بعد: نزّله أولًا.",
+   "fr": "Le modèle vocal n'est pas encore prêt : télécharge-le d'abord.",
+   "bn": "স্পিচ মডেল এখনও প্রস্তুত নয়: আগে ডাউনলোড করুন।",
+   "pt-BR": "O modelo de fala ainda não está pronto: baixe-o primeiro.",
+   "ru": "Модель речи ещё не готова: сначала загрузите её.",
+   "id": "Model ucapan belum siap: unduh dulu."
+  },
+  "Nothing was understood. Speak a little louder or closer, then try again.": {
+   "zh-Hans": "没有听懂。请说得大声一点或靠近一点，然后再试一次。",
+   "hi": "कुछ समझ नहीं आया। थोड़ा ज़ोर से या पास से बोलें, फिर दोबारा कोशिश करें।",
+   "es": "No se entendió nada. Habla un poco más alto o más cerca y vuelve a intentarlo.",
+   "ar": "لم يُفهم شيء. تحدّث بصوت أعلى قليلًا أو أقرب، ثم حاول مجددًا.",
+   "fr": "Rien n'a été compris. Parle un peu plus fort ou plus près, puis réessaie.",
+   "bn": "কিছু বোঝা যায়নি। একটু জোরে বা কাছ থেকে বলুন, তারপর আবার চেষ্টা করুন।",
+   "pt-BR": "Nada foi entendido. Fale um pouco mais alto ou mais perto e tente de novo.",
+   "ru": "Ничего не разобрано. Говорите чуть громче или ближе и попробуйте снова.",
+   "id": "Tidak ada yang dipahami. Bicaralah sedikit lebih keras atau dekat, lalu coba lagi."
   }
  }
 }
