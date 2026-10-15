@@ -14,8 +14,36 @@ use tauri::{AppHandle, Emitter};
 
 use crate::platform;
 
-/// The models Groovy offers. Anything else is refused.
-pub const MODELS: &[&str] = &["tiny.en", "base.en"];
+/// The models Groovy offers. Anything else is refused. The ".en" ones only
+/// understand English; the others understand ~99 languages (Spanish, German,
+/// Punjabi, Hindi…), less accurately per size.
+pub const MODELS: &[&str] = &["tiny.en", "base.en", "tiny", "base", "small"];
+
+/// What each download must be, from the whisper.cpp repository on Hugging Face:
+/// (model, size in bytes, SHA-256). A file that doesn't match is deleted.
+const PINNED: &[(&str, u64, &str)] = &[
+    ("tiny.en", 77_704_715, "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"),
+    ("base.en", 147_964_211, "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002"),
+    ("tiny", 77_691_713, "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"),
+    ("base", 147_951_465, "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe"),
+    ("small", 487_601_967, "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"),
+];
+
+fn pinned(model: &str) -> Option<(u64, &'static str)> {
+    PINNED.iter().find(|(m, _, _)| *m == model).map(|(_, size, sha)| (*size, *sha))
+}
+
+/// The language Whisper is told to expect: English for the ".en" models,
+/// otherwise the one picked in Settings (an ISO 639-1 code), or None to let
+/// it detect the language itself.
+pub fn language_for(model: &str, picked: &str) -> Option<String> {
+    if model.ends_with(".en") {
+        return Some("en".into());
+    }
+    let code = picked.trim().to_lowercase();
+    let valid = (2..=3).contains(&code.len()) && code.chars().all(|c| c.is_ascii_lowercase());
+    (valid && code != "auto").then_some(code)
+}
 
 /// The smallest a real model file can be: a cut-off download is never loaded.
 const MIN_MODEL_BYTES: u64 = 30 * 1024 * 1024;
@@ -79,7 +107,9 @@ pub async fn download(app: &AppHandle, model: &str) -> Result<(), String> {
         .map_err(|e| format!("The download didn't start ({e})."))?;
     let total = resp.content_length().unwrap_or(0);
     let part = path.with_extension("bin.part");
+    let (expected_size, expected_sha) = pinned(model).ok_or("Unknown speech model.")?;
     let mut file = std::fs::File::create(&part).map_err(|e| e.to_string())?;
+    let mut hash = ring::digest::Context::new(&ring::digest::SHA256);
     let mut done: u64 = 0;
     let mut last_report: u64 = 0;
     loop {
@@ -92,7 +122,12 @@ pub async fn download(app: &AppHandle, model: &str) -> Result<(), String> {
             }
         };
         std::io::Write::write_all(&mut file, &chunk).map_err(|e| e.to_string())?;
+        hash.update(&chunk);
         done += chunk.len() as u64;
+        if done > expected_size {
+            let _ = std::fs::remove_file(&part);
+            return Err("The download is larger than expected; it was discarded.".into());
+        }
         // About every 2 MB is plenty for a progress bar.
         if done - last_report > 2 * 1024 * 1024 || done == total {
             last_report = done;
@@ -100,9 +135,14 @@ pub async fn download(app: &AppHandle, model: &str) -> Result<(), String> {
         }
     }
     drop(file);
-    if done < MIN_MODEL_BYTES || (total > 0 && done != total) {
+    if done < MIN_MODEL_BYTES || (total > 0 && done != total) || done != expected_size {
         let _ = std::fs::remove_file(&part);
         return Err("The downloaded file is incomplete.".into());
+    }
+    let got: String = hash.finish().as_ref().iter().map(|b| format!("{b:02x}")).collect();
+    if got != expected_sha {
+        let _ = std::fs::remove_file(&part);
+        return Err("The speech model failed verification (SHA-256 mismatch); it was discarded.".into());
     }
     std::fs::rename(&part, &path).map_err(|e| e.to_string())?;
     // A model replaced on disk must be loaded again.
@@ -151,20 +191,20 @@ type Loaded = (String, ());
 static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 
 /// Transcribes one segment. Runs on a blocking thread (it takes a moment).
-pub async fn transcribe(model: String, samples: Vec<i16>, wake: bool) -> Result<String, String> {
+pub async fn transcribe(model: String, language: Option<String>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
     if samples.is_empty() {
         return Ok(String::new());
     }
     if samples.len() > MAX_SAMPLES {
         return Err("That was too long to listen to in one go.".into());
     }
-    tauri::async_runtime::spawn_blocking(move || run(&model, &to_f32(&samples), wake))
+    tauri::async_runtime::spawn_blocking(move || run(&model, language.as_deref(), &to_f32(&samples), wake))
         .await
         .map_err(|e| e.to_string())?
 }
 
 #[cfg(feature = "voice")]
-fn run(model: &str, pcm: &[f32], wake: bool) -> Result<String, String> {
+fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<String, String> {
     use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
     let path = model_path(model)?;
@@ -181,7 +221,8 @@ fn run(model: &str, pcm: &[f32], wake: bool) -> Result<String, String> {
     let mut state = ctx.create_state().map_err(|e| e.to_string())?;
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_language(Some("en"));
+    // The wake word is always listened for as English: "Hey Groovy".
+    params.set_language(if wake { Some("en") } else { language });
     params.set_translate(false);
     params.set_no_context(true);
     params.set_print_special(false);
@@ -208,7 +249,7 @@ fn run(model: &str, pcm: &[f32], wake: bool) -> Result<String, String> {
 }
 
 #[cfg(not(feature = "voice"))]
-fn run(_model: &str, _pcm: &[f32], _wake: bool) -> Result<String, String> {
+fn run(_model: &str, _language: Option<&str>, _pcm: &[f32], _wake: bool) -> Result<String, String> {
     Err("This build of Groovy has no speech engine.".into())
 }
 
@@ -221,6 +262,27 @@ mod tests {
         assert!(model_path("base.en").unwrap().ends_with("ggml-base.en.bin"));
         assert!(model_path("../../evil").is_err());
         assert!(model_path("large").is_err());
+    }
+
+    #[test]
+    fn every_offered_model_is_pinned() {
+        for m in MODELS {
+            let (size, sha) = pinned(m).unwrap_or_else(|| panic!("{m} not pinned"));
+            assert!(size >= MIN_MODEL_BYTES);
+            assert_eq!(sha.len(), 64);
+        }
+        assert!(pinned("large").is_none());
+    }
+
+    #[test]
+    fn english_models_always_hear_english() {
+        assert_eq!(language_for("base.en", "es").as_deref(), Some("en"));
+        assert_eq!(language_for("base", "es").as_deref(), Some("es"));
+        assert_eq!(language_for("small", "pa").as_deref(), Some("pa"));
+        assert_eq!(language_for("base", "").as_deref(), None, "empty = detect");
+        assert_eq!(language_for("base", "auto").as_deref(), None);
+        assert_eq!(language_for("base", "e$").as_deref(), None);
+        assert_eq!(language_for("base", "english").as_deref(), None);
     }
 
     #[test]

@@ -8,10 +8,21 @@ import { statusDot } from "./parts";
 import { t } from "../i18n/i18n";
 import { speak, voices } from "../voice/speak";
 
-/** Whisper models Groovy can download (English, ggml format from whisper.cpp). */
+/** Whisper models Groovy can download (ggml format from whisper.cpp; pinned in voice.rs). */
 const MODELS: Array<[id: string, label: string]> = [
-  ["tiny.en", "Tiny · fastest · 75 MB"],
-  ["base.en", "Base · more accurate · 142 MB"],
+  ["tiny.en", "Tiny · English · fastest · 75 MB"],
+  ["base.en", "Base · English · more accurate · 142 MB"],
+  ["tiny", "Tiny · 99 languages · 74 MB"],
+  ["base", "Base · 99 languages · 141 MB"],
+  ["small", "Small · 99 languages · most accurate · 465 MB"],
+];
+
+/** Languages to listen for with a multilingual model, by their own names. "" lets Whisper detect it. */
+export const SPEECH_LANGUAGES: Array<[code: string, name: string]> = [
+  ["en", "English"], ["es", "Español"], ["de", "Deutsch"], ["pa", "ਪੰਜਾਬੀ"], ["hi", "हिन्दी"],
+  ["fr", "Français"], ["pt", "Português"], ["it", "Italiano"], ["nl", "Nederlands"], ["pl", "Polski"],
+  ["tr", "Türkçe"], ["ar", "العربية"], ["ur", "اردو"], ["bn", "বাংলা"], ["ru", "Русский"],
+  ["uk", "Українська"], ["zh", "中文"], ["ja", "日本語"], ["ko", "한국어"], ["id", "Bahasa Indonesia"],
 ];
 
 interface Progress {
@@ -54,6 +65,7 @@ export function voiceSection(
     save();
     void refresh();
   });
+  if (![...model.options].some((o) => o.value === settings.voiceModel)) model.value = "base.en";
   const download = h("button", { class: "primary", text: t("Download") });
   const remove = h("button", { class: "danger", text: t("Remove") });
   const bar = h("progress", { max: "1", value: "0", style: "flex:1 1 auto;display:none" }) as HTMLProgressElement;
@@ -178,6 +190,46 @@ export function voiceSection(
     h("div", { class: "row" }, h("label", { text: t("His voice") }), ttsVoice, tryVoice),
   );
 
+  // ── What he listens for, and with which microphone ──
+  const language = h("select", {}) as HTMLSelectElement;
+  language.append(h("option", { value: "", text: t("Detect automatically") }));
+  for (const [code, name] of SPEECH_LANGUAGES) language.append(h("option", { value: code, text: name }));
+  language.value = settings.voiceLanguage ?? "";
+  language.addEventListener("change", () => {
+    settings.voiceLanguage = language.value;
+    save();
+  });
+  const languageRow = h("div", { class: "row" }, h("label", { text: t("I speak") }), language);
+  const languageHint = h("div", { class: "hint", text: t("English-only models always hear English. The wake word is always “Hey Groovy”.") });
+
+  const mic = h("select", { style: "flex:1 1 auto;min-width:0" }) as HTMLSelectElement;
+  const listMics = async () => {
+    clear(mic);
+    mic.append(h("option", { value: "", text: t("System default") }));
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      for (const d of devices.filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default")) {
+        mic.append(h("option", { value: d.deviceId, text: d.label || t("Microphone {n}", { n: mic.options.length }) }));
+      }
+    } catch {
+      // No media devices here (a plain browser page): the default is all there is.
+    }
+    mic.value = settings.voiceMic ?? "";
+    if (mic.value !== (settings.voiceMic ?? "")) mic.value = "";
+  };
+  void listMics();
+  navigator.mediaDevices?.addEventListener?.("devicechange", () => void listMics());
+  mic.addEventListener("change", () => {
+    settings.voiceMic = mic.value;
+    save();
+  });
+  const micRow = h("div", { class: "row" }, h("label", { text: t("Microphone") }), mic);
+  const interruptRow = h("div", { class: "row" },
+    h("label", { text: t("Let me interrupt him") }),
+    toggle(settings.voiceInterrupt ?? false, (v) => { settings.voiceInterrupt = v; save(); }),
+    h("span", { class: "hint", text: t("Speak over him and he stops to listen. Use headphones, or he may hear himself.") }),
+  );
+
   const modelRow = h("div", { class: "row" }, h("label", { text: t("Speech model") }), model, download, remove, bar);
   const modelHint = h("div", {
     class: "hint",
@@ -193,6 +245,10 @@ export function voiceSection(
     modelHint.style.display = local ? "" : "none";
     livekitRows.style.display = local ? "none" : "";
     speakRows.style.display = local ? "" : "none";
+    const multilingual = !model.value.endsWith(".en");
+    languageRow.style.display = local && multilingual ? "" : "none";
+    languageHint.style.display = local ? "" : "none";
+    interruptRow.style.display = local ? "" : "none";
     download.style.display = installed || !available ? "none" : "";
     download.disabled = downloading != null;
     download.textContent = downloading ? t("Downloading…") : t("Download");
@@ -224,7 +280,11 @@ export function voiceSection(
     ),
     h("div", { class: "row" }, h("label", { text: t("Voice engine") }), engine),
     speakRows,
+    interruptRow,
+    micRow,
     modelRow,
+    languageRow,
+    languageHint,
     modelHint,
     livekitRows,
     feedback,

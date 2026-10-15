@@ -124,6 +124,43 @@ export interface SystemStatus {
   uptimeSecs: number;
 }
 
+// ── Music (music.rs) ──────────────────────────────────────────────────────────
+
+export interface MusicTrack {
+  id: number;
+  title: string;
+  artist: string;
+  album: string;
+  genre: string;
+  duration: number;
+  trackNo: number | null;
+  hasArt: boolean;
+  favourite: boolean;
+  playCount: number;
+}
+
+export interface MusicFolder { id: number; path: string; tracks: number; exists: boolean }
+export interface MusicPlaylist { id: number; name: string; tracks: number; createdAt: number }
+export interface ScanReport { found: number; added: number; updated: number; removed: number }
+export type RepeatMode = "off" | "all" | "one";
+
+export interface MusicState {
+  queue: number[];
+  index: number | null;
+  playing: boolean;
+  position: number;
+  duration: number;
+  volume: number;
+  shuffle: boolean;
+  repeat: RepeatMode;
+  track: MusicTrack | null;
+  error: string | null;
+}
+
+export type ToolPermission = "allow" | "ask" | "deny";
+export interface ToolInfo { id: string; label: string; description: string; permission: ToolPermission }
+export interface ToolLogEntry { tool: string; args: string; outcome: string; at: number }
+
 export interface BootInfo {
   settings: Settings;
   /** Logical screen rect of the monitor the island lives on. */
@@ -447,6 +484,31 @@ export const Bridge = {
 
   systemStatus: () => call<SystemStatus>("system_status"),
 
+  // ── Music (music.rs) ──────────────────────────────────────────────────────
+  /** Opens the folder picker; null when cancelled. */
+  musicAddFolder: () => callOrThrow<ScanReport | null>("music_add_folder"),
+  musicRescan: () => callOrThrow<ScanReport>("music_rescan"),
+  musicFolders: () => callOrThrow<MusicFolder[]>("music_folders"),
+  musicRemoveFolder: (id: number) => callOrThrow<void>("music_remove_folder", { id }),
+  musicSearch: (query: string, favourites: boolean) => callOrThrow<MusicTrack[]>("music_search", { query, favourites }),
+  musicSetFavourite: (id: number, on: boolean) => callOrThrow<void>("music_set_favourite", { id, on }),
+  musicArt: (id: number) => call<string | null>("music_art", { id }),
+  musicPlaylists: () => callOrThrow<MusicPlaylist[]>("music_playlists"),
+  musicPlaylistCreate: (name: string) => callOrThrow<number>("music_playlist_create", { name }),
+  musicPlaylistRename: (id: number, name: string) => callOrThrow<void>("music_playlist_rename", { id, name }),
+  musicPlaylistDelete: (id: number) => callOrThrow<void>("music_playlist_delete", { id }),
+  musicPlaylistTracks: (id: number) => callOrThrow<MusicTrack[]>("music_playlist_tracks", { id }),
+  musicPlaylistAdd: (id: number, tracks: number[]) => callOrThrow<void>("music_playlist_add", { id, tracks }),
+  musicPlaylistRemove: (id: number, position: number) => callOrThrow<void>("music_playlist_remove", { id, position }),
+  musicState: () => call<MusicState>("music_state"),
+  musicPlay: (queue: number[], index: number) => callOrThrow<void>("music_play", { queue, index }),
+  musicControl: (action: "toggle" | "pause" | "resume" | "next" | "previous" | "stop") => call<void>("music_control", { action }),
+  musicSeek: (position: number) => call<void>("music_seek", { position }),
+  musicVolume: (volume: number) => call<void>("music_volume", { volume }),
+  musicSetMode: (shuffle: boolean, repeat: RepeatMode) => call<void>("music_set_mode", { shuffle, repeat }),
+  /** Writes a wardrobe pack (JSON text) to the exports folder and returns its path. */
+  wardrobeExport: (json: string) => callOrThrow<string>("wardrobe_export", { json }),
+
   // ── Phone link (Groovy for Android) ───────────────────────────────────────
   phoneLinkStatus: () => call<PhoneLinkStatus>("phone_link_status"),
   /** Only ever from the switch in Settings. Throws with the reason if it cannot start. */
@@ -491,7 +553,13 @@ export const Bridge = {
   // ── Chat, files, secrets ──────────────────────────────────────────────────
   /** One chat turn. The API key and any file bytes never leave Rust. */
   chatSend: (query: string, context: ChatContext | null) =>
-    callOrThrow<{ text: string }>("chat_send", { query, context }),
+    callOrThrow<{ text: string; action?: { id: number; tool: string; label: string } }>("chat_send", { query, context }),
+  /** Answers a tool's approval question: "once" | "always" | "deny". Returns what happened. */
+  toolsDecide: (id: number, decision: "once" | "always" | "deny") => callOrThrow<string>("tools_decide", { id, decision }),
+  toolsList: () => callOrThrow<ToolInfo[]>("tools_list"),
+  toolsSetPermission: (id: string, permission: ToolPermission) => callOrThrow<void>("tools_set_permission", { id, permission }),
+  toolsLog: () => callOrThrow<ToolLogEntry[]>("tools_log"),
+  toolsLogClear: () => callOrThrow<void>("tools_log_clear"),
   chatReset: () => call<void>("chat_reset"),
 
   // ── The offline brain (ollama.rs) ─────────────────────────────────────────

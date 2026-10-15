@@ -9,7 +9,8 @@ import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
 import { PUMPKIN_BODY, drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
-import { DEFAULT_SKIN, SKIN_STYLES, drawAlmondEye, drawSkinBody, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState } from "./skins";
+import { DEFAULT_SKIN, SKIN_STYLES, drawAlmondEye, drawSkinBody, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
+import { styleWith, type Appearance } from "./appearance";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -211,6 +212,20 @@ export class BotEngine {
   /** 0 = gone, 1 = fully on. */
   outfitPresence = 0;
   private outfitTarget: Outfit = "none";
+  /** Accessories worn with the outfit (appearance.ts combine()); they come and go with it. */
+  layers: Outfit[] = [];
+  /** The user's colours over the look (the main Groovy only). */
+  appearance: Appearance | null = null;
+  private styleCache: { skin: Skin; appearance: Appearance | null; style: SkinStyle } | null = null;
+
+  /** The look's style with the user's colours. */
+  get style(): SkinStyle {
+    const c = this.styleCache;
+    if (c && c.skin === this.skin && c.appearance === this.appearance) return c.style;
+    const style = styleWith(SKIN_STYLES[this.skin], this.isMini ? null : this.appearance);
+    this.styleCache = { skin: this.skin, appearance: this.appearance, style };
+    return style;
+  }
 
   // Spring lag of the soft parts (pompoms, hat tips, scarf end), −1…1.
   physDx = 0;
@@ -788,7 +803,7 @@ export class BotEngine {
    */
   /** The head shape of the current look (minis keep the original). */
   private get shape() {
-    return this.isMini ? { w: 1, h: 1, exp: 2.7, taper: 0 } : SKIN_STYLES[this.skin].shape;
+    return this.isMini ? { w: 1, h: 1, exp: 2.7, taper: 0 } : this.style.shape;
   }
 
   draw(x: CanvasRenderingContext2D, W: number, H: number) {
@@ -824,11 +839,14 @@ export class BotEngine {
       shown: Math.max(0, 1 - this.morph * 2),
       time: now(),
     };
-    if (head) drawOutfitBehind(x, this.outfit, head, outfitState);
+    if (head) {
+      drawOutfitBehind(x, this.outfit, head, outfitState);
+      for (const layer of this.layers) if (layer !== this.outfit) drawOutfitBehind(x, layer, head, outfitState);
+    }
 
     const body = this.bodyPath(rx, ry, R);
     this.drawBody(x, body, R, rx, ry);
-    if (skinHead) drawSkinBody(x, this.skin, body, skinHead, skinState);
+    if (skinHead) drawSkinBody(x, this.style, body, skinHead, skinState);
 
     const blushVal = Math.max(this.blush, this.tint * 0.5) * (1 - this.morph);
     if (blushVal > 0.01) {
@@ -848,8 +866,11 @@ export class BotEngine {
     if (this.morph > 0.05) this.drawMouth(x, body, R);
 
     if (skinHead && skinState.shown > 0.05) this.drawSkinMouth(x, R, rx, ry);
-    if (skinHead) drawSkinFront(x, this.skin, skinHead, skinState);
-    if (head) drawOutfitFront(x, this.outfit, head, outfitState);
+    if (skinHead) drawSkinFront(x, this.style, skinHead, skinState);
+    if (head) {
+      drawOutfitFront(x, this.outfit, head, outfitState);
+      for (const layer of this.layers) if (layer !== this.outfit) drawOutfitFront(x, layer, head, outfitState);
+    }
 
     x.restore();
     x.restore();
@@ -903,7 +924,7 @@ export class BotEngine {
       x.fill(body);
       if (pumpkin <= 0.001) return;
     } else {
-      const sk = SKIN_STYLES[this.skin];
+      const sk = this.style;
       const g = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
       g.addColorStop(0, rgba(sk.bodyTop));
       g.addColorStop(1, rgba(sk.bodyBottom));
@@ -967,7 +988,7 @@ export class BotEngine {
 
     x.save();
     x.clip(body);
-    const sk = this.isMini ? null : SKIN_STYLES[this.skin];
+    const sk = this.isMini ? null : this.style;
     const ink = this.isMini ? MINI_INK : sk?.eyeInk ?? INK;
     x.fillStyle = ink;
     x.strokeStyle = ink;
@@ -1001,7 +1022,7 @@ export class BotEngine {
       x.scale(fx, fy);
       const calm = shape === "pill" || shape === "wide";
       if (face && calm && face.eyeTilt) x.rotate(sd * face.eyeTilt);
-      if (sk && calm) drawAlmondEye(x, this.skin, sd, ew, eh, this.open);
+      if (sk && calm) drawAlmondEye(x, sk, sd, ew, eh, this.open);
       else this.drawEyeShape(x, shape, ew, eh, sd, ink);
       x.restore();
     }
@@ -1131,7 +1152,7 @@ export class BotEngine {
     if (Math.cos(yawM) * cp <= 0.2) return;
     const mx = Math.sin(yawM) * cp * rx;
     const my = -Math.sin(p) * ry;
-    drawSkinMouth(x, this.skin, R, mx, my, Math.max(0.3, Math.cos(yawM)), mood);
+    drawSkinMouth(x, this.style, R, mx, my, Math.max(0.3, Math.cos(yawM)), mood);
   }
 
   /** Mailbox slot: dark pill cut into the box face, with rim and lip highlights. */
@@ -1235,7 +1256,7 @@ export class BotEngine {
     const isWaving = n >= this.waveStart && this.waveStart > 0 && n < this.waveUntil;
     const targets = this.handTargets(n);
     const k = 1 - Math.exp(-dt * 14);
-    const sk = SKIN_STYLES[this.skin];
+    const sk = this.style;
 
     [-1, 1].forEach((sd, i) => {
       const hp = this.handPos[i];

@@ -31,6 +31,16 @@ pub enum ChatContext {
 #[serde(rename_all = "camelCase")]
 pub struct ChatReply {
     pub text: String,
+    /// A desktop tool waiting for the user's approval (tools.rs): the chat
+    /// shows Allow once / Always / Don't under the answer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action: Option<crate::tools::PendingAction>,
+}
+
+impl ChatReply {
+    pub fn text(text: String) -> Self {
+        ChatReply { text, action: None }
+    }
 }
 
 /// A model a provider offers, for the picker in the chat view.
@@ -263,8 +273,25 @@ pub async fn send(
                 Err(e) => e,
             };
             save_turn(chat, &prefs, &plain, &reply, "memory");
-            return Ok(ChatReply { text: reply });
+            return Ok(ChatReply::text(reply));
         }
+    }
+
+    // "Pause the music", "play my favourite songs"… run here, on this computer,
+    // and the answer says what really happened.
+    if let Some(cmd) = crate::music::parse_command(&query).filter(crate::music::worth_handling) {
+        let reply = match crate::music::execute(&cmd) {
+            Ok(text) | Err(text) => text,
+        };
+        save_turn(chat, &prefs, &plain, &reply, "music");
+        return Ok(ChatReply::text(reply));
+    }
+    // "Remind me to…", "open Notepad", "how's my battery?"… (tools.rs), with
+    // the permission the user gave each tool.
+    if let Some(call) = crate::tools::parse(&query) {
+        let (reply, action) = crate::tools::handle(call);
+        save_turn(chat, &prefs, &plain, &reply, "tools");
+        return Ok(ChatReply { text: reply, action });
     }
 
     chat.set_instructions(&prefs.name, instructions(&prefs));

@@ -383,6 +383,25 @@ pub fn memory_export() -> Result<String, String> {
     Ok(path)
 }
 
+/// Settings → Wardrobe Studio → Export: a wardrobe pack (src/mochi/appearance.ts
+/// writePack) saved next to the other exports, then shown.
+#[tauri::command]
+pub fn wardrobe_export(json: String) -> Result<String, String> {
+    if json.len() > 1024 * 1024 {
+        return Err("The pack is larger than 1 MB.".into());
+    }
+    let doc: serde_json::Value = serde_json::from_str(&json).map_err(|e| e.to_string())?;
+    if doc.get("groovyWardrobePack").and_then(|v| v.as_u64()) != Some(1) {
+        return Err("Not a Groovy wardrobe pack.".into());
+    }
+    let dir = crate::settings::local_dir().join("exports");
+    crate::platform::ensure_private_dir(&dir).map_err(|e| e.to_string())?;
+    let file = dir.join(format!("groovy-wardrobe-{}.json", db::now()));
+    std::fs::write(&file, serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    crate::platform::reveal_folder(&dir.to_string_lossy());
+    Ok(file.to_string_lossy().to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

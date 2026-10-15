@@ -17,6 +17,7 @@ import {
   type DesktopSnapshot, type Point,
 } from "../mochi/desktop-logic";
 import { DEFAULT_SKIN, parseSkin } from "../mochi/skins";
+import { DEFAULT_APPEARANCE } from "../mochi/appearance";
 
 const ISLAND = "island";
 
@@ -37,7 +38,8 @@ class DesktopMochi {
   private mode: DesktopMode = "off";
 
   private snap: DesktopSnapshot = {
-    state: "idle", outfit: "none", look: DEFAULT_SKIN, soundEnabled: true, soundVolume: 0.12, paused: false, dancing: false,
+    state: "idle", outfit: "none", look: DEFAULT_SKIN, layers: [], appearance: DEFAULT_APPEARANCE,
+    soundEnabled: true, soundVolume: 0.12, paused: false, dancing: false,
   };
 
   private visible = false;
@@ -124,6 +126,8 @@ class DesktopMochi {
       this.engine.setState(this.snap.state, true);
       this.engine.setOutfit(this.snap.outfit, false);
       this.engine.setSkin(parseSkin(this.snap.look), false);
+      this.engine.layers = this.snap.layers ?? [];
+      this.engine.appearance = this.snap.appearance ?? null;
       this.schedule();
       return;
     }
@@ -202,6 +206,8 @@ class DesktopMochi {
     const engine = this.engine;
     engine.setOutfit(this.snap.outfit, true);
     engine.setSkin(parseSkin(this.snap.look), true);
+    engine.layers = this.snap.layers ?? [];
+    engine.appearance = this.snap.appearance ?? null;
     if (!this.asleep) {
       // Windows: the global cursor. Linux: only while the pointer is over him.
       const fresh = this.mode === "poll" || now - this.lastPointer < 1500;

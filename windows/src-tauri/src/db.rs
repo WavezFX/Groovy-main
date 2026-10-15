@@ -59,6 +59,52 @@ const MIGRATIONS: &[&str] = &[
         count INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (day, provider)
     );",
+    // 3: the local music library (music.rs).
+    "CREATE TABLE music_folders (
+        id INTEGER PRIMARY KEY,
+        path TEXT NOT NULL UNIQUE
+    );
+    CREATE TABLE tracks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_id INTEGER NOT NULL REFERENCES music_folders(id) ON DELETE CASCADE,
+        path TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        artist TEXT NOT NULL DEFAULT '',
+        album TEXT NOT NULL DEFAULT '',
+        genre TEXT NOT NULL DEFAULT '',
+        duration REAL NOT NULL DEFAULT 0,
+        track_no INTEGER,
+        has_art INTEGER NOT NULL DEFAULT 0,
+        favourite INTEGER NOT NULL DEFAULT 0,
+        play_count INTEGER NOT NULL DEFAULT 0,
+        last_played INTEGER,
+        mtime INTEGER NOT NULL DEFAULT 0,
+        added_at INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX tracks_by_album ON tracks(artist, album, track_no);
+    CREATE TABLE playlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+    );
+    CREATE TABLE playlist_tracks (
+        playlist_id INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+        track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+        position INTEGER NOT NULL
+    );
+    CREATE INDEX playlist_order ON playlist_tracks(playlist_id, position);
+    CREATE TABLE kv (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );",
+    // 4: what the desktop tools did, asked and were refused (tools.rs).
+    "CREATE TABLE tool_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool TEXT NOT NULL,
+        args TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        at INTEGER NOT NULL
+    );",
 ];
 
 pub fn path() -> PathBuf {
@@ -159,7 +205,7 @@ mod tests {
         let conn = open_in_memory().unwrap();
         let v: usize = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
         assert_eq!(v, MIGRATIONS.len());
-        for table in ["memories", "conversations", "messages", "tasks"] {
+        for table in ["memories", "conversations", "messages", "tasks", "usage", "tracks", "playlists", "playlist_tracks", "kv", "tool_log"] {
             let n: i64 = conn
                 .query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1", [table], |r| r.get(0))
                 .unwrap();

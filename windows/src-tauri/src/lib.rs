@@ -21,6 +21,7 @@ mod local_chat;
 mod log;
 mod memory;
 mod models;
+mod music;
 mod net;
 mod ollama;
 mod openai_compat;
@@ -38,6 +39,7 @@ mod sounds;
 mod spotify;
 mod system;
 mod tasks;
+mod tools;
 mod tray;
 mod voice;
 #[cfg(windows)]
@@ -545,8 +547,12 @@ async fn ollama_setup(app: AppHandle, shared: State<'_, Shared>) -> Result<Strin
 /// One spoken segment to text, with the Whisper model chosen in Settings.
 #[tauri::command]
 async fn voice_transcribe(shared: State<'_, Shared>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
-    let model = shared.settings.lock().unwrap().voice_model.clone();
-    voice::transcribe(model, samples, wake).await
+    let (model, language) = {
+        let s = shared.settings.lock().unwrap();
+        (s.voice_model.clone(), s.voice_language.clone())
+    };
+    let language = voice::language_for(&model, &language);
+    voice::transcribe(model, language, samples, wake).await
 }
 
 #[tauri::command]
@@ -757,6 +763,7 @@ fn open_settings_window(app: AppHandle) {
 pub fn run() {
     platform::prepare_environment();
     log::install_crash_handler();
+    let first_run = settings::first_run();
     let mut loaded = settings::load();
     // Offline first: a Claude chat with no key to use falls back to Ollama.
     loaded.assistant = loaded.assistant.clone().sanitised();
@@ -765,6 +772,14 @@ pub fn run() {
     }
     if let Err(e) = db::init() {
         log::line(format!("local database unavailable: {e}"));
+    }
+    // First start: the defaults are written once, so they are there to edit
+    // and back up, and every later start reads the same values.
+    if first_run {
+        match settings::save(&loaded) {
+            Ok(()) => log::line("first run: settings created"),
+            Err(e) => log::line(format!("first run: could not save settings: {e}")),
+        }
     }
     i18n::set_picked(&loaded.language);
     let gate = Arc::new(PollGate::new());
@@ -780,7 +795,8 @@ pub fn run() {
                 }
             }
         }))
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None));
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_dialog::init());
     // Where no global shortcut can work, the plugin isn't even started.
     if platform::global_shortcuts_blocked().is_none() {
         builder = builder.plugin(shortcuts::plugin());
@@ -908,6 +924,7 @@ pub fn run() {
             memory::memory_delete,
             memory::memory_clear,
             memory::memory_export,
+            memory::wardrobe_export,
             memory::history_list,
             memory::history_messages,
             memory::history_delete,
@@ -926,7 +943,32 @@ pub fn run() {
             models::models_stop,
             models::models_reveal_folder,
             system::system_status,
+            music::music_add_folder,
+            music::music_rescan,
+            music::music_folders,
+            music::music_remove_folder,
+            music::music_search,
+            music::music_set_favourite,
+            music::music_art,
+            music::music_playlists,
+            music::music_playlist_create,
+            music::music_playlist_rename,
+            music::music_playlist_delete,
+            music::music_playlist_tracks,
+            music::music_playlist_add,
+            music::music_playlist_remove,
+            music::music_state,
+            music::music_play,
+            music::music_control,
+            music::music_seek,
+            music::music_volume,
+            music::music_set_mode,
             db::usage_today,
+            tools::tools_list,
+            tools::tools_set_permission,
+            tools::tools_decide,
+            tools::tools_log,
+            tools::tools_log_clear,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -969,6 +1011,7 @@ pub fn run() {
                 }
             }
             tasks::spawn(handle.clone());
+            music::init(&handle);
             models::spawn_idle_reaper();
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
@@ -986,6 +1029,7 @@ pub fn run() {
                 phone_link::stop_on_exit(app);
                 // The local model server is ours: it never outlives Groovy.
                 models::stop();
+                music::stop_on_exit();
             }
         });
 }

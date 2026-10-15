@@ -55,6 +55,15 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 rusqlite = { version = "0.37", features = ["bundled"] }
 # Free memory and CPU for the model manager and the system status (models.rs, system.rs).
 sysinfo = { version = "0.37", default-features = false, features = ["system", "disk"] }
+# The local music player (music.rs): playback through the OS audio output
+# (WASAPI on Windows), decoding MP3, FLAC, Ogg Vorbis, WAV and AAC/M4A with
+# Symphonia (pure Rust), and the tags and cover art read with lofty.
+rodio = { version = "0.20", default-features = false, features = ["symphonia-mp3", "symphonia-flac", "symphonia-vorbis", "symphonia-wav", "symphonia-aac", "symphonia-isomp4"] }
+lofty = "0.22"
+# Reading the clipboard when the user asks (tools.rs).
+arboard = { version = "3", default-features = false }
+# Folder picker for the music library.
+tauri-plugin-dialog = "2"
 # Unpacking the pinned llama.cpp runtime (models.rs).
 zip = { version = "2", default-features = false, features = ["deflate"] }
 

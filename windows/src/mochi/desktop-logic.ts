@@ -7,6 +7,7 @@
 // Coordinates are y-down everywhere on a PC, so the Mac's DesktopSpace flip is
 // not needed: a point on the desktop is used as the OS reports it.
 
+import type { Appearance } from "./appearance";
 import type { BotEmoteName, BotStateName } from "../core/layout";
 import type { Outfit } from "./wardrobe";
 import type { Skin } from "./skins";
@@ -18,6 +19,9 @@ export interface DesktopSnapshot {
   outfit: Outfit;
   /** Groovy's look (try-ons included). */
   look: Skin;
+  /** Accessories worn with the outfit, and his colours (mochi/appearance.ts). */
+  layers: Outfit[];
+  appearance: Appearance;
   soundEnabled: boolean;
   soundVolume: number;
   /** Tray → Pause: he dozes off and stays asleep. */

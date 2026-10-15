@@ -18,6 +18,7 @@ import { Greeting } from "../mochi/greeting";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
 import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
+import { combine, currentWardrobe } from "../mochi/appearance";
 import { VoiceHost } from "./voice";
 import { BreakControl, Breaks, BREAKS, ReminderControl, snoozeReminder } from "./breaks";
 import { speak } from "../voice/speak";
@@ -1223,7 +1224,11 @@ export class Island {
     const mainFocused = State.focusId == null || State.focusId === State.mainPillId;
     const showOutfit = mainFocused || State.mode !== "expanded" || inWardrobe;
     const outfit = State.wardrobePreview ?? this.seasons.get(parseOutfit(State.settings.mochiOutfit));
-    this.engine.setOutfit(showOutfit ? outfit : "none", !inWardrobe);
+    const appearance = State.appearancePreview ?? currentWardrobe(State.settings.wardrobe).appearance;
+    const worn = combine(outfit, appearance.layers);
+    this.engine.setOutfit(showOutfit ? (worn[0] ?? "none") : "none", !inWardrobe);
+    this.engine.layers = showOutfit ? worn.slice(1) : [];
+    this.engine.appearance = appearance;
     this.engine.setSkin(State.lookPreview ?? parseSkin(State.settings.groovyLook), !inWardrobe);
     // Dances while music plays: always in the compact island, expanded only on
     // the music pill's card (BotCanvasView, macOS). Asked every frame.

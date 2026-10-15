@@ -25,6 +25,9 @@ import { modelsSection } from "./models";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
 import { systemSection } from "./system";
+import { wardrobeSection } from "./wardrobe";
+import { musicSection } from "./music";
+import { permissionsSection } from "./permissions";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -1388,9 +1391,11 @@ async function render() {
 
   const groups: [string, HTMLElement[]][] = [
     [N_("Assistant"), [assistantSection(settings, () => void save(), toggle)]],
+    [N_("Wardrobe"), [wardrobeSection(settings, () => void save())]],
     [N_("Models"), [modelsSection(settings, () => void save())]],
     [N_("Memory"), [memorySection(settings, () => void save(), toggle)]],
     [N_("Reminders"), [tasksSection()]],
+    [N_("Music"), [musicSection()]],
     [N_("Voice"), [voiceSection(settings, () => void save(), toggle, KEY_STORE)]],
     [N_("Chat providers"), [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)]],
     [N_("Coding agents"), [claudeSection(status), agentsSection(agents), planSection(status)]],
@@ -1398,6 +1403,7 @@ async function render() {
     [N_("Android phone"), [phoneSection(settings.phoneLink ?? false, toggle, settings)]],
     [N_("Breaks"), [breaksSection(settings, () => void save())]],
     [N_("General"), [generalSection(), shortcutsSection(shortcutReport)]],
+    [N_("Permissions"), [permissionsSection()]],
     [N_("System"), [systemSection()]],
   ];
   root.append(controlCentre(groups));

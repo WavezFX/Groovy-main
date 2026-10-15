@@ -2692,3 +2692,68 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
 .chat-bar.speaking {
   box-shadow: 0 0 0 1px rgba(120, 190, 255, 0.6), 0 0 14px rgba(120, 190, 255, 0.35);
 }
+
+/* ── Voice call bar (views/chat.ts) ── */
+.call-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  margin: 0 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.call-bar .grow { flex: 1 1 auto; }
+.call-viz {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+.call-viz i {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: rgb(90, 220, 140);
+  transform: scaleY(0.18);
+  transition: transform 0.08s linear;
+}
+.call-bar[data-state="speaking"] .call-viz i { background: rgb(120, 190, 255); animation: call-speak 0.9s ease-in-out infinite; }
+.call-bar[data-state="speaking"] .call-viz i:nth-child(2) { animation-delay: 0.12s; }
+.call-bar[data-state="speaking"] .call-viz i:nth-child(3) { animation-delay: 0.24s; }
+.call-bar[data-state="speaking"] .call-viz i:nth-child(4) { animation-delay: 0.36s; }
+.call-bar[data-state="processing"] .call-viz i { background: rgba(255, 255, 255, 0.5); animation: call-think 1.2s ease-in-out infinite; }
+.call-bar[data-state="muted"] .call-viz i,
+.call-bar[data-state="error"] .call-viz i { background: rgba(255, 255, 255, 0.25); }
+.call-bar[data-state="error"] .call-state { color: #ff8d97; }
+@keyframes call-speak { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(0.9); } }
+@keyframes call-think { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .call-viz i { animation: none !important; transition: none; }
+}
+.call-btn.small { flex-basis: 22px; width: 22px; height: 22px; }
+.call-btn.small.on { background: rgb(244, 80, 94); color: #fff; }
+.call-btn.end { background: rgba(244, 80, 94, 0.22); color: #ff8d97; }
+.call-chip {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font: 500 11px var(--font, system-ui);
+  background: rgba(120, 190, 255, 0.2);
+  color: rgb(170, 215, 255);
+}
+
+/* ── Tool approval under an answer (views/chat.ts) ── */
+.tool-ask { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tool-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font: 500 11.5px var(--font, system-ui);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.88);
+}
+.tool-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.tool-btn.primary { background: rgb(90, 220, 140); color: #06120b; }

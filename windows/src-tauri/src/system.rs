@@ -39,6 +39,11 @@ pub async fn system_status() -> SystemStatus {
     tauri::async_runtime::spawn_blocking(read).await.unwrap_or_else(|_| read())
 }
 
+/// The status now (blocks ~0.2 s for the CPU sample).
+pub fn read_now() -> SystemStatus {
+    read()
+}
+
 fn read() -> SystemStatus {
     use sysinfo::{Disks, ProcessesToUpdate, System};
     let mut sys = System::new();

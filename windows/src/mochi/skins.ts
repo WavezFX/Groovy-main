@@ -117,8 +117,8 @@ export interface SkinState {
 }
 
 /** On the body (clipped to it): the nature touch inside. */
-export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin, body: Path2D, H: Head, st: SkinState) {
-  const s = SKIN_STYLES[skin];
+export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, body: Path2D, H: Head, st: SkinState) {
+  const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02 || !s.nature) return;
   x.save();
   x.clip(body);
@@ -128,8 +128,8 @@ export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin, body: Path
 }
 
 /** In front: the sprout or the flame on the crown. */
-export function drawSkinFront(x: CanvasRenderingContext2D, skin: Skin, H: Head, st: SkinState) {
-  const s = SKIN_STYLES[skin];
+export function drawSkinFront(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, H: Head, st: SkinState) {
+  const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02) return;
   x.save();
   x.globalAlpha *= st.shown;
@@ -142,10 +142,10 @@ export type MouthMood = "calm" | "happy" | "sad" | "open" | "none";
 
 /** The mouth, at (mx, my) in body space, squeezed by fx as the head turns. */
 export function drawSkinMouth(
-  x: CanvasRenderingContext2D, skin: Skin, R: number,
+  x: CanvasRenderingContext2D, skin: Skin | SkinStyle, R: number,
   mx: number, my: number, fx: number, mood: MouthMood,
 ) {
-  const s = SKIN_STYLES[skin];
+  const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   // Calm, Groovy shows no mouth; it appears only to smile, gasp or frown.
   if (mood === "none" || mood === "calm") return;
   x.save();
@@ -184,8 +184,8 @@ export function drawSkinMouth(
 
 /** Almond cut-out eye with a glowing iris, slanting down toward the nose.
  *  Drawn already translated to the eye; `open` 0…1 is the blink. */
-export function drawAlmondEye(x: CanvasRenderingContext2D, skin: Skin, sd: number, w: number, h: number, open: number) {
-  const s = SKIN_STYLES[skin];
+export function drawAlmondEye(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, sd: number, w: number, h: number, open: number) {
+  const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   const hh = Math.max(h * open, w * 0.05);
   const inner = -sd; // toward the middle of the face
   // Flat, sharp top edge sloping down toward the nose, a pointed inner tip,

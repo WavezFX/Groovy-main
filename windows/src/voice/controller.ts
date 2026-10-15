@@ -74,6 +74,11 @@ export class VoiceController {
     this.setPhase("wake");
   }
 
+  /** The room's noise floor as the VAD has learned it (mean-square power). */
+  get noiseFloor(): number {
+    return this.vad.noisePower;
+  }
+
   stop() {
     this.epoch++;
     this.clearSegment();

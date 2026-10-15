@@ -14,7 +14,8 @@ import {
   activeModel, pickModel, providerDef, visibleProviders, withModel, type ProviderDef,
 } from "../core/providers";
 import { Sound } from "../core/sound";
-import { CallControl } from "../voice/call";
+import { CallControl, MicLevel } from "../voice/call";
+import type { CallState } from "../voice/call-state";
 import { brainReady, offerBrain } from "../island/brain";
 import { State, type ChatMessage } from "../core/state";
 import type { ViewHost } from "./views";
@@ -33,11 +34,34 @@ const STRINGS = {
   speaking: N_("Speaking…"),
   call: N_("Talk to Groovy"),
   hangUp: N_("End the call"),
+  dictate: N_("Dictate a message"),
+  stopDictating: N_("Stop dictating"),
+  mute: N_("Mute the microphone"),
+  unmute: N_("Unmute the microphone"),
+  interrupt: N_("Stop talking"),
+  thinking: N_("Thinking…"),
+  muted: N_("Muted"),
+  callError: N_("Something went wrong"),
+  allowOnce: N_("Allow once"),
+  allowAlways: N_("Always allow"),
+  deny: N_("Don't"),
 };
+
+/** What the call bar says in each state of the call. */
+export function callLabel(state: CallState): string {
+  switch (state) {
+    case "listening": return STRINGS.listening;
+    case "processing": return STRINGS.thinking;
+    case "speaking": return STRINGS.speaking;
+    case "muted": return STRINGS.muted;
+    case "error": return STRINGS.callError;
+    default: return "";
+  }
+}
 
 let nextId = 1;
 
-function bubble(message: ChatMessage): HTMLElement {
+function bubble(message: ChatMessage, onChange: () => void): HTMLElement {
   if (message.role === "user") {
     return h(
       "div",
@@ -47,6 +71,28 @@ function bubble(message: ChatMessage): HTMLElement {
   }
   const reply = h("div", { class: "reply" });
   renderMarkdown(reply, message.content);
+  const action = message.action;
+  if (action) {
+    // A desktop tool asks first (tools.rs): nothing runs until a button is clicked.
+    const decide = async (decision: "once" | "always" | "deny") => {
+      message.action = undefined;
+      try {
+        const result = await Bridge.toolsDecide(action.id, decision);
+        State.chatHistory.push({ id: nextId++, role: "assistant", content: result });
+      } catch (err) {
+        State.chatHistory.push({ id: nextId++, role: "assistant", content: String(err).replace(/^Error:\s*/, "") });
+      }
+      onChange();
+    };
+    const row = h(
+      "div",
+      { class: "tool-ask" },
+      h("button", { class: "tool-btn primary", text: tl(STRINGS.allowOnce), onclick: () => void decide("once") }),
+      h("button", { class: "tool-btn", text: tl(STRINGS.allowAlways), onclick: () => void decide("always") }),
+      h("button", { class: "tool-btn", text: tl(STRINGS.deny), onclick: () => void decide("deny") }),
+    );
+    reply.append(row);
+  }
   return h("div", { class: "chat-row" }, reply);
 }
 
@@ -219,9 +265,30 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     spellcheck: "false",
   }) as HTMLInputElement;
   const send = h("button", { class: "send-btn", title: tl(STRINGS.send) }, svg(ICONS.arrowUp, 11));
-  const callBtn = h("button", { class: "call-btn", title: tl(STRINGS.call) }, svg(ICONS.mic, 12));
+  const callBtn = h("button", { class: "call-btn", title: tl(STRINGS.call) }, svg(ICONS.phone, 12));
   callBtn.addEventListener("click", () => CallControl.toggle());
-  const bar = h("div", { class: "chat-bar" }, input, callBtn, send);
+  const dictateBtn = h("button", { class: "call-btn", title: tl(STRINGS.dictate) }, svg(ICONS.mic, 12));
+  dictateBtn.addEventListener("click", () => CallControl.dictate());
+  const bar = h("div", { class: "chat-bar" }, input, dictateBtn, callBtn, send);
+
+  // ── The call bar: what the call is doing, the level, mute / interrupt / end ──
+  const viz = h("div", { class: "call-viz", "aria-hidden": "true" }, h("i"), h("i"), h("i"), h("i"), h("i"));
+  const callText = h("span", { class: "call-state" });
+  const muteBtn = h("button", { class: "call-btn small", title: tl(STRINGS.mute) }, svg(ICONS.micOff, 11));
+  muteBtn.addEventListener("click", () => CallControl.mute());
+  const interruptBtn = h("button", { class: "call-chip", text: tl(STRINGS.interrupt) });
+  interruptBtn.addEventListener("click", () => CallControl.interrupt());
+  const endBtn = h("button", { class: "call-btn small end", title: tl(STRINGS.hangUp) }, svg(ICONS.xmark, 10));
+  endBtn.addEventListener("click", () => CallControl.toggle());
+  const callBar = h("div", { class: "call-bar", role: "status" }, viz, callText, h("div", { class: "grow" }), interruptBtn, muteBtn, endBtn);
+  const bars = Array.from(viz.children) as HTMLElement[];
+  MicLevel.listeners.add((level) => {
+    if (!callBar.isConnected || callBar.style.display === "none") return;
+    bars.forEach((b, i) => {
+      const shape = [0.55, 0.8, 1, 0.8, 0.55][i];
+      b.style.transform = `scaleY(${(0.18 + level * shape * 0.82).toFixed(3)})`;
+    });
+  });
 
   const modelDot = h("i", { class: "model-dot" });
   const modelName = h("span", { class: "model-name" });
@@ -239,7 +306,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     body.classList.toggle("picking", picker.isOpen);
     drawModelButton();
   });
-  body.append(chipRow, log, picker.el, modelRow, bar);
+  body.append(chipRow, log, picker.el, modelRow, callBar, bar);
 
   const el = h("div", { class: "view" }, h("div", { class: "card wash chat-card" }, body));
   (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "rgba(99,102,241,0.5)");
@@ -303,7 +370,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
 
     try {
       const reply = await Bridge.chatSend(query, context);
-      State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text });
+      State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text, action: reply.action });
       State.stateOverride = null;
       Sound.play("finish");
     } catch (err) {
@@ -351,7 +418,12 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       if (count !== renderedCount && !live) {
         renderedCount = count;
         clear(log);
-        for (const m of State.chatHistory) log.append(bubble(m));
+        const changed = () => {
+          renderedCount = -1;
+          State.notify();
+          onHeightChange();
+        };
+        for (const m of State.chatHistory) log.append(bubble(m, changed));
         if (thinking) log.append(typingDots());
         log.scrollTop = log.scrollHeight;
       }
@@ -367,6 +439,20 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       bar.classList.toggle("speaking", State.voiceSpeaking);
       callBtn.classList.toggle("on", State.voiceCall);
       callBtn.title = t(State.voiceCall ? STRINGS.hangUp : STRINGS.call);
+      dictateBtn.classList.toggle("on", State.dictating);
+      dictateBtn.title = t(State.dictating ? STRINGS.stopDictating : STRINGS.dictate);
+      dictateBtn.style.display = State.voiceCall ? "none" : "";
+      callBar.style.display = State.voiceCall ? "" : "none";
+      callBar.dataset.state = State.callState;
+      callText.textContent = State.voiceCall ? (State.voiceCaption && State.callState === "listening" ? State.voiceCaption : t(callLabel(State.callState))) : "";
+      muteBtn.classList.toggle("on", State.callState === "muted");
+      muteBtn.title = t(State.callState === "muted" ? STRINGS.unmute : STRINGS.mute);
+      interruptBtn.style.display = State.voiceSpeaking ? "" : "none";
+      if (State.dictation !== null && !sending) {
+        input.value = State.dictation;
+        State.dictation = null;
+        input.focus();
+      }
       input.placeholder = State.voiceSpeaking
         ? t(STRINGS.speaking)
         : listening

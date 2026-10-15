@@ -3,6 +3,7 @@
 // to show, and handles the drag out of the island. The window itself lives in
 // src-tauri/src/desktop.rs and draws him in src/desktop/main.ts.
 
+import { combine, currentWardrobe } from "../mochi/appearance";
 import { Bridge, emitToWindow, onEvent, type DesktopMode } from "../core/bridge";
 import type { BotEmoteName } from "../core/layout";
 import { Sound } from "../core/sound";
@@ -165,10 +166,18 @@ export class DesktopLink {
     this.push();
   }
 
+  /** What he wears: the outfit, the accessories that fit with it, and his colours. */
+  private dressed(): Pick<DesktopSnapshot, "outfit" | "layers" | "appearance"> {
+    const outfit = State.wardrobePreview ?? this.seasons.get(parseOutfit(State.settings.mochiOutfit));
+    const appearance = State.appearancePreview ?? currentWardrobe(State.settings.wardrobe).appearance;
+    const worn = combine(outfit, appearance.layers);
+    return { outfit: worn[0] ?? "none", layers: worn.slice(1), appearance };
+  }
+
   private push() {
     const snapshot: DesktopSnapshot = {
       state: State.effectiveState,
-      outfit: State.wardrobePreview ?? this.seasons.get(parseOutfit(State.settings.mochiOutfit)),
+      ...this.dressed(),
       look: State.lookPreview ?? parseSkin(State.settings.groovyLook),
       soundEnabled: State.settings.soundEnabled,
       soundVolume: State.settings.soundVolume,

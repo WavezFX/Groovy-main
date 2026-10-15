@@ -13,7 +13,9 @@ import { Sound } from "../core/sound";
 import { State } from "../core/state";
 import type { BotEngine } from "../mochi/engine";
 import { VoiceController, toInt16, type VoicePhase } from "../voice/controller";
-import { CallControl } from "../voice/call";
+import { CallControl, MicLevel } from "../voice/call";
+import { BargeIn, LevelMeter, nextCallState, type CallEvent } from "../voice/call-state";
+import { power } from "../voice/vad";
 import { openMic, type Mic } from "../voice/mic";
 import { startLiveKit, type LiveKitSession } from "../voice/livekit";
 import { speak, stopSpeaking } from "../voice/speak";
@@ -38,6 +40,9 @@ export class VoiceHost {
   private gaveUp = false;
   /** A spoken question is waiting for its answer: the chat's length when asked. */
   private awaiting: number | null = null;
+  private bargeIn = new BargeIn();
+  private meter = new LevelMeter();
+  private lastLevel = 0;
 
   private engine: BotEngine;
   private actions: VoiceHostActions;
@@ -58,11 +63,14 @@ export class VoiceHost {
       if (State.voiceCall || this.live) this.endCall();
       else void this.startCall();
     };
+    CallControl.mute = () => this.toggleMute();
+    CallControl.interrupt = () => this.interrupt();
+    CallControl.dictate = () => void this.dictate();
   }
 
   /** Called whenever the state changes: the microphone, and answers to read out. */
   sync() {
-    const want = (!!State.settings.voiceEnabled || State.voiceCall) && !State.paused;
+    const want = (!!State.settings.voiceEnabled || State.voiceCall || State.dictating) && !State.paused;
     if (want !== this.wanted) {
       this.wanted = want;
       // Turned off and on again: try again after a failure.
@@ -104,7 +112,7 @@ export class VoiceHost {
             stop?.();
           }
         }
-        this.mic = await openMic((frame) => this.controller.feed(frame));
+        this.mic = await openMic((frame) => this.frame(frame), 1024, State.settings.voiceMic ?? "", () => this.micLost());
         State.voiceProblem = null;
         this.controller.start();
         return true;
@@ -120,6 +128,95 @@ export class VoiceHost {
     return this.opening;
   }
 
+  /** Every microphone frame: the level meter, barge-in while he speaks, else the controller. */
+  private frame(frame: Float32Array) {
+    const p = power(frame);
+    const level = this.meter.feed(p);
+    if (Math.abs(level - this.lastLevel) > 0.02) {
+      this.lastLevel = level;
+      MicLevel.set(State.callState === "muted" ? 0 : level);
+    }
+    if (State.callState === "muted") return;
+    if (State.voiceSpeaking) {
+      if (State.voiceCall && State.settings.voiceInterrupt && this.bargeIn.feed(p, this.controller.noiseFloor)) this.interrupt();
+      return;
+    }
+    this.controller.feed(frame);
+  }
+
+  private call(event: CallEvent) {
+    const next = nextCallState(State.callState, event);
+    if (next === State.callState) return;
+    State.callState = next;
+    State.notify();
+  }
+
+  /** The microphone went away (unplugged, disabled): say so, and stop using it. */
+  private micLost() {
+    State.voiceProblem = t("The microphone was disconnected. Plug it back in, or pick another one in Settings → Voice.");
+    this.call("fail");
+    const inCall = State.voiceCall;
+    this.mic?.stop();
+    this.mic = null;
+    this.controller.stop();
+    this.gaveUp = true;
+    State.voiceListening = false;
+    State.dictating = false;
+    if (inCall) {
+      State.voiceCall = false;
+      Sound.play("error");
+    }
+    State.notify();
+  }
+
+  private toggleMute() {
+    if (!State.voiceCall) return;
+    if (State.callState === "muted") {
+      this.call("unmute");
+      this.listenForTurn();
+    } else {
+      this.call("mute");
+      this.controller.pause();
+      State.voiceListening = false;
+      MicLevel.set(0);
+      State.notify();
+    }
+  }
+
+  /** Stop talking and listen: the call button while he speaks, or speaking over him. */
+  private interrupt() {
+    if (!State.voiceSpeaking) return;
+    stopSpeaking();
+    State.voiceSpeaking = false;
+    this.bargeIn.reset();
+    this.call("interrupt");
+    if (State.voiceCall) this.listenForTurn();
+    else this.controller.resume();
+  }
+
+  /** Mode A: listen for one message and put it in the text field, unsent. */
+  private async dictate() {
+    if (State.dictating) {
+      State.dictating = false;
+      this.controller.resume();
+      State.notify();
+      return;
+    }
+    if (State.voiceCall) return;
+    this.gaveUp = false;
+    State.dictating = true;
+    State.voiceProblem = null;
+    State.notify(); // opens the microphone through sync()
+    if (!(await this.open())) {
+      State.dictating = false;
+      State.notify();
+      return;
+    }
+    Sound.play("peek");
+    this.controller.resume();
+    this.controller.listen(8);
+  }
+
   private close() {
     this.live?.hangUp();
     this.live = null;
@@ -130,6 +227,9 @@ export class VoiceHost {
     this.awaiting = null;
     State.voiceListening = false;
     State.voiceCall = false;
+    State.dictating = false;
+    this.call("end");
+    MicLevel.set(0);
     State.notify();
   }
 
@@ -155,9 +255,12 @@ export class VoiceHost {
     }
     this.gaveUp = false;
     State.voiceCall = true;
+    State.dictating = false;
+    this.call("start");
     State.notify(); // opens the microphone through sync()
     if (!(await this.open())) {
       State.voiceCall = false;
+      this.call("fail");
       this.actions.openChat();
       State.notify();
       return;
@@ -176,6 +279,8 @@ export class VoiceHost {
     this.awaiting = null;
     stopSpeaking();
     this.controller.resume();
+    this.call("end");
+    MicLevel.set(0);
     if (was) Sound.play("close");
     State.notify();
   }
@@ -198,20 +303,36 @@ export class VoiceHost {
     }
     Sound.play("peek");
     this.engine.triggerEmote("surprised", 0.9);
-    if (State.settings.voiceCall) State.voiceCall = true;
+    if (State.settings.voiceCall) {
+      State.voiceCall = true;
+      this.call("start");
+    }
     State.voiceListening = true;
     this.actions.openChat();
     State.notify();
   }
 
   private command(text: string) {
+    if (State.dictating) {
+      // Dictation: the words go in the text field, to edit and send by hand.
+      State.dictating = false;
+      State.dictation = text;
+      this.controller.resume();
+      this.actions.openChat();
+      State.notify();
+      return;
+    }
     if (State.settings.voiceEngine === "livekit") {
       // "Hey Groovy, …" in one breath: the conversation starts and the agent
       // hears the rest from you live.
       void this.startConversation();
       return;
     }
-    if (!State.voiceCall && !State.voiceListening && State.settings.voiceCall) State.voiceCall = true;
+    if (!State.voiceCall && !State.voiceListening && State.settings.voiceCall) {
+      State.voiceCall = true;
+      this.call("start");
+    }
+    if (State.voiceCall) this.call("heard");
     State.voiceListening = false;
     // Not listening while he thinks and answers: he'd hear himself.
     this.controller.pause();
@@ -222,6 +343,11 @@ export class VoiceHost {
   }
 
   private cancelled() {
+    if (State.dictating) {
+      State.dictating = false;
+      State.notify();
+      return;
+    }
     if (State.voiceCall) {
       this.endCall();
       return;
@@ -254,11 +380,21 @@ export class VoiceHost {
 
   private async say(text: string) {
     if (State.settings.voiceSpeak) {
+      this.call("answered");
       State.voiceSpeaking = true;
+      this.bargeIn.reset();
       State.notify();
       this.engine.triggerEmote("happy", 0.8);
       await speak(text, State.settings.voiceTts);
+      if (!State.voiceSpeaking) return; // interrupted: already listening again
       State.voiceSpeaking = false;
+      this.call("spoke");
+    } else {
+      this.call("silent");
+    }
+    if (State.voiceCall && State.callState === "muted") {
+      State.notify();
+      return;
     }
     if (State.voiceCall) this.listenForTurn();
     else {
@@ -275,6 +411,7 @@ export class VoiceHost {
     Sound.play("open");
     this.engine.triggerEmote("happy", 1.2);
     State.voiceCall = true;
+    this.call("start");
     State.voiceListening = true;
     State.voiceCaption = t("Connecting…");
     this.actions.openChat();
@@ -291,6 +428,7 @@ export class VoiceHost {
       onEnd: (error) => {
         this.live = null;
         State.voiceCall = false;
+        this.call(error ? "fail" : "end");
         State.voiceListening = false;
         State.voiceCaption = null;
         if (error) {

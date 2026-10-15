@@ -82,6 +82,12 @@ pub struct Settings {
     pub voice_speak: bool,
     /// The voice he speaks with, by name; empty picks an offline English one.
     pub voice_tts: String,
+    /// What Whisper listens for with a multilingual model: an ISO 639-1 code, or "" to detect it.
+    pub voice_language: String,
+    /// The microphone's deviceId as the webview lists it; "" = the system default.
+    pub voice_mic: String,
+    /// Speaking over Groovy stops him and he listens (best with headphones).
+    pub voice_interrupt: bool,
     /// Break reminders (src/island/breaks.ts): minutes between them, 0 = off.
     pub break_water: u32,
     /// The closed island stays on screen as a small pill instead of hiding.
@@ -130,6 +136,9 @@ pub struct Settings {
     pub phone_relay_url: String,
     /// Personality, AI mode, memory and performance (assistant.rs).
     pub assistant: crate::assistant::AssistantPrefs,
+    /// Groovy's colours, layered accessories, presets and favourites. The page
+    /// owns its shape (src/mochi/appearance.ts) and validates it on every read.
+    pub wardrobe: Value,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -193,6 +202,9 @@ impl Default for Settings {
             voice_call: true,
             voice_speak: true,
             voice_tts: String::new(),
+            voice_language: String::new(),
+            voice_mic: String::new(),
+            voice_interrupt: false,
             break_water: 45,
             keep_visible: true,
             break_stretch: 60,
@@ -211,6 +223,7 @@ impl Default for Settings {
             phone_relay: false,
             phone_relay_url: String::new(),
             assistant: Default::default(),
+            wardrobe: Value::Object(Map::new()),
         }
     }
 }
@@ -223,6 +236,11 @@ pub fn hook_exe_path() -> PathBuf {
 
 fn settings_path() -> PathBuf {
     config_dir().join("settings.json")
+}
+
+/// No settings.json yet: the very first start.
+pub fn first_run() -> bool {
+    !settings_path().exists()
 }
 
 pub fn load() -> Settings {
@@ -495,6 +513,9 @@ mod tests {
   "voiceCall": false,
   "voiceSpeak": false,
   "voiceTts": "Microsoft George",
+  "voiceLanguage": "pa",
+  "voiceMic": "abc123",
+  "voiceInterrupt": true,
   "breakWater": 30,
   "keepVisible": false,
   "breakStretch": 90,
@@ -529,6 +550,11 @@ mod tests {
     "historyEnabled": false,
     "historyRetentionDays": 7,
     "performanceProfile": "lightweight"
+  },
+  "wardrobe": {
+    "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["sunglasses"] },
+    "presets": [],
+    "favourites": ["crown"]
   }
 }"##;
 
@@ -1034,6 +1060,9 @@ mod tests {
                 "voiceCall",
                 "voiceSpeak",
                 "voiceTts",
+                "voiceLanguage",
+                "voiceMic",
+                "voiceInterrupt",
                 "breakWater",
                 "keepVisible",
                 "breakStretch",
@@ -1052,6 +1081,7 @@ mod tests {
                 "phoneRelay",
                 "phoneRelayUrl",
                 "assistant",
+                "wardrobe",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

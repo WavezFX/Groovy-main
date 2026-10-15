@@ -64,6 +64,8 @@ export interface ChatMessage {
   id: number;
   role: "user" | "assistant";
   content: string;
+  /** A desktop tool waiting for approval (tools.rs); dropped once answered. */
+  action?: { id: number; tool: string; label: string };
 }
 
 export type PromptContext =
@@ -197,6 +199,12 @@ export interface Settings {
   voiceSpeak: boolean;
   /** The Windows voice he speaks with ("" = the best offline English one). */
   voiceTts: string;
+  /** ISO 639-1 code a multilingual Whisper model listens for; "" = detect. */
+  voiceLanguage: string;
+  /** The microphone's deviceId; "" = the system default. */
+  voiceMic: string;
+  /** Speaking over him stops him (barge-in). */
+  voiceInterrupt: boolean;
   /** Break reminders, minutes between them; 0 is off. */
   breakWater: number;
   /** The closed island stays on screen as a small pill instead of hiding. */
@@ -231,6 +239,8 @@ export interface Settings {
     spot: { x: number; y: number; space: string } | null;
   };
   assistant: AssistantPrefs;
+  /** Colours, layered accessories, presets and favourites (mochi/appearance.ts); read it through parseWardrobe. */
+  wardrobe: unknown;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -266,6 +276,9 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceCall: true,
   voiceSpeak: true,
   voiceTts: "",
+  voiceLanguage: "",
+  voiceMic: "",
+  voiceInterrupt: false,
   breakWater: 45,
   keepVisible: true,
   breakStretch: 60,
@@ -273,6 +286,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pillColors: {},
   language: "",
   assistant: DEFAULT_ASSISTANT,
+  wardrobe: {},
 };
 
 type Listener = () => void;
@@ -322,6 +336,14 @@ class AppState {
   voiceCall = false;
   /** He is reading an answer aloud. */
   voiceSpeaking = false;
+  /** Where the voice call is (voice/call-state.ts). */
+  callState: import("../voice/call-state").CallState = "idle";
+  /** Colours and accessories being tried on in the Wardrobe Studio (not saved yet). */
+  appearancePreview: import("../mochi/appearance").Appearance | null = null;
+  /** Dictation is listening for one message to put in the text field. */
+  dictating = false;
+  /** What dictation heard, waiting for the chat view to put in the text field. */
+  dictation: string | null = null;
   /** The offline brain's setup on the note card (island/brain.ts). */
   brainSetup: "offer" | "working" | null = null;
   /** The question waiting for the brain to be ready. */

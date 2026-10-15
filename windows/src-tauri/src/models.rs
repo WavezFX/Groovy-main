@@ -397,7 +397,7 @@ pub fn estimate_ram(file_size: u64, info: &GgufInfo, context: u32) -> u64 {
 // ── Where things are ──────────────────────────────────────────────────────────
 
 pub fn models_dir() -> PathBuf {
-    settings::local_dir().join("models")
+    settings::local_dir().join("models").join("llm")
 }
 
 fn runtime_dir() -> PathBuf {
