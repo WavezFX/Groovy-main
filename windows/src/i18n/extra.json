@@ -12622,6 +12622,28 @@
    "pt-BR": "Abra a Central de controle de qualquer lugar com Ctrl+Alt+, pela bandeja ou clicando com o botão direito no Groovy.",
    "ru": "Открывайте центр управления откуда угодно сочетанием Ctrl+Alt+, из трея или правым щелчком по Groovy.",
    "id": "Buka Pusat Kontrol dari mana saja dengan Ctrl+Alt+, dari baki, atau klik kanan pada Groovy."
+  },
+  "Settings ({keys})": {
+   "zh-Hans": "设置（{keys}）",
+   "hi": "सेटिंग्स ({keys})",
+   "es": "Configuración ({keys})",
+   "ar": "الإعدادات ({keys})",
+   "fr": "Réglages ({keys})",
+   "bn": "সেটিংস ({keys})",
+   "pt-BR": "Configurações ({keys})",
+   "ru": "Настройки ({keys})",
+   "id": "Pengaturan ({keys})"
+  },
+  "Quick settings": {
+   "zh-Hans": "快速设置",
+   "hi": "त्वरित सेटिंग्स",
+   "es": "Ajustes rápidos",
+   "ar": "إعدادات سريعة",
+   "fr": "Réglages rapides",
+   "bn": "দ্রুত সেটিংস",
+   "pt-BR": "Configurações rápidas",
+   "ru": "Быстрые настройки",
+   "id": "Pengaturan cepat"
   }
  }
 }

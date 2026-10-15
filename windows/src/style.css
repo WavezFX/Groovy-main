@@ -2899,3 +2899,16 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   gap: 8px;
   margin-top: 6px;
 }
+
+/* Island gear (round 2 item 1): opens the Control Centre; the arrow opens the quick settings. */
+.header-actions .gear-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.header-actions .gear-group .gear {
+  color: var(--ink);
+}
+.header-actions .gear-group .quick {
+  padding: 2px;
+}

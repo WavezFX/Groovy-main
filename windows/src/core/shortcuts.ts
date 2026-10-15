@@ -411,3 +411,11 @@ export function islandKeyAction(
   if (e.key === "," || e.code === "Comma") return { kind: "settings" };
   return null;
 }
+
+/** The island gear's tooltip shortcut: "Ctrl+Alt+," as bound now, or null when it is off. */
+export function settingsKeys(stored: Bindings | undefined): string | null {
+  const d = SHORTCUTS.find((x) => x.id === "openSettings");
+  if (!d) return null;
+  const b = effective(d, stored);
+  return b.enabled && b.keys ? displayKeys(b.keys) : null;
+}

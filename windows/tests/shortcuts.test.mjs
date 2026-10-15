@@ -9,7 +9,7 @@ import { calls, emit, sent } from "./tauri.mjs";
 import {
   ALTGR_CHARACTERS, ISLAND_SHORTCUTS, KEY_NAMES, SHORTCUTS, SHORTCUT_TEXT, activeKeys, altGrClashes,
   cyclePill, displayKeys, duplicates, effective, formatKeys, islandKeyAction, navigate, normalizeKeys,
-  parseKeys, pillByNumber, recordPress,
+  parseKeys, pillByNumber, recordPress, settingsKeys,
 } from "../src/core/shortcuts.ts";
 import { registerShortcutHandlers, runGlobalShortcut, runIslandKey } from "../src/island/shortcuts.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
@@ -542,4 +542,10 @@ test("island keys: the highlight walks the list on screen, Ctrl+O opens it, Ctrl
   did = [];
   runIslandKey(host, { kind: "diff" });
   assert.deepEqual(did, ["view:toggleDiff"]);
+});
+
+test("the island gear's tooltip names the Control Centre shortcut as bound now", () => {
+  assert.equal(settingsKeys({}), "Ctrl+Alt+,");
+  assert.equal(settingsKeys({ openSettings: { keys: "Ctrl+Shift+S", enabled: true } }), "Ctrl+Shift+S");
+  assert.equal(settingsKeys({ openSettings: { keys: "Ctrl+Alt+Comma", enabled: false } }), null);
 });

@@ -99,3 +99,9 @@ and its translations.
 - **Known gaps:** Ollama installer download not checksum-verified (existing
   code); a killed Groovy can leave `llama-server` running; no media-key
   support for the local player.
+
+## Fixes round 2
+
+| Item | What was done | Tested |
+|---|---|---|
+| 1 | The island's gear (next to the sound button, now full colour and slightly larger) opens the Control Centre; tooltip "Settings (Ctrl+Alt+,)" follows the bound shortcut (plain "Settings" when it's off). The quick settings (sound, volume, auto-close) open from the small arrow next to it or a long press (450 ms) on the gear. | npm test 456/456, tsc clean; needs a look on the PC |

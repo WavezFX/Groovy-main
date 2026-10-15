@@ -24,6 +24,7 @@ export const ICONS = {
   chevronLeft: "M15 5.5 8.5 12 15 18.5",
   // chevron.up
   chevronUp: "M5.5 15 12 8.5 18.5 15",
+  chevronDown: "M5.5 9 12 15.5 18.5 9",
   // checkmark
   check: "M5 12.5 9.5 17 19 7.5",
   // arrow.up (send)

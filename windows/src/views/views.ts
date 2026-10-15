@@ -31,6 +31,14 @@ import { BREAKS, BreakControl, ReminderControl } from "../island/breaks";
 import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
 import { buildNotify, buildTiles } from "./tiles";
 import { currentTiles, tilesHome } from "../core/tiles";
+import { settingsKeys, type Bindings } from "../core/shortcuts";
+
+const LONG_PRESS_MS = 450;
+
+function settingsTitle(stored: Bindings | undefined): string {
+  const keys = settingsKeys(stored);
+  return keys ? t("Settings ({keys})", { keys }) : t("Settings");
+}
 
 export interface ViewActions {
   setView(v: IslandViewName): void;
@@ -121,7 +129,25 @@ export function buildHeader(actions: ViewActions): ViewHost {
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
   const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
 
-  const gearBtn = h("button", { title: tl("Settings"), onclick: () => go("settings") }, svg(ICONS.gear, 14));
+  // The gear opens the Control Centre; its small arrow (or a long press on it)
+  // opens the quick settings inside the island (sound, volume, auto-close).
+  const gearBtn = h("button", { class: "gear" }, svg(ICONS.gear, 15));
+  const quickBtn = h("button", { class: "quick", title: tl("Quick settings"), onclick: () => go(State.view === "settings" ? "overview" : "settings") }, svg(ICONS.chevronDown, 8, { stroke: 2.4 }));
+  let pressTimer = 0;
+  let longPressed = false;
+  gearBtn.addEventListener("pointerdown", () => {
+    longPressed = false;
+    pressTimer = window.setTimeout(() => {
+      longPressed = true;
+      go("settings");
+    }, LONG_PRESS_MS);
+  });
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"]) gearBtn.addEventListener(ev, () => window.clearTimeout(pressTimer));
+  gearBtn.addEventListener("click", () => {
+    if (longPressed) return;
+    actions.blip();
+    void Bridge.openSettingsWindow();
+  });
   const soundBtn = h("button", { title: tl("Mute"), onclick: () => actions.toggleSound() }, svg(ICONS.speakerOn, 14));
   // Plan usage pills (off by default): before the gear, Claude first, as on the Mac.
   const claudePill = buildPlanPill(false);
@@ -138,7 +164,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
     "div",
     { id: "header" },
     h("div", { class: "tabs" }, tabHome, tabChat, tabDrop),
-    h("div", { class: "header-actions" }, planPills, gearBtn, soundBtn),
+    h("div", { class: "header-actions" }, planPills, h("div", { class: "gear-group" }, gearBtn, quickBtn), soundBtn),
   );
   const headerActions = el.lastElementChild as HTMLElement;
 
@@ -149,9 +175,8 @@ export function buildHeader(actions: ViewActions): ViewHost {
       tabHome.classList.toggle("on", v === "overview" || v === "empty" || v === "tiles");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
-      gearBtn.classList.toggle("on", v === "settings");
-      clear(gearBtn);
-      gearBtn.append(svg(v === "settings" ? ICONS.gearFill : ICONS.gear, 14));
+      quickBtn.classList.toggle("on", v === "settings");
+      gearBtn.title = settingsTitle(State.settings.shortcuts);
       clear(soundBtn);
       soundBtn.append(svg(State.settings.soundEnabled ? ICONS.speakerOn : ICONS.speakerOff, 14));
       syncPlanPills();
