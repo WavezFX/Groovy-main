@@ -263,6 +263,16 @@ const PLAN_SETTINGS_TEXT = {
   get showCodex() { return t("Show Codex plan in the notch"); },
 };
 
+/** The Coding Studio: a project's files, a terminal, git and the AI, in its own window. */
+function studioSection(): HTMLElement {
+  return h("section", {},
+    h("h2", {}, h("span", { text: t("Coding Studio") })),
+    h("div", { class: "row" },
+      h("button", { class: "primary", text: t("Open the Coding Studio"), onclick: () => void Bridge.openStudioWindow() }),
+      h("span", { class: "hint", text: t("Edit a project's files with their history, run commands you approve, use git, and ask the AI for changes you review before applying.") })),
+  );
+}
+
 function planSection(status: HookStatus): HTMLElement {
   const body = h("div", { style: "display:flex;flex-direction:column;gap:12px" });
   const section = h("section", {}, h("h2", {}, h("span", { text: t("Plan usage") })), body);
@@ -1391,7 +1401,7 @@ async function render() {
     music: () => [musicSection()],
     calls: () => [voiceSection(settings, () => void save(), toggle, KEY_STORE)],
     chat: () => [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)],
-    agents: () => [claudeSection(status), agentsSection(agents), planSection(status)],
+    agents: () => [studioSection(), claudeSection(status), agentsSection(agents), planSection(status)],
     pills: () => [activePillsSection(connected), integrationsSection(present)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],

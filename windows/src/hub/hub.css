@@ -921,3 +921,43 @@ button.hub-icon svg {
 .hub-note-detail > button {
   align-self: flex-start;
 }
+
+/* A narrow window: the sidebar becomes a strip of pages on top, scrolling
+   sideways, and the page takes the full width. */
+@media (max-width: 720px) {
+  #hub {
+    flex-direction: column;
+  }
+  .hub-side {
+    width: auto;
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .hub-side .hub-brand,
+  .hub-side .hub-group,
+  .hub-side .spacer,
+  .hub-side .hub-status,
+  .hub-side .hub-version {
+    display: none;
+  }
+  .hub-item {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .hub-panel {
+    margin: 0 8px 8px;
+    border-radius: 16px;
+  }
+  .hub-scroll {
+    padding: 14px 12px 20px;
+  }
+  .hub-hero .troupe {
+    display: none;
+  }
+}
