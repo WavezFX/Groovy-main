@@ -159,8 +159,66 @@ pub fn status() -> ModelsStatus {
     ModelsStatus { parakeet, download_mb: (PARAKEET.total_size() + DIARIZER.total_size()) / 1_000_000 }
 }
 
+/// Whisper instead of Parakeet, for the languages Parakeet doesn't know
+/// (Punjabi, Hindi, Japanese, Chinese…): (model, language). Set from Flow's
+/// preferences and the voice settings (flow::sync_engine).
+static WHISPER: Mutex<Option<(String, Option<String>)>> = Mutex::new(None);
+
+pub fn use_whisper(choice: Option<(String, Option<String>)>) {
+    *WHISPER.lock().unwrap() = choice;
+}
+
+fn whisper() -> Option<(String, Option<String>)> {
+    WHISPER.lock().unwrap().clone()
+}
+
+/// Whether speech can be turned into text now, with the engine chosen.
 pub fn is_ready() -> bool {
-    PARAKEET.is_present()
+    match whisper() {
+        Some((model, _)) => crate::voice::installed(&model),
+        None => PARAKEET.is_present(),
+    }
+}
+
+/// Whisper gives text without word times: the words are spread evenly over
+/// the stretch, which is enough to place them in a speaker's turn.
+pub fn spread_words(text: &str, start: f64, length: f64) -> Vec<TimedWord> {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    if words.is_empty() {
+        return Vec::new();
+    }
+    let step = length / words.len() as f64;
+    words
+        .iter()
+        .enumerate()
+        .map(|(i, w)| TimedWord { text: (*w).to_string(), start: start + i as f64 * step, end: start + (i + 1) as f64 * step })
+        .collect()
+}
+
+fn transcribe_whisper(model: &str, language: Option<&str>, samples: &[f32]) -> Option<Transcript> {
+    let mut out = Transcript::default();
+    for (offset, chunk) in audio::split_for_model(samples, SAMPLE_RATE, MAX_CHUNK_SECONDS) {
+        if chunk.len() < (SAMPLE_RATE as usize) / 4 {
+            continue;
+        }
+        let text = match crate::voice::transcribe_blocking(model, language, chunk) {
+            Ok(t) => t,
+            Err(e) => {
+                crate::log::line(format!("speech: whisper failed: {e}"));
+                return None;
+            }
+        };
+        let text = text.trim();
+        if text.is_empty() {
+            continue;
+        }
+        if !out.text.is_empty() {
+            out.text.push(' ');
+        }
+        out.text.push_str(text);
+        out.words.extend(spread_words(text, offset as f64 / SAMPLE_RATE as f64, chunk.len() as f64 / SAMPLE_RATE as f64));
+    }
+    Some(out)
 }
 
 fn emit_status(app: &AppHandle) {
@@ -340,6 +398,9 @@ const MAX_CHUNK_SECONDS: f64 = 28.0;
 
 /// Transcribes 16 kHz mono audio.
 pub fn transcribe(samples: &[f32]) -> Option<Transcript> {
+    if let Some((model, language)) = whisper() {
+        return transcribe_whisper(&model, language.as_deref(), samples);
+    }
     let rec = recognizer()?;
     let mut out = Transcript::default();
     for (offset, chunk) in audio::split_for_model(samples, SAMPLE_RATE, MAX_CHUNK_SECONDS) {
@@ -423,6 +484,23 @@ pub fn diarize(samples: &[f32]) -> Vec<Turn> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn whisper_words_are_spread_over_the_stretch() {
+        let w = spread_words("ਸਤ ਸ੍ਰੀ ਅਕਾਲ ji", 10.0, 2.0);
+        assert_eq!(w.len(), 4);
+        assert_eq!((w[0].start, w[3].end), (10.0, 12.0));
+        assert_eq!(w[1].text, "ਸ੍ਰੀ");
+        assert!(spread_words("  ", 0.0, 1.0).is_empty());
+    }
+
+    #[test]
+    fn whisper_takes_over_only_when_chosen() {
+        use_whisper(Some(("small".into(), Some("pa".into()))));
+        assert_eq!(whisper(), Some(("small".into(), Some("pa".into()))));
+        use_whisper(None);
+        assert_eq!(whisper(), None);
+    }
 
     fn toks(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| s.to_string()).collect()

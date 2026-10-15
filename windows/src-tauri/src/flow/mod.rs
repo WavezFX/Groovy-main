@@ -127,7 +127,7 @@ pub fn setup(app: &AppHandle) {
     if prefs.enabled {
         enable(app, &flow);
     }
-    crate::okgroovy::sync(app);
+    sync_engine(app);
 }
 
 /// The key as the pages write it ("right_ctrl"…), or "wayland" where the
@@ -447,12 +447,33 @@ pub struct FlowStatus {
     /// "ok", or why the key can't be watched here ("wayland", "no-display").
     keys: String,
     ai_ready: bool,
+    /// Speech can be turned into text with the engine chosen.
+    engine_ready: bool,
     mics: Vec<audio::InputDevice>,
     platform: &'static str,
     /// Groovy started with the computer.
     autostarted: bool,
     /// The user's first name, for "Hello Louis".
     user_name: Option<String>,
+}
+
+/// Points the speech layer at Parakeet or Whisper, from Flow's preferences and
+/// the voice settings (model and language). Called at start, and when either changes.
+pub fn sync_engine(app: &AppHandle) {
+    let whisper = get(app).map(|f| f.store.lock().unwrap().prefs.engine == "whisper").unwrap_or(false);
+    let choice = whisper.then(|| {
+        let (model, language) = app
+            .try_state::<crate::Shared>()
+            .map(|s| {
+                let s = s.settings.lock().unwrap();
+                (s.voice_model.clone(), s.voice_language.clone())
+            })
+            .unwrap_or_else(|| ("base".into(), String::new()));
+        let lang = crate::voice::language_for(&model, &language);
+        (model, lang)
+    });
+    speech::use_whisper(choice);
+    crate::okgroovy::sync(app);
 }
 
 #[tauri::command]
@@ -465,6 +486,7 @@ pub fn flow_status(flow: State<Arc<Flow>>) -> FlowStatus {
             Err(why) => why.into(),
         },
         ai_ready: cleanup::has_key(),
+        engine_ready: speech::is_ready(),
         mics: audio::input_devices(),
         platform: if cfg!(windows) { "windows" } else { "linux" },
         autostarted: crate::launched_at_login(),
@@ -491,6 +513,7 @@ pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
         s.edge = pill::edge_name(prefs.edge).into();
         s.key = key_id(prefs.key);
     });
+    sync_engine(&app);
     let restart = before.key != prefs.key;
     if before.enabled && (!prefs.enabled || restart) {
         disable(&app, &flow);

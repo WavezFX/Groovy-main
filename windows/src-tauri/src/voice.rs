@@ -76,7 +76,7 @@ fn model_path(model: &str) -> Result<PathBuf, String> {
     Ok(models_dir().join(format!("ggml-{model}.bin")))
 }
 
-fn installed(model: &str) -> bool {
+pub fn installed(model: &str) -> bool {
     model_path(model)
         .ok()
         .and_then(|p| std::fs::metadata(p).ok())
@@ -189,6 +189,12 @@ type Loaded = (String, ());
 
 /// The model in memory, by name: loaded on the first segment, kept while used.
 static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
+
+/// Transcribes up to 30 s of 16 kHz audio, on the calling thread: for
+/// dictation and notes when Whisper is chosen over Parakeet (speech/mod.rs).
+pub fn transcribe_blocking(model: &str, language: Option<&str>, pcm: &[f32]) -> Result<String, String> {
+    run(model, language, pcm, false)
+}
 
 /// Transcribes one segment. Runs on a blocking thread (it takes a moment).
 pub async fn transcribe(model: String, language: Option<String>, samples: Vec<i16>, wake: bool) -> Result<String, String> {

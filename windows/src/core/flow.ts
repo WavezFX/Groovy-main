@@ -33,6 +33,8 @@ export interface FlowPrefs {
   cleanup: boolean;
   defaultStyle: Style;
   summaryEngine: "ai" | "off";
+  /** Parakeet (25 European languages) or Whisper (≈99, Settings → Voice calls' model). */
+  engine: "parakeet" | "whisper";
   openAtLaunch: boolean;
   /** « OK Groovy »: listen for it and answer with Groovy's AI (local by default). */
   voice: boolean;
@@ -57,6 +59,8 @@ export interface FlowStatus {
   /** "ok", or why the key can't be watched ("wayland", "no-display"). */
   keys: string;
   aiReady: boolean;
+  /** Speech can be turned into text with the engine chosen. */
+  engineReady: boolean;
   mics: { name: string; default: boolean }[];
   platform: "windows" | "linux";
   autostarted: boolean;

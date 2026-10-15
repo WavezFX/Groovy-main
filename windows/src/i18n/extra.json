@@ -8476,17 +8476,6 @@
    "ru": "Распознавание",
    "id": "Pengenalan"
   },
-  "Your voice never leaves this computer: Parakeet turns it into text here, and the recording is dropped as soon as it is pasted.": {
-   "zh-Hans": "你的声音不会离开这台电脑：Parakeet 在本机把它转成文字，粘贴后录音即被丢弃。",
-   "hi": "आपकी आवाज़ इस कंप्यूटर से बाहर नहीं जाती: Parakeet उसे यहीं टेक्स्ट में बदलता है, और पेस्ट होते ही रिकॉर्डिंग हटा दी जाती है।",
-   "es": "Tu voz nunca sale de este ordenador: Parakeet la convierte en texto aquí y la grabación se descarta en cuanto se pega.",
-   "ar": "لا يغادر صوتك هذا الحاسوب أبدًا: يحوّله Parakeet إلى نص هنا، ويُحذف التسجيل فور لصقه.",
-   "fr": "Ta voix ne quitte jamais cet ordinateur : Parakeet la transforme en texte ici, et l'enregistrement est jeté dès qu'il est collé.",
-   "bn": "আপনার কণ্ঠ এই কম্পিউটার ছেড়ে যায় না: Parakeet এখানেই এটিকে লেখায় রূপান্তর করে, আর পেস্ট হওয়ামাত্র রেকর্ডিং মুছে যায়।",
-   "pt-BR": "Sua voz nunca sai deste computador: o Parakeet a transforma em texto aqui, e a gravação é descartada assim que é colada.",
-   "ru": "Ваш голос не покидает этот компьютер: Parakeet превращает его в текст здесь, а запись удаляется сразу после вставки.",
-   "id": "Suaramu tidak pernah meninggalkan komputer ini: Parakeet mengubahnya menjadi teks di sini, dan rekamannya dibuang begitu ditempel."
-  },
   "Notetaker": {
    "zh-Hans": "会议笔记",
    "hi": "Notetaker",
@@ -10708,6 +10697,61 @@
    "pt-BR": "{0} foi removida. Há uma cópia em .groovy/skills-trash.",
    "ru": "{0} удалён. Копия лежит в .groovy/skills-trash.",
    "id": "{0} telah dihapus. Salinannya ada di .groovy/skills-trash."
+  },
+  "Your voice never leaves this computer: Parakeet or Whisper turns it into text here, and the recording is dropped as soon as it is pasted.": {
+   "zh-Hans": "你的声音绝不会离开这台电脑：Parakeet 或 Whisper 在本地把它转成文字，粘贴后录音立即丢弃。",
+   "hi": "आपकी आवाज़ कभी इस कंप्यूटर से बाहर नहीं जाती: Parakeet या Whisper यहीं उसे टेक्स्ट में बदलता है, और पेस्ट होते ही रिकॉर्डिंग हटा दी जाती है।",
+   "es": "Tu voz nunca sale de este ordenador: Parakeet o Whisper la convierten en texto aquí, y la grabación se descarta en cuanto se pega.",
+   "ar": "لا يغادر صوتك هذا الكمبيوتر أبدًا: يحوّله Parakeet أو Whisper إلى نص هنا، ويُحذف التسجيل فور لصقه.",
+   "fr": "Ta voix ne quitte jamais cet ordinateur : Parakeet ou Whisper la transforme en texte ici, et l'enregistrement est jeté dès qu'il est collé.",
+   "bn": "আপনার কণ্ঠ কখনও এই কম্পিউটার ছাড়ে না: Parakeet বা Whisper এখানেই তা টেক্সটে রূপান্তর করে, আর পেস্ট হওয়ামাত্র রেকর্ডিং মুছে যায়।",
+   "pt-BR": "Sua voz nunca sai deste computador: o Parakeet ou o Whisper a transforma em texto aqui, e a gravação é descartada assim que é colada.",
+   "ru": "Ваш голос никогда не покидает этот компьютер: Parakeet или Whisper превращает его в текст здесь, а запись удаляется сразу после вставки.",
+   "id": "Suaramu tidak pernah keluar dari komputer ini: Parakeet atau Whisper mengubahnya menjadi teks di sini, dan rekamannya dibuang begitu ditempel."
+  },
+  "Speech engine": {
+   "zh-Hans": "语音引擎",
+   "hi": "स्पीच इंजन",
+   "es": "Motor de voz",
+   "ar": "محرّك الكلام",
+   "fr": "Moteur vocal",
+   "bn": "স্পিচ ইঞ্জিন",
+   "pt-BR": "Mecanismo de fala",
+   "ru": "Движок распознавания",
+   "id": "Mesin ucapan"
+  },
+  "Parakeet knows 25 European languages. Whisper knows about 99 (Punjabi, Hindi, Arabic, Japanese, Chinese…) and uses the model and language picked in Groovy → Voice calls.": {
+   "zh-Hans": "Parakeet 支持 25 种欧洲语言。Whisper 支持约 99 种（旁遮普语、印地语、阿拉伯语、日语、中文…），并使用 Groovy → 语音通话 中选择的模型和语言。",
+   "hi": "Parakeet 25 यूरोपीय भाषाएँ जानता है। Whisper लगभग 99 जानता है (पंजाबी, हिंदी, अरबी, जापानी, चीनी…) और Groovy → वॉइस कॉल में चुना गया मॉडल और भाषा उपयोग करता है।",
+   "es": "Parakeet conoce 25 idiomas europeos. Whisper conoce unos 99 (panyabí, hindi, árabe, japonés, chino…) y usa el modelo y el idioma elegidos en Groovy → Llamadas de voz.",
+   "ar": "يعرف Parakeet ‏25 لغة أوروبية. ويعرف Whisper نحو 99 لغة (البنجابية والهندية والعربية واليابانية والصينية…) ويستخدم النموذج واللغة المختارين في Groovy ← المكالمات الصوتية.",
+   "fr": "Parakeet connaît 25 langues européennes. Whisper en connaît environ 99 (pendjabi, hindi, arabe, japonais, chinois…) et utilise le modèle et la langue choisis dans Groovy → Appels vocaux.",
+   "bn": "Parakeet ২৫টি ইউরোপীয় ভাষা জানে। Whisper প্রায় ৯৯টি জানে (পাঞ্জাবি, হিন্দি, আরবি, জাপানি, চীনা…) এবং Groovy → ভয়েস কল-এ বাছাই করা মডেল ও ভাষা ব্যবহার করে।",
+   "pt-BR": "O Parakeet conhece 25 idiomas europeus. O Whisper conhece cerca de 99 (punjabi, hindi, árabe, japonês, chinês…) e usa o modelo e o idioma escolhidos em Groovy → Chamadas de voz.",
+   "ru": "Parakeet знает 25 европейских языков. Whisper знает около 99 (панджаби, хинди, арабский, японский, китайский…) и использует модель и язык, выбранные в Groovy → Голосовые звонки.",
+   "id": "Parakeet mengenal 25 bahasa Eropa. Whisper mengenal sekitar 99 (Punjabi, Hindi, Arab, Jepang, Mandarin…) dan memakai model serta bahasa yang dipilih di Groovy → Panggilan suara."
+  },
+  "Download a multilingual Whisper model (base or small) in Groovy → Voice calls.": {
+   "zh-Hans": "请在 Groovy → 语音通话 中下载多语言 Whisper 模型（base 或 small）。",
+   "hi": "Groovy → वॉइस कॉल में बहुभाषी Whisper मॉडल (base या small) डाउनलोड करें।",
+   "es": "Descarga un modelo Whisper multilingüe (base o small) en Groovy → Llamadas de voz.",
+   "ar": "نزّل نموذج Whisper متعدد اللغات (base أو small) في Groovy ← المكالمات الصوتية.",
+   "fr": "Télécharge un modèle Whisper multilingue (base ou small) dans Groovy → Appels vocaux.",
+   "bn": "Groovy → ভয়েস কল-এ একটি বহুভাষিক Whisper মডেল (base বা small) ডাউনলোড করুন।",
+   "pt-BR": "Baixe um modelo Whisper multilíngue (base ou small) em Groovy → Chamadas de voz.",
+   "ru": "Загрузите многоязычную модель Whisper (base или small) в Groovy → Голосовые звонки.",
+   "id": "Unduh model Whisper multibahasa (base atau small) di Groovy → Panggilan suara."
+  },
+  "Download a Whisper model in Groovy → Voice calls": {
+   "zh-Hans": "请在 Groovy → 语音通话 中下载 Whisper 模型",
+   "hi": "Groovy → वॉइस कॉल में Whisper मॉडल डाउनलोड करें",
+   "es": "Descarga un modelo Whisper en Groovy → Llamadas de voz",
+   "ar": "نزّل نموذج Whisper في Groovy ← المكالمات الصوتية",
+   "fr": "Télécharge un modèle Whisper dans Groovy → Appels vocaux",
+   "bn": "Groovy → ভয়েস কল-এ একটি Whisper মডেল ডাউনলোড করুন",
+   "pt-BR": "Baixe um modelo Whisper em Groovy → Chamadas de voz",
+   "ru": "Загрузите модель Whisper в Groovy → Голосовые звонки",
+   "id": "Unduh model Whisper di Groovy → Panggilan suara"
   }
  }
 }

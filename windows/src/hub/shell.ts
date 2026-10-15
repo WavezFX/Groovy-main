@@ -87,11 +87,12 @@ export interface HubOptions {
 const DEFAULT_STATUS: FlowStatus = {
   prefs: {
     enabled: false, key: "right_ctrl", edge: "bottom", mic: "", keepDays: 30, cleanup: false,
-    defaultStyle: "natural", summaryEngine: "ai", openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female",
+    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female",
   },
   models: { parakeet: { state: "missing" }, downloadMb: 700 },
   keys: "ok",
   aiReady: false,
+  engineReady: false,
   mics: [],
   platform: navigator.userAgent.includes("Windows") ? "windows" : "linux",
   autostarted: false,
@@ -133,7 +134,10 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     let text: string;
     if (!status.prefs.enabled) {
       text = t("Dictation is off");
-    } else if (models !== "ready") {
+    } else if (status.prefs.engine === "whisper" && !status.engineReady) {
+      color = "#f7b32b";
+      text = t("Download a Whisper model in Groovy → Voice calls");
+    } else if (status.prefs.engine !== "whisper" && models !== "ready") {
       color = "#f7b32b";
       text = models === "downloading" ? t("Downloading the voice model…") : t("Download the voice model to dictate");
     } else if (status.keys !== "ok" && status.keys !== "wayland") {

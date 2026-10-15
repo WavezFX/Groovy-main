@@ -103,9 +103,16 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
 
   // ── Recognition ──
   page.append(label(t("Recognition")));
+  const engines: ["parakeet" | "whisper", string][] = [["parakeet", "Parakeet"], ["whisper", "Whisper"]];
   page.append(card(
+    row(t("Speech engine"), t("Parakeet knows 25 European languages. Whisper knows about 99 (Punjabi, Hindi, Arabic, Japanese, Chinese…) and uses the model and language picked in Groovy → Voice calls."),
+      segmented(engines, prefs.engine, (engine) => void ctx.setPrefs((p) => (p.engine = engine)).then(() => ctx.navigate("flowsettings")))),
+    prefs.engine === "whisper" && !status.engineReady
+      ? h("div", { class: "hub-warn", text: t("Download a multilingual Whisper model (base or small) in Groovy → Voice calls.") })
+      : null,
+    divider(),
     row(t("Parakeet, on your computer"), t("The most accurate, offline, 25 languages. Downloaded once (about {0} MB).", { 0: number(status.models.downloadMb) }), modelsControl(ctx)),
-    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet turns it into text here, and the recording is dropped as soon as it is pasted.") }),
+    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet or Whisper turns it into text here, and the recording is dropped as soon as it is pasted.") }),
   ));
 
   // ── Notetaker ──

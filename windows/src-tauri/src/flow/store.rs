@@ -102,6 +102,10 @@ pub struct Prefs {
     /// The style of the apps that have none of their own.
     pub default_style: Style,
     pub summary_engine: SummaryEngine,
+    /// What turns speech into text: "parakeet" (25 European languages, the
+    /// most accurate) or "whisper" (≈99 languages, the model and language of
+    /// Settings → Voice calls).
+    pub engine: String,
     /// Open the Groovy window when Groovy is opened (not when it starts with the computer).
     pub open_at_launch: bool,
     /// « OK Groovy »: listen for it and answer with Groovy's AI (local by default).
@@ -123,6 +127,7 @@ impl Default for Prefs {
             cleanup: false,
             default_style: Style::Natural,
             summary_engine: SummaryEngine::Ai,
+            engine: "parakeet".into(),
             open_at_launch: true,
             voice: false,
             voice_output: "system".into(),
