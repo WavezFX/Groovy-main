@@ -407,7 +407,8 @@ export function buildSpotifyCard(): SpotifyCardHost {
   function syncIdle() {
     const installed = Spotify.state.installed || Spotify.state.running;
     idleDot.style.background = installed ? "#22C55E" : "#F4505E";
-    idleText.textContent = installed ? t("Not playing") : t("Spotify not installed");
+    // Nothing playing: say how it gets here (FIXES_ROUND1 item 5).
+    idleText.textContent = installed ? t("Play something in the Spotify app and it appears here") : t("Spotify not installed");
     idleAction.textContent = installed ? t("Open Spotify") : t("Get Spotify");
     idleSub.textContent = t(pillDefinition(SPOTIFY_ID)?.subtitle ?? N_("Integration"));
   }

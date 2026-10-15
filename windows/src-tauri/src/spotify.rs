@@ -27,7 +27,8 @@ pub const PILL_ID: &str = "integration_spotify";
 #[cfg(not(windows))]
 pub const DOWNLOAD_URL: &str = "https://www.spotify.com/download/linux/";
 #[cfg(windows)]
-pub const DOWNLOAD_URL: &str = "https://www.spotify.com/download/windows/";
+/// The Microsoft Store page: one click to install, updated by Windows.
+pub const DOWNLOAD_URL: &str = "ms-windows-store://pdp/?productid=9NCBCSZSJRSB";
 /// Island events: the player's state, and a track's cover as a data URL.
 const STATE_EVENT: &str = "spotify";
 const ARTWORK_EVENT: &str = "spotify-artwork";

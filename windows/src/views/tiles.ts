@@ -114,8 +114,9 @@ function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace {
         icon: "♪",
         color: "#1DB954",
         title: s.track ? s.track.title : t("Spotify"),
-        sub: s.track ? s.track.artist : s.installed ? t("Play something in Spotify and it appears here") : t("Get Spotify"),
-        open: () => void (s.installed || s.running ? Bridge.spotifyOpen() : Bridge.openUrl("ms-windows-store://pdp/?productid=9NCBCSZSJRSB")),
+        sub: s.track ? s.track.artist : s.installed || s.running ? t("Play something in the Spotify app and it appears here") : t("Get Spotify"),
+        // Opens Spotify, or its Microsoft Store page when it isn't installed (spotify.rs).
+        open: () => void Bridge.spotifyOpen(),
       };
     }
     case "agents": {

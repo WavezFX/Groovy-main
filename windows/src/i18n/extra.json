@@ -12458,17 +12458,6 @@
    "ru": "Spotify",
    "id": "Spotify"
   },
-  "Play something in Spotify and it appears here": {
-   "zh-Hans": "在 Spotify 里播放点什么，它就会出现在这里",
-   "hi": "Spotify में कुछ चलाएँ, वह यहाँ दिखेगा",
-   "es": "Pon algo en Spotify y aparecerá aquí",
-   "ar": "شغّل شيئًا في Spotify وسيظهر هنا",
-   "fr": "Lance quelque chose dans Spotify et ça s'affiche ici",
-   "bn": "Spotify-তে কিছু চালান, এখানে দেখা যাবে",
-   "pt-BR": "Toque algo no Spotify e aparece aqui",
-   "ru": "Включите что-нибудь в Spotify, и оно появится здесь",
-   "id": "Putar sesuatu di Spotify dan akan muncul di sini"
-  },
   "{n} at work": {
    "zh-Hans": "{n} 个正在工作",
    "hi": "{n} काम पर",
@@ -12567,6 +12556,28 @@
    "pt-BR": "Escolha uma pasta",
    "ru": "Выберите папку",
    "id": "Pilih folder"
+  },
+  "Play something in the Spotify app and it appears here": {
+   "zh-Hans": "在 Spotify 应用里播放点什么，它就会出现在这里",
+   "hi": "Spotify ऐप में कुछ चलाएँ, वह यहाँ दिखेगा",
+   "es": "Pon algo en la app de Spotify y aparecerá aquí",
+   "ar": "شغّل شيئًا في تطبيق Spotify وسيظهر هنا",
+   "fr": "Lance quelque chose dans l'app Spotify et ça s'affiche ici",
+   "bn": "Spotify অ্যাপে কিছু চালান, এখানে দেখা যাবে",
+   "pt-BR": "Toque algo no app do Spotify e aparece aqui",
+   "ru": "Включите что-нибудь в приложении Spotify, и оно появится здесь",
+   "id": "Putar sesuatu di aplikasi Spotify dan akan muncul di sini"
+  },
+  "Only web addresses (https://…) open from here.": {
+   "zh-Hans": "这里只能打开网址（https://…）。",
+   "hi": "यहाँ से केवल वेब पते (https://…) खुलते हैं।",
+   "es": "Desde aquí solo se abren direcciones web (https://…).",
+   "ar": "لا تُفتح من هنا إلا عناوين الويب (https://…).",
+   "fr": "Seules les adresses web (https://…) s'ouvrent d'ici.",
+   "bn": "এখান থেকে শুধু ওয়েব ঠিকানা (https://…) খোলে।",
+   "pt-BR": "Daqui só abrem endereços da web (https://…).",
+   "ru": "Отсюда открываются только веб-адреса (https://…).",
+   "id": "Dari sini hanya alamat web (https://…) yang terbuka."
   }
  }
 }

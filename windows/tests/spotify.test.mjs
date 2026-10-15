@@ -237,7 +237,7 @@ test("the idle card: not playing, or not installed with a way to get it", () => 
   const card = buildSpotifyCard();
   Spotify.state = { ...IDLE_SPOTIFY, installed: true };
   card.sync();
-  assert.match(card.el.textContent, /Spotify.*Integration.*Not playing.*Open Spotify/);
+  assert.match(card.el.textContent, /Spotify.*Integration.*Play something in the Spotify app and it appears here.*Open Spotify/);
   Spotify.state = { ...IDLE_SPOTIFY };
   card.sync();
   assert.match(card.el.textContent, /Spotify not installed.*Get Spotify/);

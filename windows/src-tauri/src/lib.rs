@@ -225,11 +225,12 @@ fn list_monitors(app: AppHandle) -> Vec<island::MonitorChoice> {
 }
 
 #[tauri::command]
-fn open_url(url: String) {
+fn open_url(url: String) -> Result<(), String> {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
-        return;
+        return Err(i18n::t("Only web addresses (https://…) open from here."));
     }
     platform::open_url(&url);
+    Ok(())
 }
 
 /// "Open terminal" opens the working folder in VS Code when `code` is on PATH,
