@@ -869,12 +869,8 @@ export class Island {
       if (e.button === 0 && this.isBotHit(e.clientX, e.clientY)) {
         this.botPress = { x: e.clientX, y: e.clientY };
       }
-      // Right-click on Groovy opens the wardrobe, and closes it again.
-      if (e.button === 2 && this.isBotHit(e.clientX, e.clientY)) {
-        this.cancelBotHover();
-        this.toggleWardrobe();
-        return;
-      }
+      // Right-click: the menu (contextmenu below), not a press.
+      if (e.button === 2) return;
       // Pressed on an empty part of the island (not Groovy, not a button or
       // field): it may be a slide along the top of the screen. A plain click on
       // the closed island still opens it, on release.
@@ -892,10 +888,15 @@ export class Island {
       }
     });
 
-    // No browser menu over Groovy: his right-click is the wardrobe. Everywhere
-    // else (the chat field) the webview keeps its own menu.
+    // Right-click anywhere on the island but a text field: Groovy's menu
+    // (Open Groovy, Settings, Wardrobe, Coding Studio). Text fields keep the
+    // webview's own menu, for copy and paste.
     this.islandEl.addEventListener("contextmenu", (e) => {
-      if (this.isBotHit(e.clientX, e.clientY)) e.preventDefault();
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, [contenteditable]")) return;
+      e.preventDefault();
+      this.cancelBotHover();
+      void Bridge.contextMenu();
     });
 
     // Dragging Groovy out of the island puts him on the desktop.

@@ -290,9 +290,10 @@ class DesktopMochi {
       void emitToWindow(ISLAND, DESKTOP_EVENTS.home);
     });
 
+    // Right-click on Groovy: his menu (Open Groovy, Settings, Wardrobe, Coding Studio).
     document.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (isOverBody(this.local(e))) void emitToWindow(ISLAND, DESKTOP_EVENTS.wardrobe);
+      if (isOverBody(this.local(e))) void Bridge.contextMenu();
     });
 
     document.addEventListener("pointerleave", () => {

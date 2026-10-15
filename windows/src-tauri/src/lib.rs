@@ -667,9 +667,10 @@ fn secret_clear(app: AppHandle, key: String) -> Result<(), String> {
 
 /// Opens the configured n8n instance — the URL lives in the Credential Manager.
 #[tauri::command]
-fn open_n8n() {
-    if let Some(url) = secrets::get("n8n-url") {
-        open_url(url);
+fn open_n8n() -> Result<(), String> {
+    match secrets::get("n8n-url") {
+        Some(url) => open_url(url),
+        None => Ok(()),
     }
 }
 
@@ -811,6 +812,35 @@ fn fit_zoom(app: AppHandle, dpr: f64) -> bool {
         true
     } else {
         false
+    }
+}
+
+/// Groovy's right-click menu on the island and on the desktop: the Control
+/// Centre, settings, the wardrobe and the Coding Studio, a right-click away.
+#[tauri::command]
+fn context_menu(window: tauri::WebviewWindow) -> Result<(), String> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+    let app = window.app_handle();
+    let item = |id: &str, label: &str| MenuItem::with_id(app, id, i18n::t(label), true, None::<&str>);
+    let open = item("ctx-open", i18n::n_("Open Groovy")).map_err(|e| e.to_string())?;
+    let settings = item("ctx-settings", i18n::n_("Settings…")).map_err(|e| e.to_string())?;
+    let wardrobe = item("ctx-wardrobe", i18n::n_("Wardrobe…")).map_err(|e| e.to_string())?;
+    let studio = item("ctx-studio", i18n::n_("Coding Studio")).map_err(|e| e.to_string())?;
+    let sep = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(app, &[&open, &settings, &sep, &wardrobe, &studio]).map_err(|e| e.to_string())?;
+    window.popup_menu(&menu).map_err(|e| e.to_string())
+}
+
+/// What the right-click menu's items do (menu events reach the app, not the window).
+fn on_context_menu(app: &AppHandle, id: &str) {
+    match id {
+        "ctx-open" => show_hub(app, None),
+        "ctx-settings" => show_hub(app, Some("general")),
+        "ctx-wardrobe" => {
+            let _ = app.emit_to(island::WINDOW_LABEL, "open-wardrobe", ());
+        }
+        "ctx-studio" => studio::show(app),
+        _ => {}
     }
 }
 
@@ -1045,6 +1075,7 @@ pub fn run() {
             db::usage_today,
             fit_zoom,
             notify_error,
+            context_menu,
             island_tiles::island_apps,
             island_tiles::island_launch,
             island_tiles::island_pick_folder,
@@ -1132,6 +1163,7 @@ pub fn run() {
             tools::tools_log,
             tools::tools_log_clear,
         ])
+        .on_menu_event(|app, event| on_context_menu(app, event.id().as_ref()))
         .setup(move |app| {
             let handle = app.handle().clone();
             app.manage(phone_link::PhoneLink::new(handle.clone()));

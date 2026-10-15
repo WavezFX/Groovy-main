@@ -909,6 +909,17 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
 
 // ── General section ───────────────────────────────────────────────────────────
 
+/** The first-run questions again: which AI, and the speech setup (FIXES_ROUND1 item 6). */
+function setupAgainSection(): HTMLElement {
+  return h("section", {},
+    h("h2", {}, h("span", { text: t("Run setup again") })),
+    h("div", { class: "row" },
+      h("button", { class: "primary", text: t("Choose Groovy's AI"), onclick: () => void Bridge.openSettingsWindow("assistant") }),
+      h("button", { text: t("Set up speech"), onclick: () => void Bridge.openSettingsWindow("speechsetup") })),
+    h("div", { class: "hint", text: t("Open the Control Centre from anywhere with Ctrl+Alt+, from the tray, or with a right-click on Groovy.") }),
+  );
+}
+
 function generalSection(): HTMLElement {
   const volume = h("input", {
     type: "range", min: "0", max: "0.2", step: "0.005",
@@ -1413,7 +1424,7 @@ async function render() {
     pills: () => [activePillsSection(connected), integrationsSection(present)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],
-    general: () => [generalSection(), shortcutsSection(shortcutReport)],
+    general: () => [setupAgainSection(), generalSection(), shortcutsSection(shortcutReport)],
     permissions: () => [permissionsSection()],
     system: () => [systemSection()],
   };

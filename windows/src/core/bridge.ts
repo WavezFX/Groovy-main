@@ -399,6 +399,8 @@ export const Bridge = {
   listMonitors: () => call<{ key: string; label: string }[]>("list_monitors"),
 
   openUrl: (url: string) => call<void>("open_url", { url }),
+  /** Groovy's right-click menu, at the pointer (lib.rs context_menu). */
+  contextMenu: () => call<void>("context_menu"),
 
   /** Which of these sounds have a file of the user's own in the sounds folder. */
   customSounds: (names: readonly string[]) => call<string[]>("custom_sounds", { names }),
@@ -668,7 +670,7 @@ export const Bridge = {
   /** The GitHub card is on screen: refetch that part if it is stale. */
   githubRefresh: (section: "pulse" | "activity") => call<void>("github_refresh", { section }),
   /** Opens the configured n8n instance in the browser. */
-  openN8n: () => call<void>("open_n8n"),
+  openN8n: () => call<void>("open_n8n").catch(showError),
 
   /** Tray → Pause. Stops the integration pollers, not just the island. */
   setPaused: (paused: boolean) => call<void>("set_paused", { paused }),

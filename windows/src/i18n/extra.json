@@ -12578,6 +12578,50 @@
    "pt-BR": "Daqui só abrem endereços da web (https://…).",
    "ru": "Отсюда открываются только веб-адреса (https://…).",
    "id": "Dari sini hanya alamat web (https://…) yang terbuka."
+  },
+  "Open the Control Centre": {
+   "zh-Hans": "打开控制中心",
+   "hi": "कंट्रोल सेंटर खोलें",
+   "es": "Abrir el Centro de control",
+   "ar": "فتح مركز التحكم",
+   "fr": "Ouvrir le Centre de contrôle",
+   "bn": "কন্ট্রোল সেন্টার খুলুন",
+   "pt-BR": "Abrir a Central de controle",
+   "ru": "Открыть центр управления",
+   "id": "Buka Pusat Kontrol"
+  },
+  "Run setup again": {
+   "zh-Hans": "重新运行设置",
+   "hi": "सेटअप फिर से चलाएँ",
+   "es": "Repetir la configuración",
+   "ar": "إعادة الإعداد",
+   "fr": "Refaire la configuration",
+   "bn": "আবার সেটআপ চালান",
+   "pt-BR": "Refazer a configuração",
+   "ru": "Пройти настройку заново",
+   "id": "Jalankan penyiapan lagi"
+  },
+  "Choose Groovy's AI": {
+   "zh-Hans": "选择 Groovy 的 AI",
+   "hi": "Groovy का AI चुनें",
+   "es": "Elegir la IA de Groovy",
+   "ar": "اختر ذكاء Groovy الاصطناعي",
+   "fr": "Choisir l'IA de Groovy",
+   "bn": "Groovy-র AI বেছে নিন",
+   "pt-BR": "Escolher a IA do Groovy",
+   "ru": "Выбрать ИИ Groovy",
+   "id": "Pilih AI Groovy"
+  },
+  "Open the Control Centre from anywhere with Ctrl+Alt+, from the tray, or with a right-click on Groovy.": {
+   "zh-Hans": "在任何地方按 Ctrl+Alt+, 、从托盘，或右键点击 Groovy 都能打开控制中心。",
+   "hi": "कहीं से भी Ctrl+Alt+, से, ट्रे से, या Groovy पर राइट-क्लिक करके कंट्रोल सेंटर खोलें।",
+   "es": "Abre el Centro de control desde cualquier lugar con Ctrl+Alt+, desde la bandeja o con un clic derecho en Groovy.",
+   "ar": "افتح مركز التحكم من أي مكان بـ Ctrl+Alt+, أو من شريط المهام، أو بالنقر بالزر الأيمن على Groovy.",
+   "fr": "Ouvre le Centre de contrôle de n'importe où avec Ctrl+Alt+, depuis la zone de notification, ou d'un clic droit sur Groovy.",
+   "bn": "যেকোনো জায়গা থেকে Ctrl+Alt+, দিয়ে, ট্রে থেকে, বা Groovy-তে রাইট-ক্লিক করে কন্ট্রোল সেন্টার খুলুন।",
+   "pt-BR": "Abra a Central de controle de qualquer lugar com Ctrl+Alt+, pela bandeja ou clicando com o botão direito no Groovy.",
+   "ru": "Открывайте центр управления откуда угодно сочетанием Ctrl+Alt+, из трея или правым щелчком по Groovy.",
+   "id": "Buka Pusat Kontrol dari mana saja dengan Ctrl+Alt+, dari baki, atau klik kanan pada Groovy."
   }
  }
 }
