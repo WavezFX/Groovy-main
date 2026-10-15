@@ -29,6 +29,8 @@ import { language, t, tl, type Msg } from "../i18n/i18n";
 import type { ViewCommand } from "../island/shortcuts";
 import { BREAKS, BreakControl, ReminderControl } from "../island/breaks";
 import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
+import { buildNotify, buildTiles } from "./tiles";
+import { currentTiles, tilesHome } from "../core/tiles";
 
 export interface ViewActions {
   setView(v: IslandViewName): void;
@@ -114,7 +116,8 @@ function stack(padLeft: number, padRight: number, ...children: Node[]): HTMLElem
 // ── Header ────────────────────────────────────────────────────────────────────
 
 export function buildHeader(actions: ViewActions): ViewHost {
-  const tabHome = h("button", { class: "tab", title: tl("Overview"), onclick: () => go("overview") }, svg(ICONS.house, 13));
+  // Home is the user's own tiles when they set some up, else the agents overview.
+  const tabHome = h("button", { class: "tab", title: tl("Overview"), onclick: () => go(tilesHome(currentTiles(State.settings)) ? "tiles" : "overview") }, svg(ICONS.house, 13));
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
   const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
 
@@ -143,7 +146,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
     el,
     sync() {
       const v = State.view;
-      tabHome.classList.toggle("on", v === "overview" || v === "empty");
+      tabHome.classList.toggle("on", v === "overview" || v === "empty" || v === "tiles");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
       gearBtn.classList.toggle("on", v === "settings");
@@ -856,6 +859,8 @@ export function buildViews(
   map.set("choose", buildChoose(actions));
   map.set("recap", buildRecap(actions));
   map.set("wardrobe", buildWardrobe(actions));
+  map.set("tiles", buildTiles((v) => actions.setView(v)));
+  map.set("notify", buildNotify((v) => actions.setView(v), () => actions.collapse()));
   // Not in the Windows v1: sending a file by email, window attach + web result.
   map.set("mail", buildPlaceholder(tl("Sending by email isn't in this version."), ""));
   map.set("searching", buildPlaceholder(tl("Claude is searching…"), ""));

@@ -426,7 +426,14 @@ export const Bridge = {
 
   quit: () => call<void>("quit_app"),
 
-  openSettingsWindow: () => call<void>("open_settings_window"),
+  /** Opens the Control Centre, on `page` when given ("island", "reminders"…). */
+  openSettingsWindow: (page?: string) => call<void>("open_settings_window", { page: page ?? null }),
+  /** "My island" (island_tiles.rs): apps that can go on it, opening a tile, mail pop-ups. */
+  islandApps: () => call<{ name: string; target: string }[]>("island_apps"),
+  islandLaunch: (kind: string, target: string) => callOrThrow<void>("island_launch", { kind, target }),
+  islandPickFolder: () => callOrThrow<string | null>("island_pick_folder"),
+  mailAccess: () => call<"allowed" | "denied" | "unspecified" | "unsupported">("mail_access"),
+  mailOpen: (appId: string) => callOrThrow<void>("mail_open", { appId }),
 
   /** Writes to %LOCALAPPDATA%\Groovy\groovy.log, next to the Rust lines. */
   log: (message: string) => call<void>("log_line", { message }),

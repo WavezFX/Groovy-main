@@ -125,7 +125,8 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
     );
 
     // 4. Local, last.
-    const advice = localAdvice(memory);
+    // Memory unknown (no answer): no warning rather than a wrong one.
+    const advice = memory > 0 ? localAdvice(memory) : { recommended: false, warning: null };
     const local = h("button", { text: t("Use local AI") }) as HTMLButtonElement;
     local.addEventListener("click", () => choose({ kind: "local" }));
     section.append(

@@ -13,6 +13,7 @@ import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { DEFAULT_SKIN, type Skin } from "../mochi/skins";
 import { pillColor } from "./pill-colors";
+import { currentTiles, tilesHome } from "./tiles";
 import { Spotify, musicPlaying } from "./spotify";
 
 export type AgentSource = "claudeCode" | "n8n" | "agent";
@@ -247,6 +248,8 @@ export interface Settings {
   assistant: AssistantPrefs;
   /** Colours, layered accessories, presets and favourites (mochi/appearance.ts); read it through parseWardrobe. */
   wardrobe: unknown;
+  /** "My island": preset, tiles, mail apps (core/tiles.ts); read it through parseTiles. */
+  islandTiles: unknown;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -293,6 +296,7 @@ export const DEFAULT_SETTINGS: Settings = {
   language: "",
   assistant: DEFAULT_ASSISTANT,
   wardrobe: {},
+  islandTiles: {},
 };
 
 type Listener = () => void;
@@ -644,6 +648,8 @@ class AppState {
    */
   defaultView(): IslandViewName {
     if (this.pendingApproval) return this.pendingApproval.questions ? "question" : "approval";
+    // "My island": the user's tiles, unless an agent is at work right now.
+    if (tilesHome(currentTiles(this.settings)) && !this.tasks.some((x) => !x.isIntegration && x.state !== "idle")) return "tiles";
     return this.tasks.length === 0 ? "empty" : "overview";
   }
 }

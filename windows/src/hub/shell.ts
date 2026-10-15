@@ -18,7 +18,7 @@ export type PageId =
 
 /** The pages drawn by settings/main.ts from Groovy's own sections. */
 export type GroovyPageId =
-  | "assistant" | "wardrobe" | "models" | "memory" | "reminders" | "music" | "calls" | "chat"
+  | "assistant" | "island" | "wardrobe" | "models" | "memory" | "reminders" | "music" | "calls" | "chat"
   | "agents" | "pills" | "phone" | "breaks" | "general" | "permissions" | "system";
 
 interface PageDef {
@@ -42,6 +42,7 @@ export const FLOW_PAGES: PageDef[] = [
 
 export const GROOVY_PAGES: PageDef[] = [
   { id: "assistant", icon: "chat", title: () => t("Assistant"), subtitle: () => t("How Groovy thinks: local, online or both, and how he talks to you.") },
+  { id: "island", icon: "grid", title: () => t("My island"), subtitle: () => t("Your apps, mail, music and services on the island, in your order.") },
   { id: "models", icon: "chip", title: () => t("Models"), subtitle: () => t("The AI models that run on this computer.") },
   { id: "memory", icon: "book", title: () => t("Memory"), subtitle: () => t("What Groovy remembers about you, on this computer only.") },
   { id: "reminders", icon: "bell", title: () => t("Reminders"), subtitle: () => t("Tasks and reminders Groovy keeps for you.") },

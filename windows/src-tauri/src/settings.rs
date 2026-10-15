@@ -139,6 +139,9 @@ pub struct Settings {
     /// Groovy's colours, layered accessories, presets and favourites. The page
     /// owns its shape (src/mochi/appearance.ts) and validates it on every read.
     pub wardrobe: Value,
+    /// "My island": the preset, the tiles and the mail apps. The page owns its
+    /// shape (src/core/tiles.ts) and validates it on every read.
+    pub island_tiles: Value,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -224,6 +227,7 @@ impl Default for Settings {
             phone_relay_url: String::new(),
             assistant: Default::default(),
             wardrobe: Value::Object(Map::new()),
+            island_tiles: Value::Object(Map::new()),
         }
     }
 }
@@ -557,7 +561,8 @@ mod tests {
     "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["sunglasses"] },
     "presets": [],
     "favourites": ["crown"]
-  }
+  },
+  "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] }
 }"##;
 
     fn custom() -> Value {
@@ -1084,6 +1089,7 @@ mod tests {
                 "phoneRelayUrl",
                 "assistant",
                 "wardrobe",
+                "islandTiles",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

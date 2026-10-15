@@ -16,6 +16,8 @@ export type IslandViewName =
   | "uploading"
   | "choose"
   | "mail"
+  | "tiles"
+  | "notify"
   | "prompt"
   | "searching"
   | "result"
@@ -93,6 +95,9 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   // to the shared image.
   recap: { height: 184, botX: 62, botY: null, botDiameter: 58, agentMode: "column" },
   wardrobe: { height: 248, botX: 68, botY: null, botDiameter: 58, agentMode: "none" },
+  // "My island": up to three rows of tiles beside Groovy.
+  tiles: { height: 210, botX: 56, botY: null, botDiameter: 50, agentMode: "none" },
+  notify: { height: 160, botX: 60, botY: null, botDiameter: 52, agentMode: "none" },
 };
 
 // The upload views above are only the fallback geometry. Once a file is actually

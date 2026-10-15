@@ -320,6 +320,7 @@ export const THEMES: Record<string, Theme> = {
   voice: { color: "#F97316" },
   skills: { color: "#22D3EE", state: "working" },
   assistant: { color: "#7C5CFF" },
+  island: { color: "#3B9EFF" },
   wardrobe: { color: "#F472B6" },
   models: { color: "#22D3EE", state: "thinking" },
   memory: { color: "#A78BFA" },

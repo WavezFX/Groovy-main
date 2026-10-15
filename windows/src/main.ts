@@ -4,6 +4,8 @@ import "./style.css";
 import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
 import { Sound } from "./core/sound";
 import { installErrorReporting } from "./views/toast";
+import { Mail, wantsMail, type MailNote } from "./views/tiles";
+import { currentTiles, isMailNotification } from "./core/tiles";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { registerHookHandlers } from "./island/hooks";
@@ -142,6 +144,12 @@ async function main() {
   registerIntegrationHandlers(island);
   registerShortcutHandlers(island, () => setPaused(false));
   registerVoiceHandlers();
+  // "My island": a new mail from Windows' notifications pops up when the island has a Mail tile.
+  await onEvent<MailNote>("mail-notification", (n) => {
+    if (!wantsMail() || !isMailNotification(n.app, currentTiles(State.settings).mailApps)) return;
+    Mail.push(n);
+    island.alert("notify");
+  });
   registerSpotifyHandlers(island);
   // Rust may have read Spotify before this page listened: ask once.
   if (State.settings.activeIntegrations.includes(SPOTIFY_ID)) {

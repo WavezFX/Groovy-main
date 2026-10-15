@@ -18,6 +18,7 @@ mod i18n;
 mod identity;
 mod integrations;
 mod island;
+mod island_tiles;
 mod livekit;
 mod local_chat;
 mod log;
@@ -1043,6 +1044,11 @@ pub fn run() {
             db::usage_today,
             fit_zoom,
             notify_error,
+            island_tiles::island_apps,
+            island_tiles::island_launch,
+            island_tiles::island_pick_folder,
+            island_tiles::mail_access,
+            island_tiles::mail_open,
             speech::check::speech_check_start,
             speech::check::speech_check_reset,
             speech::check::speech_check_cancel,
@@ -1167,6 +1173,7 @@ pub fn run() {
             }
             tasks::spawn(handle.clone());
             brain_ai::init(&handle);
+            island_tiles::spawn_mail_watch(handle.clone());
             flow::setup(&handle);
             notes::setup(&handle);
             if loaded.autostart {
