@@ -706,8 +706,8 @@ fn random() -> u64 {
 /// The audio thread. The output device is opened on the first play, so a
 /// machine with no sound card only fails when asked to play.
 fn run(rx: Receiver<Cmd>) {
-    let mut output: Option<(rodio::OutputStream, rodio::OutputStreamHandle)> = None;
-    let mut sink: Option<rodio::Sink> = None;
+    let mut output: Option<rodio::MixerDeviceSink> = None;
+    let mut sink: Option<rodio::Player> = None;
     let mut last_save = Instant::now();
 
     let set = |f: &mut dyn FnMut(&mut PlayerState)| {
@@ -716,7 +716,7 @@ fn run(rx: Receiver<Cmd>) {
     };
 
     // Starts track `index` of the queue at `at` seconds. False when it can't be played.
-    let start = |index: usize, at: f64, play: bool, output: &mut Option<(rodio::OutputStream, rodio::OutputStreamHandle)>, sink: &mut Option<rodio::Sink>| -> bool {
+    let start = |index: usize, at: f64, play: bool, output: &mut Option<rodio::MixerDeviceSink>, sink: &mut Option<rodio::Player>| -> bool {
         let (id, volume) = {
             let s = player().state.lock().unwrap();
             (s.queue.get(index).copied(), s.volume)
@@ -728,8 +728,11 @@ fn run(rx: Receiver<Cmd>) {
             return false;
         };
         if output.is_none() {
-            match rodio::OutputStream::try_default() {
-                Ok(o) => *output = Some(o),
+            match rodio::DeviceSinkBuilder::open_default_sink() {
+                Ok(mut o) => {
+                    o.log_on_drop(false);
+                    *output = Some(o)
+                }
                 Err(e) => {
                     set(&mut |s| {
                         s.error = Some(format!("No audio output: {e}"));
@@ -739,7 +742,7 @@ fn run(rx: Receiver<Cmd>) {
                 }
             }
         }
-        let handle = &output.as_ref().unwrap().1;
+        let mixer = output.as_ref().unwrap().mixer();
         let file = match std::fs::File::open(&path) {
             Ok(f) => f,
             Err(e) => {
@@ -754,13 +757,7 @@ fn run(rx: Receiver<Cmd>) {
                 return false;
             }
         };
-        let new_sink = match rodio::Sink::try_new(handle) {
-            Ok(s) => s,
-            Err(e) => {
-                set(&mut |s| s.error = Some(format!("No audio output: {e}")));
-                return false;
-            }
-        };
+        let new_sink = rodio::Player::connect_new(mixer);
         new_sink.set_volume(volume);
         new_sink.append(decoder);
         if at > 0.5 {

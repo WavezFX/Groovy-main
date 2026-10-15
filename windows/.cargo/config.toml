@@ -1,0 +1,9 @@
+# The Windows build links the C runtime statically: sherpa-onnx's prebuilt
+# libraries (speech/) are built /MT, every C and C++ dependency (SQLite,
+# whisper.cpp) must match, and groovy.exe then needs no Visual C++
+# redistributable on the user's PC.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

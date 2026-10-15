@@ -58,10 +58,17 @@ sysinfo = { version = "0.37", default-features = false, features = ["system", "d
 # The local music player (music.rs): playback through the OS audio output
 # (WASAPI on Windows), decoding MP3, FLAC, Ogg Vorbis, WAV and AAC/M4A with
 # Symphonia (pure Rust), and the tags and cover art read with lofty.
-rodio = { version = "0.20", default-features = false, features = ["symphonia-mp3", "symphonia-flac", "symphonia-vorbis", "symphonia-wav", "symphonia-aac", "symphonia-isomp4"] }
+rodio = { version = "0.22", default-features = false, features = ["playback", "symphonia-mp3", "symphonia-flac", "symphonia-vorbis", "symphonia-wav", "symphonia-aac", "symphonia-isomp4"] }
 lofty = "0.22"
 # Reading the clipboard when the user asks (tools.rs).
-arboard = { version = "3", default-features = false }
+arboard = { version = "3.6", default-features = false }
+# Flow dictation and the Notetaker (flow/, notes/, speech/). Speech to text runs
+# on this computer: sherpa-onnx (Apache-2.0) with NVIDIA's Parakeet, linked
+# statically (onnxruntime included), the models downloaded on the user's click.
+sherpa-onnx = { version = "1.13.8", default-features = false, features = ["static"] }
+# The microphone, and the computer's own sound for the Notetaker (WASAPI
+# loopback on Windows, a PulseAudio/PipeWire monitor on Linux). Apache-2.0.
+cpal = "0.18"
 # Folder picker for the music library.
 tauri-plugin-dialog = "2"
 # Unpacking the pinned llama.cpp runtime (models.rs).
@@ -80,6 +87,20 @@ windows = { version = "0.61", features = [
   # "Open terminal": the relay's process tree leads to the session's window.
   "Win32_System_Diagnostics_ToolHelp",
   "Win32_System_Ole",
+  # The Spotify pill: the system media controls Spotify publishes to.
+  "Foundation",
+  "Media",
+  "Media_Control",
+  "Storage_Streams",
+  # The Spotify pill's volume: Spotify's session in the Windows mixer.
+  "Win32_Media_Audio",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Variant",
+  "Win32_System_Registry",
+  "Win32_UI_Shell",
+  # Flow dictation's keyboard hook.
+  "Win32_System_LibraryLoader",
   "Win32_System_Pipes",
   # Battery level for the system status (system.rs).
   "Win32_System_Power",
@@ -102,4 +123,9 @@ gtk = "0.18"
 # through KWin's scripting (platform/linux_focus.rs).
 dbus = "0.9.12"
 # EWMH on X11 for "Open terminal", already in the tree (global-hotkey).
-x11rb = { version = "0.13", default-features = false }
+x11rb = { version = "0.13", default-features = false, features = ["xinput", "xtest"] }
+# PulseAudio (or PipeWire's PulseAudio server) for the microphone list and the
+# monitor of the speakers, the Notetaker's "computer sound". Pure Rust client.
+cpal = { version = "0.18", features = ["pulseaudio"] }
+# The clipboard for Flow dictation (X11, and Wayland's data-control protocol).
+arboard = { version = "3.6", default-features = false, features = ["wayland-data-control"] }
