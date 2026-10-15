@@ -3,6 +3,11 @@
 
 export type FsmState = "hidden" | "petit" | "home" | "groovy";
 
+/** Auto-close "When I leave" (delay 0): the grace period, seconds, so a pointer brushing the edge doesn't flicker it. */
+export const LEAVE_GRACE = 0.3;
+/** How often a collapse held back by holdOpen looks again, seconds. */
+const HOLD_RECHECK = 1;
+
 export class IslandStateMachine {
   state: FsmState = "hidden";
 
@@ -34,6 +39,11 @@ export class IslandStateMachine {
   greetHoverCollapseDelay = 10;
   /** An alert waiting for an answer stays open, even when the mouse leaves. */
   pinned = false;
+  /**
+   * Asked when the countdown ends: true keeps the island open a little longer
+   * (typing in a text field, dictating), then it asks again.
+   */
+  holdOpen: (() => boolean) | null = null;
   /**
    * Hovering opens the island all the way instead of peeking (Settings →
    * General → Open on hover, off by default), as IslandStateMachine.openOnHover.
@@ -175,17 +185,23 @@ export class IslandStateMachine {
   private scheduleHomeCollapse() {
     this.clear("homeCollapse");
     if (this.pinned) return;
-    const ms = (this.byHover ? this.hoverCloseDelay : this.homeDelay) * 1000;
+    const delay = this.byHover ? this.hoverCloseDelay : this.homeDelay;
+    const ms = (delay === 0 ? LEAVE_GRACE : delay) * 1000;
     this.homeCollapseDueAt = performance.now() + ms;
-    this.homeCollapse = window.setTimeout(() => {
-      this.homeCollapse = null;
-      this.homeCollapseDueAt = null;
-      // An alert pinned while the countdown ran keeps the island open.
-      if (this.state === "home" && !this.pinned) {
-        this.byHover = false;
-        this.transition("petit");
-      }
-    }, ms);
+    this.homeCollapse = window.setTimeout(() => this.collapseHome(), ms);
+  }
+
+  private collapseHome() {
+    this.homeCollapse = null;
+    this.homeCollapseDueAt = null;
+    // An alert pinned while the countdown ran keeps the island open.
+    if (this.state !== "home" || this.pinned) return;
+    if (this.holdOpen?.()) {
+      this.homeCollapse = window.setTimeout(() => this.collapseHome(), HOLD_RECHECK * 1000);
+      return;
+    }
+    this.byHover = false;
+    this.transition("petit");
   }
 
   private scheduleGreetCollapse(delay: number) {

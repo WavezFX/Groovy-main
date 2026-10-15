@@ -32,6 +32,7 @@ import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
 import { buildNotify, buildTiles } from "./tiles";
 import { currentTiles, tilesHome } from "../core/tiles";
 import { settingsKeys, type Bindings } from "../core/shortcuts";
+import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
 
 const LONG_PRESS_MS = 450;
 
@@ -795,8 +796,8 @@ function buildSettings(actions: ViewActions): ViewHost {
     oninput: (e: Event) => actions.setVolume(Number((e.target as HTMLInputElement).value)),
   }) as HTMLInputElement;
   const autoLabel = h("span", {});
-  const segButtons = [10, 15, 30].map((s) =>
-    h("button", { onclick: () => actions.setAutoClose(s) }, `${s}s`),
+  const segButtons = AUTO_CLOSE_CHOICES.map((s) =>
+    h("button", { title: s === 0 ? tl("When I leave") : undefined, onclick: () => actions.setAutoClose(s) }, s === 0 ? tl("Leave") : `${s}s`),
   );
   const claudeBadge = h("span", { class: "status-badge" });
   const apiBadge = h("span", { class: "status-badge" });
@@ -837,8 +838,11 @@ function buildSettings(actions: ViewActions): ViewHost {
       soundSwitch.classList.toggle("on", s.soundEnabled);
       volume.value = String(s.soundVolume);
       volume.style.opacity = s.soundEnabled ? "1" : "0.4";
-      autoLabel.textContent = t("Auto-close · {seconds}s", { seconds: Math.round(s.autoCloseInterval) });
-      segButtons.forEach((b, i) => b.classList.toggle("on", s.autoCloseInterval === [10, 15, 30][i]));
+      autoLabel.textContent = s.autoCloseInterval > 0
+        ? t("Auto-close · {seconds}s", { seconds: Math.round(s.autoCloseInterval) })
+        : t("Auto-close · when I leave");
+      const chosen = nearestChoice(s.autoCloseInterval);
+      segButtons.forEach((b, i) => b.classList.toggle("on", chosen === AUTO_CLOSE_CHOICES[i]));
       clear(claudeBadge);
       claudeBadge.append(
         dot(s.hooksInstalled ? "#22C55E" : "#F4505E", 6),

@@ -142,6 +142,9 @@ pub struct Settings {
     /// "My island": the preset, the tiles and the mail apps. The page owns its
     /// shape (src/core/tiles.ts) and validates it on every read.
     pub island_tiles: Value,
+    /// "Close when I leave" (the default since round 2) was offered once to a
+    /// user who had another auto-close delay.
+    pub close_on_leave_offered: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -170,7 +173,7 @@ impl Default for Settings {
         Self {
             sound_enabled: true,
             sound_volume: 0.12,
-            auto_close_interval: 15.0,
+            auto_close_interval: 0.0,
             open_on_hover: false,
             absence_interval: 180.0,
             active_integrations: vec![
@@ -228,6 +231,7 @@ impl Default for Settings {
             assistant: Default::default(),
             wardrobe: Value::Object(Map::new()),
             island_tiles: Value::Object(Map::new()),
+            close_on_leave_offered: false,
         }
     }
 }
@@ -562,7 +566,8 @@ mod tests {
     "presets": [],
     "favourites": ["crown"]
   },
-  "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] }
+  "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
+  "closeOnLeaveOffered": true
 }"##;
 
     fn custom() -> Value {
@@ -618,6 +623,17 @@ mod tests {
     }
 
     // ── Reading ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn new_installs_close_the_island_when_the_pointer_leaves() {
+        let d = Settings::default();
+        assert_eq!(d.auto_close_interval, 0.0);
+        assert!(!d.close_on_leave_offered);
+        // An older settings file keeps its own delay and has not been offered it yet.
+        let old: Settings = serde_json::from_str(r#"{"autoCloseInterval": 15}"#).unwrap();
+        assert_eq!(old.auto_close_interval, 15.0);
+        assert!(!old.close_on_leave_offered);
+    }
 
     #[test]
     fn a_missing_file_is_the_defaults_and_is_not_created() {
@@ -1090,6 +1106,7 @@ mod tests {
                 "assistant",
                 "wardrobe",
                 "islandTiles",
+                "closeOnLeaveOffered",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

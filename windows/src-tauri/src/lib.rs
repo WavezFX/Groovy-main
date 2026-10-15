@@ -665,6 +665,20 @@ fn secret_clear(app: AppHandle, key: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Changes one setting from the backend, saves it and tells the windows.
+pub(crate) fn set_setting(app: &AppHandle, change: impl FnOnce(&mut Settings)) {
+    let Some(shared) = app.try_state::<Shared>() else { return };
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        change(&mut current);
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    let _ = app.emit("settings-changed", updated);
+}
+
 /// Opens the configured n8n instance — the URL lives in the Credential Manager.
 #[tauri::command]
 fn open_n8n() -> Result<(), String> {
@@ -1229,6 +1243,18 @@ pub fn run() {
                 }
             } else if open_window && !launched_at_login() && !first_run {
                 show_hub(&handle, None);
+            }
+            // Round 2: the island closes when the pointer leaves by default.
+            // Someone who had another delay is offered it once.
+            if !first_run && !loaded.close_on_leave_offered && loaded.auto_close_interval > 0.0 {
+                let h = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+                    flow::pill::announce(&h, "bolt", "#7C5CFF", i18n::t("The island can now close as soon as the mouse leaves it."), Some((i18n::t("Use it"), "closeOnLeave")), 20);
+                });
+            }
+            if !loaded.close_on_leave_offered {
+                set_setting(&handle, |s| s.close_on_leave_offered = true);
             }
             music::init(&handle);
             models::spawn_idle_reaper();

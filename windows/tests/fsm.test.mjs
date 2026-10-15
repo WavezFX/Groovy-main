@@ -377,3 +377,65 @@ test("open on hover: an island opened by an alert keeps the normal delay", () =>
   seconds(2);
   assert.equal(fsm.state, "petit");
 });
+
+// ── Round 2: "When I leave" and short delays ──────────────────────────────────
+
+function openHome() {
+  fsm.launch();
+  fsm.mouseLeft();
+  fsm.click();
+  transitions = [];
+}
+
+test("'When I leave' (0 s) folds the island 0.3 s after the pointer leaves", () => {
+  fsm.homeToPetitDelay = 0;
+  openHome();
+  fsm.mouseLeft();
+  seconds(0.29);
+  assert.equal(fsm.state, "home");
+  seconds(0.02);
+  assert.equal(fsm.state, "petit");
+});
+
+test("a 1 s delay folds after one second", () => {
+  fsm.homeToPetitDelay = 1;
+  openHome();
+  fsm.mouseLeft();
+  seconds(0.9);
+  assert.equal(fsm.state, "home");
+  seconds(0.1);
+  assert.equal(fsm.state, "petit");
+});
+
+test("the pointer coming back within the grace period keeps the island open", () => {
+  fsm.homeToPetitDelay = 0;
+  openHome();
+  fsm.mouseLeft();
+  seconds(0.2);
+  fsm.mouseEntered();
+  seconds(5);
+  assert.equal(fsm.state, "home");
+  assert.equal(fsm.homeCollapseDueAt, null);
+});
+
+test("typing or dictating holds the island open until it ends", () => {
+  fsm.homeToPetitDelay = 0;
+  let typing = true;
+  fsm.holdOpen = () => typing;
+  openHome();
+  fsm.mouseLeft();
+  seconds(3);
+  assert.equal(fsm.state, "home");
+  typing = false;
+  seconds(1);
+  assert.equal(fsm.state, "petit");
+});
+
+test("a pinned island doesn't fold on leave", () => {
+  fsm.homeToPetitDelay = 0;
+  openHome();
+  fsm.pinned = true;
+  fsm.mouseLeft();
+  seconds(5);
+  assert.equal(fsm.state, "home");
+});

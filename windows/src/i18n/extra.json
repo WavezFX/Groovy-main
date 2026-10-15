@@ -2894,17 +2894,6 @@
    "ru": "выполняется",
    "id": "berjalan"
   },
-  "seconds after you leave the island": {
-   "zh-Hans": "鼠标离开岛后的秒数",
-   "hi": "आइलैंड छोड़ने के बाद सेकंड",
-   "es": "segundos después de salir de la isla",
-   "ar": "ثانية بعد مغادرة الشريط",
-   "fr": "secondes après avoir quitté l'île",
-   "bn": "আইল্যান্ড ছাড়ার পর সেকেন্ড",
-   "pt-BR": "segundos depois de sair da ilha",
-   "ru": "секунд после ухода с острова",
-   "id": "detik setelah Anda meninggalkan pulau"
-  },
   "settings.json: {what} has an unexpected type — Groovy has not touched it.": {
    "zh-Hans": "settings.json：{what} 的类型不符合预期 — Groovy 没有修改它。",
    "hi": "settings.json: {what} का प्रकार अपेक्षित नहीं है — Groovy ने इसे नहीं छुआ।",
@@ -12644,6 +12633,72 @@
    "pt-BR": "Configurações rápidas",
    "ru": "Быстрые настройки",
    "id": "Pengaturan cepat"
+  },
+  "When I leave": {
+   "zh-Hans": "我离开时",
+   "hi": "जब मैं हटूँ",
+   "es": "Al salir",
+   "ar": "عند المغادرة",
+   "fr": "Quand je pars",
+   "bn": "আমি সরে গেলে",
+   "pt-BR": "Quando eu sair",
+   "ru": "Когда я ухожу",
+   "id": "Saat saya pergi"
+  },
+  "{seconds} s after I leave": {
+   "zh-Hans": "离开后 {seconds} 秒",
+   "hi": "हटने के {seconds} सेकंड बाद",
+   "es": "{seconds} s después de salir",
+   "ar": "بعد {seconds} ث من المغادرة",
+   "fr": "{seconds} s après mon départ",
+   "bn": "সরে যাওয়ার {seconds} সেকেন্ড পরে",
+   "pt-BR": "{seconds} s depois de sair",
+   "ru": "Через {seconds} с после ухода",
+   "id": "{seconds} dtk setelah saya pergi"
+  },
+  "Leave": {
+   "zh-Hans": "离开",
+   "hi": "हटते ही",
+   "es": "Salir",
+   "ar": "مغادرة",
+   "fr": "Départ",
+   "bn": "সরলে",
+   "pt-BR": "Sair",
+   "ru": "Уход",
+   "id": "Pergi"
+  },
+  "Auto-close · when I leave": {
+   "zh-Hans": "自动关闭 · 我离开时",
+   "hi": "अपने-आप बंद · जब मैं हटूँ",
+   "es": "Cierre automático · al salir",
+   "ar": "إغلاق تلقائي · عند المغادرة",
+   "fr": "Fermeture auto · quand je pars",
+   "bn": "স্বয়ংক্রিয় বন্ধ · আমি সরে গেলে",
+   "pt-BR": "Fechar sozinho · quando eu sair",
+   "ru": "Автозакрытие · когда я ухожу",
+   "id": "Tutup otomatis · saat saya pergi"
+  },
+  "The island can now close as soon as the mouse leaves it.": {
+   "zh-Hans": "现在鼠标一离开，岛就可以关闭。",
+   "hi": "अब माउस हटते ही आइलैंड बंद हो सकता है।",
+   "es": "Ahora la isla puede cerrarse en cuanto el ratón sale de ella.",
+   "ar": "يمكن للجزيرة الآن أن تُغلق بمجرد خروج الفأرة منها.",
+   "fr": "L'île peut maintenant se fermer dès que la souris la quitte.",
+   "bn": "এখন মাউস সরলেই আইল্যান্ড বন্ধ হতে পারে।",
+   "pt-BR": "Agora a ilha pode fechar assim que o mouse sair dela.",
+   "ru": "Теперь остров может закрываться, как только мышь его покидает.",
+   "id": "Kini pulau bisa tertutup begitu mouse meninggalkannya."
+  },
+  "Use it": {
+   "zh-Hans": "使用",
+   "hi": "इसे अपनाएँ",
+   "es": "Usarlo",
+   "ar": "استخدمه",
+   "fr": "L'utiliser",
+   "bn": "এটি ব্যবহার করুন",
+   "pt-BR": "Usar",
+   "ru": "Включить",
+   "id": "Gunakan"
   }
  }
 }

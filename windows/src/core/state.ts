@@ -250,12 +250,14 @@ export interface Settings {
   wardrobe: unknown;
   /** "My island": preset, tiles, mail apps (core/tiles.ts); read it through parseTiles. */
   islandTiles: unknown;
+  /** "When I leave" was offered once to a user with another auto-close delay. */
+  closeOnLeaveOffered: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   soundVolume: 0.12,
-  autoCloseInterval: 15,
+  autoCloseInterval: 0,
   openOnHover: false,
   absenceInterval: 180,
   activeIntegrations: [
@@ -297,6 +299,7 @@ export const DEFAULT_SETTINGS: Settings = {
   assistant: DEFAULT_ASSISTANT,
   wardrobe: {},
   islandTiles: {},
+  closeOnLeaveOffered: false,
 };
 
 type Listener = () => void;

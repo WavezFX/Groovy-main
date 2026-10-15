@@ -390,6 +390,12 @@ export class Island {
 
   private wireFsm() {
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;
+    // Typing in the island (the chat, a search) or dictating keeps it open.
+    this.fsm.holdOpen = () => {
+      const a = document.activeElement as HTMLElement | null;
+      const typing = !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable);
+      return typing || State.dictating;
+    };
     this.fsm.openOnHover = State.settings.openOnHover;
     this.fsm.keepVisible = State.settings.keepVisible !== false;
     if (this.fsm.keepVisible && this.fsm.state === "hidden" && this.greetingShown) this.fsm.reveal();
@@ -1273,6 +1279,11 @@ export class Island {
       return;
     }
     const autoClose = this.fsm.homeToPetitDelay;
+    // Under 3 s the bar would only flash.
+    if (autoClose < 3) {
+      this.countdown.style.width = "0px";
+      return;
+    }
     const windowS = Math.min(10, autoClose * 0.6);
     const remaining = (dueAt - nowMs) / 1000;
     this.countdown.style.width =

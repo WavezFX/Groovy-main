@@ -4,6 +4,7 @@
 // pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
 import { installErrorReporting, showError } from "../views/toast";
+import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
@@ -944,14 +945,12 @@ function generalSection(): HTMLElement {
     onclick: () => void Bridge.reloadSounds().then(() => window.setTimeout(countCustom, 300)),
   });
 
-  const autoClose = h("input", {
-    type: "number", min: "5", max: "120", step: "1",
-    value: String(Math.round(settings.autoCloseInterval)),
-    style: "width:72px",
-  }) as HTMLInputElement;
+  const autoClose = h("select", {},
+    ...AUTO_CLOSE_CHOICES.map((c) => h("option", { value: String(c), text: c === 0 ? t("When I leave") : t("{seconds} s after I leave", { seconds: c }) })),
+  ) as HTMLSelectElement;
+  autoClose.value = String(nearestChoice(settings.autoCloseInterval));
   autoClose.addEventListener("change", () => {
-    settings.autoCloseInterval = Math.max(5, Math.min(120, Number(autoClose.value) || 15));
-    autoClose.value = String(settings.autoCloseInterval);
+    settings.autoCloseInterval = nearestChoice(Number(autoClose.value));
     void save();
   });
 
@@ -1008,7 +1007,6 @@ function generalSection(): HTMLElement {
     h("div", { class: "row" },
       h("label", { text: t("Auto-close") }),
       autoClose,
-      h("span", { class: "hint", text: t("seconds after you leave the island") }),
     ),
     h("div", { class: "row" },
       h("label", { text: t("Island lives on") }),
