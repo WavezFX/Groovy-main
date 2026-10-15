@@ -1,4 +1,4 @@
-name: Windows
+name: Windows release (tags only)
 
 # Builds the Windows app and publishes the installer.
 # Triggered by tags like `windows-v0.1.0`; the macOS workflows are untouched.

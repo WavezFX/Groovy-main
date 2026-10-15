@@ -73,7 +73,7 @@ and its translations.
   "create a project" flow end to end.
 - **Phase 7:** UI polish pass, end-to-end tests, performance benchmarks
   (startup, idle memory, model load, voice latency — none measured yet),
-  security review, release workflow update (`windows.yml` still uses the old
+  security review, release workflow update (`windows-release.yml` still uses the old
   file names), signed installers.
 - **Spotify on Windows:** the pill only works on Linux (MPRIS); a Windows
   backend through the system media controls is planned.
