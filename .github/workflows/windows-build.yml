@@ -60,10 +60,12 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             windows/target
-          key: windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          # Bump the version when a C/C++ build setting changes (v3: static CRT
+          # for whisper.cpp): build scripts don't rerun for it, cached objects would.
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-
-            windows-build-cargo-v2-
+            windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-
+            windows-build-cargo-v3-
 
       # whisper.cpp (voice) builds from source and needs CMake and libclang.
       - name: Check build tools
@@ -199,7 +201,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             windows/target
-          key: windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
 
       - uses: actions/upload-artifact@v7
         if: always()
