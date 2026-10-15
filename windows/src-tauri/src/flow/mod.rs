@@ -696,6 +696,7 @@ pub fn pill_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: O
                     match a.action_id.as_deref() {
                         Some("openSettings") => crate::show_hub(&app, Some("settings")),
                         Some("openNotes") => crate::show_hub(&app, Some("notes")),
+                        Some("openSkills") => crate::show_hub(&app, Some("skills")),
                         _ => {}
                     }
                 }

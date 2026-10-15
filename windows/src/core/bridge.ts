@@ -682,6 +682,9 @@ export const Bridge = {
   /** Asleep, the cursor poll stops. */
   desktopSetAsleep: (asleep: boolean) => call<void>("desktop_mochi_set_asleep", { asleep }),
 
+  /** An agent session started in `cwd`: the Skills Manager may look at the project again. */
+  skillsSessionStarted: (cwd: string) => call<void>("skills_session_started", { cwd }),
+
   // ── Spotify (src-tauri/src/spotify.rs) ────────────────────────────────────
   /** Reads the player again (the card came on screen) and reports it. */
   spotifyRefresh: () => call<SpotifyState | null>("spotify_refresh"),

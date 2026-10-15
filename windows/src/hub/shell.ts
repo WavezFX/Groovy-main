@@ -49,6 +49,7 @@ export const GROOVY_PAGES: PageDef[] = [
   { id: "calls", icon: "phone", title: () => t("Voice calls"), subtitle: () => t("Talking with Groovy: languages, microphone and voices.") },
   { id: "wardrobe", icon: "shirt", title: () => t("Wardrobe"), subtitle: () => t("Groovy's looks, outfits and colours.") },
   { id: "chat", icon: "chat", title: () => t("Chat providers"), subtitle: () => t("Online AI with your own keys, and local servers.") },
+  { id: "skills", icon: "bolt", title: () => t("Skills") },
   { id: "agents", icon: "terminal", title: () => t("Coding agents"), subtitle: () => t("Claude Code, Codex and the other agents Groovy follows.") },
   { id: "pills", icon: "grid", title: () => t("Pills and integrations"), subtitle: () => t("The pills shown in the island, and the services behind them.") },
   { id: "phone", icon: "phone", title: () => t("Android phone"), subtitle: () => t("Your agents and their approvals on your Android phone, over your Wi-Fi.") },

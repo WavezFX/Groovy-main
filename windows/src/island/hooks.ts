@@ -316,6 +316,8 @@ function handleHook(island: Island, payload: HookPayload) {
   switch (name) {
     case "SessionStart":
       ensurePill();
+      // A project Groovy manages skills for: its manifests may have changed.
+      if (cwd) void Bridge.skillsSessionStarted(cwd);
       clearFinalLine(agentId);
       // Hermes through its gateway says where the session comes from.
       if (validAgent === "hermes" && payload.platform && payload.platform !== "cli") {

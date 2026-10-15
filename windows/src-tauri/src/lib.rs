@@ -40,6 +40,7 @@ mod session_window;
 mod settings;
 mod shortcuts;
 mod sounds;
+mod skills;
 mod speech;
 mod spotify;
 mod studio;
@@ -1052,6 +1053,25 @@ pub fn run() {
             notes::notes_markdown,
             notes::notes_export,
             okgroovy::voice_done,
+            skills::manage::skills_status,
+            skills::manage::skills_install_node,
+            skills::manage::skills_projects,
+            skills::manage::skills_pick_project,
+            skills::manage::skills_list,
+            skills::manage::skills_search,
+            skills::manage::skills_preview,
+            skills::manage::skills_install,
+            skills::manage::skills_remove,
+            skills::manage::skills_update,
+            skills::manage::skills_undo,
+            skills::manage::skills_init,
+            skills::manage::skills_fork,
+            skills::manage::skills_read,
+            skills::manage::skills_save,
+            skills::manage::skills_analyze,
+            skills::manage::skills_recommendations,
+            skills::manage::skills_dismiss,
+            skills::manage::skills_session_started,
             okgroovy::voice_say_native,
             studio::studio_workspaces,
             studio::studio_add_workspace,

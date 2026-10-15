@@ -379,6 +379,7 @@ pub fn run_tool(app: &AppHandle, name: &str, input: &Value) -> (String, bool) {
         }
         "service_info" => (ask_island(app, "info", json!({})).unwrap_or_else(|| "no data".into()), false),
         "music" => music(app, input),
+        "skills" => crate::skills::manage::voice_tool(app, input),
         "open_app" => open_app(input["name"].as_str().unwrap_or("")),
         "prepare_email" => {
             let to = input["recipient"].as_str().unwrap_or("").trim().to_string();

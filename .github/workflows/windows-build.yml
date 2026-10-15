@@ -85,6 +85,14 @@ jobs:
           cargo test --workspace 2>&1 | Tee-Object -FilePath rust-tests.txt
           exit $LASTEXITCODE
 
+      # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):
+      # add a local skill, list it, remove it with a backup.
+      - name: Skills CLI end-to-end
+        shell: pwsh
+        run: |
+          cargo test -p groovy skills_cli -- --ignored 2>&1 | Tee-Object -FilePath skills-cli-test.txt
+          exit $LASTEXITCODE
+
       - name: Build and pack the installers
         id: pack
         shell: pwsh
@@ -170,4 +178,5 @@ jobs:
           name: test-logs
           path: |
             windows/rust-tests.txt
+            windows/skills-cli-test.txt
           retention-days: 7

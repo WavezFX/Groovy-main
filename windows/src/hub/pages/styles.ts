@@ -1,5 +1,5 @@
-// Styles: an optional clean-up by Groovy's AI (local by default) (no "um", no repeats, corrections
-// applied), as said, natural or polished, per app. Port of the styles part of
+// Styles: an optional clean-up by Groovy's AI, local by default (no "um", no
+// repeats, corrections applied), as said, natural or polished, per app. Port of the styles part of
 // FlowHubWords.swift.
 
 import { h, clear } from "../../views/dom";

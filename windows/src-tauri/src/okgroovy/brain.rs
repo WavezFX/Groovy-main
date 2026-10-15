@@ -78,6 +78,20 @@ fn tools() -> Vec<Value> {
                 "required": ["recipient", "subject", "body"]
             }
         }),
+        json!({
+            "name": "skills",
+            "description": "Agent skills (SKILL.md packages for Claude Code, Codex…) for the user's current project: search the skills.sh catalogue, list what is installed, recommend skills for the project, or ask to install or remove one. Install and remove only open the Groovy window for the user to confirm.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string", "enum": ["search", "list", "recommend", "install", "remove"] },
+                    "query": { "type": "string", "description": "What to search, for search." },
+                    "skill": { "type": "string", "description": "The skill's name, for install and remove." },
+                    "source": { "type": "string", "description": "owner/repo the skill comes from, for install." }
+                },
+                "required": ["action"]
+            }
+        }),
         json!({ "type": "web_search_20250305", "name": "web_search", "max_uses": 3 }),
     ]
 }
@@ -91,7 +105,7 @@ quick, warm, a little playful. It is {:04}-{:02}-{:02} {:02}:{:02}.\n\
 Everything you write is read aloud: answer in the language the user spoke, in one or two short sentences, \
 no markdown, no lists, no emojis, no links.\n\
 Act with the tools instead of describing: pills, music, service_info for the user's own data, open_app, \
-prepare_email{search}. \
+skills for the coding agents' skills, prepare_email{search}. \
 Never invent the user's data.\n\
 Email: gather the recipient's address, the subject and what to say (write the text yourself from what the user \
 wants to say, in the language they used), asking for what is missing one short question at a time, then call \
