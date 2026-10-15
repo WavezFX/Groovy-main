@@ -119,6 +119,10 @@ export interface ModelsStatus {
   runtimePath: string | null;
   runtimes: { id: string; label: string; size: number; available: boolean }[];
   running: string | null;
+  /** Bytes the running llama-server takes. */
+  runningMemory: number | null;
+  /** Local AI was chosen in the AI setup: the engine may start. */
+  localAllowed: boolean;
   selected: string;
   local: LocalModelInfo[];
   catalog: CatalogModel[];
@@ -501,6 +505,8 @@ export const Bridge = {
 
   // ── Local models (models.rs) ──────────────────────────────────────────────
   modelsStatus: () => call<ModelsStatus>("models_status"),
+  /** Which subscription CLIs are installed (brain_ai.rs). */
+  aiClis: () => call<{ claudeCode: boolean; codex: boolean }>("ai_clis"),
   modelsInstallRuntime: (id: string) => callOrThrow<string>("models_install_runtime", { id }),
   modelsDownload: (id: string) => callOrThrow<string>("models_download", { id }),
   modelsCancelDownload: () => call<void>("models_cancel_download"),

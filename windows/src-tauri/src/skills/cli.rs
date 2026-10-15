@@ -30,7 +30,7 @@ pub fn node_new_enough(v: (u32, u32)) -> bool {
     v >= NODE_MIN
 }
 
-fn which(name: &str) -> Option<PathBuf> {
+pub(crate) fn which(name: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     let exts: Vec<String> = if cfg!(windows) {
         std::env::var("PATHEXT").unwrap_or_else(|_| ".EXE".into()).split(';').map(|e| e.to_lowercase()).collect()
@@ -317,6 +317,7 @@ pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
     hide_window(&mut cmd);
     crate::log::line(format!("skills: {}", args.first().map(String::as_str).unwrap_or("")));
     let mut child = cmd.spawn().map_err(|e| format!("Could not start the skills CLI: {e}"))?;
+    crate::platform::contain(&child);
     let mut out_pipe = child.stdout.take().unwrap();
     let mut err_pipe = child.stderr.take().unwrap();
     let out_reader = std::thread::spawn(move || {

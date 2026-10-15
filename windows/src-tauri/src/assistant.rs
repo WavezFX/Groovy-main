@@ -38,9 +38,15 @@ pub struct AssistantPrefs {
     pub gpu_layers: u32,
     /// Online messages allowed per day; 0 = no limit.
     pub daily_online_limit: u32,
-    /// Who answers « OK Groovy », Flow's clean-up and the call notes:
-    /// "local" (the local model above) or "claude" (the user's key).
+    /// Who answers « OK Groovy », Flow's clean-up and the call notes (brain_ai.rs):
+    /// "auto" (the AI chosen at setup: a cloud key, then a subscription CLI, then
+    /// local if allowed), or one of BRAINS.
     pub brain: String,
+    /// What the user picked in the AI setup: "" (not asked yet), "cloud",
+    /// "subscription" or "local". Until it is "local" (or the mode is "This PC
+    /// only"), Groovy never starts a local model: on an 8 GB PC llama-server takes
+    /// about 2 GB.
+    pub ai_setup: String,
     pub memory_enabled: bool,
     pub history_enabled: bool,
     /// Chat history older than this is deleted; 0 = keep forever.
@@ -64,7 +70,8 @@ impl Default for AssistantPrefs {
             local_model: String::new(),
             gpu_layers: 0,
             daily_online_limit: 0,
-            brain: "local".into(),
+            brain: "auto".into(),
+            ai_setup: String::new(),
             memory_enabled: true,
             history_enabled: true,
             history_retention_days: 90,
@@ -73,12 +80,20 @@ impl Default for AssistantPrefs {
     }
 }
 
+/// Who can answer the background features: "auto", a local model, a cloud key, or a subscription CLI.
+pub const BRAINS: &[&str] = &["auto", "local", "claude", "google", "openai", "openrouter", "claude-code", "codex"];
+
 pub const PERSONALITIES: &[&str] = &["friendly", "professional", "sarcastic", "energetic", "quiet", "assistant"];
 pub const LOCAL_PROVIDERS: &[&str] = &["llamacpp", "ollama", "lmstudio", "custom"];
 const MAX_NAME: usize = 32;
 const MAX_INSTRUCTIONS: usize = 1500;
 
 impl AssistantPrefs {
+    /// Whether a local model may be started: only when the user chose local AI.
+    pub fn local_allowed(&self) -> bool {
+        self.ai_setup == "local" || self.ai_mode == "local"
+    }
+
     /// Out-of-range values (a hand-edited settings.json) fall back to the defaults.
     pub fn sanitised(mut self) -> Self {
         let d = Self::default();
@@ -92,7 +107,8 @@ impl AssistantPrefs {
         one_of(&mut self.proactivity, &["low", "normal", "high"], &d.proactivity);
         one_of(&mut self.ai_mode, &["hybrid", "local", "online"], &d.ai_mode);
         one_of(&mut self.local_provider, LOCAL_PROVIDERS, &d.local_provider);
-        one_of(&mut self.brain, &["local", "claude"], &d.brain);
+        one_of(&mut self.brain, BRAINS, &d.brain);
+        one_of(&mut self.ai_setup, &["", "cloud", "subscription", "local"], &d.ai_setup);
         one_of(&mut self.performance_profile, &["lightweight", "balanced", "performance"], &d.performance_profile);
         self.humour = self.humour.min(10);
         self.gpu_layers = self.gpu_layers.min(999);
@@ -160,6 +176,9 @@ pub fn is_local(provider: &str, custom_url: &str) -> bool {
     }
 }
 
+/// No one may answer (the online limit is reached and local AI is off).
+pub const NONE: &str = "none";
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Route {
     /// Who gets the message first.
@@ -175,6 +194,13 @@ pub struct Route {
 pub fn route(prefs: &AssistantPrefs, picked: &str, custom_url: &str, limit_reached: bool) -> Route {
     let local = prefs.local_provider.clone();
     let picked_local = is_local(picked, custom_url);
+    // Local AI not chosen: no local model stands in for an online provider.
+    if !prefs.local_allowed() && !picked_local {
+        if limit_reached && prefs.ai_mode != "online" {
+            return Route { primary: NONE.into(), fallback: None, note: None };
+        }
+        return Route { primary: picked.into(), fallback: None, note: None };
+    }
     match prefs.ai_mode.as_str() {
         "local" if !picked_local => Route {
             primary: local,
@@ -302,13 +328,37 @@ mod tests {
     }
 
     #[test]
-    fn hybrid_falls_back_to_local() {
-        let r = route(&prefs("hybrid"), "openai", "", false);
+    fn hybrid_falls_back_to_local_once_local_is_chosen() {
+        let local = AssistantPrefs { ai_mode: "hybrid".into(), ai_setup: "local".into(), ..Default::default() };
+        let r = route(&local, "openai", "", false);
         assert_eq!(r.primary, "openai");
         assert_eq!(r.fallback.as_deref(), Some("llamacpp"));
-        let r = route(&prefs("hybrid"), "openai", "", true);
+        let r = route(&local, "openai", "", true);
         assert_eq!(r.primary, "llamacpp", "limit reached goes local");
-        assert_eq!(route(&prefs("hybrid"), "ollama", "", false).fallback, None);
+        assert_eq!(route(&local, "ollama", "", false).fallback, None);
+    }
+
+    #[test]
+    fn without_local_ai_chosen_no_local_model_stands_in() {
+        // The default: setup not done, hybrid mode.
+        let p = prefs("hybrid");
+        assert!(!p.local_allowed());
+        let r = route(&p, "openai", "", false);
+        assert_eq!((r.primary.as_str(), r.fallback), ("openai", None));
+        assert_eq!(route(&p, "openai", "", true).primary, NONE, "the limit is a limit, not a local start");
+        // Picking a local provider in the chat is still an explicit choice.
+        assert_eq!(route(&p, "llamacpp", "", false).primary, "llamacpp");
+        let cloud = AssistantPrefs { ai_setup: "cloud".into(), ..Default::default() };
+        assert!(!cloud.local_allowed());
+        assert!(AssistantPrefs { ai_setup: "local".into(), ..Default::default() }.local_allowed());
+    }
+
+    #[test]
+    fn brains_and_setup_are_checked() {
+        let p = AssistantPrefs { brain: "gpt-9".into(), ai_setup: "everything".into(), ..Default::default() }.sanitised();
+        assert_eq!((p.brain.as_str(), p.ai_setup.as_str()), ("auto", ""));
+        let p = AssistantPrefs { brain: "codex".into(), ai_setup: "subscription".into(), ..Default::default() }.sanitised();
+        assert_eq!((p.brain.as_str(), p.ai_setup.as_str()), ("codex", "subscription"));
     }
 
     #[test]

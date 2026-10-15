@@ -546,6 +546,7 @@ mod tests {
     "localModel": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
     "gpuLayers": 20,
     "brain": "claude",
+    "aiSetup": "local",
     "dailyOnlineLimit": 50,
     "memoryEnabled": false,
     "historyEnabled": false,

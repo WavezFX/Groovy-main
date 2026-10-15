@@ -86,6 +86,7 @@ windows = { version = "0.61", features = [
   "Win32_Security_Authorization",
   # "Open terminal": the relay's process tree leads to the session's window.
   "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_JobObjects",
   "Win32_System_Ole",
   # The Spotify pill: the system media controls Spotify publishes to.
   "Foundation",

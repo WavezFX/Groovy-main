@@ -31,8 +31,12 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
 
-    let menu = Menu::with_items(app, &[open, studio, recap, &sep1, wardrobe, settings, pause, &sep2, quit])?;
+    // "Local model loaded, using X GB: Unload", only while llama-server runs.
+    let unload = MenuItem::with_id(app, "unload", t("No local model loaded"), false, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&unload, open, studio, recap, &sep1, wardrobe, settings, pause, &sep2, quit])?;
     app.manage(Items(items));
+    app.manage(UnloadItem(unload.clone()));
+    spawn_local_model_watch(app.clone());
 
     let mut builder = TrayIconBuilder::with_id("groovy")
         .tooltip("Groovy")
@@ -42,6 +46,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             "settings" => crate::show_settings_window(app),
             // The Groovy window: dictation, notes and every setting.
             "open" => crate::show_hub(app, None),
+            "unload" => {
+                crate::models::stop();
+                local_model_changed(app);
+            }
             "studio" => crate::studio::show(app),
             id => {
                 let _ = app.emit_to(WINDOW_LABEL, "tray", id.to_string());
@@ -54,6 +62,33 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
 
     builder.build(app)?;
     Ok(())
+}
+
+struct UnloadItem(MenuItem<Wry>);
+
+/// Keeps the Unload item's label on what the local model takes now.
+pub fn local_model_changed(app: &AppHandle) {
+    let Some(item) = app.try_state::<UnloadItem>() else { return };
+    match crate::models::running_memory() {
+        Some(bytes) => {
+            let gb = format!("{:.1}", bytes as f64 / 1_073_741_824.0);
+            let _ = item.0.set_text(crate::i18n::tf("Local model loaded, using {gb} GB: Unload", &[("gb", &gb)]));
+            let _ = item.0.set_enabled(true);
+        }
+        None => {
+            let _ = item.0.set_text(t("No local model loaded"));
+            let _ = item.0.set_enabled(false);
+        }
+    }
+}
+
+fn spawn_local_model_watch(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            local_model_changed(&app);
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+        }
+    });
 }
 
 /// Relabels the menu in the current language.

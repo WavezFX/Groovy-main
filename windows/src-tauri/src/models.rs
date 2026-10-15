@@ -170,7 +170,7 @@ pub fn profile(name: &str, cpus: u32) -> Profile {
     match name {
         "lightweight" => Profile { context: 2048, threads: (cpus / 2).clamp(1, 4), ram_share: 0.6, idle_minutes: 5, animation: "reduced" },
         "performance" => Profile { context: 8192, threads: cpus, ram_share: 0.85, idle_minutes: 0, animation: "full" },
-        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), ram_share: 0.75, idle_minutes: 15, animation: "full" },
+        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), ram_share: 0.75, idle_minutes: 10, animation: "full" },
     }
 }
 
@@ -574,6 +574,15 @@ pub fn running_model() -> Option<String> {
     SERVER.lock().unwrap().as_ref().map(|r| r.file.clone())
 }
 
+/// The memory the running llama-server uses, in bytes.
+pub fn running_memory() -> Option<u64> {
+    running_url()?;
+    let pid = SERVER.lock().unwrap().as_ref().map(|r| sysinfo::Pid::from_u32(r.child.id()))?;
+    let mut sys = sysinfo::System::new();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
+    sys.process(pid).map(|p| p.memory())
+}
+
 pub fn touch() {
     if let Some(r) = SERVER.lock().unwrap().as_mut() {
         r.last_used = Instant::now();
@@ -591,6 +600,10 @@ pub fn stop() {
 /// Starts llama-server with the chosen model (or keeps the one running when it
 /// is already that model) and waits until it answers. Returns its address.
 pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> Result<String, String> {
+    // The one gate: llama-server never runs unless local AI was chosen.
+    if !prefs.local_allowed() {
+        return Err(crate::i18n::t("Local AI is off. To use the model on this computer, choose “Local” in Groovy → Assistant → Groovy's AI (it needs a strong PC)."));
+    }
     let _guard = STARTING.lock().await;
     let wanted = if prefs.local_model.is_empty() {
         discover(&models_dir(), 2048).into_iter().find(|m| m.info.is_some()).map(|m| m.file)
@@ -619,6 +632,7 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
         cmd.current_dir(dir);
     }
     let child = platform::no_console(&mut cmd).spawn().map_err(|e| format!("Couldn't start llama-server: {e}"))?;
+    platform::contain(&child);
     log::line(format!("local model starting: {wanted} (ctx {}, {} threads, port {port})", prof.context, prof.threads));
     if let Some(app) = app {
         let _ = app.emit("local-model", serde_json::json!({ "state": "loading", "model": wanted }));
@@ -778,6 +792,10 @@ pub struct ModelsStatus {
     pub runtime_path: Option<String>,
     pub runtimes: Vec<serde_json::Value>,
     pub running: Option<String>,
+    /// What the running server takes, in bytes.
+    pub running_memory: Option<u64>,
+    /// Local AI was chosen: the engine may start.
+    pub local_allowed: bool,
     pub selected: String,
     pub local: Vec<LocalModel>,
     pub catalog: Vec<CatalogModel>,
@@ -803,6 +821,8 @@ pub fn models_status(shared: tauri::State<crate::Shared>) -> ModelsStatus {
             .map(|r| serde_json::json!({ "id": r.id, "label": r.label, "size": r.size, "available": cfg!(windows) }))
             .collect(),
         running: running_model(),
+        running_memory: running_memory(),
+        local_allowed: prefs.local_allowed(),
         selected: prefs.local_model.clone(),
         local: discover(&models_dir(), prof.context),
         catalog: CATALOG.to_vec(),

@@ -115,6 +115,42 @@ pub fn no_console(cmd: &mut Command) -> &mut Command {
     cmd.creation_flags(CREATE_NO_WINDOW)
 }
 
+/// Puts a helper Groovy started (llama-server, Ollama, a subscription CLI,
+/// the skills CLI) in a job that Windows closes when Groovy's process ends,
+/// even in a crash: the job kills everything in it, so no 2 GB model is left
+/// running. Groovy itself is not in the job, so apps it opens for the user
+/// (Spotify, VS Code, a website) are not affected.
+pub fn contain(child: &std::process::Child) {
+    use std::os::windows::io::AsRawHandle;
+    use ::windows::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation, SetInformationJobObject,
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+    // One job for the whole run, never closed by hand: its handle closes with the process.
+    static JOB: std::sync::OnceLock<Option<isize>> = std::sync::OnceLock::new();
+    let job = *JOB.get_or_init(|| unsafe {
+        let job = CreateJobObjectW(None, None).ok()?;
+        let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            &info as *const _ as *const core::ffi::c_void,
+            std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+        )
+        .ok()?;
+        Some(job.0 as isize)
+    });
+    let Some(job) = job else {
+        crate::log::line("could not create the job for helper processes");
+        return;
+    };
+    let process = HANDLE(child.as_raw_handle() as _);
+    if let Err(e) = unsafe { AssignProcessToJobObject(HANDLE(job as _), process) } {
+        crate::log::line(format!("helper process not in the job: {e}"));
+    }
+}
+
 pub fn open_url(url: &str) {
     let _ = no_console(Command::new("rundll32.exe").args(["url.dll,FileProtocolHandler", url]))
         .spawn();

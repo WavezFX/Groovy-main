@@ -61,3 +61,28 @@ test("snoozing a reminder closes it and adds the same one ten minutes later", as
   await snoozeReminder(bridge, { id: 7, text: "Stand-up" }, 1_000_000);
   assert.deepEqual(calls, [["done", 7, true], ["add", "Stand-up", 1000 + 600]]);
 });
+
+// ── The AI setup: cloud first, local last (FIXES_ROUND1 item 2) ──────────────
+import { applyChoice, localAdvice } from "../src/settings/aisetup.ts";
+
+test("nothing is chosen at first, and the brain follows the setup", () => {
+  assert.equal(DEFAULT_ASSISTANT.aiSetup, "");
+  assert.equal(DEFAULT_ASSISTANT.brain, "auto");
+});
+
+test("each setup choice leads to the right settings", () => {
+  const g = applyChoice(DEFAULT_ASSISTANT, { kind: "cloud", provider: "google" });
+  assert.equal(g.assistant.aiSetup, "cloud");
+  assert.equal(g.chatProvider, "google");
+  const s = applyChoice({ ...DEFAULT_ASSISTANT, aiMode: "local" }, { kind: "subscription", tool: "codex" });
+  assert.deepEqual([s.assistant.aiSetup, s.assistant.brain, s.assistant.aiMode, s.chatProvider], ["subscription", "codex", "hybrid", null]);
+  const l = applyChoice(DEFAULT_ASSISTANT, { kind: "local" });
+  assert.deepEqual([l.assistant.aiSetup, l.chatProvider], ["local", "llamacpp"]);
+});
+
+test("local AI is only recommended from 16 GB, and 8 GB gets a warning", () => {
+  const GB = 1024 ** 3;
+  assert.deepEqual(localAdvice(8 * GB), { recommended: false, warning: "slow" });
+  assert.deepEqual(localAdvice(12 * GB), { recommended: false, warning: "tight" });
+  assert.deepEqual(localAdvice(32 * GB), { recommended: true, warning: null });
+});

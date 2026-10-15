@@ -395,6 +395,9 @@ async fn complete_with(
     prompt: String,
     on_delta: &mut (impl FnMut(String) + Send),
 ) -> Result<String, String> {
+    if provider == assistant::NONE {
+        return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
+    }
     let model = model_for(settings, provider);
     let reply = if provider == ANTHROPIC {
         claude::send(chat, &model, prompt, None).await?
@@ -443,6 +446,9 @@ async fn send_to(
     query: String,
     context: Option<ChatContext>,
 ) -> Result<ChatReply, String> {
+    if provider == assistant::NONE {
+        return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
+    }
     let model = model_for(settings, provider);
     if provider == ANTHROPIC {
         return claude::send(chat, &model, query, context).await;

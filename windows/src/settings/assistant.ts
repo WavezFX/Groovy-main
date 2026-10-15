@@ -36,8 +36,14 @@ const MODES: [AssistantPrefs["aiMode"], string, string][] = [
 ];
 
 const BRAINS: [AssistantPrefs["brain"], string][] = [
-  ["local", N_("The local model (free, private)")],
+  ["auto", N_("The AI chosen above")],
+  ["google", "Gemini"],
   ["claude", N_("Claude (your key)")],
+  ["openai", "OpenAI"],
+  ["openrouter", "OpenRouter"],
+  ["claude-code", "Claude Code"],
+  ["codex", "Codex"],
+  ["local", N_("The local model (free, private)")],
 ];
 
 const LOCALS: [AssistantPrefs["localProvider"], string][] = [
@@ -121,7 +127,7 @@ export function assistantSection(settings: Settings, save: () => void, toggle: T
     modeHint,
     h("div", { class: "row" }, h("label", { text: t("Local model") }), select(LOCALS, p.localProvider, (v) => set("localProvider", v))),
     h("div", { class: "row" }, h("label", { text: t("Voice and dictation") }), select(BRAINS, p.brain, (v) => set("brain", v))),
-    h("div", { class: "hint", text: t("What answers « OK Groovy », cleans up dictation and summarises notes. Claude is used only with a key and never in “This PC only” mode; the local model takes over when Claude can't answer in Hybrid.") }),
+    h("div", { class: "hint", text: t("What answers « OK Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.") }),
     h("div", { class: "row" }, h("label", { text: t("Online messages per day") }), limit, h("span", { class: "hint", text: t("0 = no limit") })),
     h(
       "div",

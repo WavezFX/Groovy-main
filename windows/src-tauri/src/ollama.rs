@@ -166,7 +166,10 @@ async fn start(app: &AppHandle) -> Result<(), String> {
     };
     let mut cmd = std::process::Command::new(path);
     cmd.arg("serve").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
-    let _ = platform::no_console(&mut cmd).spawn();
+    if let Ok(child) = platform::no_console(&mut cmd).spawn() {
+        // Ends with Groovy (Windows job object): it was started for Groovy.
+        platform::contain(&child);
+    }
     for _ in 0..60 {
         if tags().await.is_some() {
             emit(app, "start", 1, 1);

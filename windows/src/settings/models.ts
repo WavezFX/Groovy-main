@@ -152,6 +152,19 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
   function draw(s: ModelsStatus) {
     clear(body);
     const p = prefs();
+    if (!s.localAllowed) {
+      const use = h("button", { text: t("Use local AI on this PC") }) as HTMLButtonElement;
+      use.addEventListener("click", () => {
+        set("aiSetup", "local");
+        void refresh();
+      });
+      body.append(
+        h("div", { class: "notice warn", text: s.memory.total <= 9 * 1024 ** 3
+          ? t("Local AI is off. On this PC ({total}) a local model slows everything down: a cloud AI is the better choice.", { total: formatBytes(s.memory.total) })
+          : t("Local AI is off: Groovy never loads a model on this computer until you turn it on.") }),
+        h("div", { class: "row" }, use),
+      );
+    }
     const prof = PROFILES.find((x) => x[0] === p.performanceProfile) ?? PROFILES[1];
     const profile = h("select", {}) as HTMLSelectElement;
     for (const [v, label] of PROFILES) profile.append(h("option", { value: v, text: t(label) }));
@@ -188,7 +201,9 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
 
     const controls = h("div", { class: "row" });
     if (s.running) {
-      const stop = h("button", { text: t("Unload {file}", { file: s.running }) }) as HTMLButtonElement;
+      const stop = h("button", { text: s.runningMemory
+        ? t("Local model loaded, using {gb} GB: Unload", { gb: (s.runningMemory / 1024 ** 3).toFixed(1) })
+        : t("Unload {file}", { file: s.running }) }) as HTMLButtonElement;
       stop.addEventListener("click", () => void run(stop, () => Bridge.modelsStop()));
       controls.append(stop);
     } else if (s.local.some((m) => m.info) && s.runtimePath) {

@@ -24,7 +24,8 @@ import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { voiceSection } from "./voice";
 import { breaksSection } from "./breaks";
-import { assistantSection } from "./assistant";
+import { assistantSection, prefs as assistantPrefs } from "./assistant";
+import { aiSetupSection } from "./aisetup";
 import { modelsSection } from "./models";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
@@ -1398,7 +1399,7 @@ async function render() {
   clear(root);
 
   const pages: Record<GroovyPageId, () => HTMLElement[]> = {
-    assistant: () => [assistantSection(settings, () => void save(), toggle)],
+    assistant: () => [aiSetupSection(settings, () => void save(), () => assistantPrefs(settings)), assistantSection(settings, () => void save(), toggle)],
     wardrobe: () => [wardrobeSection(settings, () => void save())],
     models: () => [modelsSection(settings, () => void save())],
     memory: () => [memorySection(settings, () => void save(), toggle)],

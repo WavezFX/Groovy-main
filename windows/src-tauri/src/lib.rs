@@ -831,10 +831,21 @@ pub fn run() {
     log::install_crash_handler();
     let first_run = settings::first_run();
     let mut loaded = settings::load();
-    // Offline first: a Claude chat with no key to use falls back to Ollama.
     loaded.assistant = loaded.assistant.clone().sanitised();
+    // A Claude chat with no key: the first cloud provider that has one, else
+    // the local model only if local AI was chosen (otherwise the chat says what
+    // to set up instead of quietly loading a model).
     if loaded.chat_provider == chat::ANTHROPIC && !secrets::present("anthropic-api-key") {
-        loaded.chat_provider = loaded.assistant.local_provider.clone();
+        if let Some(p) = openai_compat::PROVIDERS.iter().find(|p| secrets::present(p.key)) {
+            loaded.chat_provider = p.id.to_string();
+        } else if loaded.assistant.local_allowed() {
+            loaded.chat_provider = loaded.assistant.local_provider.clone();
+        }
+    }
+    // On a small PC the light profile is the default (llama-server's context and
+    // threads, and the 5-minute unload), unless the user picked another one.
+    if first_run {
+        loaded.assistant.performance_profile = models::recommended_profile(models::memory_info().total).to_string();
     }
     if let Err(e) = db::init() {
         log::line(format!("local database unavailable: {e}"));
@@ -1032,6 +1043,7 @@ pub fn run() {
             db::usage_today,
             fit_zoom,
             notify_error,
+            brain_ai::ai_clis,
             flow::flow_status,
             flow::flow_set_prefs,
             flow::flow_history,
@@ -1159,7 +1171,19 @@ pub fn run() {
                 let _ = handle.autolaunch().enable();
             }
             let open_window = flow::get(&handle).map(|f| f.store.lock().unwrap().prefs.open_at_launch).unwrap_or(false);
-            if open_window && !launched_at_login() && !first_run {
+            // No AI chosen yet: the first start opens the choice; later starts
+            // remind once in the pill. Nothing loads a model meanwhile.
+            if loaded.assistant.ai_setup.is_empty() && !launched_at_login() {
+                if first_run {
+                    show_hub(&handle, Some("assistant"));
+                } else {
+                    let h = handle.clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+                        flow::pill::announce(&h, "bolt", "#7C5CFF", i18n::t("Choose Groovy's AI to start chatting"), Some((i18n::t("Choose"), "openAssistant")), 20);
+                    });
+                }
+            } else if open_window && !launched_at_login() && !first_run {
                 show_hub(&handle, None);
             }
             music::init(&handle);

@@ -235,6 +235,10 @@ pub fn user_full_name() -> Option<String> {
 // ── Processes ─────────────────────────────────────────────────────────────────
 
 /// Nothing to hide: a spawned process only gets a terminal if it asks for one.
+/// Windows ties helpers to Groovy's lifetime with a job object; here they are
+/// stopped on exit (models::stop) like before.
+pub fn contain(_child: &std::process::Child) {}
+
 pub fn no_console(cmd: &mut Command) -> &mut Command {
     cmd
 }

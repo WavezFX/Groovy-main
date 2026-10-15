@@ -2,13 +2,13 @@
 // Flow's clean-up, the Notetaker's summary and « OK Groovy »'s tool calls —
 // and how to talk to it.
 //
-// Free and local by default: the local model picked in Settings → Assistant
-// (Groovy's own llama.cpp engine, Ollama, LM Studio or an OpenAI-compatible
-// server on this computer), through the OpenAI chat-completions API that all
-// of them speak, tool calls included. Claude is the optional choice
-// ("brain": "claude"), with the user's own key; in hybrid mode it also stands
-// in when the local model can't answer and a key is set. Local-only mode never
-// sends anything to Claude.
+// Cloud and subscription first, local last (FIXES_ROUND1 item 2: on an 8 GB
+// PC the local model ate the machine). By default ("brain": "auto") the
+// chat's own cloud provider answers, then any other provider with a key
+// (Claude, Gemini, OpenAI, OpenRouter), then a Claude Code or Codex
+// subscription through its CLI when that was chosen at setup, then the local
+// model — only if local AI was chosen (AssistantPrefs::local_allowed).
+// Local-only mode never sends anything online.
 //
 // The callers were written for Anthropic's Messages format (content blocks,
 // tool_use / tool_result). This module converts to and from the OpenAI format
@@ -41,15 +41,132 @@ fn settings(app: &AppHandle) -> Settings {
     app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().clone()).unwrap_or_default()
 }
 
-/// Whether there is something to answer at all: a local model set up, or Claude chosen with a key.
+/// Someone who can answer the background features.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Who {
+    /// The local model (llama.cpp, Ollama, LM Studio, a custom server).
+    Local,
+    /// Claude with the user's key.
+    Claude,
+    /// An OpenAI-compatible cloud provider with the user's key: google, openai, openrouter.
+    Cloud(&'static str),
+    /// A subscription through its command-line tool: claude-code, codex.
+    Cli(&'static str),
+}
+
+const CLOUDS: [&str; 3] = ["google", "openai", "openrouter"];
+
+fn cloud_id(id: &str) -> Option<&'static str> {
+    CLOUDS.iter().copied().find(|c| *c == id)
+}
+
+fn cli_id(id: &str) -> Option<&'static str> {
+    ["claude-code", "codex"].into_iter().find(|c| *c == id)
+}
+
+/// Who answers first, and who stands in. Cloud and subscription first, local
+/// last and only when local AI was chosen (FIXES_ROUND1 item 2). Pure:
+/// `has_key(provider)` and `has_cli(tool)` say what this PC has.
+pub fn order(prefs: &AssistantPrefs, chat_provider: &str, has_key: impl Fn(&str) -> bool, has_cli: impl Fn(&str) -> bool) -> Vec<Who> {
+    let local_ok = prefs.local_allowed();
+    let with_local = |mut v: Vec<Who>| {
+        if local_ok && prefs.ai_mode == "hybrid" && !v.contains(&Who::Local) {
+            v.push(Who::Local);
+        }
+        v
+    };
+    if prefs.ai_mode == "local" {
+        return if local_ok { vec![Who::Local] } else { vec![] };
+    }
+    match prefs.brain.as_str() {
+        "local" => return if local_ok { vec![Who::Local] } else { vec![] },
+        "claude" => return with_local(vec![Who::Claude]),
+        b if cloud_id(b).is_some() => return with_local(vec![Who::Cloud(cloud_id(b).unwrap())]),
+        b if cli_id(b).is_some() => return with_local(vec![Who::Cli(cli_id(b).unwrap())]),
+        _ => {}
+    }
+    // "auto": the chat's own cloud provider, then every key, then a subscription, then local.
+    let mut v: Vec<Who> = Vec::new();
+    let mut push = |w: Who| {
+        if !v.contains(&w) {
+            v.push(w);
+        }
+    };
+    if chat_provider == "anthropic" && has_key("anthropic") {
+        push(Who::Claude);
+    } else if let Some(c) = cloud_id(chat_provider).filter(|c| has_key(c)) {
+        push(Who::Cloud(c));
+    }
+    if has_key("anthropic") {
+        push(Who::Claude);
+    }
+    for c in CLOUDS {
+        if has_key(c) {
+            push(Who::Cloud(c));
+        }
+    }
+    if prefs.ai_setup == "subscription" {
+        for c in ["claude-code", "codex"] {
+            if has_cli(c) {
+                push(Who::Cli(cli_id(c).unwrap()));
+            }
+        }
+    }
+    if local_ok && prefs.ai_mode != "online" {
+        push(Who::Local);
+    }
+    v
+}
+
+fn key_entry(provider: &str) -> Option<&'static str> {
+    if provider == "anthropic" {
+        Some(crate::claude::KEY)
+    } else {
+        crate::openai_compat::provider(provider).map(|p| p.key)
+    }
+}
+
+fn has_key(provider: &str) -> bool {
+    key_entry(provider).is_some_and(crate::secrets::present)
+}
+
+/// The command-line tool of a subscription, when it is installed.
+pub fn cli_path(tool: &str) -> Option<std::path::PathBuf> {
+    match tool {
+        "claude-code" => crate::skills::cli::which("claude"),
+        "codex" => crate::skills::cli::which("codex"),
+        _ => None,
+    }
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Clis {
+    claude_code: bool,
+    codex: bool,
+}
+
+/// Which subscription CLIs this PC has, for the AI setup.
+#[tauri::command]
+pub async fn ai_clis() -> Clis {
+    tauri::async_runtime::spawn_blocking(|| Clis { claude_code: cli_path("claude-code").is_some(), codex: cli_path("codex").is_some() })
+        .await
+        .unwrap_or(Clis { claude_code: false, codex: false })
+}
+
+fn current_order(s: &Settings) -> Vec<Who> {
+    let prefs = s.assistant.clone().sanitised();
+    let mut v = order(&prefs, &s.chat_provider, has_key, |t| cli_path(t).is_some());
+    if !local_configured(s, &prefs) {
+        v.retain(|w| *w != Who::Local);
+    }
+    v
+}
+
+/// Whether there is someone to answer at all.
 pub fn available() -> bool {
     let Ok(app) = app() else { return false };
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
-    if prefs.brain == "claude" && prefs.ai_mode != "local" {
-        return crate::secrets::present(crate::claude::KEY);
-    }
-    local_configured(&s, &prefs) || (prefs.ai_mode == "hybrid" && crate::secrets::present(crate::claude::KEY))
+    !current_order(&settings(app)).is_empty()
 }
 
 fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
@@ -61,12 +178,10 @@ fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
     }
 }
 
-/// Whether local models get no web search: they don't (no local search engine).
+/// Web search comes with Claude only; the others say they have no internet access.
 pub fn has_web_search() -> bool {
     let Ok(app) = app() else { return false };
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
-    prefs.brain == "claude" && prefs.ai_mode != "local" && crate::secrets::present(crate::claude::KEY)
+    current_order(&settings(app)).first() == Some(&Who::Claude)
 }
 
 struct Local {
@@ -94,10 +209,9 @@ async fn local(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs) -> Result<
     Ok(Local { base, model, key: server.key.clone() })
 }
 
-async fn post(l: &Local, body: &Value, timeout: Duration) -> Result<Value, String> {
-    let endpoint = Url::parse(&crate::net::join(&l.base, "/v1/chat/completions")).map_err(|e| e.to_string())?;
+async fn post_to(endpoint: Url, key: Option<&str>, body: &Value, timeout: Duration) -> Result<Value, String> {
     let mut req = crate::net::client(&endpoint, timeout)?.post(endpoint.clone()).json(body);
-    if let Some(k) = l.key.as_deref().filter(|k| !k.is_empty()) {
+    if let Some(k) = key.filter(|k| !k.is_empty()) {
         req = req.bearer_auth(k);
     }
     let resp = req.send().await.map_err(|e| format!("Cannot reach {}: {e}", crate::net::host_for_log(&endpoint)))?;
@@ -109,16 +223,99 @@ async fn post(l: &Local, body: &Value, timeout: Duration) -> Result<Value, Strin
     serde_json::from_slice(&bytes).map_err(|e| e.to_string())
 }
 
-/// Who answers first, and who stands in.
-fn order(prefs: &AssistantPrefs) -> Vec<&'static str> {
-    let key = crate::secrets::present(crate::claude::KEY);
-    match (prefs.ai_mode.as_str(), prefs.brain.as_str()) {
-        ("local", _) => vec!["local"],
-        ("online", "claude") => vec!["claude"],
-        (_, "claude") => vec!["claude", "local"],
-        ("hybrid", _) if key => vec!["local", "claude"],
-        _ => vec!["local"],
+/// An OpenAI-style chat completion from the local model or a cloud provider.
+async fn openai_turn(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, who: Who, mut body: Value, timeout: Duration) -> Result<Value, String> {
+    match who {
+        Who::Local => {
+            let l = local(app, s, prefs).await?;
+            body["model"] = json!(l.model);
+            let endpoint = Url::parse(&crate::net::join(&l.base, "/v1/chat/completions")).map_err(|e| e.to_string())?;
+            let r = post_to(endpoint, l.key.as_deref(), &body, timeout).await;
+            crate::models::touch();
+            r
+        }
+        Who::Cloud(id) => {
+            let p = crate::openai_compat::provider(id).ok_or("unknown provider")?;
+            let key = crate::secrets::get(p.key).ok_or_else(|| format!("No {} key.", p.name))?;
+            let picked = crate::chat::model_for(s, id);
+            body["model"] = json!(if picked.is_empty() { p.default_model.to_string() } else { picked });
+            if let Some(n) = body.as_object_mut().and_then(|o| o.remove("max_tokens")) {
+                body[p.max_tokens_field] = n;
+            }
+            let endpoint = Url::parse(&format!("{}/chat/completions", p.base_url)).map_err(|e| e.to_string())?;
+            post_to(endpoint, Some(&key), &body, timeout).await
+        }
+        _ => Err("not an OpenAI-style provider".into()),
     }
+}
+
+/// A subscription's CLI answers one prompt, text only. No shell: the prompt
+/// goes in on stdin; Claude Code gets one turn (no tools), Codex a read-only
+/// sandbox in an empty folder.
+async fn cli_complete(tool: &'static str, prompt: String, timeout: Duration) -> Result<String, String> {
+    let exe = cli_path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join("groovy-brain");
+        let _ = std::fs::create_dir_all(&dir);
+        let mut cmd = std::process::Command::new(&exe);
+        match tool {
+            "claude-code" => cmd.args(["-p", "--output-format", "text", "--max-turns", "1"]),
+            _ => cmd.args(["exec", "--skip-git-repo-check", "-s", "read-only", "-"]),
+        };
+        cmd.current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
+        let mut child = crate::platform::no_console(&mut cmd).spawn().map_err(|e| format!("{tool} didn't start: {e}"))?;
+        crate::platform::contain(&child);
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(prompt.as_bytes());
+        }
+        let started = std::time::Instant::now();
+        loop {
+            if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                break;
+            }
+            if started.elapsed() > timeout {
+                let _ = child.kill();
+                return Err(format!("{tool} took too long."));
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let out = child.wait_with_output().map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !out.status.success() || text.is_empty() {
+            let err = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
+        }
+        Ok(text)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// A conversation as one plain-text prompt, for the subscription CLIs.
+pub fn as_prompt(system: &str, messages: &[Value]) -> String {
+    let mut out = format!("{system}\n\nConversation so far:\n");
+    for m in messages {
+        let role = if m["role"] == "assistant" { "You" } else { "User" };
+        let text = match &m["content"] {
+            Value::String(s) => s.clone(),
+            Value::Array(blocks) => blocks
+                .iter()
+                .filter_map(|b| match b["type"].as_str() {
+                    Some("text") => b["text"].as_str().map(String::from),
+                    Some("tool_result") => Some(format!("(result: {})", b["content"].as_str().unwrap_or(""))),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+            _ => String::new(),
+        };
+        if !text.trim().is_empty() {
+            out.push_str(&format!("{role}: {text}\n"));
+        }
+    }
+    out.push_str("\nAnswer the user's last message. You have no tools here: say what you would do if a tool is needed.");
+    out
 }
 
 /// One question, one answer, no history (Flow's clean-up, the notes' summary).
@@ -126,31 +323,27 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
     let app = app()?;
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
-    let mut last = String::from("No AI model available.");
-    for who in order(&prefs) {
-        let r = if who == "claude" {
-            crate::claude::complete(CLAUDE_FAST, system, user, max_tokens, timeout).await
-        } else {
-            match local(app, &s, &prefs).await {
-                Ok(l) => {
-                    let body = json!({
-                        "model": l.model,
-                        "max_tokens": max_tokens,
-                        "stream": false,
-                        "messages": [{ "role": "system", "content": system }, { "role": "user", "content": user }],
-                    });
-                    post(&l, &body, timeout).await.and_then(|v| {
-                        let text = strip_thinking(v["choices"][0]["message"]["content"].as_str().unwrap_or(""));
-                        if text.trim().is_empty() { Err("empty answer".into()) } else { Ok(text) }
-                    })
-                }
-                Err(e) => Err(e),
+    let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
+    for who in current_order(&s) {
+        let r = match who {
+            Who::Claude => crate::claude::complete(CLAUDE_FAST, system, user, max_tokens, timeout).await,
+            Who::Cli(tool) => cli_complete(tool, format!("{system}\n\n{user}"), timeout).await,
+            Who::Local | Who::Cloud(_) => {
+                let body = json!({
+                    "max_tokens": max_tokens,
+                    "stream": false,
+                    "messages": [{ "role": "system", "content": system }, { "role": "user", "content": user }],
+                });
+                openai_turn(app, &s, &prefs, who, body, timeout).await.and_then(|v| {
+                    let text = strip_thinking(v["choices"][0]["message"]["content"].as_str().unwrap_or(""));
+                    if text.trim().is_empty() { Err("empty answer".into()) } else { Ok(text) }
+                })
             }
         };
         match r {
             Ok(t) => return Ok(t),
             Err(e) => {
-                crate::log::line(format!("brain ({who}): {e}"));
+                crate::log::line(format!("brain ({who:?}): {e}"));
                 last = e;
             }
         }
@@ -164,29 +357,27 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
     let app = app()?;
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
-    let mut last = String::from("No AI model available.");
-    for who in order(&prefs) {
-        let r = if who == "claude" {
-            crate::claude::voice_turn(CLAUDE_FAST, system, messages, tools).await
-        } else {
-            match local(app, &s, &prefs).await {
-                Ok(l) => {
-                    let body = json!({
-                        "model": l.model,
-                        "max_tokens": 1024,
-                        "stream": false,
-                        "messages": to_openai_messages(system, messages),
-                        "tools": to_openai_tools(tools),
-                    });
-                    post(&l, &body, Duration::from_secs(60)).await.map(|v| from_openai(&v))
-                }
-                Err(e) => Err(e),
+    let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
+    for who in current_order(&s) {
+        let r = match who {
+            Who::Claude => crate::claude::voice_turn(CLAUDE_FAST, system, messages, tools).await,
+            Who::Cli(tool) => cli_complete(tool, as_prompt(system, messages), Duration::from_secs(90))
+                .await
+                .map(|text| json!({ "content": [{ "type": "text", "text": text }], "stop_reason": "end_turn" })),
+            Who::Local | Who::Cloud(_) => {
+                let body = json!({
+                    "max_tokens": 1024,
+                    "stream": false,
+                    "messages": to_openai_messages(system, messages),
+                    "tools": to_openai_tools(tools),
+                });
+                openai_turn(app, &s, &prefs, who, body, Duration::from_secs(60)).await.map(|v| from_openai(&v))
             }
         };
         match r {
             Ok(v) => return Ok(v),
             Err(e) => {
-                crate::log::line(format!("brain ({who}): {e}"));
+                crate::log::line(format!("brain ({who:?}): {e}"));
                 last = e;
             }
         }
@@ -343,12 +534,37 @@ mod tests {
     }
 
     #[test]
-    fn local_first_unless_claude_is_chosen() {
-        let p = |mode: &str, brain: &str| AssistantPrefs { ai_mode: mode.into(), brain: brain.into(), ..Default::default() };
-        assert_eq!(order(&p("local", "claude")), vec!["local"], "local-only never reaches Claude");
-        assert_eq!(order(&p("online", "claude")), vec!["claude"]);
-        assert_eq!(order(&p("hybrid", "claude")), vec!["claude", "local"]);
-        assert_eq!(order(&p("online", "local"))[0], "local");
+    fn cloud_first_local_last_and_only_when_chosen() {
+        let p = |mode: &str, brain: &str, setup: &str| AssistantPrefs { ai_mode: mode.into(), brain: brain.into(), ai_setup: setup.into(), ..Default::default() };
+        let keys = |list: &'static [&'static str]| move |k: &str| list.contains(&k);
+        let none = |_: &str| false;
+        // No keys, nothing chosen: nobody — not a silent local model.
+        assert!(order(&p("hybrid", "auto", ""), "ollama", none, none).is_empty());
+        // A Gemini key: Gemini.
+        assert_eq!(order(&p("hybrid", "auto", "cloud"), "ollama", keys(&["google"]), none), vec![Who::Cloud("google")]);
+        // The chat's provider first, then the other keys, then local when chosen.
+        assert_eq!(
+            order(&p("hybrid", "auto", "local"), "openai", keys(&["google", "openai"]), none),
+            vec![Who::Cloud("openai"), Who::Cloud("google"), Who::Local]
+        );
+        // A subscription only when chosen at setup, and only if its CLI is installed.
+        let cli = |t: &str| t == "codex";
+        assert_eq!(order(&p("hybrid", "auto", "subscription"), "ollama", none, cli), vec![Who::Cli("codex")]);
+        assert!(order(&p("hybrid", "auto", "cloud"), "ollama", none, cli).is_empty());
+        // Explicit choices.
+        assert_eq!(order(&p("online", "claude", ""), "x", none, none), vec![Who::Claude]);
+        assert_eq!(order(&p("hybrid", "claude", "local"), "x", none, none), vec![Who::Claude, Who::Local]);
+        assert_eq!(order(&p("hybrid", "local", ""), "x", none, none), vec![], "local brain needs local AI chosen");
+        assert_eq!(order(&p("local", "claude", ""), "x", keys(&["anthropic"]), none), vec![Who::Local], "local-only never reaches the cloud");
+        assert_eq!(order(&p("online", "auto", "local"), "x", none, none), vec![], "online-only never starts a local model");
+    }
+
+    #[test]
+    fn a_conversation_becomes_one_prompt_for_the_clis() {
+        let m = vec![json!({ "role": "user", "content": "next song" }), json!({ "role": "assistant", "content": [{ "type": "text", "text": "Done." }] })];
+        let p = as_prompt("You are Groovy.", &m);
+        assert!(p.starts_with("You are Groovy."));
+        assert!(p.contains("User: next song\nYou: Done.\n"));
     }
 
     #[test]
