@@ -25,6 +25,54 @@ function dayTitle(ms: number): string {
   return new Date(ms).toLocaleDateString(document.documentElement.lang || undefined, { weekday: "long", day: "numeric", month: "long" });
 }
 
+/** How long the key check waits for the key before saying it wasn't seen. */
+export const KEY_CHECK_MS = 6000;
+
+/**
+ * What dictation is, the key to hold (big), a box to try it in, and a check
+ * that Windows lets Groovy see the key (FIXES_ROUND2 item 5).
+ */
+function explainer(ctx: HubContext, key: string): HTMLElement {
+  const status = ctx.status;
+  const tryBox = h("textarea", { class: "hub-input", rows: 3, placeholder: t("Click here, hold {0}, say a sentence, let go.", { 0: key }), style: "width:100%;resize:vertical" }) as HTMLTextAreaElement;
+  const checkLine = h("div", { class: "hub-note" });
+  const check = button(t("Check the key"), () => {
+    check.disabled = true;
+    checkLine.className = "hub-note";
+    checkLine.textContent = t("Press and hold {0} now…", { 0: key });
+    let off: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
+      off?.();
+      check.disabled = false;
+      checkLine.className = "hub-warn";
+      checkLine.replaceChildren(
+        t("Groovy didn't see {0}. Some laptops don't have this key, or another app holds it: pick another key.", { 0: key }),
+        " ",
+        button(t("Choose another key"), () => ctx.navigate("flowsettings")),
+      );
+    }, KEY_CHECK_MS);
+    void onEvent<null>("flow-key-seen", () => {
+      window.clearTimeout(timer);
+      off?.();
+      check.disabled = false;
+      checkLine.className = "hub-ok";
+      checkLine.textContent = t("{0} works: Groovy sees it.", { 0: key });
+    }).then((stop) => (off = stop ?? undefined));
+  });
+  // The key is only watched while dictation is on.
+  check.style.display = status.prefs.enabled && status.keys === "ok" ? "" : "none";
+  return card(
+    h("div", { class: "hub-note", text: t("Dictation types what you say into any app — Word, Discord, your browser. Hold the key, speak, let go: the words are pasted where the cursor is. It needs no AI; an AI only tidies the words (Styles) when one is set up.") }),
+    h("div", { class: "row", style: "align-items:center;gap:14px;margin:10px 0" },
+      h("kbd", { class: "hub-bigkey", text: key }),
+      check,
+    ),
+    checkLine,
+    label(t("Try it here")),
+    tryBox,
+  );
+}
+
 function time(ms: number): string {
   return new Date(ms).toLocaleTimeString(document.documentElement.lang || undefined, { hour: "2-digit", minute: "2-digit" });
 }
@@ -42,6 +90,7 @@ export async function dictationPage(page: HTMLElement, ctx: HubContext) {
   const hello = status.userName ? t("Hello {0}", { 0: status.userName }) : t("Hello");
   page.append(ctx.hero("dictation", hello, t("Hold {0} anywhere, speak, let go: it's pasted.", { 0: key }), [record]));
   page.append(alertLine);
+  page.append(explainer(ctx, key));
 
   if (!ready) page.append(setup(ctx));
 

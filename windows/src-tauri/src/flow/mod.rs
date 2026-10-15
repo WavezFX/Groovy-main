@@ -222,7 +222,11 @@ fn run(app: AppHandle, flow: Arc<Flow>, rx: mpsc::Receiver<(KeyEvent, Instant)>)
                 drop(listening.take());
                 break;
             }
-            Some((KeyEvent::Down, at)) => logic.key_down(secs(at)),
+            Some((KeyEvent::Down, at)) => {
+                // The Dictation page's key check: the hook did see the key.
+                let _ = app.emit_to(crate::HUB_LABEL, "flow-key-seen", ());
+                logic.key_down(secs(at))
+            }
             Some((KeyEvent::Up, at)) => logic.key_up(secs(at)),
             Some((KeyEvent::Other, _)) => logic.other_key(),
             Some((KeyEvent::Escape, _)) => logic.escape(),

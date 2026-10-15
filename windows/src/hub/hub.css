@@ -971,3 +971,12 @@ button.hub-icon svg {
 .card.light-local .name {
   flex: 1;
 }
+
+/* Dictation's key, shown big (round 2 item 5) */
+.hub-bigkey {
+  font: 600 22px/1 system-ui, sans-serif;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  border-bottom-width: 3px;
+}

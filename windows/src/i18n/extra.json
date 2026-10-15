@@ -13227,6 +13227,94 @@
    "pt-BR": "O modelo de fala ainda não foi baixado: configure em Groovy → Voz e ditado.",
    "ru": "Речевая модель ещё не скачана: настройте её в Groovy → Голос и диктовка.",
    "id": "Model suara belum diunduh: siapkan di Groovy → Suara dan dikte."
+  },
+  "Click here, hold {0}, say a sentence, let go.": {
+   "zh-Hans": "点击这里，按住 {0}，说一句话，然后松开。",
+   "hi": "यहाँ क्लिक करें, {0} दबाए रखें, एक वाक्य बोलें, फिर छोड़ दें।",
+   "es": "Haz clic aquí, mantén {0}, di una frase y suelta.",
+   "ar": "انقر هنا، واضغط مطولًا على {0}، وقل جملة، ثم اترك.",
+   "fr": "Cliquez ici, maintenez {0}, dites une phrase, relâchez.",
+   "bn": "এখানে ক্লিক করুন, {0} চেপে ধরে একটি বাক্য বলুন, তারপর ছেড়ে দিন।",
+   "pt-BR": "Clique aqui, segure {0}, diga uma frase e solte.",
+   "ru": "Щёлкните здесь, удерживайте {0}, скажите фразу и отпустите.",
+   "id": "Klik di sini, tahan {0}, ucapkan satu kalimat, lalu lepaskan."
+  },
+  "Check the key": {
+   "zh-Hans": "检查按键",
+   "hi": "कुंजी जाँचें",
+   "es": "Comprobar la tecla",
+   "ar": "افحص المفتاح",
+   "fr": "Vérifier la touche",
+   "bn": "কী যাচাই করুন",
+   "pt-BR": "Verificar a tecla",
+   "ru": "Проверить клавишу",
+   "id": "Periksa tombol"
+  },
+  "Press and hold {0} now…": {
+   "zh-Hans": "现在按住 {0}…",
+   "hi": "अब {0} दबाकर रखें…",
+   "es": "Mantén pulsada {0} ahora…",
+   "ar": "اضغط مطولًا على {0} الآن…",
+   "fr": "Maintenez {0} maintenant…",
+   "bn": "এখন {0} চেপে ধরুন…",
+   "pt-BR": "Segure {0} agora…",
+   "ru": "Нажмите и удерживайте {0}…",
+   "id": "Tekan dan tahan {0} sekarang…"
+  },
+  "Groovy didn't see {0}. Some laptops don't have this key, or another app holds it: pick another key.": {
+   "zh-Hans": "Groovy 没有检测到 {0}。有些笔记本没有这个键，或被其他应用占用：请换一个键。",
+   "hi": "Groovy ने {0} नहीं देखा। कुछ लैपटॉप में यह कुंजी नहीं होती, या कोई और ऐप इसे पकड़े रहता है: दूसरी कुंजी चुनें।",
+   "es": "Groovy no detectó {0}. Algunos portátiles no tienen esta tecla, u otra app la retiene: elige otra.",
+   "ar": "لم يرَ Groovy المفتاح {0}. بعض الحواسيب المحمولة لا تحتوي عليه، أو يستحوذ عليه تطبيق آخر: اختر مفتاحًا آخر.",
+   "fr": "Groovy n'a pas vu {0}. Certains portables n'ont pas cette touche, ou une autre application la garde : choisissez-en une autre.",
+   "bn": "Groovy {0} দেখতে পায়নি। কিছু ল্যাপটপে এই কী নেই, বা অন্য অ্যাপ এটি ধরে রাখে: অন্য কী বেছে নিন।",
+   "pt-BR": "O Groovy não viu {0}. Alguns notebooks não têm essa tecla, ou outro app a segura: escolha outra.",
+   "ru": "Groovy не увидел {0}. На некоторых ноутбуках нет этой клавиши, или её перехватывает другое приложение: выберите другую.",
+   "id": "Groovy tidak melihat {0}. Beberapa laptop tidak punya tombol ini, atau aplikasi lain menahannya: pilih tombol lain."
+  },
+  "Choose another key": {
+   "zh-Hans": "换一个键",
+   "hi": "दूसरी कुंजी चुनें",
+   "es": "Elegir otra tecla",
+   "ar": "اختر مفتاحًا آخر",
+   "fr": "Choisir une autre touche",
+   "bn": "অন্য কী বেছে নিন",
+   "pt-BR": "Escolher outra tecla",
+   "ru": "Выбрать другую клавишу",
+   "id": "Pilih tombol lain"
+  },
+  "{0} works: Groovy sees it.": {
+   "zh-Hans": "{0} 可用：Groovy 能检测到它。",
+   "hi": "{0} काम करती है: Groovy इसे देखता है।",
+   "es": "{0} funciona: Groovy la detecta.",
+   "ar": "{0} يعمل: يراه Groovy.",
+   "fr": "{0} fonctionne : Groovy la voit.",
+   "bn": "{0} কাজ করে: Groovy এটি দেখতে পায়।",
+   "pt-BR": "{0} funciona: o Groovy a detecta.",
+   "ru": "{0} работает: Groovy её видит.",
+   "id": "{0} berfungsi: Groovy melihatnya."
+  },
+  "Dictation types what you say into any app — Word, Discord, your browser. Hold the key, speak, let go: the words are pasted where the cursor is. It needs no AI; an AI only tidies the words (Styles) when one is set up.": {
+   "zh-Hans": "听写会把你说的话输入到任何应用中——Word、Discord、浏览器。按住按键，说话，松开：文字会粘贴到光标处。它不需要 AI；只有设置了 AI 时，AI 才会整理文字（风格）。",
+   "hi": "डिक्टेशन आपकी बोली किसी भी ऐप में टाइप करता है — Word, Discord, आपका ब्राउज़र। कुंजी दबाए रखें, बोलें, छोड़ें: शब्द कर्सर की जगह पेस्ट हो जाते हैं। इसे AI की ज़रूरत नहीं; AI सेट होने पर वह सिर्फ़ शब्दों को सँवारता है (स्टाइल)।",
+   "es": "El dictado escribe lo que dices en cualquier app: Word, Discord, tu navegador. Mantén la tecla, habla y suelta: las palabras se pegan donde está el cursor. No necesita IA; una IA solo pule las palabras (Estilos) si hay una configurada.",
+   "ar": "يكتب الإملاء ما تقوله في أي تطبيق — Word وDiscord والمتصفح. اضغط مطولًا على المفتاح، وتكلّم، ثم اترك: تُلصق الكلمات حيث المؤشر. لا يحتاج إلى ذكاء اصطناعي؛ فالذكاء الاصطناعي يرتّب الكلمات فقط (الأنماط) عند إعداده.",
+   "fr": "La dictée écrit ce que vous dites dans n'importe quelle application — Word, Discord, votre navigateur. Maintenez la touche, parlez, relâchez : les mots sont collés là où se trouve le curseur. Pas besoin d'IA ; une IA ne fait que soigner les mots (Styles) si elle est configurée.",
+   "bn": "ডিক্টেশন আপনার কথা যেকোনো অ্যাপে লিখে দেয় — Word, Discord, আপনার ব্রাউজার। কী চেপে ধরে বলুন, ছেড়ে দিন: শব্দগুলো কার্সরের জায়গায় পেস্ট হয়। এর জন্য AI লাগে না; AI সেট থাকলে শুধু শব্দগুলো গুছিয়ে দেয় (স্টাইল)।",
+   "pt-BR": "O ditado digita o que você fala em qualquer app — Word, Discord, seu navegador. Segure a tecla, fale e solte: as palavras são coladas onde está o cursor. Não precisa de IA; uma IA só arruma as palavras (Estilos) quando configurada.",
+   "ru": "Диктовка печатает сказанное в любом приложении — Word, Discord, браузере. Удерживайте клавишу, говорите, отпустите: слова вставляются туда, где курсор. ИИ не нужен; если он настроен, он лишь приводит текст в порядок (Стили).",
+   "id": "Dikte mengetik apa yang Anda ucapkan ke aplikasi apa pun — Word, Discord, browser. Tahan tombol, bicara, lepaskan: kata-kata ditempel di posisi kursor. Tidak perlu AI; AI hanya merapikan kata-kata (Gaya) bila sudah disiapkan."
+  },
+  "Try it here": {
+   "zh-Hans": "在这里试试",
+   "hi": "यहाँ आज़माएँ",
+   "es": "Pruébalo aquí",
+   "ar": "جرّبه هنا",
+   "fr": "Essayez ici",
+   "bn": "এখানে চেষ্টা করুন",
+   "pt-BR": "Experimente aqui",
+   "ru": "Попробуйте здесь",
+   "id": "Coba di sini"
   }
  }
 }

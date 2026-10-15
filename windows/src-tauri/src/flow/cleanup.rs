@@ -13,6 +13,8 @@ use super::text;
 
 /// Past this, the words are pasted as heard rather than keeping you waiting.
 const TIMEOUT: Duration = Duration::from_secs(4);
+/// The most a dictation waits for its clean-up, all brains together.
+const TOTAL: Duration = Duration::from_secs(5);
 
 /// Whether a model is there to clean up with (local by default, brain_ai.rs).
 pub fn has_key() -> bool {
@@ -24,7 +26,11 @@ pub async fn clean(raw: &str, style: Style, app: Option<&str>, words: &[String])
         return raw.to_string();
     }
     let user = format!("<dictation>\n{raw}\n</dictation>");
-    match crate::brain_ai::complete(&system(style, app, words), &user, 2048, TIMEOUT).await {
+    // One deadline for the whole clean-up, whichever brains it tries: the words
+    // are pasted as heard rather than wait on an AI (FIXES_ROUND2 item 5).
+    let attempt = tokio::time::timeout(TOTAL, crate::brain_ai::complete(&system(style, app, words), &user, 2048, TIMEOUT)).await;
+    let attempt = attempt.unwrap_or_else(|_| Err(format!("no answer within {} s", TOTAL.as_secs())));
+    match attempt {
         Ok(reply) => {
             let cleaned = reply.replace("<dictation>", "").replace("</dictation>", "").trim().to_string();
             if plausible(&cleaned, raw) {
@@ -77,6 +83,17 @@ fn system(style: Style, app: Option<&str>, words: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn without_any_ai_the_words_are_pasted_as_said() {
+        // No AI set up (no app, no brain): never blocks, never empty.
+        let raw = "send the report to sam before five";
+        let out = tauri::async_runtime::block_on(clean(raw, Style::Polished, Some("Notepad"), &[]));
+        assert_eq!(out, raw);
+        // "As said" skips the AI even when one is there.
+        assert_eq!(tauri::async_runtime::block_on(clean(raw, Style::Verbatim, None, &[])), raw);
+        assert!(TOTAL >= TIMEOUT && TOTAL.as_secs() <= 5);
+    }
 
     #[test]
     fn an_answer_instead_of_a_clean_up_is_not_used() {
