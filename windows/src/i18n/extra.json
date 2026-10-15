@@ -7958,6 +7958,39 @@
    "pt-BR": "{app} aberto.",
    "ru": "Открыто: {app}.",
    "id": "{app} dibuka."
+  },
+  "Open a project folder": {
+   "zh-Hans": "打开项目文件夹",
+   "hi": "प्रोजेक्ट फ़ोल्डर खोलें",
+   "es": "Abrir una carpeta de proyecto",
+   "ar": "فتح مجلد مشروع",
+   "fr": "Ouvrir un dossier de projet",
+   "bn": "প্রকল্প ফোল্ডার খুলুন",
+   "pt-BR": "Abrir uma pasta de projeto",
+   "ru": "Открыть папку проекта",
+   "id": "Buka folder proyek"
+  },
+  "Where should the project go?": {
+   "zh-Hans": "项目放在哪里？",
+   "hi": "प्रोजेक्ट कहाँ रखें?",
+   "es": "¿Dónde va el proyecto?",
+   "ar": "أين يوضع المشروع؟",
+   "fr": "Où placer le projet ?",
+   "bn": "প্রকল্পটি কোথায় রাখবেন?",
+   "pt-BR": "Onde o projeto deve ficar?",
+   "ru": "Где создать проект?",
+   "id": "Di mana proyek diletakkan?"
+  },
+  "Coding Studio — Groovy": {
+   "zh-Hans": "编程工作室 — Groovy",
+   "hi": "कोडिंग स्टूडियो — Groovy",
+   "es": "Estudio de programación — Groovy",
+   "ar": "استوديو البرمجة — Groovy",
+   "fr": "Studio de code — Groovy",
+   "bn": "কোডিং স্টুডিও — Groovy",
+   "pt-BR": "Estúdio de programação — Groovy",
+   "ru": "Студия кода — Groovy",
+   "id": "Studio Koding — Groovy"
   }
  }
 }

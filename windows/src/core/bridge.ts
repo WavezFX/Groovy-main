@@ -161,6 +161,14 @@ export type ToolPermission = "allow" | "ask" | "deny";
 export interface ToolInfo { id: string; label: string; description: string; permission: ToolPermission }
 export interface ToolLogEntry { tool: string; args: string; outcome: string; at: number }
 
+// ── Coding Studio (studio.rs) ─────────────────────────────────────────────────
+export interface StudioWorkspace { id: number; path: string; name: string; exists: boolean; git: boolean }
+export interface StudioEntry { name: string; path: string; dir: boolean; size: number }
+export interface StudioFile { text: string; binary: boolean; size: number }
+export interface StudioVersion { id: number; reason: string; at: number; existed: boolean; size: number }
+export interface StudioHit { path: string; line: number; text: string }
+export interface StudioFinished { run: number; code: number | null; timedOut: boolean; seconds: number }
+
 export interface BootInfo {
   settings: Settings;
   /** Logical screen rect of the monitor the island lives on. */
@@ -483,6 +491,29 @@ export const Bridge = {
   modelsRevealFolder: () => call<void>("models_reveal_folder"),
 
   systemStatus: () => call<SystemStatus>("system_status"),
+
+  // ── Coding Studio (studio.rs) ─────────────────────────────────────────────
+  openStudioWindow: () => call<void>("open_studio_window"),
+  studioWorkspaces: () => callOrThrow<StudioWorkspace[]>("studio_workspaces"),
+  studioAddWorkspace: () => callOrThrow<StudioWorkspace | null>("studio_add_workspace"),
+  studioNewProject: (name: string) => callOrThrow<StudioWorkspace | null>("studio_new_project", { name }),
+  studioRemoveWorkspace: (id: number) => callOrThrow<void>("studio_remove_workspace", { id }),
+  studioList: (ws: number, path: string) => callOrThrow<StudioEntry[]>("studio_list", { ws, path }),
+  studioRead: (ws: number, path: string) => callOrThrow<StudioFile>("studio_read", { ws, path }),
+  studioWrite: (ws: number, path: string, text: string, reason?: string) => callOrThrow<void>("studio_write", { ws, path, text, reason: reason ?? null }),
+  studioDelete: (ws: number, path: string) => callOrThrow<void>("studio_delete", { ws, path }),
+  studioHistory: (ws: number, path: string) => callOrThrow<StudioVersion[]>("studio_history", { ws, path }),
+  studioRevert: (ws: number, id: number) => callOrThrow<string>("studio_revert", { ws, id }),
+  studioSearch: (ws: number, query: string) => callOrThrow<StudioHit[]>("studio_search", { ws, query }),
+  /** Only ever called from a Run button that shows the command: that click is the approval. */
+  studioRun: (ws: number, command: string) => callOrThrow<number>("studio_run", { ws, command, approved: true, timeoutMinutes: null }),
+  studioStop: (run: number) => call<boolean>("studio_stop", { run }),
+  studioGit: (ws: number, what: "status" | "diff" | "log" | "remote") => callOrThrow<string>("studio_git", { ws, what }),
+  studioGitAction: (ws: number, action: "init" | "stage" | "commit" | "push", message?: string) =>
+    callOrThrow<string>("studio_git_action", { ws, action, message: message ?? null }),
+  studioAiTarget: () => call<{ provider: string; local: boolean }>("studio_ai_target"),
+  studioAsk: (ws: number, question: string, files: string[], output: string | null, consent: boolean) =>
+    callOrThrow<string>("studio_ask", { ws, question, files, output, consent }),
 
   // ── Music (music.rs) ──────────────────────────────────────────────────────
   /** Opens the folder picker; null when cancelled. */

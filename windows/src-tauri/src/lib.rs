@@ -37,6 +37,7 @@ mod settings;
 mod shortcuts;
 mod sounds;
 mod spotify;
+mod studio;
 mod system;
 mod tasks;
 mod tools;
@@ -964,6 +965,24 @@ pub fn run() {
             music::music_volume,
             music::music_set_mode,
             db::usage_today,
+            studio::studio_workspaces,
+            studio::studio_add_workspace,
+            studio::studio_new_project,
+            studio::studio_remove_workspace,
+            studio::studio_list,
+            studio::studio_read,
+            studio::studio_write,
+            studio::studio_delete,
+            studio::studio_history,
+            studio::studio_revert,
+            studio::studio_search,
+            studio::studio_run,
+            studio::studio_stop,
+            studio::studio_git,
+            studio::studio_git_action,
+            studio::studio_ai_target,
+            studio::studio_ask,
+            studio::open_studio_window,
             tools::tools_list,
             tools::tools_set_permission,
             tools::tools_decide,

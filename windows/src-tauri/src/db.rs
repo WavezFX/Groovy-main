@@ -105,6 +105,23 @@ const MIGRATIONS: &[&str] = &[
         outcome TEXT NOT NULL,
         at INTEGER NOT NULL
     );",
+    // 5: the Coding Studio's workspaces and file history (studio.rs).
+    "CREATE TABLE workspaces (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        path TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        added_at INTEGER NOT NULL
+    );
+    CREATE TABLE file_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        path TEXT NOT NULL,
+        content BLOB,
+        existed INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        at INTEGER NOT NULL
+    );
+    CREATE INDEX file_history_by_path ON file_history(workspace_id, path, id);",
 ];
 
 pub fn path() -> PathBuf {
@@ -205,7 +222,7 @@ mod tests {
         let conn = open_in_memory().unwrap();
         let v: usize = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
         assert_eq!(v, MIGRATIONS.len());
-        for table in ["memories", "conversations", "messages", "tasks", "usage", "tracks", "playlists", "playlist_tracks", "kv", "tool_log"] {
+        for table in ["memories", "conversations", "messages", "tasks", "usage", "tracks", "playlists", "playlist_tracks", "kv", "tool_log", "workspaces", "file_history"] {
             let n: i64 = conn
                 .query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1", [table], |r| r.get(0))
                 .unwrap();

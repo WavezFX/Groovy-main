@@ -72,6 +72,8 @@ pub struct Chat {
 struct Instructions {
     name: String,
     text: String,
+    /// The whole system prompt, instead of Groovy's chat one (the Coding Studio).
+    replace: Option<String>,
 }
 
 #[derive(Default)]
@@ -106,12 +108,22 @@ impl Chat {
     /// What the next turns' system prompt says about who the assistant is and
     /// what it remembers.
     pub fn set_instructions(&self, name: &str, text: String) {
-        *self.instructions.lock().unwrap() = Instructions { name: name.to_string(), text };
+        *self.instructions.lock().unwrap() = Instructions { name: name.to_string(), text, replace: None };
+    }
+
+    /// A conversation with its own system prompt (studio.rs).
+    pub fn with_system(system: &str) -> Self {
+        let chat = Chat::default();
+        *chat.instructions.lock().unwrap() = Instructions { replace: Some(system.to_string()), ..Default::default() };
+        chat
     }
 
     /// The system prompt for this conversation's next turn.
     pub fn system_prompt(&self, web_search: bool) -> String {
         let i = self.instructions.lock().unwrap().clone();
+        if let Some(system) = i.replace {
+            return system;
+        }
         let name = if i.name.is_empty() { "Groovy" } else { i.name.as_str() };
         let base = system_prompt_for(name, crate::identity::first_name(), web_search);
         if i.text.is_empty() { base } else { format!("{base}\n\n{}", i.text) }
@@ -322,6 +334,91 @@ pub async fn send(
         reply.text = format!("_{note}_\n\n{}", reply.text);
     }
     Ok(reply)
+}
+
+/// Who would answer now with these settings, and whether it is on this computer.
+pub fn target(settings: &Settings) -> (String, bool) {
+    let prefs = settings.assistant.clone().sanitised();
+    let picked = if settings.chat_provider.is_empty() { ANTHROPIC } else { settings.chat_provider.as_str() };
+    let limit_reached = prefs.daily_online_limit > 0
+        && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
+    let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
+    let local = assistant::is_local(&route.primary, &settings.custom_url);
+    (route.primary, local)
+}
+
+/// One question with its own system prompt, outside the chat's conversation
+/// (the Coding Studio). Same routing and fallback as the chat; `on_delta`
+/// gets the text so far (streamed by local models, at once by the others).
+pub async fn complete(
+    app: &AppHandle,
+    settings: &Settings,
+    system: &str,
+    prompt: String,
+    mut on_delta: impl FnMut(String) + Send,
+) -> Result<String, String> {
+    let prefs = settings.assistant.clone().sanitised();
+    let picked = if settings.chat_provider.is_empty() { ANTHROPIC } else { settings.chat_provider.as_str() };
+    let limit_reached = prefs.daily_online_limit > 0
+        && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
+    let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
+    let mut tried = vec![route.primary.clone()];
+    if let Some(f) = route.fallback.clone() {
+        tried.push(f);
+    }
+    let mut last_err = String::new();
+    for (i, provider) in tried.iter().enumerate() {
+        let chat = Chat::with_system(system);
+        let result = complete_with(app, &chat, settings, &prefs, provider, prompt.clone(), &mut on_delta).await;
+        match result {
+            Ok(text) => {
+                if !assistant::is_local(provider, &settings.custom_url) {
+                    if let Ok(c) = crate::db::conn() {
+                        let _ = crate::db::usage_bump(&c, &today(), provider);
+                    }
+                }
+                return Ok(text);
+            }
+            Err(e) if i == 0 && tried.len() > 1 && assistant::worth_falling_back(&e) => last_err = e,
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last_err)
+}
+
+async fn complete_with(
+    app: &AppHandle,
+    chat: &Chat,
+    settings: &Settings,
+    prefs: &AssistantPrefs,
+    provider: &str,
+    prompt: String,
+    on_delta: &mut (impl FnMut(String) + Send),
+) -> Result<String, String> {
+    let model = model_for(settings, provider);
+    let reply = if provider == ANTHROPIC {
+        claude::send(chat, &model, prompt, None).await?
+    } else if let Some(p) = openai_compat::provider(provider) {
+        openai_compat::send(chat, p, &model, prompt, None).await?
+    } else if provider == LLAMACPP {
+        let mut prefs = prefs.clone();
+        if !model.is_empty() {
+            prefs.local_model = model;
+        }
+        let url = crate::models::ensure_running(&prefs, Some(app)).await?;
+        let server = local_chat::Server { id: LLAMACPP, name: "Groovy local model", url, key: None };
+        let model = crate::models::running_model().unwrap_or_else(|| "local".into());
+        let r = local_chat::send_with(chat, &server, &model, prompt, None, |t| on_delta(t)).await;
+        crate::models::touch();
+        r?
+    } else if let Some(server) = local_chat::server(settings, provider) {
+        let model = if model.is_empty() { local_chat::first_model(&server).await? } else { model };
+        local_chat::send_with(chat, &server, &model, prompt, None, |t| on_delta(t)).await?
+    } else {
+        return Err(format!("Unknown chat provider: {provider}"));
+    };
+    on_delta(reply.text.clone());
+    Ok(reply.text)
 }
 
 fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, provider: &str) {
