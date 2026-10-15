@@ -30,3 +30,34 @@ pub fn line(message: impl AsRef<str>) {
         let _ = writeln!(file, "{stamp} {}", message.as_ref());
     }
 }
+
+/// The release build aborts on panic, so without this a crash leaves no trace.
+/// The panic message and where it happened go to the log and to crash.log
+/// beside it (the last crash only), then the default hook runs as before.
+pub fn install_crash_handler() {
+    let default = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let report = crash_report(&info.to_string(), std::thread::current().name());
+        line(&report);
+        let dir = settings::local_dir();
+        if platform::ensure_private_dir(&dir).is_ok() {
+            let _ = std::fs::write(dir.join("crash.log"), format!("{report}\n"));
+        }
+        default(info);
+    }));
+}
+
+fn crash_report(panic: &str, thread: Option<&str>) -> String {
+    format!("CRASH {} on thread {}: {panic}", env!("CARGO_PKG_VERSION"), thread.unwrap_or("unnamed"))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn crash_report_names_the_version_and_thread() {
+        let r = super::crash_report("boom at x.rs:1:2", Some("main"));
+        assert!(r.starts_with(&format!("CRASH {} on thread main:", env!("CARGO_PKG_VERSION"))));
+        assert!(r.ends_with("boom at x.rs:1:2"));
+        assert!(super::crash_report("x", None).contains("thread unnamed"));
+    }
+}

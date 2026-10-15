@@ -152,7 +152,9 @@ function buildPicker(onChange: () => void): Picker {
   async function loadModels() {
     const p = providerDef(State.settings.chatProvider);
     const ticket = ++request;
-    const cached = p.urlField ? undefined : cache.get(p.id);
+    // Model servers and the models folder can change any time: asked afresh.
+    const live = p.urlField !== null || p.id === "llamacpp";
+    const cached = live ? undefined : cache.get(p.id);
     if (cached) {
       drawModels(p, cached);
       return;
@@ -167,7 +169,7 @@ function buildPicker(onChange: () => void): Picker {
     try {
       const models = await Bridge.chatModels(p.id);
       if (ticket !== request) return;
-      if (!p.urlField) cache.set(p.id, models);
+      if (!live) cache.set(p.id, models);
       const keep = pickModel(p, models.map((m) => m.id), activeModel(State.settings));
       if (keep && keep !== activeModel(State.settings)) {
         State.settings = withModel(State.settings, p.id, keep);

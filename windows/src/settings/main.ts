@@ -20,6 +20,11 @@ import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { voiceSection } from "./voice";
 import { breaksSection } from "./breaks";
+import { assistantSection } from "./assistant";
+import { modelsSection } from "./models";
+import { memorySection } from "./memory";
+import { tasksSection } from "./tasks";
+import { systemSection } from "./system";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -1380,25 +1385,70 @@ async function render() {
   localRedraw = null;
   shortcutsListener = null;
   clear(root);
-  root.append(
-    h("h1", {}, h("span", { text: "Groovy" }), h("span", { class: "version", text: version })),
-    claudeSection(status),
-    agentsSection(agents),
-    planSection(status),
-    apiSection(hasKey),
-    chatProvidersSection(chatKeys, keyChanged),
-    localSection(customKey),
-    activePillsSection(connected),
-    integrationsSection(present),
-    phoneSection(settings.phoneLink ?? false, toggle, settings),
-    voiceSection(settings, () => void save(), toggle, KEY_STORE),
-    breaksSection(settings, () => void save()),
-    generalSection(),
-    shortcutsSection(shortcutReport),
+
+  const groups: [string, HTMLElement[]][] = [
+    [N_("Assistant"), [assistantSection(settings, () => void save(), toggle)]],
+    [N_("Models"), [modelsSection(settings, () => void save())]],
+    [N_("Memory"), [memorySection(settings, () => void save(), toggle)]],
+    [N_("Reminders"), [tasksSection()]],
+    [N_("Voice"), [voiceSection(settings, () => void save(), toggle, KEY_STORE)]],
+    [N_("Chat providers"), [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)]],
+    [N_("Coding agents"), [claudeSection(status), agentsSection(agents), planSection(status)]],
+    [N_("Pills and integrations"), [activePillsSection(connected), integrationsSection(present)]],
+    [N_("Android phone"), [phoneSection(settings.phoneLink ?? false, toggle, settings)]],
+    [N_("Breaks"), [breaksSection(settings, () => void save())]],
+    [N_("General"), [generalSection(), shortcutsSection(shortcutReport)]],
+    [N_("System"), [systemSection()]],
+  ];
+  root.append(controlCentre(groups));
+}
+
+/**
+ * The Control Centre: a sidebar with one entry per group of sections, and the
+ * sections themselves in one scrolling column. The entry of the group in view
+ * is highlighted; on a narrow window the sidebar becomes a strip on top.
+ */
+function controlCentre(groups: [string, HTMLElement[]][]): HTMLElement {
+  const nav = h("nav", { class: "cc-nav", "aria-label": t("Sections") });
+  const content = h("main", { class: "cc-content" });
+  const links = new Map<Element, HTMLElement>();
+  groups.forEach(([label, sections], i) => {
+    const group = h("div", { class: "cc-group", id: `group-${i}` }, ...sections);
+    const link = h("button", { class: i === 0 ? "cc-link on" : "cc-link", text: t(label) });
+    link.addEventListener("click", () => group.scrollIntoView({ behavior: "smooth", block: "start" }));
+    links.set(group, link);
+    nav.append(link);
+    content.append(group);
+  });
+  content.append(
     h("div", {
       class: "hint",
       text: t("No telemetry. Network requests only go to the services you configure yourself."),
     }),
+  );
+  if ("IntersectionObserver" in window) {
+    const seen = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          for (const l of links.values()) l.classList.remove("on");
+          links.get(e.target)?.classList.add("on");
+        }
+      },
+      { rootMargin: "-10% 0px -80% 0px" },
+    );
+    for (const g of links.keys()) seen.observe(g);
+  }
+  return h(
+    "div",
+    { class: "cc" },
+    h(
+      "header",
+      { class: "cc-header" },
+      h("h1", {}, h("span", { text: t("Groovy Control Centre") }), h("span", { class: "version", text: version })),
+    ),
+    nav,
+    content,
   );
 }
 

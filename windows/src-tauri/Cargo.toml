@@ -51,6 +51,13 @@ webpki-roots = "1"
 # Stream/Sink traits for the WebSocket (already in the tree through tokio-tungstenite and tauri).
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 
+# The local database (db.rs): SQLite compiled in, so there is no DLL to ship.
+rusqlite = { version = "0.37", features = ["bundled"] }
+# Free memory and CPU for the model manager and the system status (models.rs, system.rs).
+sysinfo = { version = "0.37", default-features = false, features = ["system", "disk"] }
+# Unpacking the pinned llama.cpp runtime (models.rs).
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }
 # The island's file drop reads paths straight from WebView2 (webview_drop.rs).
@@ -65,6 +72,8 @@ windows = { version = "0.61", features = [
   "Win32_System_Diagnostics_ToolHelp",
   "Win32_System_Ole",
   "Win32_System_Pipes",
+  # Battery level for the system status (system.rs).
+  "Win32_System_Power",
   "Win32_System_SystemInformation",
   "Win32_System_Threading",
   "Win32_UI_Input_KeyboardAndMouse",

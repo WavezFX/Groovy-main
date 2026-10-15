@@ -22,6 +22,108 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
   }
 }
 
+// ── Assistant: memory, history, reminders, local models, system ──────────────
+
+export type MemoryKind = "preference" | "fact" | "project" | "task";
+
+export interface MemoryEntry {
+  id: number;
+  kind: MemoryKind;
+  content: string;
+  pinned: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ConversationInfo {
+  id: number;
+  title: string;
+  startedAt: number;
+  updatedAt: number;
+  messages: number;
+}
+
+export interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+  provider: string;
+  createdAt: number;
+}
+
+export interface TaskItem {
+  id: number;
+  text: string;
+  /** Unix seconds; null for a plain to-do. */
+  dueAt: number | null;
+  done: boolean;
+  notified: boolean;
+  createdAt: number;
+}
+
+export interface GgufInfo {
+  version: number;
+  architecture: string;
+  name: string;
+  quantization: string;
+  contextLength: number;
+  blockCount: number;
+  embeddingLength: number;
+  headCount: number;
+  headCountKv: number;
+  hasChatTemplate: boolean;
+}
+
+export interface LocalModelInfo {
+  file: string;
+  path: string;
+  size: number;
+  info: GgufInfo | null;
+  error: string | null;
+  ramNeeded: number;
+  catalogId: string | null;
+}
+
+export interface CatalogModel {
+  id: string;
+  label: string;
+  file: string;
+  url: string;
+  sha256: string;
+  size: number;
+  license: string;
+  tier: "lightweight" | "balanced" | "performance";
+  goodFor: string;
+}
+
+export interface ModelsStatus {
+  modelsDir: string;
+  runtimeInstalled: string | null;
+  runtimePath: string | null;
+  runtimes: { id: string; label: string; size: number; available: boolean }[];
+  running: string | null;
+  selected: string;
+  local: LocalModelInfo[];
+  catalog: CatalogModel[];
+  memory: { total: number; available: number };
+  cpus: number;
+  profile: { context: number; threads: number; ramShare: number; idleMinutes: number; animation: string };
+  recommendedProfile: "lightweight" | "balanced" | "performance";
+  downloading: boolean;
+}
+
+export interface SystemStatus {
+  os: string;
+  cpuName: string;
+  cpus: number;
+  cpuUsage: number;
+  memoryTotal: number;
+  memoryAvailable: number;
+  groovyMemory: number;
+  disks: { mount: string; total: number; available: number }[];
+  battery: { percent: number; charging: boolean } | null;
+  uptimeSecs: number;
+}
+
 export interface BootInfo {
   settings: Settings;
   /** Logical screen rect of the monitor the island lives on. */
@@ -308,6 +410,42 @@ export const Bridge = {
 
   /** "Nobody can act on this" — Claude Code asks in the terminal right away. */
   approvalDecline: (requestId: string) => call<void>("approval_decline", { requestId }),
+
+  // ── Memory and chat history (memory.rs) ───────────────────────────────────
+  memoryList: (kind?: MemoryKind) => callOrThrow<MemoryEntry[]>("memory_list", { kind: kind ?? null }),
+  memoryAdd: (kind: MemoryKind, content: string) => callOrThrow<MemoryEntry>("memory_add", { kind, content }),
+  memoryUpdate: (id: number, kind: MemoryKind, content: string, pinned: boolean) =>
+    callOrThrow<MemoryEntry>("memory_update", { id, kind, content, pinned }),
+  memoryDelete: (id: number) => callOrThrow<void>("memory_delete", { id }),
+  /** Long-term memory only (one kind, or all); chat history is not touched. */
+  memoryClear: (kind?: MemoryKind) => callOrThrow<number>("memory_clear", { kind: kind ?? null }),
+  /** Writes a JSON export of everything and returns its path. */
+  memoryExport: () => callOrThrow<string>("memory_export"),
+  historyList: () => callOrThrow<ConversationInfo[]>("history_list"),
+  historyMessages: (id: number) => callOrThrow<HistoryMessage[]>("history_messages", { id }),
+  historyDelete: (id: number) => callOrThrow<void>("history_delete", { id }),
+  /** Chat history only; long-term memory is not touched. */
+  historyClear: () => callOrThrow<number>("history_clear"),
+  usageToday: () => call<number>("usage_today"),
+
+  // ── Reminders and to-dos (tasks.rs) ───────────────────────────────────────
+  taskList: (includeDone: boolean) => callOrThrow<TaskItem[]>("task_list", { includeDone }),
+  taskAdd: (text: string, dueAt: number | null) => callOrThrow<TaskItem>("task_add", { text, dueAt }),
+  taskSetDone: (id: number, done: boolean) => callOrThrow<TaskItem>("task_set_done", { id, done }),
+  taskDelete: (id: number) => callOrThrow<void>("task_delete", { id }),
+  taskClearDone: () => callOrThrow<number>("task_clear_done"),
+
+  // ── Local models (models.rs) ──────────────────────────────────────────────
+  modelsStatus: () => call<ModelsStatus>("models_status"),
+  modelsInstallRuntime: (id: string) => callOrThrow<string>("models_install_runtime", { id }),
+  modelsDownload: (id: string) => callOrThrow<string>("models_download", { id }),
+  modelsCancelDownload: () => call<void>("models_cancel_download"),
+  modelsDelete: (file: string) => callOrThrow<void>("models_delete", { file }),
+  modelsStart: () => callOrThrow<string>("models_start"),
+  modelsStop: () => call<void>("models_stop"),
+  modelsRevealFolder: () => call<void>("models_reveal_folder"),
+
+  systemStatus: () => call<SystemStatus>("system_status"),
 
   // ── Phone link (Groovy for Android) ───────────────────────────────────────
   phoneLinkStatus: () => call<PhoneLinkStatus>("phone_link_status"),

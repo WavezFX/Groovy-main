@@ -2,10 +2,12 @@
 
 mod agent_hooks;
 mod agents;
+mod assistant;
 mod chat;
 mod claude;
 mod codex_plan;
 mod config_file;
+mod db;
 mod desktop;
 mod files;
 mod github;
@@ -17,6 +19,8 @@ mod island;
 mod livekit;
 mod local_chat;
 mod log;
+mod memory;
+mod models;
 mod net;
 mod ollama;
 mod openai_compat;
@@ -32,6 +36,8 @@ mod settings;
 mod shortcuts;
 mod sounds;
 mod spotify;
+mod system;
+mod tasks;
 mod tray;
 mod voice;
 #[cfg(windows)]
@@ -77,6 +83,9 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
     settings.hooks_installed = hooks_status.installed;
     settings.plan_relay_installed = hooks_status.plan_relay_installed;
     let screen = island::screen_info(&app, &settings.screen);
+    // The Windows smoke test waits for this line: it proves a webview loaded
+    // the interface and reached the backend.
+    log::line(format!("boot: interface loaded ({})", env!("CARGO_PKG_VERSION")));
     BootInfo {
         settings,
         screen,
@@ -95,6 +104,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         let shortcuts_changed = current.shortcuts != settings.shortcuts;
         // Where Groovy sits on the desktop is desktop.rs's to say, not a webview's.
         let mut settings = settings.clone();
+        settings.assistant = settings.assistant.sanitised();
         settings.desktop_mochi = current.desktop_mochi.clone();
         // So is where the island sits along the top (island_move).
         settings.island_x = current.island_x;
@@ -708,7 +718,7 @@ fn create_settings_window(app: &AppHandle) {
     match WebviewWindowBuilder::new(app, "settings", url)
         .additional_browser_args(BROWSER_ARGS)
         .title(i18n::t("Settings — Groovy"))
-        .inner_size(560.0, 680.0)
+        .inner_size(920.0, 740.0)
         .min_inner_size(460.0, 480.0)
         .resizable(true)
         .visible(false)
@@ -746,10 +756,15 @@ fn open_settings_window(app: AppHandle) {
 
 pub fn run() {
     platform::prepare_environment();
+    log::install_crash_handler();
     let mut loaded = settings::load();
     // Offline first: a Claude chat with no key to use falls back to Ollama.
+    loaded.assistant = loaded.assistant.clone().sanitised();
     if loaded.chat_provider == chat::ANTHROPIC && !secrets::present("anthropic-api-key") {
-        loaded.chat_provider = "ollama".into();
+        loaded.chat_provider = loaded.assistant.local_provider.clone();
+    }
+    if let Err(e) = db::init() {
+        log::line(format!("local database unavailable: {e}"));
     }
     i18n::set_picked(&loaded.language);
     let gate = Arc::new(PollGate::new());
@@ -887,6 +902,31 @@ pub fn run() {
             spotify::spotify_control,
             spotify::spotify_open,
             spotify::spotify_installed,
+            memory::memory_list,
+            memory::memory_add,
+            memory::memory_update,
+            memory::memory_delete,
+            memory::memory_clear,
+            memory::memory_export,
+            memory::history_list,
+            memory::history_messages,
+            memory::history_delete,
+            memory::history_clear,
+            tasks::task_list,
+            tasks::task_add,
+            tasks::task_set_done,
+            tasks::task_delete,
+            tasks::task_clear_done,
+            models::models_status,
+            models::models_install_runtime,
+            models::models_download,
+            models::models_cancel_download,
+            models::models_delete,
+            models::models_start,
+            models::models_stop,
+            models::models_reveal_folder,
+            system::system_status,
+            db::usage_today,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -921,6 +961,15 @@ pub fn run() {
             island::spawn_cursor_poll(handle.clone(), gate.clone());
 
             log::line(format!("--- Groovy {} started ---", env!("CARGO_PKG_VERSION")));
+            if let Ok(conn) = db::conn() {
+                match memory::prune(&conn, loaded.assistant.history_retention_days, db::now()) {
+                    Ok(n) if n > 0 => log::line(format!("chat history: {n} old conversation(s) removed")),
+                    Err(e) => log::line(format!("chat history: {e}")),
+                    _ => {}
+                }
+            }
+            tasks::spawn(handle.clone());
+            models::spawn_idle_reaper();
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);
@@ -935,6 +984,8 @@ pub fn run() {
             // Withdraw the phone link's announcement on the local network before the process ends.
             if let tauri::RunEvent::Exit = event {
                 phone_link::stop_on_exit(app);
+                // The local model server is ours: it never outlives Groovy.
+                models::stop();
             }
         });
 }

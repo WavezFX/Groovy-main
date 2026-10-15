@@ -12,10 +12,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
+use crate::assistant::{self, AssistantPrefs};
 use crate::settings::Settings;
-use crate::{claude, local_chat, openai_compat, secrets};
+use crate::{claude, local_chat, memory, openai_compat, secrets};
 
 pub const ANTHROPIC: &str = "anthropic";
+/// Groovy's own engine: llama.cpp running a GGUF model (models.rs).
+pub const LLAMACPP: &str = "llamacpp";
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -48,6 +51,17 @@ pub struct ModelInfo {
 #[derive(Default)]
 pub struct Chat {
     inner: Mutex<Conversation>,
+    /// Personality and memories for the system prompt (assistant.rs, memory.rs),
+    /// refreshed before every turn.
+    instructions: Mutex<Instructions>,
+    /// The chat history row this conversation is saved under (memory.rs).
+    saved_as: Mutex<Option<i64>>,
+}
+
+#[derive(Default, Clone)]
+struct Instructions {
+    name: String,
+    text: String,
 }
 
 #[derive(Default)]
@@ -76,6 +90,21 @@ impl Chat {
         let mut c = self.inner.lock().unwrap();
         let epoch = c.epoch + 1;
         *c = Conversation { epoch, ..Default::default() };
+        *self.saved_as.lock().unwrap() = None;
+    }
+
+    /// What the next turns' system prompt says about who the assistant is and
+    /// what it remembers.
+    pub fn set_instructions(&self, name: &str, text: String) {
+        *self.instructions.lock().unwrap() = Instructions { name: name.to_string(), text };
+    }
+
+    /// The system prompt for this conversation's next turn.
+    pub fn system_prompt(&self, web_search: bool) -> String {
+        let i = self.instructions.lock().unwrap().clone();
+        let name = if i.name.is_empty() { "Groovy" } else { i.name.as_str() };
+        let base = system_prompt_for(name, crate::identity::first_name(), web_search);
+        if i.text.is_empty() { base } else { format!("{base}\n\n{}", i.text) }
     }
 
     /// Starts a turn with `provider`, converting the history if another
@@ -113,15 +142,11 @@ impl Chat {
 
 /// Groovy's instructions. Greets the user by their first name when the account
 /// has one worth using (identity.rs), and only claims web search where the
-/// provider runs it (Claude).
-pub fn system_prompt(web_search: bool) -> String {
-    system_prompt_for(crate::identity::first_name(), web_search)
-}
-
-fn system_prompt_for(first_name: Option<&str>, web_search: bool) -> String {
+/// provider runs it (Claude). The personality (assistant.rs) follows it.
+fn system_prompt_for(assistant: &str, first_name: Option<&str>, web_search: bool) -> String {
     let opening = match first_name {
-        Some(name) => format!("You are Groovy, {name}'s personal AI assistant living at the top of their screen."),
-        None => "You are Groovy, a personal AI assistant living at the top of the user's screen.".to_string(),
+        Some(name) => format!("You are {assistant}, {name}'s personal AI assistant living at the top of their screen."),
+        None => format!("You are {assistant}, a personal AI assistant living at the top of the user's screen."),
     };
     let abilities = if web_search {
         "You have web search access and can help with absolutely anything — research, coding, finding places, recommendations, tasks, questions."
@@ -130,7 +155,6 @@ fn system_prompt_for(first_name: Option<&str>, web_search: bool) -> String {
     };
     format!(
         "{opening} {abilities} \
-Respond in the user's language. Be thorough and complete — use as much detail as the task requires. \
 Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inline code` and fenced code blocks. Avoid tables and big headings: the chat window is small."
     )
 }
@@ -196,7 +220,31 @@ fn is_inside(dir: &std::path::Path, path: &std::path::Path) -> bool {
         && std::fs::symlink_metadata(&file).map(|m| m.is_file()).unwrap_or(false)
 }
 
-/// One chat turn with the provider chosen in the settings.
+/// The personality and, when memory is on, what is remembered: the part of
+/// the system prompt that follows Groovy's own instructions.
+pub fn instructions(prefs: &AssistantPrefs) -> String {
+    let mut text = assistant::personality_prompt(prefs);
+    if prefs.memory_enabled {
+        if let Ok(conn) = crate::db::conn() {
+            let section = memory::prompt_section(&conn, memory::PROMPT_BUDGET);
+            if !section.is_empty() {
+                text.push_str("\n\n");
+                text.push_str(&section);
+            }
+        }
+    }
+    text
+}
+
+fn today() -> String {
+    let t = crate::platform::local_time();
+    format!("{:04}-{:02}-{:02}", t.year, t.month, t.day)
+}
+
+/// One chat turn: "remember that…" is handled here, on this computer; anything
+/// else goes where the AI mode says (assistant.rs), falling back to the local
+/// model in hybrid mode when the online provider can't answer. The finished
+/// turn is saved to the chat history when history is on.
 pub async fn send(
     app: &AppHandle,
     chat: &Chat,
@@ -205,13 +253,91 @@ pub async fn send(
     context: Option<ChatContext>,
 ) -> Result<ChatReply, String> {
     let context = context.map(checked_context).transpose()?;
-    let provider = settings.chat_provider.as_str();
+    let prefs = settings.assistant.clone().sanitised();
+    let plain = plain_question(chat.inner.lock().unwrap().plain.is_empty(), context.as_ref(), &query);
+
+    if prefs.memory_enabled {
+        if let Some((kind, fact)) = memory::remember_request(&query) {
+            let reply = match crate::db::conn().and_then(|c| memory::add(&c, kind, &fact)) {
+                Ok(m) => crate::i18n::tf("Got it — I'll remember that: {fact}", &[("fact", &m.content)]),
+                Err(e) => e,
+            };
+            save_turn(chat, &prefs, &plain, &reply, "memory");
+            return Ok(ChatReply { text: reply });
+        }
+    }
+
+    chat.set_instructions(&prefs.name, instructions(&prefs));
+    let picked = if settings.chat_provider.is_empty() { ANTHROPIC } else { settings.chat_provider.as_str() };
+    let limit_reached = prefs.daily_online_limit > 0
+        && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
+    let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
+
+    let first = send_to(app, chat, settings, &prefs, &route.primary, query.clone(), context.clone()).await;
+    let (mut reply, used, note) = match (first, route.fallback) {
+        (Ok(r), _) => (r, route.primary.clone(), route.note.map(crate::i18n::t)),
+        (Err(e), Some(fallback)) if assistant::worth_falling_back(&e) => {
+            crate::log::line(format!("chat: {} unavailable, answering with {fallback}", route.primary));
+            match send_to(app, chat, settings, &prefs, &fallback, query, context).await {
+                Ok(r) => (r, fallback, Some(crate::i18n::t("The online provider couldn't be reached, so the model on this computer answered."))),
+                Err(e2) => return Err(format!("{e}\n\n{}: {e2}", crate::i18n::t("The local fallback failed too"))),
+            }
+        }
+        (Err(e), _) => return Err(e),
+    };
+    if !assistant::is_local(&used, &settings.custom_url) {
+        if let Ok(c) = crate::db::conn() {
+            let _ = crate::db::usage_bump(&c, &today(), &used);
+        }
+    }
+    save_turn(chat, &prefs, &plain, &reply.text, &used);
+    if let Some(note) = note {
+        reply.text = format!("_{note}_\n\n{}", reply.text);
+    }
+    Ok(reply)
+}
+
+fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, provider: &str) {
+    if !prefs.history_enabled {
+        return;
+    }
+    let Ok(conn) = crate::db::conn() else { return };
+    let mut saved = chat.saved_as.lock().unwrap();
+    match memory::record_turn(&conn, *saved, user, answer, provider) {
+        Ok(id) => *saved = Some(id),
+        Err(e) => crate::log::line(format!("chat history: {e}")),
+    }
+}
+
+/// One turn with exactly `provider`.
+async fn send_to(
+    app: &AppHandle,
+    chat: &Chat,
+    settings: &Settings,
+    prefs: &AssistantPrefs,
+    provider: &str,
+    query: String,
+    context: Option<ChatContext>,
+) -> Result<ChatReply, String> {
     let model = model_for(settings, provider);
-    if provider == ANTHROPIC || provider.is_empty() {
+    if provider == ANTHROPIC {
         return claude::send(chat, &model, query, context).await;
     }
     if let Some(p) = openai_compat::provider(provider) {
         return openai_compat::send(chat, p, &model, query, context).await;
+    }
+    if provider == LLAMACPP {
+        // A model picked above the chat box wins over the one in Settings.
+        let mut prefs = prefs.clone();
+        if !model.is_empty() {
+            prefs.local_model = model;
+        }
+        let url = crate::models::ensure_running(&prefs, Some(app)).await?;
+        let server = local_chat::Server { id: LLAMACPP, name: "Groovy local model", url, key: None };
+        let model = crate::models::running_model().unwrap_or_else(|| "local".into());
+        let result = local_chat::send(app, chat, &server, &model, query, context).await;
+        crate::models::touch();
+        return result;
     }
     if let Some(server) = local_chat::server(settings, provider) {
         // No model picked yet: the first one the server has.
@@ -234,6 +360,8 @@ pub async fn send_for_phone(
     query: String,
     on_delta: impl FnMut(String),
 ) -> Result<ChatReply, String> {
+    let prefs = settings.assistant.clone().sanitised();
+    chat.set_instructions(&prefs.name, instructions(&prefs));
     if provider == ANTHROPIC {
         return claude::send(chat, model, query, None).await;
     }
@@ -258,6 +386,17 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
     if let Some(p) = openai_compat::provider(provider) {
         let key = secrets::get(p.key).ok_or_else(no_key)?;
         return openai_compat::models(p, &key).await;
+    }
+    if provider == LLAMACPP {
+        let models = crate::models::discover(&crate::models::models_dir(), 2048);
+        if models.is_empty() {
+            return Err(crate::i18n::t("No local model yet: download one in Settings → Models."));
+        }
+        return Ok(models
+            .into_iter()
+            .filter(|m| m.info.is_some())
+            .map(|m| ModelInfo { label: m.info.as_ref().map(|i| i.name.clone()).filter(|n| !n.is_empty()).unwrap_or(m.file.clone()), id: m.file })
+            .collect());
     }
     if let Some(server) = local_chat::server(settings, provider) {
         return local_chat::models(&server).await;
@@ -336,14 +475,31 @@ mod tests {
 
     #[test]
     fn the_prompt_greets_by_first_name_and_claims_web_search_only_for_claude() {
-        let p = system_prompt_for(Some("Louis"), true);
+        let p = system_prompt_for("Groovy", Some("Louis"), true);
         assert!(p.starts_with("You are Groovy, Louis's personal AI assistant living at the top of their screen."));
         assert!(p.contains("web search access"));
         assert!(p.contains("light Markdown"));
-        let p = system_prompt_for(None, false);
+        let p = system_prompt_for("Groovy", None, false);
         assert!(p.starts_with("You are Groovy, a personal AI assistant living at the top of the user's screen."));
         assert!(!p.contains("web search"));
         assert!(p.contains("no web access"));
+    }
+
+    #[test]
+    fn the_personality_and_name_reach_the_system_prompt() {
+        let chat = Chat::default();
+        let base = chat.system_prompt(false);
+        assert!(base.contains("You are Groovy,"));
+        let prefs = AssistantPrefs { name: "Mochi".into(), personality: "quiet".into(), language: "German".into(), memory_enabled: false, ..Default::default() };
+        chat.set_instructions(&prefs.name, instructions(&prefs));
+        let p = chat.system_prompt(false);
+        assert!(p.contains("You are Mochi,"));
+        assert!(p.contains("calm and understated"));
+        assert!(p.contains("Always respond in German"));
+        assert!(!p.contains("What you remember"), "memory off adds nothing");
+        // "New chat" keeps the personality: it is refreshed every turn anyway.
+        chat.reset();
+        assert!(chat.system_prompt(false).contains("You are Mochi,"));
     }
 
     #[test]

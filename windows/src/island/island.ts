@@ -2,7 +2,7 @@
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
 import { Tracked, Spring, clamp } from "../core/anim";
-import { Bridge, IS_TAURI, onDragDrop } from "../core/bridge";
+import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
 import {
   EXPANDED_CORNER, EXPANDED_W, NOTCH_W, PANEL_H, PANEL_W,
   ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
@@ -19,7 +19,7 @@ import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from ".
 import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
 import { VoiceHost } from "./voice";
-import { BreakControl, Breaks, BREAKS } from "./breaks";
+import { BreakControl, Breaks, BREAKS, ReminderControl, snoozeReminder } from "./breaks";
 import { speak } from "../voice/speak";
 import { t } from "../i18n/i18n";
 import { UploadCanvas } from "../upload/canvas";
@@ -162,6 +162,43 @@ export class Island {
       this.breaks.snooze();
       this.setView(State.defaultView());
     };
+    // Reminders come due in Rust (tasks.rs), once each.
+    void onEvent<TaskItem>("reminder", (task) => this.showReminder(task));
+    const endReminder = () => {
+      State.reminderDue = null;
+      State.notify();
+      this.setView(State.defaultView());
+    };
+    ReminderControl.done = () => {
+      const r = State.reminderDue;
+      if (r) void Bridge.taskSetDone(r.id, true).catch(() => {});
+      Sound.play("pop");
+      endReminder();
+    };
+    ReminderControl.snooze = () => {
+      const r = State.reminderDue;
+      if (r) void snoozeReminder(Bridge, r).catch(() => {});
+      endReminder();
+    };
+  }
+
+  /** A reminder came due: Groovy pops out with it, and says it when voice is on. */
+  private showReminder(task: TaskItem) {
+    if (State.pendingApproval || State.voiceCall) {
+      // Never on top of something that needs you: it waits a minute.
+      setTimeout(() => this.showReminder(task), 60_000);
+      return;
+    }
+    State.breakDue = null;
+    State.reminderDue = { id: task.id, text: task.text };
+    State.noteMessage = task.text;
+    Sound.play("greet");
+    this.engine.triggerEmote("happy", 1.5);
+    this.alert("note");
+    if (State.settings.voiceEnabled && State.settings.voiceSpeak) {
+      void speak(`${t("Reminder")}: ${task.text}`, State.settings.voiceTts);
+    }
+    State.notify();
   }
 
   /** The request has its answer: the card goes and the session carries on. */
@@ -1263,6 +1300,11 @@ export class Island {
     }
     // A reminder closed without an answer comes back a little later.
     if (State.breakDue && !(expanded && State.view === "note")) this.breaks.snooze();
+    if (State.reminderDue && !(expanded && State.view === "note")) {
+      const r = State.reminderDue;
+      State.reminderDue = null;
+      void snoozeReminder(Bridge, r).catch(() => {});
+    }
 
     this.header.sync();
     for (const [name, view] of this.views) {

@@ -14,3 +14,27 @@ export function renderDiff(text: string): HTMLElement {
   }
   return box;
 }
+
+/**
+ * A button that needs two clicks: the first one changes its label to `ask`
+ * for a few seconds, the second one within that time runs `action`. Used for
+ * anything that deletes, instead of a dialog.
+ */
+export function confirmClick(button: HTMLButtonElement, ask: string, action: () => void) {
+  let armed: ReturnType<typeof setTimeout> | null = null;
+  const label = button.textContent ?? "";
+  button.addEventListener("click", () => {
+    if (armed) {
+      clearTimeout(armed);
+      armed = null;
+      button.textContent = label;
+      action();
+      return;
+    }
+    button.textContent = ask;
+    armed = setTimeout(() => {
+      armed = null;
+      button.textContent = label;
+    }, 4000);
+  });
+}

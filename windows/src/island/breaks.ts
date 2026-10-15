@@ -82,7 +82,7 @@ export class Breaks {
   }
 
   private tick() {
-    if (State.paused || State.breakDue) return;
+    if (State.paused || State.breakDue || State.reminderDue) return;
     // Never on top of something that needs you (an approval, a question) or a call.
     if (State.pendingApproval || State.voiceCall || State.brainSetup) return;
     const kind = this.timer.check(Date.now());
@@ -116,3 +116,19 @@ export const BreakControl = {
   done: () => {},
   snooze: () => {},
 };
+
+/** What a due reminder's buttons call; filled in by the island. */
+export const ReminderControl = {
+  done: () => {},
+  snooze: () => {},
+};
+
+/** A reminder from tasks.rs: "In 10 min" marks it done and adds the same one again. */
+export async function snoozeReminder(
+  bridge: { taskSetDone(id: number, done: boolean): Promise<unknown>; taskAdd(text: string, dueAt: number | null): Promise<unknown> },
+  reminder: { id: number; text: string },
+  now = Date.now(),
+) {
+  await bridge.taskSetDone(reminder.id, true);
+  await bridge.taskAdd(reminder.text, Math.floor(now / 1000) + SNOOZE_MIN * 60);
+}

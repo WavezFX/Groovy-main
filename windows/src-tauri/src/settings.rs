@@ -128,6 +128,8 @@ pub struct Settings {
     pub phone_relay: bool,
     /// The relay's address (`wss://…`), empty until the user enters it. Not a secret. Owned by Rust.
     pub phone_relay_url: String,
+    /// Personality, AI mode, memory and performance (assistant.rs).
+    pub assistant: crate::assistant::AssistantPrefs,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -208,6 +210,7 @@ impl Default for Settings {
             phone_services: Vec::new(),
             phone_relay: false,
             phone_relay_url: String::new(),
+            assistant: Default::default(),
         }
     }
 }
@@ -508,7 +511,25 @@ mod tests {
   "phoneUsage": true,
   "phoneServices": ["integration_stripe"],
   "phoneRelay": true,
-  "phoneRelayUrl": "wss://relay.example.workers.dev"
+  "phoneRelayUrl": "wss://relay.example.workers.dev",
+  "assistant": {
+    "name": "Mochi",
+    "personality": "sarcastic",
+    "humour": 8,
+    "responseLength": "short",
+    "proactivity": "high",
+    "language": "Spanish",
+    "customInstructions": "Call me Captain.",
+    "aiMode": "local",
+    "localProvider": "ollama",
+    "localModel": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "gpuLayers": 20,
+    "dailyOnlineLimit": 50,
+    "memoryEnabled": false,
+    "historyEnabled": false,
+    "historyRetentionDays": 7,
+    "performanceProfile": "lightweight"
+  }
 }"##;
 
     fn custom() -> Value {
@@ -1030,6 +1051,7 @@ mod tests {
                 "phoneServices",
                 "phoneRelay",
                 "phoneRelayUrl",
+                "assistant",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

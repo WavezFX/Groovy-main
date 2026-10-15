@@ -22,12 +22,12 @@ const PACKAGES = {
     {
       dir: "nsis",
       suffix: "-setup.exe",
-      names: [`Groovy-Windows-${version}-setup.exe`, "Groovy-Windows-setup.exe"],
+      names: [`Groovy-AI-${version}-Windows-Setup.exe`, "Groovy-AI-Windows-Setup.exe"],
     },
     {
       dir: "msi",
       suffix: ".msi",
-      names: [`Groovy-Windows-${version}.msi`, "Groovy-Windows.msi"],
+      names: [`Groovy-AI-${version}-Windows.msi`, "Groovy-AI-Windows.msi"],
     },
   ],
   linux: [

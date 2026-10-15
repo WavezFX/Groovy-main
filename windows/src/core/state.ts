@@ -98,6 +98,50 @@ export interface IntegrationInfo {
   configured: boolean;
 }
 
+/** Personality, AI mode, memory and performance (assistant.rs). */
+export interface AssistantPrefs {
+  name: string;
+  personality: "friendly" | "professional" | "sarcastic" | "energetic" | "quiet" | "assistant";
+  /** 0 … 10 */
+  humour: number;
+  responseLength: "short" | "balanced" | "detailed";
+  proactivity: "low" | "normal" | "high";
+  /** A language name to always answer in; "" = the user's language. */
+  language: string;
+  customInstructions: string;
+  aiMode: "hybrid" | "local" | "online";
+  localProvider: "llamacpp" | "ollama" | "lmstudio" | "custom";
+  /** GGUF file in the models folder; "" = the first one found. */
+  localModel: string;
+  gpuLayers: number;
+  /** Online messages per day; 0 = no limit. */
+  dailyOnlineLimit: number;
+  memoryEnabled: boolean;
+  historyEnabled: boolean;
+  /** Days; 0 = keep forever. */
+  historyRetentionDays: number;
+  performanceProfile: "lightweight" | "balanced" | "performance";
+}
+
+export const DEFAULT_ASSISTANT: AssistantPrefs = {
+  name: "Groovy",
+  personality: "friendly",
+  humour: 4,
+  responseLength: "balanced",
+  proactivity: "normal",
+  language: "",
+  customInstructions: "",
+  aiMode: "hybrid",
+  localProvider: "llamacpp",
+  localModel: "",
+  gpuLayers: 0,
+  dailyOnlineLimit: 0,
+  memoryEnabled: true,
+  historyEnabled: true,
+  historyRetentionDays: 90,
+  performanceProfile: "balanced",
+};
+
 export interface Settings {
   soundEnabled: boolean;
   soundVolume: number;
@@ -186,6 +230,7 @@ export interface Settings {
     onDesktop: boolean;
     spot: { x: number; y: number; space: string } | null;
   };
+  assistant: AssistantPrefs;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -227,6 +272,7 @@ export const DEFAULT_SETTINGS: Settings = {
   breakEyes: 0,
   pillColors: {},
   language: "",
+  assistant: DEFAULT_ASSISTANT,
 };
 
 type Listener = () => void;
@@ -282,6 +328,8 @@ class AppState {
   brainThen: (() => void) | null = null;
   /** A break reminder on show (island/breaks.ts). */
   breakDue: "water" | "stretch" | "eyes" | null = null;
+  /** A reminder that came due (tasks.rs), on show on the note card. */
+  reminderDue: { id: number; text: string } | null = null;
   searchResult: SearchResult | null = null;
   chatHistory: ChatMessage[] = [];
   pendingApproval: ApprovalInfo | null = null;

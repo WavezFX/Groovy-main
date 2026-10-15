@@ -19,6 +19,66 @@
   --green: #22c55e;
   --red: #f4505e;
   --amber: #f5a524;
+  --fill: rgba(255, 255, 255, 0.09);
+  --fill-hover: rgba(255, 255, 255, 0.15);
+  --field: rgba(255, 255, 255, 0.07);
+  --focus: rgba(255, 255, 255, 0.28);
+  --primary-hover: #fff;
+  --menu: #1a1c20;
+  --code: #08090b;
+  --ok-ink: #86efac;
+  --err-ink: #ff8d97;
+  --err-bg: rgba(244, 80, 94, 0.16);
+  --warn-ink: #fbc06a;
+  --accent: #22c55e;
+  --nav-w: 196px;
+}
+
+/* Light theme: follows Windows' app mode unless the user picked one
+   (Settings → General → Theme sets data-theme on <html>). */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --ink: #15171a;
+    --dim: #555b64;
+    --dim-2: #6f7580;
+    --bg: #f3f4f6;
+    --card: #ffffff;
+    --hairline: rgba(0, 0, 0, 0.09);
+    --fill: rgba(0, 0, 0, 0.06);
+    --fill-hover: rgba(0, 0, 0, 0.11);
+    --field: rgba(0, 0, 0, 0.04);
+    --focus: rgba(0, 0, 0, 0.4);
+    --primary-hover: #000;
+    --menu: #ffffff;
+    --code: #f7f7f8;
+    --ok-ink: #15803d;
+    --err-ink: #c0283a;
+    --err-bg: rgba(220, 38, 38, 0.1);
+    --warn-ink: #9a5b00;
+    --green: #16a34a;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ink: #15171a;
+  --dim: #555b64;
+  --dim-2: #6f7580;
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --hairline: rgba(0, 0, 0, 0.09);
+  --fill: rgba(0, 0, 0, 0.06);
+  --fill-hover: rgba(0, 0, 0, 0.11);
+  --field: rgba(0, 0, 0, 0.04);
+  --focus: rgba(0, 0, 0, 0.4);
+  --primary-hover: #000;
+  --menu: #ffffff;
+  --code: #f7f7f8;
+  --ok-ink: #15803d;
+  --err-ink: #c0283a;
+  --err-bg: rgba(220, 38, 38, 0.1);
+  --warn-ink: #9a5b00;
+  --green: #16a34a;
 }
 
 * {
@@ -36,12 +96,90 @@ body.settings-window {
 }
 
 #settings-root {
-  padding: 22px 24px 32px;
+  padding: 0;
+}
+
+/* ── Control Centre layout ── */
+.cc {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "head head" "nav main";
+  max-width: 1080px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+.cc-header {
+  grid-area: head;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px 24px 12px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--hairline);
+}
+.cc-nav {
+  grid-area: nav;
+  position: sticky;
+  top: 58px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 10px 16px 16px;
+  max-height: calc(100vh - 58px);
+  overflow-y: auto;
+}
+.cc-link {
+  text-align: start;
+  background: transparent;
+  color: var(--dim);
+  border-radius: 9px;
+  padding: 7px 12px;
+}
+.cc-link:hover:not(:disabled) { background: var(--fill); color: var(--ink); }
+.cc-link.on {
+  background: var(--fill);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.cc-content {
+  grid-area: main;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-width: 720px;
-  margin: 0 auto;
+  padding: 18px 24px 40px 12px;
+  min-width: 0;
+}
+.cc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scroll-margin-top: 70px;
+}
+@media (max-width: 760px) {
+  .cc {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "nav" "main";
+  }
+  .cc-nav {
+    position: sticky;
+    top: 50px;
+    z-index: 1;
+    flex-direction: row;
+    overflow-x: auto;
+    max-height: none;
+    padding: 8px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .cc-link { white-space: nowrap; }
+  .cc-link.on { box-shadow: inset 0 -2px 0 var(--accent); }
+  .cc-content { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
 }
 
 h1 {
@@ -107,14 +245,14 @@ button {
   padding: 7px 14px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--fill);
   color: var(--ink);
   cursor: pointer;
   transition: background 0.14s, transform 0.08s;
 }
 
 button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--fill-hover);
 }
 
 button:active:not(:disabled) {
@@ -123,16 +261,16 @@ button:active:not(:disabled) {
 
 button.primary {
   background: var(--ink);
-  color: #0b0c0e;
+  color: var(--bg);
 }
 
 button.primary:hover:not(:disabled) {
-  background: #fff;
+  background: var(--primary-hover);
 }
 
 button.danger {
-  background: rgba(244, 80, 94, 0.16);
-  color: #ff8d97;
+  background: var(--err-bg);
+  color: var(--err-ink);
 }
 
 button:disabled {
@@ -200,7 +338,7 @@ input[type="text"],
 input[type="password"],
 select {
   font: 400 12.5px var(--font);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--field);
   border: 1px solid var(--hairline);
   border-radius: 8px;
   color: var(--ink);
@@ -214,19 +352,19 @@ input::placeholder {
 input:focus,
 select:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: var(--focus);
 }
 
 /* The popup is drawn by the OS: give it an explicit pair of colours rather than
    inheriting white on white. */
 select option {
-  background-color: #1a1c20;
+  background-color: var(--menu);
   color: var(--ink);
 }
 
 .diff {
   font: 400 11.5px/1.5 var(--mono);
-  background: #08090b;
+  background: var(--code);
   border: 1px solid var(--hairline);
   border-radius: 10px;
   padding: 10px 12px;
@@ -237,11 +375,11 @@ select option {
 }
 
 .diff .add {
-  color: #86efac;
+  color: var(--ok-ink);
 }
 
 .diff .del {
-  color: #ff8d97;
+  color: var(--err-ink);
 }
 
 .diff .ctx {
@@ -256,17 +394,17 @@ select option {
 
 .notice.ok {
   background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  color: var(--ok-ink);
 }
 
 .notice.err {
   background: rgba(244, 80, 94, 0.14);
-  color: #ff8d97;
+  color: var(--err-ink);
 }
 
 .notice.warn {
   background: rgba(245, 165, 36, 0.13);
-  color: #fbc06a;
+  color: var(--warn-ink);
 }
 
 /* Active pills — one group per catalog category, one row per pill. */
@@ -414,12 +552,12 @@ select option {
 
 .tag.warn {
   background: rgba(245, 165, 36, 0.13);
-  color: #fbc06a;
+  color: var(--warn-ink);
 }
 
 .tag.err {
   background: rgba(244, 80, 94, 0.14);
-  color: #ff8d97;
+  color: var(--err-ink);
 }
 
 /* Arabic: the window reads right to left (main.ts sets <html dir="rtl">);
@@ -431,3 +569,48 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
 /* Settings → Android phone: the pairing QR code (an SVG from Rust, black on white). */
 .qr { width: 220px; max-width: 100%; background: #fff; border-radius: 8px; padding: 4px; }
 .qr svg { display: block; width: 100%; height: auto; }
+
+/* ── Pieces of the assistant sections ── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.row.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+.textarea {
+  font: 400 12.5px/1.45 var(--font);
+  background: var(--field);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--ink);
+  padding: 7px 9px;
+  resize: vertical;
+  width: 100%;
+}
+.textarea:focus { outline: none; border-color: var(--focus); }
+.hint.warn { color: var(--warn-ink); }
+.pill-row .name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pill-row.done .name { opacity: 0.55; text-decoration: line-through; }
+.memory-row input[type="text"] { min-width: 160px; }
+.meter {
+  flex: 1 1 160px;
+  max-width: 260px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fill);
+  overflow: hidden;
+}
+.meter > i { display: block; height: 100%; background: var(--green); border-radius: inherit; }
+.meter.warn > i { background: var(--amber); }
+.meter.err > i { background: var(--red); }
+.transcript { display: flex; flex-direction: column; gap: 6px; padding-left: 14px; }
+.transcript:empty { display: none; }
+.transcript .line { display: flex; gap: 8px; font-size: 12px; white-space: pre-wrap; }
+.transcript .line b { color: var(--dim); min-width: 52px; font-weight: 500; }

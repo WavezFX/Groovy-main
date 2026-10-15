@@ -4,14 +4,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  PROVIDERS, activeModel, isLoopbackHost, pickModel, providerDef, urlExposure, visibleProviders, withModel,
+  PROVIDERS, activeModel, isLocalProvider, isLoopbackHost, pickModel, providerDef, urlExposure, visibleProviders, withModel,
 } from "../src/core/providers.ts";
 import { DEFAULT_SETTINGS } from "../src/core/state.ts";
 
 const settings = (over = {}) => ({ ...DEFAULT_SETTINGS, ...over });
 
 test("the ids and key names match the Rust side and the Mac", () => {
-  assert.deepEqual(PROVIDERS.map((p) => p.id), ["anthropic", "google", "openai", "openrouter", "ollama", "lmstudio", "custom"]);
+  assert.deepEqual(PROVIDERS.map((p) => p.id), ["llamacpp", "anthropic", "google", "openai", "openrouter", "ollama", "lmstudio", "custom"]);
   assert.equal(providerDef("google").key, "google-api-key");
   assert.equal(providerDef("openai").key, "openai-api-key");
   assert.equal(providerDef("openrouter").key, "openrouter-api-key");
@@ -36,9 +36,19 @@ test("Claude's model is the existing setting; the others are kept per provider",
 
 test("model servers show in the picker once connected, or while in use", () => {
   const ids = (s) => visibleProviders(s).map((p) => p.id);
-  assert.deepEqual(ids(settings()), ["anthropic", "google", "openai", "openrouter"]);
-  assert.deepEqual(ids(settings({ ollamaUrl: "http://127.0.0.1:11434" })), ["anthropic", "google", "openai", "openrouter", "ollama"]);
-  assert.deepEqual(ids(settings({ chatProvider: "custom" })), ["anthropic", "google", "openai", "openrouter", "custom"]);
+  // Groovy's own engine is always there: it needs no address.
+  assert.deepEqual(ids(settings()), ["llamacpp", "anthropic", "google", "openai", "openrouter"]);
+  assert.deepEqual(ids(settings({ ollamaUrl: "http://127.0.0.1:11434" })), ["llamacpp", "anthropic", "google", "openai", "openrouter", "ollama"]);
+  assert.deepEqual(ids(settings({ chatProvider: "custom" })), ["llamacpp", "anthropic", "google", "openai", "openrouter", "custom"]);
+});
+
+test("local providers are the ones on this computer", () => {
+  assert.ok(isLocalProvider(settings(), "llamacpp"));
+  assert.ok(isLocalProvider(settings(), "ollama"));
+  assert.ok(!isLocalProvider(settings(), "openai"));
+  assert.ok(isLocalProvider(settings({ customUrl: "http://127.0.0.1:8080" }), "custom"));
+  assert.ok(!isLocalProvider(settings({ customUrl: "https://llm.example.com" }), "custom"));
+  assert.ok(!isLocalProvider(settings(), "custom"), "an unset custom server is not assumed local");
 });
 
 test("the saved model is kept when offered, else a sensible one is picked", () => {

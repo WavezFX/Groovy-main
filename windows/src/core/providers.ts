@@ -6,7 +6,7 @@ import type { Settings } from "./state";
 import { N_ } from "../i18n/i18n";
 
 export type ProviderId =
-  | "anthropic" | "openai" | "google" | "openrouter"
+  | "llamacpp" | "anthropic" | "openai" | "google" | "openrouter"
   | "ollama" | "lmstudio" | "custom";
 
 export interface ProviderDef {
@@ -24,6 +24,8 @@ export interface ProviderDef {
 }
 
 export const PROVIDERS: readonly ProviderDef[] = [
+  // Groovy's own engine (models.rs): a GGUF model run by llama.cpp on this PC.
+  { id: "llamacpp", name: N_("On this PC"), accent: "#22C55E", key: null, urlField: null, defaultModel: "", prefer: null },
   { id: "anthropic", name: "Anthropic", accent: "#E07950", key: "anthropic-api-key", urlField: null, defaultModel: "claude-opus-5", prefer: "opus" },
   { id: "google", name: "Google", accent: "#4285F4", key: "google-api-key", urlField: null, defaultModel: "gemini-2.0-flash", prefer: "flash" },
   { id: "openai", name: "OpenAI", accent: "#10A37F", key: "openai-api-key", urlField: null, defaultModel: "gpt-4o", prefer: "mini" },
@@ -37,7 +39,13 @@ export const PROVIDERS: readonly ProviderDef[] = [
 export const CUSTOM_SERVER_KEY = "openai-compatible-key";
 
 export function providerDef(id: string): ProviderDef {
-  return PROVIDERS.find((p) => p.id === id) ?? PROVIDERS[0];
+  return PROVIDERS.find((p) => p.id === id) ?? PROVIDERS.find((p) => p.id === "anthropic")!;
+}
+
+/** Runs on this computer: nothing typed leaves it (mirrors assistant.rs is_local). */
+export function isLocalProvider(settings: Settings, id: string): boolean {
+  if (id === "llamacpp" || id === "ollama" || id === "lmstudio") return true;
+  return id === "custom" && settings.customUrl.trim() !== "" && urlExposure(settings.customUrl) === "local";
 }
 
 /** The model the chat uses for the active provider. */

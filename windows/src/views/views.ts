@@ -27,7 +27,7 @@ import type { Outfit, OutfitSelection } from "../mochi/wardrobe";
 import type { Skin } from "../mochi/skins";
 import { language, t, tl, type Msg } from "../i18n/i18n";
 import type { ViewCommand } from "../island/shortcuts";
-import { BREAKS, BreakControl } from "../island/breaks";
+import { BREAKS, BreakControl, ReminderControl } from "../island/breaks";
 import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
 
 export interface ViewActions {
@@ -729,6 +729,12 @@ function buildNote(): ViewHost {
     btn(tl("Done"), "primary", () => BreakControl.done()),
     btn(tl("In 10 min"), "secondary", () => BreakControl.snooze()),
   );
+  const reminderButtons = h(
+    "div",
+    { class: "row", style: "gap:8px;margin-top:6px" },
+    btn(tl("Done"), "primary", () => ReminderControl.done()),
+    btn(tl("In 10 min"), "secondary", () => ReminderControl.snooze()),
+  );
   // The offline brain's setup offers a button, then shows its progress.
   const brainButtons = h(
     "div",
@@ -736,7 +742,7 @@ function buildNote(): ViewHost {
     btn(tl(BRAIN_STRINGS.setUp), "primary", () => void setUpBrain()),
     btn(tl(BRAIN_STRINGS.notNow), "secondary", () => dismissBrain()),
   );
-  const el = h("div", { class: "view" }, card(null, h("div", { class: "stack", style: "padding:0 18px 0 98px" }, title, sub, buttons, brainButtons)));
+  const el = h("div", { class: "view" }, card(null, h("div", { class: "stack", style: "padding:0 18px 0 98px" }, title, sub, buttons, reminderButtons, brainButtons)));
   return {
     el,
     sync() {
@@ -746,6 +752,7 @@ function buildNote(): ViewHost {
       sub.textContent = kind ? t(BREAKS[kind].detail) : brain === "offer" ? t(BRAIN_STRINGS.offerDetail) : "";
       sub.style.display = sub.textContent ? "" : "none";
       buttons.style.display = kind ? "" : "none";
+      reminderButtons.style.display = !kind && State.reminderDue ? "" : "none";
       brainButtons.style.display = brain === "offer" ? "" : "none";
     },
   };

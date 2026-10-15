@@ -1,0 +1,158 @@
+name: Windows build
+
+# Builds the installers on a real Windows runner, then installs, launches and
+# smoke-tests them (online and with the network blocked), uninstalls, and
+# uploads everything with SHA-256 checksums as run artifacts. Nothing is
+# published here: releases stay in windows.yml, which runs on tags.
+
+on:
+  push:
+    branches: [main, 'groovy-ai-*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Cache cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            windows/target
+          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}
+          restore-keys: windows-build-cargo-
+
+      # whisper.cpp (voice) builds from source and needs CMake and libclang.
+      - name: Check build tools
+        shell: pwsh
+        run: |
+          cmake --version
+          if (-not $env:LIBCLANG_PATH) {
+            $llvm = "C:\Program Files\LLVM\bin"
+            if (Test-Path "$llvm\libclang.dll") { "LIBCLANG_PATH=$llvm" >> $env:GITHUB_ENV }
+            else { throw "libclang not found: install LLVM" }
+          }
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Front-end tests
+        run: npm test
+
+      - name: Build the relay
+        run: cargo build --release -p groovy-hook
+
+      - name: Rust tests
+        shell: pwsh
+        run: |
+          cargo test --workspace 2>&1 | Tee-Object -FilePath rust-tests.txt
+          exit $LASTEXITCODE
+
+      - name: Build and pack the installers
+        id: pack
+        shell: pwsh
+        run: |
+          npm run pack
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Copy-Item target/release/groovy.exe release/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/groovy-hook.exe
+          Get-ChildItem release | Format-Table Name, Length
+
+      - name: Smoke test the portable executable
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
+
+      - name: Install with the NSIS installer and smoke test it offline
+        shell: pwsh
+        run: |
+          $v = "${{ steps.pack.outputs.version }}"
+          $setup = "release/Groovy-AI-$v-Windows-Setup.exe"
+          $p = Start-Process -FilePath $setup -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
+          $entry = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall |
+            Get-ItemProperty | Where-Object DisplayName -like "Groovy*" | Select-Object -First 1
+          if (-not $entry) { throw "no uninstall entry registered" }
+          "Registered: $($entry.DisplayName) $($entry.DisplayVersion)"
+          $dir = if ($entry.InstallLocation) { $entry.InstallLocation.Trim('"') } else { Split-Path ($entry.UninstallString.Trim('"')) }
+          "dir=$dir" >> $env:GITHUB_ENV
+          $installed = Join-Path $dir "groovy.exe"
+          if (-not (Test-Path $installed)) { throw "groovy.exe not installed at $installed" }
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "Groovy*.lnk"
+          if (-not $lnk) { throw "no Start menu shortcut" }
+          "Start menu: $($lnk.FullName -join ', ')"
+          ./scripts/smoke-test.ps1 -Exe $installed -Offline -Label installed
+
+      - name: Uninstall
+        shell: pwsh
+        run: |
+          $un = Join-Path $env:dir "uninstall.exe"
+          if (-not (Test-Path $un)) { throw "no uninstaller at $un" }
+          $p = Start-Process -FilePath $un -ArgumentList "/S" -Wait -PassThru
+          # The NSIS uninstaller copies itself to %TEMP% and returns at once.
+          Start-Sleep -Seconds 10
+          if (Test-Path (Join-Path $env:dir "groovy.exe")) { throw "groovy.exe still present after uninstall" }
+          "uninstalled"
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File | Where-Object Name -ne SHA256SUMS.txt | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+          Copy-Item ../CHANGELOG.md release/CHANGELOG.md -ErrorAction SilentlyContinue
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Groovy-AI-${{ steps.pack.outputs.version }}-Windows
+          path: |
+            windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows-Setup.exe
+            windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows.msi
+            windows/release/groovy.exe
+            windows/release/groovy-hook.exe
+            windows/release/SHA256SUMS.txt
+            windows/release/CHANGELOG.md
+          retention-days: 14
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-logs
+          path: |
+            windows/rust-tests.txt
+          retention-days: 7
