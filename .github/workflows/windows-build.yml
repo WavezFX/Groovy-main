@@ -47,14 +47,17 @@ jobs:
         id: cargo-cache
         uses: actions/cache/restore@v6
         with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
             windows/target
-          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          key: windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
-            windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-
-            windows-build-cargo-
+            windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-
+            windows-build-cargo-v2-
 
       # whisper.cpp (voice) builds from source and needs CMake and libclang.
       - name: Check build tools
@@ -163,14 +166,18 @@ jobs:
           if-no-files-found: error
 
       - name: Save the cargo cache
-        if: always() && steps.cargo-cache.outputs.cache-hit != 'true'
+        # Not after a cancel: a cancelled run's files may be half written.
+        if: (success() || failure()) && steps.cargo-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
             windows/target
-          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          key: windows-build-cargo-v2-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
 
       - uses: actions/upload-artifact@v7
         if: always()

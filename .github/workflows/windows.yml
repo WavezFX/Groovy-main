@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           
       - name: Cache cargo
         uses: actions/cache@v6
@@ -84,8 +84,8 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Groovy-Windows-setup
-          path: windows/release/Groovy-Windows-${{ steps.pack.outputs.version }}-setup.exe
+          name: Groovy-AI-Windows-Setup
+          path: windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows-Setup.exe
           retention-days: 3
 
       # MSI installer generated via WiX toolset. Bypasses NSIS extractor false-positives
@@ -93,8 +93,8 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Groovy-Windows-msi
-          path: windows/release/Groovy-Windows-${{ steps.pack.outputs.version }}.msi
+          name: Groovy-AI-Windows-msi
+          path: windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows.msi
           retention-days: 3
 
       # The unsigned NSIS installer is what Defender false-positives on, so the
@@ -104,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Groovy-Windows-portable
+          name: Groovy-AI-Windows-portable
           path: |
             windows/target/release/groovy.exe
             windows/target/release/groovy-hook.exe
@@ -118,9 +118,9 @@ jobs:
         run: |
           $v = "${{ steps.pack.outputs.version }}"
           $notes = @"
-          Groovy for Windows $v — Groovy at the top of your screen.
+          Groovy AI for Windows $v — an offline-first desktop companion at the top of your screen.
 
-          Download ``Groovy-Windows-$v.msi`` (Windows Installer) or ``Groovy-Windows-$v-setup.exe`` and run it. The installer is not
+          Download ``Groovy-AI-$v-Windows.msi`` (Windows Installer) or ``Groovy-AI-$v-Windows-Setup.exe`` and run it. The installer is not
           code-signed yet, so Windows SmartScreen shows a warning: click
           **More info → Run anyway**.
           "@
@@ -129,9 +129,9 @@ jobs:
           # button points at /releases/latest. A Windows tag would silently send
           # Mac users to the .exe. The macOS `v*` releases own that slot.
           gh release create "${{ github.ref_name }}" `
-            "release/Groovy-Windows-$v-setup.exe" `
-            "release/Groovy-Windows-$v.msi" `
-            --title "Groovy for Windows $v" `
+            "release/Groovy-AI-$v-Windows-Setup.exe" `
+            "release/Groovy-AI-$v-Windows.msi" `
+            --title "Groovy AI for Windows $v" `
             --notes $notes `
             --latest=false
 
@@ -150,11 +150,11 @@ jobs:
             git tag -f windows-latest "${{ github.sha }}"
             git push -f origin windows-latest
             gh release edit windows-latest --title "Groovy for Windows (latest)" --notes "Always the newest Windows build — currently $v."
-            gh release upload windows-latest "release/Groovy-Windows-setup.exe" "release/Groovy-Windows.msi" --clobber
+            gh release upload windows-latest "release/Groovy-AI-Windows-Setup.exe" "release/Groovy-AI-Windows.msi" --clobber
           } else {
             gh release create windows-latest `
-              "release/Groovy-Windows-setup.exe" `
-              "release/Groovy-Windows.msi" `
+              "release/Groovy-AI-Windows-Setup.exe" `
+              "release/Groovy-AI-Windows.msi" `
               --title "Groovy for Windows (latest)" `
               --notes "Always the newest Windows build — currently $v." `
               --latest=false
