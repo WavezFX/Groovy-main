@@ -206,7 +206,7 @@ function bubble(): HTMLElement | null {
   if (a) {
     const b = el("div", "bubble announce");
     const icon = el("span", "icon");
-    const name = { mic: "mic", lock: "lock", clipboard: "copy", download: "download", check: "check", error: "x" }[a.icon] ?? "check";
+    const name = { mic: "mic", lock: "lock", clipboard: "copy", download: "download", check: "check", error: "x", bolt: "bolt" }[a.icon] ?? "check";
     icon.append(svgIcon(name));
     icon.style.color = a.tint;
     b.append(icon, el("span", "text", a.text));

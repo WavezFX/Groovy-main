@@ -40,9 +40,17 @@ export function musicSection(): HTMLElement {
     return b;
   };
   let state: MusicState | null = null;
-  const prev = iconBtn(ICONS.backward, t("Previous"), () => void Bridge.musicControl("previous"));
-  const playBtn = iconBtn(ICONS.play, t("Play"), () => void Bridge.musicControl("toggle"));
-  const next = iconBtn(ICONS.forward, t("Next"), () => void Bridge.musicControl("next"));
+  // With nothing queued the buttons still answer: they say what to do first.
+  const control = (action: Parameters<typeof Bridge.musicControl>[0]) => () => {
+    if (!state || state.queue.length === 0) {
+      playerError.textContent = t("Nothing to play yet: add a music folder below, then pick a track.");
+      return;
+    }
+    void Bridge.musicControl(action);
+  };
+  const prev = iconBtn(ICONS.backward, t("Previous"), control("previous"));
+  const playBtn = iconBtn(ICONS.play, t("Play"), control("toggle"));
+  const next = iconBtn(ICONS.forward, t("Next"), control("next"));
   const shuffle = iconBtn(ICONS.shuffle, t("Shuffle"), () => state && void Bridge.musicSetMode(!state.shuffle, state.repeat), true);
   const repeat = iconBtn(ICONS.repeat, t("Repeat"), () => state && void Bridge.musicSetMode(state.shuffle, NEXT_REPEAT[state.repeat]), true);
   const repeatOne = h("span", { class: "repeat-one", text: "1" });
@@ -70,8 +78,6 @@ export function musicSection(): HTMLElement {
     clear(playBtn);
     playBtn.append(svg(s.playing ? ICONS.pause : ICONS.play, 14));
     playBtn.title = s.playing ? t("Pause") : t("Play");
-    playBtn.disabled = s.queue.length === 0;
-    prev.disabled = next.disabled = s.queue.length === 0;
     shuffle.classList.toggle("on", s.shuffle);
     shuffle.setAttribute("aria-pressed", String(s.shuffle));
     repeat.classList.toggle("on", s.repeat !== "off");
@@ -361,7 +367,7 @@ export function musicSection(): HTMLElement {
     if (s) drawPlayer(s);
     else {
       title.textContent = t("Nothing playing");
-      for (const b of [prev, playBtn, next, shuffle, repeat]) b.disabled = true;
+      playerError.textContent = t("The music player didn't answer. Restart Groovy if it keeps happening.");
     }
     await drawFolders();
     await drawPlaylists();

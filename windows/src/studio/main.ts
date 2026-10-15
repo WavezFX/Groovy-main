@@ -12,6 +12,7 @@ import { DEFAULT_SETTINGS } from "../core/state";
 import { fromEdit, fromNew, type FileDiff } from "../core/diff";
 import { applyDocumentLanguage, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t } from "../i18n/i18n";
 import { h, clear } from "../views/dom";
+import { installErrorReporting } from "../views/toast";
 import { languageOf, parseProblems, parseProposals, type Proposals } from "./ai";
 
 interface Workspace { id: number; path: string; name: string; exists: boolean; git: boolean }
@@ -441,6 +442,7 @@ function render() {
 }
 
 async function main() {
+  installErrorReporting("page");
   const boot = await Bridge.boot();
   const settings = { ...DEFAULT_SETTINGS, ...(boot?.settings ?? {}) };
   setLanguage(resolveLanguage(settings.language, systemLanguages()));

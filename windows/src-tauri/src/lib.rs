@@ -812,6 +812,15 @@ fn fit_zoom(app: AppHandle, dpr: f64) -> bool {
     }
 }
 
+/// A user action failed in a window too small to show it (the island, Groovy
+/// on the desktop): the pill shows the error for a few seconds.
+#[tauri::command]
+fn notify_error(app: AppHandle, text: String) {
+    let text: String = text.chars().take(200).collect();
+    log::line(format!("shown error: {text}"));
+    flow::pill::announce(&app, "error", "#F05252", text, None, 8);
+}
+
 #[tauri::command]
 fn open_settings_window(app: AppHandle, page: Option<String>) {
     show_hub(&app, page.as_deref());
@@ -1022,6 +1031,7 @@ pub fn run() {
             music::music_set_mode,
             db::usage_today,
             fit_zoom,
+            notify_error,
             flow::flow_status,
             flow::flow_set_prefs,
             flow::flow_history,

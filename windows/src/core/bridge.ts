@@ -8,9 +8,26 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { Settings } from "./state";
 import type { RecapHistory, RecapPrefs } from "../recap/summary";
 import type { SpotifyState } from "./spotify";
+import { showError } from "../views/toast";
 
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+/**
+ * Commands run because the user clicked something: when one fails, the error
+ * is shown (views/toast.ts). Every other call() is background work — polling,
+ * reading state — and fails quietly into null. callOrThrow() leaves the error
+ * to the caller.
+ */
+const USER_ACTIONS = new Set([
+  "save_settings", "open_url", "reveal_sounds_folder", "reload_sounds", "open_in_vscode", "open_session",
+  "open_claude_desktop", "open_file_in_vscode", "quit_app", "open_settings_window", "approval_decision",
+  "approval_answer", "approval_decline", "models_cancel_download", "models_stop", "models_reveal_folder",
+  "open_studio_window", "studio_stop", "music_control", "music_seek", "music_volume", "music_set_mode",
+  "chat_reset", "local_set_key", "refresh_integration", "github_refresh", "set_paused", "recap_set_enabled",
+  "recap_set_hide_projects", "recap_clear", "recap_reveal_saved", "desktop_mochi_fly_out", "desktop_mochi_fly_home",
+  "spotify_control", "spotify_open", "phone_link_send_diff",
+]);
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
   if (!IS_TAURI) return null;
@@ -18,6 +35,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
     return await invoke<T>(cmd, args);
   } catch (err) {
     console.error(`[groovy] ${cmd} failed`, err);
+    if (USER_ACTIONS.has(cmd)) showError(err);
     return null;
   }
 }

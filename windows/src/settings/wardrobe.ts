@@ -11,7 +11,7 @@ import { drawWardrobeIcon } from "../mochi/outfits";
 import { OUTFIT_KEYS, OUTFIT_SELECTIONS, parseOutfit, resolveOutfit, seasonalOutfit, WARDROBE_STRINGS, type Outfit, type OutfitSelection } from "../mochi/wardrobe";
 import { SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
 import {
-  DEFAULT_APPEARANCE, SLOT_OF, combine, parseWardrobe, randomLook, readPack, writePack,
+  DEFAULT_APPEARANCE, SLOT_OF, combine, layersOn, parseWardrobe, wear, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
 } from "../mochi/appearance";
 import { N_, t } from "../i18n/i18n";
@@ -173,7 +173,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         settings.mochiOutfit = sel;
         // Accessories that no longer fit with the new outfit are dropped.
         const main = resolveOutfit(sel, new Date());
-        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: combine(main, prefs.appearance.layers).slice(1) } };
+        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: layersOn(main, prefs.appearance.layers) } };
         commit();
       });
       outfits.append(b);
@@ -190,24 +190,29 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       if (items.length === 0) continue;
       for (const item of items) {
         const on = worn.includes(item);
-        const fromOutfit = item === worn[0] && item === main;
-        const blocked = !on && worn.some((w) => SLOT_OF[w as Exclude<Outfit, "none">] === slot || SLOT_OF[w as Exclude<Outfit, "none">] === "costume");
+        const fromOutfit = on && item === main;
+        const taken = !on && worn.some((w) => SLOT_OF[w as Exclude<Outfit, "none">] === slot || SLOT_OF[w as Exclude<Outfit, "none">] === "costume");
         const b = h("button", {
           class: on ? "studio-item on" : "studio-item",
-          title: fromOutfit ? t("Worn as the outfit") : blocked ? t("Something else is worn there") : t(OUTFIT_KEYS[item]),
+          title: fromOutfit ? t("Part of the outfit: click to keep it as your own") : taken ? t("Click to wear it instead") : t(OUTFIT_KEYS[item]),
           "aria-pressed": on,
         }, iconCanvas(item), h("span", { text: t(OUTFIT_KEYS[item]) })) as HTMLButtonElement;
-        b.disabled = fromOutfit || blocked;
         b.addEventListener("click", () => {
-          const layers = on ? prefs.appearance.layers.filter((l) => l !== item) : [...prefs.appearance.layers, item];
-          setAppearance({ ...prefs.appearance, layers: combine(main, layers).slice(1) });
+          const next = wear(parseOutfit(settings.mochiOutfit), prefs.appearance.layers, item, new Date());
+          settings.mochiOutfit = next.selection;
+          prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
+          commit();
+          const name = t(OUTFIT_KEYS[item]);
+          if (next.did === "kept") say(t("{item} is now yours: the outfit is set to None.", { item: name }));
+          else if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: name }));
+          else if (next.did === "costumeOff") say(t("The costume is off to wear {item}.", { item: name }));
         });
         row.append(b);
       }
       slots.append(h("div", { class: "subhead", text: t(SLOT_LABELS[slot]) }), row);
     }
     if (worn[0] && SLOT_OF[worn[0] as Exclude<Outfit, "none">] === "costume") {
-      slots.append(h("div", { class: "hint", text: t("A costume is worn on its own: accessories come back with another outfit.") }));
+      slots.append(h("div", { class: "hint", text: t("A costume is worn on its own: click an accessory to wear it instead.") }));
     }
   }
 

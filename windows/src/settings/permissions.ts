@@ -2,6 +2,7 @@
 // (tools.rs) — each tool allowed, asked first, or off — and the log of
 // everything the tools did, were asked, or were refused.
 
+import { showError } from "../views/toast";
 import { Bridge, type ToolInfo, type ToolPermission } from "../core/bridge";
 import { clear, h } from "../views/dom";
 import { N_, t } from "../i18n/i18n";
@@ -57,7 +58,7 @@ export function permissionsSection(): HTMLElement {
 
   const clearLog = h("button", { class: "danger", text: t("Clear the log") }) as HTMLButtonElement;
   confirmClick(clearLog, t("Click again to clear"), async () => {
-    await Bridge.toolsLogClear().catch(() => {});
+    await Bridge.toolsLogClear().catch(showError);
     await drawLog();
   });
   const refresh = h("button", { text: t("Refresh") });

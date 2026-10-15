@@ -1,6 +1,7 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
+import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
 import {
@@ -172,13 +173,13 @@ export class Island {
     };
     ReminderControl.done = () => {
       const r = State.reminderDue;
-      if (r) void Bridge.taskSetDone(r.id, true).catch(() => {});
+      if (r) void Bridge.taskSetDone(r.id, true).catch(showError);
       Sound.play("pop");
       endReminder();
     };
     ReminderControl.snooze = () => {
       const r = State.reminderDue;
-      if (r) void snoozeReminder(Bridge, r).catch(() => {});
+      if (r) void snoozeReminder(Bridge, r).catch(showError);
       endReminder();
     };
   }
@@ -1310,7 +1311,7 @@ export class Island {
     if (State.reminderDue && !(expanded && State.view === "note")) {
       const r = State.reminderDue;
       State.reminderDue = null;
-      void snoozeReminder(Bridge, r).catch(() => {});
+      void snoozeReminder(Bridge, r).catch(showError);
     }
 
     this.header.sync();

@@ -3,6 +3,7 @@
 // writes to disk is confirmed. The window's frame and the voice and dictation
 // pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
+import { installErrorReporting, showError } from "../views/toast";
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
@@ -474,10 +475,13 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
     const why = hint(def);
     el.append(h("span", { class: "state", text: why ?? "" }));
     const sw = h("button", { class: on ? "switch on" : "switch" }) as HTMLButtonElement;
-    sw.disabled = full;
+    if (full) sw.title = t("At most {n} pills besides the main one: turn one off first.", { n: MAX_ACTIVE });
     sw.addEventListener("click", () => {
       const next = toggleDeclared(settings, def.id);
-      if (!next) return;
+      if (!next) {
+        showError(t("At most {n} pills besides the main one: turn one off first.", { n: MAX_ACTIVE }));
+        return;
+      }
       settings.activeIntegrations = next;
       declaredChanged();
     });
@@ -689,7 +693,7 @@ function localSection(customKey: boolean): HTMLElement {
         settings[field] = "";
         if (settings.chatProvider === id) settings.chatProvider = "anthropic";
         if (id === "custom") {
-          await Bridge.secretClear(CUSTOM_SERVER_KEY).catch(() => {});
+          await Bridge.secretClear(CUSTOM_SERVER_KEY).catch(showError);
           customKey = false;
         }
         await save();
@@ -1315,6 +1319,7 @@ function applyDirection() {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  installErrorReporting("page");
   const boot = await Bridge.boot();
   if (boot) {
     settings = { ...settings, ...boot.settings };

@@ -1,6 +1,7 @@
 // Settings → Reminders: to-dos and timed reminders (tasks.rs), stored on this
 // computer. A reminder that comes due pops up on the island, once.
 
+import { showError } from "../views/toast";
 import { Bridge, type TaskItem } from "../core/bridge";
 import { clear, h } from "../views/dom";
 import { t } from "../i18n/i18n";
@@ -50,12 +51,12 @@ export function tasksSection(): HTMLElement {
     const check = h("input", { type: "checkbox", "aria-label": t("Done") }) as HTMLInputElement;
     check.checked = task.done;
     check.addEventListener("change", async () => {
-      await Bridge.taskSetDone(task.id, check.checked).catch(() => {});
+      await Bridge.taskSetDone(task.id, check.checked).catch(showError);
       await draw();
     });
     const del = h("button", { class: "danger", text: t("Delete") }) as HTMLButtonElement;
     confirmClick(del, t("Click again to delete"), async () => {
-      await Bridge.taskDelete(task.id).catch(() => {});
+      await Bridge.taskDelete(task.id).catch(showError);
       await draw();
     });
     const overdue = task.dueAt !== null && task.dueAt < Date.now() / 1000 && !task.done;

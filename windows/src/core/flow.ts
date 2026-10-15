@@ -2,6 +2,12 @@
 // the pill see them (src-tauri/src/flow, speech, notes).
 
 import { invoke } from "@tauri-apps/api/core";
+import { showError } from "../views/toast";
+
+const QUIET = new Set([
+  "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
+  "pill_state", "pill_hot", "pill_hover", "notes_state", "notes_markdown",
+]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -11,6 +17,8 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
     return await invoke<T>(cmd, args);
   } catch (err) {
     console.error(`[groovy] ${cmd} failed`, err);
+    // Reading state is background work; everything else here is a click.
+    if (!QUIET.has(cmd)) showError(err);
     return null;
   }
 }

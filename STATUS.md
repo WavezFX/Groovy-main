@@ -10,15 +10,21 @@ unit-tested), **CI-verified** (built and run on a Windows runner),
 | Check | Result |
 | --- | --- |
 | Baseline (original 0.5.1) | 413 front-end tests, 479 Rust tests, all passing |
-| Now, local (Linux) | 437 front-end tests, 538 Rust tests (504 app + 34 relay), all passing; `tsc` clean; production front-end build OK |
+| Now, local (Linux) | 448 front-end tests, 577 Rust app tests + 34 relay, all passing; `tsc` clean; production front-end build OK |
 | Windows cross-check (`cargo xwin check`, no voice feature) | compiles |
 | Linux launch under a virtual display | stays up, creates `groovy.db`, both windows load the interface |
 | Windows CI run 1 (commit b8e20b5) | type check, tests, Rust tests on Windows and **both installers built** (`Groovy-AI-0.6.0-Windows-Setup.exe` 6.1 MB, `.msi` 7.4 MB). Smoke test of the portable exe: process up, backend started, interface loaded, database created, no crash — **one failure**: no `settings.json` on first run. Fixed in 1fc13b6 (first run now writes settings). |
-| Windows CI runs 2–3 (1fc13b6, ef0095c) | **result not checked yet** |
+| Windows CI run 3 (ef0095c) | full pipeline passed: build, portable smoke test, silent install, offline smoke test (firewall-blocked), uninstall, checksums, artifacts |
+| Windows CI runs 8–13 (voice, dictation, skills, studio added) | 8: corrupt cargo cache; 11: link error (C runtime mismatch, sherpa-onnx /MT vs whisper.cpp /MD); 13: **installers built and tested by the owner**, Rust tests still failing to link from a stale cached debug build. Fixes pushed (static CRT for whisper.cpp, new cache key); next run not checked yet. |
 
-No Windows build has passed the full pipeline yet (install → offline smoke
-test → uninstall → checksums → artifacts). That has to be confirmed before any
-`.exe` is called finished.
+## Fixes round 1 (FIXES_ROUND1.md, from the owner's first Windows test)
+
+| Item | State | How it was checked |
+| --- | --- | --- |
+| 0. Rust tests fail on Windows CI | fix pushed (568991e): the test step reused a `/MD` whisper.cpp from the cache | waiting for the next Windows run |
+| 1A. Wardrobe buttons greyed out (Auto → witch hat in October) | **done**: items are never disabled; a click replaces what is in the slot, the seasonal item becomes the user's own (outfit → None), a costume makes way; a one-line hint says what happened | 6 new unit tests (October, December, costume, slot replace, layer list) |
+| 1B. Failing actions look like dead buttons | **done**: user actions that fail now show the backend's error — a toast in the Control Centre and Studio, the floating pill for the island and desktop Groovy (`notify_error`); unhandled promise rejections are shown too; 8 places that swallowed errors now report them; music controls with nothing queued explain why; a full pill list says so instead of a greyed switch | type check, tests; **not yet clicked through on Windows** |
+| 2–6 | not started yet | — |
 
 ## Done, by phase
 

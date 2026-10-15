@@ -87,3 +87,56 @@ test("a random look is always one that can be worn", () => {
     assert.deepEqual(combine(r.outfit, r.appearance.layers), [r.outfit, ...r.appearance.layers].filter((o) => o !== "none"));
   }
 });
+
+// ── Wardrobe Studio clicks are never refused (FIXES_ROUND1 item 1) ───────────
+import { layersOn, wear } from "../src/mochi/appearance.ts";
+
+const OCTOBER = new Date(2026, 9, 15);
+const DECEMBER = new Date(2026, 11, 10);
+const MAY = new Date(2026, 4, 12);
+
+test("October on Auto: another hat replaces the witch hat", () => {
+  const w = wear("auto", [], "crown", OCTOBER);
+  assert.equal(w.selection, "none");
+  assert.deepEqual(w.layers, ["crown"]);
+  assert.equal(w.did, "replaced");
+});
+
+test("October on Auto: clicking the witch hat keeps it as the user's own", () => {
+  const w = wear("auto", ["sunglasses"], "witchHat", OCTOBER);
+  assert.equal(w.selection, "none");
+  assert.deepEqual(w.layers, ["witchHat", "sunglasses"]);
+  assert.equal(w.did, "kept");
+  // Clicked again, it comes off like any layer.
+  const off = wear(w.selection, w.layers, "witchHat", OCTOBER);
+  assert.deepEqual(off.layers, ["sunglasses"]);
+  assert.equal(off.did, "removed");
+});
+
+test("December on Auto: the Santa hat gives way, other slots stay with the outfit", () => {
+  const glasses = wear("auto", [], "roundGlasses", DECEMBER);
+  assert.equal(glasses.selection, "auto");
+  assert.deepEqual(glasses.layers, ["roundGlasses"]);
+  assert.equal(glasses.did, "added");
+  const beanie = wear(glasses.selection, glasses.layers, "beanie", DECEMBER);
+  assert.equal(beanie.selection, "none");
+  assert.deepEqual(beanie.layers, ["roundGlasses", "beanie"]);
+});
+
+test("a costume makes way for an accessory", () => {
+  const w = wear("pumpkin", [], "scarf", MAY);
+  assert.equal(w.selection, "none");
+  assert.deepEqual(w.layers, ["scarf"]);
+  assert.equal(w.did, "costumeOff");
+});
+
+test("an item in a taken layer slot replaces the layer", () => {
+  const w = wear("none", ["sunglasses", "scarf"], "roundGlasses", MAY);
+  assert.deepEqual(w.layers, ["scarf", "roundGlasses"]);
+  assert.equal(w.did, "replaced");
+});
+
+test("with no outfit, every layer counts (the first one is not dropped)", () => {
+  assert.deepEqual(layersOn("none", ["beanie", "scarf"]), ["beanie", "scarf"]);
+  assert.deepEqual(layersOn("beanie", ["crown", "scarf"]), ["scarf"]);
+});

@@ -108,6 +108,7 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
       : m.error ?? "";
     const use = h("button", { class: selected ? "primary" : "", text: selected ? t("In use") : t("Use") }) as HTMLButtonElement;
     use.disabled = selected || !m.info;
+    if (!m.info) use.title = m.error ?? t("This file can't be read as a GGUF model.");
     use.addEventListener("click", () => {
       set("localModel", m.file);
       void refresh();

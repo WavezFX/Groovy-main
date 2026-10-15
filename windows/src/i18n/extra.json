@@ -6507,39 +6507,6 @@
    "ru": "В избранное",
    "id": "Tambah ke favorit"
   },
-  "Worn as the outfit": {
-   "zh-Hans": "已作为服装穿着",
-   "hi": "पोशाक के रूप में पहना है",
-   "es": "Llevado como atuendo",
-   "ar": "مرتدًى كزيّ",
-   "fr": "Porté comme tenue",
-   "bn": "পোশাক হিসেবে পরা",
-   "pt-BR": "Usado como roupa",
-   "ru": "Надето как наряд",
-   "id": "Dipakai sebagai busana"
-  },
-  "Something else is worn there": {
-   "zh-Hans": "那里已经戴了别的东西",
-   "hi": "वहाँ कुछ और पहना है",
-   "es": "Ya lleva otra cosa ahí",
-   "ar": "يُرتدى شيء آخر هناك",
-   "fr": "Autre chose est déjà porté là",
-   "bn": "সেখানে অন্য কিছু পরা আছে",
-   "pt-BR": "Já há outra coisa ali",
-   "ru": "Там уже надето другое",
-   "id": "Ada barang lain yang dipakai di sana"
-  },
-  "A costume is worn on its own: accessories come back with another outfit.": {
-   "zh-Hans": "装扮需单独穿戴：换成其他服装后配饰会回来。",
-   "hi": "पोशाक अकेले पहनी जाती है: दूसरी पोशाक पर एक्सेसरी वापस आ जाती हैं।",
-   "es": "Un disfraz se lleva solo: los accesorios vuelven con otro atuendo.",
-   "ar": "يُرتدى الزيّ وحده: تعود الإكسسوارات مع زيّ آخر.",
-   "fr": "Un costume se porte seul : les accessoires reviennent avec une autre tenue.",
-   "bn": "পোশাক একাই পরা হয়: অন্য পোশাকে এক্সেসরি ফিরে আসে।",
-   "pt-BR": "Uma fantasia é usada sozinha: os acessórios voltam com outra roupa.",
-   "ru": "Костюм носится отдельно: аксессуары вернутся с другим нарядом.",
-   "id": "Kostum dipakai sendiri: aksesori kembali dengan busana lain."
-  },
   "Look's own": {
    "zh-Hans": "使用外观自带",
    "hi": "लुक का अपना",
@@ -11258,6 +11225,127 @@
    "pt-BR": "grande demais para mostrar",
    "ru": "слишком большой для показа",
    "id": "terlalu besar untuk ditampilkan"
+  },
+  "Part of the outfit: click to keep it as your own": {
+   "zh-Hans": "属于当前服装：点击即可作为你自己的配饰保留",
+   "hi": "पोशाक का हिस्सा: इसे अपना बनाने के लिए क्लिक करें",
+   "es": "Parte del atuendo: haz clic para quedártelo como tuyo",
+   "ar": "جزء من الزي: انقر لتحتفظ به كإكسسوار خاص بك",
+   "fr": "Fait partie de la tenue : clique pour le garder comme le tien",
+   "bn": "পোশাকের অংশ: নিজের করে রাখতে ক্লিক করুন",
+   "pt-BR": "Parte da roupa: clique para ficar com ele como seu",
+   "ru": "Часть наряда: нажмите, чтобы оставить как свой",
+   "id": "Bagian dari pakaian: klik untuk menjadikannya milikmu"
+  },
+  "Click to wear it instead": {
+   "zh-Hans": "点击改戴这个",
+   "hi": "इसके बजाय इसे पहनने के लिए क्लिक करें",
+   "es": "Haz clic para ponértelo en su lugar",
+   "ar": "انقر لارتدائه بدلًا منه",
+   "fr": "Clique pour le porter à la place",
+   "bn": "এর বদলে এটি পরতে ক্লিক করুন",
+   "pt-BR": "Clique para usar este no lugar",
+   "ru": "Нажмите, чтобы надеть вместо этого",
+   "id": "Klik untuk memakainya sebagai gantinya"
+  },
+  "{item} is now yours: the outfit is set to None.": {
+   "zh-Hans": "{item} 现在是你的了：服装已设为“无”。",
+   "hi": "{item} अब आपका है: पोशाक “कोई नहीं” पर सेट है।",
+   "es": "{item} ahora es tuyo: el atuendo queda en Ninguno.",
+   "ar": "{item} أصبح لك الآن: تم ضبط الزي على «لا شيء».",
+   "fr": "{item} est à toi maintenant : la tenue passe sur Aucune.",
+   "bn": "{item} এখন আপনার: পোশাক “কিছু না”-তে সেট করা হয়েছে।",
+   "pt-BR": "{item} agora é seu: a roupa ficou em Nenhuma.",
+   "ru": "{item} теперь ваш: наряд установлен на «Нет».",
+   "id": "{item} sekarang milikmu: pakaian diatur ke Tidak ada."
+  },
+  "{item} replaces what was worn there.": {
+   "zh-Hans": "{item} 替换了原来戴的。",
+   "hi": "{item} ने वहाँ पहनी चीज़ की जगह ले ली।",
+   "es": "{item} reemplaza lo que había ahí.",
+   "ar": "{item} يحلّ محل ما كان مرتديًا هناك.",
+   "fr": "{item} remplace ce qui était porté là.",
+   "bn": "{item} সেখানে যা পরা ছিল তার জায়গা নিয়েছে।",
+   "pt-BR": "{item} substitui o que estava ali.",
+   "ru": "{item} заменяет то, что было надето.",
+   "id": "{item} menggantikan yang dipakai di sana."
+  },
+  "The costume is off to wear {item}.": {
+   "zh-Hans": "已脱下戏服，改戴 {item}。",
+   "hi": "{item} पहनने के लिए पोशाक उतार दी गई।",
+   "es": "Fuera el disfraz para ponerte {item}.",
+   "ar": "خُلع الزي التنكري لارتداء {item}.",
+   "fr": "Le costume est retiré pour porter {item}.",
+   "bn": "{item} পরার জন্য কস্টিউম খোলা হয়েছে।",
+   "pt-BR": "A fantasia saiu para usar {item}.",
+   "ru": "Костюм снят, чтобы надеть {item}.",
+   "id": "Kostum dilepas untuk memakai {item}."
+  },
+  "A costume is worn on its own: click an accessory to wear it instead.": {
+   "zh-Hans": "戏服只能单独穿：点击一个配饰即可改戴它。",
+   "hi": "पोशाक अकेले पहनी जाती है: इसके बजाय कोई एक्सेसरी पहनने के लिए उस पर क्लिक करें।",
+   "es": "Un disfraz se lleva solo: haz clic en un accesorio para llevarlo en su lugar.",
+   "ar": "يُرتدى الزي التنكري وحده: انقر على إكسسوار لارتدائه بدلًا منه.",
+   "fr": "Un costume se porte seul : clique sur un accessoire pour le porter à la place.",
+   "bn": "কস্টিউম একাই পরা হয়: এর বদলে কোনো অ্যাকসেসরি পরতে সেটিতে ক্লিক করুন।",
+   "pt-BR": "Uma fantasia é usada sozinha: clique em um acessório para usá-lo no lugar.",
+   "ru": "Костюм носится сам по себе: нажмите на аксессуар, чтобы надеть его вместо.",
+   "id": "Kostum dipakai sendiri: klik aksesori untuk memakainya sebagai gantinya."
+  },
+  "Something went wrong.": {
+   "zh-Hans": "出了点问题。",
+   "hi": "कुछ गड़बड़ हो गई।",
+   "es": "Algo salió mal.",
+   "ar": "حدث خطأ ما.",
+   "fr": "Quelque chose s'est mal passé.",
+   "bn": "কিছু একটা ভুল হয়েছে।",
+   "pt-BR": "Algo deu errado.",
+   "ru": "Что-то пошло не так.",
+   "id": "Terjadi kesalahan."
+  },
+  "At most {n} pills besides the main one: turn one off first.": {
+   "zh-Hans": "除主胶囊外最多 {n} 个：请先关闭一个。",
+   "hi": "मुख्य के अलावा अधिकतम {n} पिल्स: पहले एक बंद करें।",
+   "es": "Como máximo {n} píldoras además de la principal: apaga una primero.",
+   "ar": "بحد أقصى {n} حبوب إلى جانب الرئيسية: أوقف واحدة أولًا.",
+   "fr": "{n} pilules au plus en plus de la principale : désactives-en une d'abord.",
+   "bn": "মূলটি ছাড়া সর্বোচ্চ {n}টি পিল: আগে একটি বন্ধ করুন।",
+   "pt-BR": "No máximo {n} pílulas além da principal: desligue uma primeiro.",
+   "ru": "Не больше {n} пилюль помимо главной: сначала выключите одну.",
+   "id": "Paling banyak {n} pil selain yang utama: matikan satu dulu."
+  },
+  "This file can't be read as a GGUF model.": {
+   "zh-Hans": "无法将此文件读取为 GGUF 模型。",
+   "hi": "यह फ़ाइल GGUF मॉडल के रूप में पढ़ी नहीं जा सकती।",
+   "es": "Este archivo no se puede leer como modelo GGUF.",
+   "ar": "تعذّرت قراءة هذا الملف كنموذج GGUF.",
+   "fr": "Ce fichier ne peut pas être lu comme un modèle GGUF.",
+   "bn": "এই ফাইলটি GGUF মডেল হিসেবে পড়া যায় না।",
+   "pt-BR": "Este arquivo não pode ser lido como modelo GGUF.",
+   "ru": "Этот файл не читается как модель GGUF.",
+   "id": "File ini tidak bisa dibaca sebagai model GGUF."
+  },
+  "Nothing to play yet: add a music folder below, then pick a track.": {
+   "zh-Hans": "还没有可播放的内容：先在下方添加音乐文件夹，再选择一首曲目。",
+   "hi": "अभी चलाने को कुछ नहीं: नीचे संगीत फ़ोल्डर जोड़ें, फिर कोई ट्रैक चुनें।",
+   "es": "Aún no hay nada que reproducir: añade una carpeta de música abajo y elige una pista.",
+   "ar": "لا شيء لتشغيله بعد: أضف مجلد موسيقى أدناه، ثم اختر مقطعًا.",
+   "fr": "Rien à jouer pour l'instant : ajoute un dossier de musique ci-dessous, puis choisis un morceau.",
+   "bn": "এখনও চালানোর কিছু নেই: নিচে একটি মিউজিক ফোল্ডার যোগ করুন, তারপর একটি ট্র্যাক বেছে নিন।",
+   "pt-BR": "Nada para tocar ainda: adicione uma pasta de músicas abaixo e escolha uma faixa.",
+   "ru": "Пока нечего играть: добавьте папку с музыкой ниже и выберите трек.",
+   "id": "Belum ada yang bisa diputar: tambahkan folder musik di bawah, lalu pilih lagu."
+  },
+  "The music player didn't answer. Restart Groovy if it keeps happening.": {
+   "zh-Hans": "音乐播放器没有响应。如果反复出现，请重启 Groovy。",
+   "hi": "म्यूज़िक प्लेयर ने जवाब नहीं दिया। बार-बार हो तो Groovy दोबारा शुरू करें।",
+   "es": "El reproductor de música no respondió. Reinicia Groovy si sigue pasando.",
+   "ar": "لم يستجب مشغّل الموسيقى. أعد تشغيل Groovy إن تكرر ذلك.",
+   "fr": "Le lecteur de musique n'a pas répondu. Redémarre Groovy si ça se répète.",
+   "bn": "মিউজিক প্লেয়ার সাড়া দেয়নি। বারবার হলে Groovy আবার চালু করুন।",
+   "pt-BR": "O player de música não respondeu. Reinicie o Groovy se continuar acontecendo.",
+   "ru": "Музыкальный плеер не ответил. Перезапустите Groovy, если это повторяется.",
+   "id": "Pemutar musik tidak merespons. Mulai ulang Groovy jika terus terjadi."
   }
  }
 }

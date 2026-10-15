@@ -12,7 +12,7 @@
 
 import type { SkinStyle, Skin } from "./skins";
 import { SKINS } from "./skins";
-import { OUTFIT_SELECTIONS, type Outfit } from "./wardrobe";
+import { OUTFIT_SELECTIONS, resolveOutfit, type Outfit, type OutfitSelection } from "./wardrobe";
 import { N_ } from "../i18n/i18n";
 
 export type Slot = "head" | "face" | "neck" | "costume";
@@ -128,6 +128,43 @@ export function combine(main: Outfit, layers: readonly string[]): Outfit[] {
   add(main);
   for (const l of layers) add(l);
   return worn;
+}
+
+/** The layers worn on top of `main` (all of them when there is no outfit). */
+export function layersOn(main: Outfit, layers: readonly string[]): Outfit[] {
+  const worn = combine(main, layers);
+  return main === "none" ? worn : worn.slice(1);
+}
+
+export interface Worn {
+  selection: OutfitSelection;
+  layers: Outfit[];
+  /** What the click did, for a one-line hint. */
+  did: "added" | "removed" | "replaced" | "kept" | "costumeOff";
+}
+
+/**
+ * A click on an accessory in the Wardrobe Studio. Never refused: an item in
+ * a taken slot replaces what is there; the item the outfit (or Auto's season)
+ * wears becomes the user's own layer, the outfit going to "none"; a costume
+ * makes way for the accessory.
+ */
+export function wear(selection: OutfitSelection, layers: readonly string[], item: Exclude<Outfit, "none">, date: Date): Worn {
+  const main = resolveOutfit(selection, date);
+  const own = layersOn(main, layers);
+  const worn = combine(main, layers);
+  if (worn.includes(item)) {
+    if (item === main) return { selection: "none", layers: combine("none", [item, ...own]), did: "kept" };
+    return { selection, layers: own.filter((l) => l !== item), did: "removed" };
+  }
+  const slot = SLOT_OF[item];
+  const mainSlot = main === "none" ? null : SLOT_OF[main];
+  const dropMain = mainSlot === "costume" || mainSlot === slot;
+  const rest = own.filter((l) => SLOT_OF[l as Exclude<Outfit, "none">] !== slot);
+  const nextSelection: OutfitSelection = dropMain ? "none" : selection;
+  const nextMain: Outfit = dropMain ? "none" : main;
+  const did = mainSlot === "costume" ? "costumeOff" : dropMain || rest.length < own.length ? "replaced" : "added";
+  return { selection: nextSelection, layers: layersOn(nextMain, [...rest, item]), did };
 }
 
 /** Whether `item` could be added on top of what is worn now. */

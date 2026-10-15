@@ -1,6 +1,7 @@
 // The Notetaker: your calls, transcribed person by person, with a summary,
 // the key points and the to-dos. Port of FlowHubNotes.swift.
 
+import { showError } from "../../views/toast";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
 import { onEvent } from "../../core/bridge";
@@ -134,7 +135,7 @@ export async function notesPage(page: HTMLElement, ctx: HubContext) {
           setTimeout(() => (copied.textContent = ""), 1500);
         }
       }, "", true));
-      tools.append(button(t("Export as Markdown…"), () => void FlowBridge.exportNote(note.id).catch(() => {}), "", true));
+      tools.append(button(t("Export as Markdown…"), () => void FlowBridge.exportNote(note.id).catch(showError), "", true));
     }
     if (note.status !== "recording") {
       tools.append(iconButton("trash", t("Delete"), () => {

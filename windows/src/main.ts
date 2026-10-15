@@ -3,6 +3,7 @@
 import "./style.css";
 import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
 import { Sound } from "./core/sound";
+import { installErrorReporting } from "./views/toast";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { registerHookHandlers } from "./island/hooks";
@@ -21,6 +22,7 @@ function applyLanguage() {
 }
 
 async function main() {
+  installErrorReporting("pill");
   const root = document.getElementById("root");
   if (!root) return;
 
