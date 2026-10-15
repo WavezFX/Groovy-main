@@ -4,7 +4,7 @@ Status words used below: **implemented** (code merged, unit-tested),
 **CI-verified** (built and smoke-tested on a Windows runner), **unverified**
 (written, not exercised end to end yet).
 
-## 0.6.0 — Groovy AI, phase 1 + 2 foundation (in progress)
+## 0.6.0 — Groovy AI
 
 ### Phase 1 — stabilisation and Windows build
 - Windows build workflow (`.github/workflows/windows-build.yml`): type check,
@@ -91,15 +91,90 @@ Status words used below: **implemented** (code merged, unit-tested),
   Permissions; “ask” shows Allow once / Always / Don't under the answer; an
   audit log records every run, request and refusal.
 
+### Phase 6 — Coding Studio
+- **Studio window** (`studio.html`, `src/studio/main.ts`, backend `studio.rs`),
+  opened from the tray or Control Centre → Coding agents: project folders
+  (open or create), file tree and project search, an editor where every save
+  goes into the file's history (restore any version; delete keeps a copy),
+  a terminal where a command runs **only when Run is clicked** (streamed
+  output, Stop, 10-minute limit, errors you can click to jump to), git status /
+  diff / log and init / stage / commit / push one click at a time (push asks).
+- **AI in the Studio**: the local model by default; code goes to an online
+  provider only after an explicit OK naming the provider and the files.
+  Answers are parsed into file proposals shown as diffs with **Apply**, and
+  commands shown with **Run** — nothing is written or run by itself; paths
+  leaving the project are refused.
+
+### Voice, dictation and notes (ported from Coucou 0.5.0, MIT, rebranded)
+- **Speech engine** (`speech/`): Parakeet through sherpa-onnx (25 European
+  languages), models downloaded once (~700 MB, SHA-256 checked), microphone
+  and system-audio capture. **Whisper as an alternative engine** for every
+  other language (Punjabi, Hindi, Arabic, Japanese, Chinese…), chosen in
+  Dictation settings.
+- **Flow dictation** (`flow/`): hold a key anywhere, speak, release — the
+  text is pasted where you type (clipboard restored). Dictionary,
+  replacements, snippets, per-app styles, optional clean-up by AI, history
+  and statistics, all on this computer. A floating **pill** window shows
+  listening / thinking / messages.
+- **Notetaker** (`notes/`): records calls (microphone + system audio),
+  transcribes person by person, summary and to-dos, Markdown export.
+- **« OK Groovy »** (`okgroovy/`): wake phrase (“OK / Hey / Yo Groovy”),
+  then any request: pills, Spotify, your data, open an app, prepare an email
+  (never sent by Groovy), agent skills. Answers spoken with the system voice
+  (ElevenLabs optional).
+- **Local-first brain** (`brain_ai.rs`): « OK Groovy », the dictation
+  clean-up and note summaries use the local model (llama.cpp, Ollama, LM
+  Studio or a custom server) by default; Claude only if chosen and a key is
+  set (and never in “This PC only” mode). Web search exists only with Claude;
+  locally Groovy says it has no internet access.
+- **Control Centre** rebuilt on the ported hub: Groovy's pages plus a “Voice
+  and dictation” group, a coloured band per page with Groovy's own character
+  (Coucou's reserved Mochi artwork, icons and sounds are not used), narrow
+  windows get a page strip on top.
+- **Spotify on Windows** through the system media controls (track, artwork,
+  play/pause, next/previous, seek, shuffle, repeat, volume); island zoom fix
+  for mismatched display scaling.
+
+### Skills Manager (agent skills per project)
+- Drives Vercel's open-source `skills` CLI 1.7.2 (`npx -y skills@1.7.2`) for
+  Claude Code, Codex, Cursor, OpenCode, Gemini CLI and GitHub Copilot:
+  no shell, argument lists validated, `DISABLE_TELEMETRY=1` always, `--copy`
+  on Windows, only an optional GitHub token passed. Needs Node.js ≥ 22.20;
+  an “Install Node.js” button (winget) appears otherwise.
+- Project analysis (manifests, dependencies, languages, tests, linters,
+  CLAUDE.md / AGENTS.md, git activity), skills.sh search, ranking by the local
+  AI (it can only rank real search results) with a rule-based fallback, and
+  “could remove” suggestions.
+- **Nothing installs without approval**: an install needs a preview the user
+  was shown (full SKILL.md, source, install count, allowed tools and scripts
+  highlighted). Removals are backed up to `.groovy/skills-trash/`; undo;
+  updates skip skills you edited (fork to keep your own copy); SKILL.md
+  editor that checks the frontmatter; new skills with `init`.
+- « OK Groovy » can search, list and recommend skills; install and remove
+  only open the Skills page to confirm. A quiet pill bubble suggests skills
+  when an agent session starts in a project Groovy already manages.
+- Vercel's licence and third-party notices: `windows/docs/licenses/skills-cli/`.
+
+### Phase 7 — release and checks
+- CI also runs the Skills CLI end to end (add, list, remove with backup) and
+  reports startup time and idle memory in the smoke tests.
+- `windows.yml` publishes the `Groovy-AI-…` installer names; Node 24.
+- CI cargo cache holds only downloaded crates and is never saved after a
+  cancelled run (a half-written cache broke run 8).
+
 ### Known limitations
 - No GGUF model or llama.cpp runtime ships inside the installer: both are
   downloaded on request from Settings → Models (sizes shown before download).
 - Small local models are far weaker than cloud models and slow on a laptop CPU.
 - The Ollama installer download (pre-existing) is not checksum-verified.
 - If Groovy is killed (not quit), a running `llama-server` may outlive it.
-- The Spotify pill still only works on Linux (MPRIS); on Windows it reports
-  nothing playing. The local player is the Windows music source for now.
 - Text-to-speech uses the voices installed in Windows (offline ones work
   without internet); Piper voices are not integrated yet.
-- Wake-word detection uses Whisper on short segments (no dedicated keyword
-  model); custom wake words and voice identification are not implemented.
+- Wake-word detection runs speech-to-text on short segments (no dedicated
+  keyword model); custom wake words and voice identification are not implemented.
+- With Whisper as the dictation engine, word timings in notes are spread
+  evenly over each stretch (Whisper gives none), so speaker turns are rougher.
+- Flow dictation, the Notetaker and « OK Groovy » have unit tests and build on
+  Windows, but have not been exercised with a real microphone on Windows yet.
+- The Skills Manager needs Node.js ≥ 22.20 and network access to npm,
+  skills.sh and GitHub; it is off otherwise.

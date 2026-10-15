@@ -47,6 +47,7 @@ if ($Offline) {
 
 try {
   Write-Host "Launching $Exe"
+  $started = Get-Date
   $proc = Start-Process -FilePath $Exe -PassThru
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
   $booted = $false
@@ -55,12 +56,35 @@ try {
     if ($proc.HasExited) { break }
     if ((Test-Path $log) -and (Select-String -Path $log -Pattern "boot: interface loaded" -Quiet)) {
       $booted = $true
+      $bootSeconds = ((Get-Date) - $started).TotalSeconds
       break
     }
   }
   # Give it a few more seconds alive after boot: a crash right after the
   # interface loads must fail the test too.
   if ($booted) { Start-Sleep -Seconds 5 }
+
+  # Benchmarks (reported, not judged: shared CI runners vary too much for a
+  # hard budget): time to the interface, and memory once idle — Groovy itself
+  # and the WebView2 processes it started.
+  $metrics = [ordered]@{}
+  if ($booted) {
+    $metrics["time to interface (s, 2 s polling)"] = [math]::Round($bootSeconds, 1)
+    if (-not $proc.HasExited) {
+      $proc.Refresh()
+      $metrics["groovy.exe working set (MB)"] = [math]::Round($proc.WorkingSet64 / 1MB, 1)
+      $metrics["groovy.exe private memory (MB)"] = [math]::Round($proc.PrivateMemorySize64 / 1MB, 1)
+      $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
+      $webviews = @()
+      foreach ($c in $children) {
+        $webviews += Get-CimInstance Win32_Process -Filter "ParentProcessId = $($c.ProcessId)" -ErrorAction SilentlyContinue
+        $webviews += $c
+      }
+      $ws = ($webviews | Measure-Object -Property WorkingSetSize -Sum).Sum
+      $metrics["child processes (WebView2…)"] = $webviews.Count
+      $metrics["child processes working set (MB)"] = [math]::Round($ws / 1MB, 1)
+    }
+  }
 
   $results["process still running"] = -not $proc.HasExited
   $results["backend started (log)"] = (Test-Path $log) -and (Select-String -Path $log -Pattern "--- Groovy .* started ---" -Quiet)
@@ -82,6 +106,11 @@ foreach ($k in $results.Keys) {
   if (-not $ok) { $failed++ }
   Write-Host ("  [{0}] {1}" -f $(if ($ok) { "PASS" } else { "FAIL" }), $k)
 }
+if ($metrics -and $metrics.Count) {
+  Write-Host ""
+  Write-Host "Measured:"
+  foreach ($k in $metrics.Keys) { Write-Host ("  {0}: {1}" -f $k, $metrics[$k]) }
+}
 if (Test-Path $log) {
   Write-Host ""
   Write-Host "groovy.log:"
@@ -93,6 +122,12 @@ if ($env:GITHUB_STEP_SUMMARY) {
   "### Smoke test: $Label$(if ($Offline) { ' (offline)' })" | Out-File -Append $env:GITHUB_STEP_SUMMARY
   foreach ($k in $results.Keys) {
     "- $(if ([bool]$results[$k]) { '✅' } else { '❌' }) $k" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+  }
+  if ($metrics -and $metrics.Count) {
+    "" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+    "| Measured | |" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+    "|---|---|" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+    foreach ($k in $metrics.Keys) { "| $k | $($metrics[$k]) |" | Out-File -Append $env:GITHUB_STEP_SUMMARY }
   }
 }
 if ($failed -gt 0) { throw "$failed smoke check(s) failed" }
