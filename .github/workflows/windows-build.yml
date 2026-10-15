@@ -41,15 +41,20 @@ jobs:
         with:
           node-version: 24
 
-      - name: Cache cargo
-        uses: actions/cache@v6
+      # Restored here and saved at the end even when a later step fails, so a
+      # red run doesn't throw away a 20-minute compile.
+      - name: Restore the cargo cache
+        id: cargo-cache
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             windows/target
-          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}
-          restore-keys: windows-build-cargo-
+          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-
+            windows-build-cargo-
 
       # whisper.cpp (voice) builds from source and needs CMake and libclang.
       - name: Check build tools
@@ -148,6 +153,16 @@ jobs:
             windows/release/CHANGELOG.md
           retention-days: 14
           if-no-files-found: error
+
+      - name: Save the cargo cache
+        if: always() && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            windows/target
+          key: windows-build-cargo-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
 
       - uses: actions/upload-artifact@v7
         if: always()
