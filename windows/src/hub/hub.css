@@ -961,3 +961,13 @@ button.hub-icon svg {
     display: none;
   }
 }
+
+/* Light local (round 2 item 3) */
+.card.light-local {
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.card.light-local .name {
+  flex: 1;
+}

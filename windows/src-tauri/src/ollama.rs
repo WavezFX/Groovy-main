@@ -50,6 +50,33 @@ fn client(timeout: Duration) -> reqwest::Client {
     reqwest::Client::builder().no_proxy().timeout(timeout).build().unwrap_or_default()
 }
 
+/// The Ollama server Groovy started itself (setup), so it can be stopped
+/// again when Groovy's own engine takes over; an Ollama the user runs is left alone.
+static STARTED: std::sync::Mutex<Option<std::process::Child>> = std::sync::Mutex::new(None);
+
+/// One local engine at a time: before llama-server starts, the models Ollama
+/// holds are unloaded (keep_alive 0) and a server Groovy started is stopped.
+pub async fn unload_all() {
+    if let Some(mut child) = STARTED.lock().unwrap().take() {
+        let _ = child.kill();
+        let _ = child.wait();
+        crate::log::line("ollama: stopped the server Groovy started (Groovy's own engine is starting)");
+        return;
+    }
+    let c = client(Duration::from_secs(3));
+    let Ok(resp) = c.get(format!("{BASE}/api/ps")).send().await else { return };
+    let Ok(v) = resp.json::<Value>().await else { return };
+    for name in v["models"].as_array().into_iter().flatten().filter_map(|m| m["name"].as_str()) {
+        let _ = c.post(format!("{BASE}/api/generate")).json(&serde_json::json!({ "model": name, "keep_alive": 0 })).send().await;
+        crate::log::line(format!("ollama: unloaded {name} (Groovy's own engine is starting)"));
+    }
+}
+
+/// Whether Ollama is on this PC (installed by its own installer or on the PATH).
+pub fn installed() -> bool {
+    exe().is_some()
+}
+
 /// Where Ollama's own installer puts it, or wherever it is on the PATH.
 fn exe() -> Option<PathBuf> {
     #[cfg(windows)]
@@ -169,6 +196,7 @@ async fn start(app: &AppHandle) -> Result<(), String> {
     if let Ok(child) = platform::no_console(&mut cmd).spawn() {
         // Ends with Groovy (Windows job object): it was started for Groovy.
         platform::contain(&child);
+        *STARTED.lock().unwrap() = Some(child);
     }
     for _ in 0..60 {
         if tags().await.is_some() {

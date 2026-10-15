@@ -268,6 +268,17 @@ pub fn strip_ansi(s: &str) -> String {
     out
 }
 
+/// The last message in a program's output: its trailing lines up to the blank
+/// line before them (at most four), so a message the shell wraps ("'x' is not
+/// recognized as an internal or external command,\noperable program or batch
+/// file.") arrives whole.
+fn last_message(text: &str) -> String {
+    let lines: Vec<&str> = text.lines().map(str::trim).collect();
+    let end = lines.iter().rposition(|l| !l.is_empty()).map(|i| i + 1).unwrap_or(0);
+    let start = lines[..end].iter().rposition(|l| l.is_empty()).map(|i| i + 1).unwrap_or(0).max(end.saturating_sub(4));
+    lines[start..end].join(" ")
+}
+
 // ── Running it ────────────────────────────────────────────────────────────────
 
 pub struct Output {
@@ -345,8 +356,8 @@ pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
     let stdout = out_reader.join().unwrap_or_default();
     let stderr = strip_ansi(&err_reader.join().unwrap_or_default());
     if !status.success() && json_array(&stdout).is_none() {
-        let msg = stderr.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim().to_string();
-        let msg = if msg.is_empty() { strip_ansi(stdout.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("")) } else { msg };
+        let msg = last_message(&stderr);
+        let msg = if msg.is_empty() { last_message(&strip_ansi(&stdout)) } else { msg };
         return Err(format!("The skills CLI failed: {msg}"));
     }
     Ok(Output { stdout })
@@ -355,6 +366,14 @@ pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_wrapped_shell_message_arrives_whole() {
+        let err = "npm warn exec\n\n'git' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n\r\n";
+        assert_eq!(last_message(err), "'git' is not recognized as an internal or external command, operable program or batch file.");
+        assert_eq!(last_message("one\ntwo\nthree\nfour\nfive\n"), "two three four five");
+        assert_eq!(last_message(""), "");
+    }
 
     #[test]
     fn node_versions() {

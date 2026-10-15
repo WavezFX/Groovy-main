@@ -111,6 +111,10 @@ export interface CatalogModel {
   license: string;
   tier: "lightweight" | "balanced" | "performance";
   goodFor: string;
+  /** Measured memory once loaded, MB; 0 when not measured. */
+  ramMb: number;
+  /** Measured answer speed, tokens a second; 0 when not measured. */
+  tokensPerSecond: number;
 }
 
 export interface ModelsStatus {
@@ -128,9 +132,20 @@ export interface ModelsStatus {
   catalog: CatalogModel[];
   memory: { total: number; available: number };
   cpus: number;
-  profile: { context: number; threads: number; ramShare: number; idleMinutes: number; animation: string };
+  profile: { context: number; threads: number; idleMinutes: number; animation: string };
   recommendedProfile: "lightweight" | "balanced" | "performance";
   downloading: boolean;
+  /** Catalogue ids that suit this PC (≤ 40 % of its memory once loaded). */
+  fits: string[];
+  /** The "Light local" model for this PC. */
+  lightPick: string;
+  /** The last start was refused for want of free memory: what it needed, in bytes. */
+  shortMemory: number | null;
+}
+
+export interface MemoryHog {
+  name: string;
+  bytes: number;
 }
 
 export interface SystemStatus {
@@ -521,6 +536,8 @@ export const Bridge = {
   modelsCancelDownload: () => call<void>("models_cancel_download"),
   modelsDelete: (file: string) => callOrThrow<void>("models_delete", { file }),
   modelsStart: () => callOrThrow<string>("models_start"),
+  modelsLoadAnyway: () => callOrThrow<string>("models_load_anyway"),
+  memoryHogs: () => call<MemoryHog[]>("memory_hogs"),
   modelsStop: () => call<void>("models_stop"),
   modelsRevealFolder: () => call<void>("models_reveal_folder"),
 

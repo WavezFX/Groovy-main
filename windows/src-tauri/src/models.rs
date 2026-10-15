@@ -69,6 +69,11 @@ pub struct CatalogModel {
     /// lightweight | balanced | performance — the smallest profile it suits.
     pub tier: &'static str,
     pub good_for: &'static str,
+    /// Memory llama-server b11000 really took with it, MB (context 2048, 4 CPU
+    /// threads, measured on Linux x64, Oct 2026); 0 when not measured yet.
+    pub ram_mb: u32,
+    /// Answer speed measured the same way, tokens per second; 0 when not measured.
+    pub tokens_per_second: u32,
 }
 
 pub const CATALOG: &[CatalogModel] = &[
@@ -82,6 +87,34 @@ pub const CATALOG: &[CatalogModel] = &[
         license: "Apache-2.0",
         tier: "lightweight",
         good_for: "Very fast, basic chat and commands. Weak at reasoning.",
+        ram_mb: 591,
+        tokens_per_second: 33,
+    },
+    CatalogModel {
+        id: "qwen3-0.6b",
+        label: "Qwen3 0.6B (Q8_0)",
+        file: "Qwen3-0.6B-Q8_0.gguf",
+        url: "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf",
+        sha256: "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+        size: 639_446_688,
+        license: "Apache-2.0",
+        tier: "lightweight",
+        good_for: "Small and quick, short natural answers. Good for voice on low-memory PCs.",
+        ram_mb: 906,
+        tokens_per_second: 24,
+    },
+    CatalogModel {
+        id: "gemma3-1b",
+        label: "Gemma 3 1B Instruct (Q4_K_M)",
+        file: "gemma-3-1b-it-Q4_K_M.gguf",
+        url: "https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf",
+        sha256: "8ccc5cd1f1b3602548715ae25a66ed73fd5dc68a210412eea643eb20eb75a135",
+        size: 806_058_240,
+        license: "Gemma Terms of Use",
+        tier: "lightweight",
+        good_for: "The friendliest conversation for its size. Recommended for 8 GB PCs.",
+        ram_mb: 971,
+        tokens_per_second: 18,
     },
     CatalogModel {
         id: "llama3.2-1b",
@@ -93,6 +126,8 @@ pub const CATALOG: &[CatalogModel] = &[
         license: "Llama 3.2 Community License",
         tier: "lightweight",
         good_for: "Fast everyday chat, multilingual (EN, DE, ES, FR, IT, PT, HI, TH).",
+        ram_mb: 1366,
+        tokens_per_second: 21,
     },
     CatalogModel {
         id: "qwen2.5-1.5b",
@@ -103,7 +138,22 @@ pub const CATALOG: &[CatalogModel] = &[
         size: 1_117_320_736,
         license: "Apache-2.0",
         tier: "lightweight",
-        good_for: "Recommended for 8 GB laptops: good chat quality at a usable speed.",
+        good_for: "Good chat quality at a usable speed.",
+        ram_mb: 0,
+        tokens_per_second: 0,
+    },
+    CatalogModel {
+        id: "qwen3-1.7b",
+        label: "Qwen3 1.7B (Q4_K_M)",
+        file: "Qwen3-1.7B-Q4_K_M.gguf",
+        url: "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf",
+        sha256: "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897",
+        size: 1_107_409_472,
+        license: "Apache-2.0",
+        tier: "lightweight",
+        good_for: "Better answers than the 1B models, a little slower. For 12 GB and up.",
+        ram_mb: 2000,
+        tokens_per_second: 16,
     },
     CatalogModel {
         id: "qwen2.5-coder-1.5b",
@@ -115,6 +165,8 @@ pub const CATALOG: &[CatalogModel] = &[
         license: "Apache-2.0",
         tier: "lightweight",
         good_for: "Coding help offline: explaining, small functions, fixing errors.",
+        ram_mb: 0,
+        tokens_per_second: 0,
     },
     CatalogModel {
         id: "llama3.2-3b",
@@ -126,6 +178,8 @@ pub const CATALOG: &[CatalogModel] = &[
         license: "Llama 3.2 Community License",
         tier: "balanced",
         good_for: "Better answers, slower. Close other heavy apps on 8 GB.",
+        ram_mb: 0,
+        tokens_per_second: 0,
     },
     CatalogModel {
         id: "qwen2.5-3b",
@@ -137,6 +191,8 @@ pub const CATALOG: &[CatalogModel] = &[
         license: "Qwen Research License (non-commercial)",
         tier: "balanced",
         good_for: "Better reasoning and coding than 1.5B. Non-commercial licence.",
+        ram_mb: 0,
+        tokens_per_second: 0,
     },
     CatalogModel {
         id: "qwen3-4b",
@@ -147,9 +203,42 @@ pub const CATALOG: &[CatalogModel] = &[
         size: 2_497_280_256,
         license: "Apache-2.0",
         tier: "performance",
-        good_for: "Best quality here; thinks before answering. Slow on a laptop CPU.",
+        good_for: "Best quality here. Slow on a laptop CPU.",
+        ram_mb: 0,
+        tokens_per_second: 0,
     },
 ];
+
+/// The memory a catalogue model takes once loaded: as measured, or estimated
+/// from its size (weights, a quarter more for its context, the server).
+pub fn catalog_ram(m: &CatalogModel) -> u64 {
+    if m.ram_mb > 0 {
+        m.ram_mb as u64 * 1024 * 1024
+    } else {
+        m.size + m.size / 4 + 350 * 1024 * 1024
+    }
+}
+
+/// "Light local": the one conversation model to suggest for a PC with `total`
+/// bytes of memory — the tiny one on 6 GB and less, Gemma 3 1B up to 12 GB,
+/// Qwen3 1.7B above.
+pub fn light_pick(total: u64) -> &'static str {
+    const GB: u64 = 1024 * 1024 * 1024;
+    if total <= 6 * GB {
+        "qwen2.5-0.5b"
+    } else if total <= 12 * GB {
+        "gemma3-1b"
+    } else {
+        "qwen3-1.7b"
+    }
+}
+
+/// The light models keep a short context: quicker to load and to answer.
+pub const LIGHT_CONTEXT: u32 = 2048;
+
+fn is_light_file(file: &str) -> bool {
+    CATALOG.iter().any(|m| m.file == file && m.ram_mb > 0 && m.ram_mb <= 2048)
+}
 
 // ── Profiles ──────────────────────────────────────────────────────────────────
 
@@ -158,8 +247,6 @@ pub const CATALOG: &[CatalogModel] = &[
 pub struct Profile {
     pub context: u32,
     pub threads: u32,
-    /// Share of the memory free right now a model may take.
-    pub ram_share: f64,
     /// Stop the server after this many idle minutes to give the memory back; 0 = never.
     pub idle_minutes: u64,
     pub animation: &'static str,
@@ -168,9 +255,9 @@ pub struct Profile {
 pub fn profile(name: &str, cpus: u32) -> Profile {
     let cpus = cpus.max(1);
     match name {
-        "lightweight" => Profile { context: 2048, threads: (cpus / 2).clamp(1, 4), ram_share: 0.6, idle_minutes: 5, animation: "reduced" },
-        "performance" => Profile { context: 8192, threads: cpus, ram_share: 0.85, idle_minutes: 0, animation: "full" },
-        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), ram_share: 0.75, idle_minutes: 10, animation: "full" },
+        "lightweight" => Profile { context: 2048, threads: (cpus / 2).clamp(1, 4), idle_minutes: 5, animation: "reduced" },
+        "performance" => Profile { context: 8192, threads: cpus, idle_minutes: 0, animation: "full" },
+        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), idle_minutes: 10, animation: "full" },
     }
 }
 
@@ -502,20 +589,102 @@ pub fn cpu_count() -> u32 {
     std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(4)
 }
 
-/// Why a model can't be started with the memory free now, if it can't.
-pub fn memory_refusal(needed: u64, mem: MemoryInfo, share: f64) -> Option<String> {
-    const MB: f64 = 1024.0 * 1024.0;
-    let allowed = (mem.available as f64 * share) as u64;
-    if needed <= allowed {
-        return None;
+/// Share of the PC's total memory a model may need and still suit it: about
+/// 3 GB on an 8 GB PC. Models are judged by the PC, not by this second.
+pub const FIT_SHARE: f64 = 0.4;
+
+pub fn fits_pc(needed: u64, total: u64) -> bool {
+    needed as f64 <= total as f64 * FIT_SHARE
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MemoryCheck {
+    Fine,
+    /// Suits the PC, but other apps hold the memory right now.
+    Short { needed: u64, free: u64 },
+    TooBig { needed: u64, total: u64 },
+}
+
+pub fn memory_check(needed: u64, mem: MemoryInfo) -> MemoryCheck {
+    if !fits_pc(needed, mem.total) {
+        MemoryCheck::TooBig { needed, total: mem.total }
+    } else if needed > mem.available {
+        MemoryCheck::Short { needed, free: mem.available }
+    } else {
+        MemoryCheck::Fine
     }
-    Some(format!(
-        "This model needs about {:.0} MB but only {:.0} MB of memory is free right now ({:.0} MB allowed by the performance profile). \
-Close some apps, pick a smaller model, or switch to the Lightweight profile.",
-        needed as f64 / MB,
-        mem.available as f64 / MB,
-        allowed as f64 / MB
-    ))
+}
+
+fn mb(bytes: u64) -> String {
+    format!("{:.0}", bytes as f64 / (1024.0 * 1024.0))
+}
+
+/// Why a model can't be started now, if it can't: too big for the PC, or
+/// (unless `anyway`) not enough memory free at the moment.
+pub fn memory_refusal(check: MemoryCheck, anyway: bool) -> Option<String> {
+    match check {
+        MemoryCheck::Fine => None,
+        MemoryCheck::TooBig { needed, total } => Some(crate::i18n::tf(
+            "This model needs about {needed} MB, too much for this PC ({total} MB of memory). Pick a lighter one in Groovy → Models.",
+            &[("needed", &mb(needed)), ("total", &mb(total))],
+        )),
+        MemoryCheck::Short { .. } if anyway => None,
+        MemoryCheck::Short { needed, free } => Some(crate::i18n::tf(
+            "Only {free} MB of memory is free right now and this model needs about {needed} MB. Close some apps, or choose Load anyway in Groovy → Models.",
+            &[("needed", &mb(needed)), ("free", &mb(free))],
+        )),
+    }
+}
+
+/// The next start goes ahead even when memory is short ("Load anyway").
+static LOAD_ANYWAY: AtomicBool = AtomicBool::new(false);
+/// The last start refused for want of free memory: what it needed.
+static SHORT: Mutex<Option<u64>> = Mutex::new(None);
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryHog {
+    pub name: String,
+    pub bytes: u64,
+}
+
+/// The apps holding the most memory, grouped by name ("Free up memory").
+#[tauri::command]
+pub fn memory_hogs() -> Vec<MemoryHog> {
+    use sysinfo::{ProcessRefreshKind, RefreshKind, System};
+    let sys = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::nothing().with_memory()));
+    let mut by_name: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+    for p in sys.processes().values() {
+        let name = p.name().to_string_lossy().trim_end_matches(".exe").to_string();
+        *by_name.entry(name).or_default() += p.memory();
+    }
+    top_hogs(by_name, 6)
+}
+
+fn top_hogs(by_name: std::collections::HashMap<String, u64>, n: usize) -> Vec<MemoryHog> {
+    let mut v: Vec<MemoryHog> = by_name
+        .into_iter()
+        .filter(|(name, _)| !name.is_empty() && !name.eq_ignore_ascii_case("groovy") && !name.eq_ignore_ascii_case("llama-server"))
+        .map(|(name, bytes)| MemoryHog { name, bytes })
+        .collect();
+    v.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.name.cmp(&b.name)));
+    v.truncate(n);
+    v
+}
+
+/// "Load anyway": starts the chosen model even though memory is short.
+#[tauri::command]
+pub async fn models_load_anyway(app: AppHandle) -> Result<String, String> {
+    let prefs = {
+        use tauri::Manager;
+        let shared = app.state::<crate::Shared>();
+        let p = shared.settings.lock().unwrap().assistant.clone();
+        p
+    };
+    LOAD_ANYWAY.store(true, Ordering::SeqCst);
+    let r = ensure_running(&prefs, Some(&app)).await;
+    LOAD_ANYWAY.store(false, Ordering::SeqCst);
+    r
 }
 
 // ── The server ────────────────────────────────────────────────────────────────
@@ -620,10 +789,22 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     let path = model_path(&wanted)?;
     let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
     let info = read_gguf(&path).map_err(|e| format!("{wanted}: {e}"))?;
-    let prof = profile(&prefs.performance_profile, cpu_count());
-    if let Some(why) = memory_refusal(estimate_ram(size, &info, prof.context), memory_info(), prof.ram_share) {
+    let mut prof = profile(&prefs.performance_profile, cpu_count());
+    if is_light_file(&wanted) {
+        prof.context = prof.context.min(LIGHT_CONTEXT);
+    }
+    let needed = estimate_ram(size, &info, prof.context);
+    let check = memory_check(needed, memory_info());
+    *SHORT.lock().unwrap() = matches!(check, MemoryCheck::Short { .. }).then_some(needed);
+    if let Some(why) = memory_refusal(check, LOAD_ANYWAY.load(Ordering::SeqCst)) {
+        if let (Some(app), MemoryCheck::Short { needed, free }) = (app, check) {
+            let _ = app.emit("local-model", serde_json::json!({ "state": "short", "model": wanted, "needed": needed, "free": free }));
+        }
         return Err(why);
     }
+    *SHORT.lock().unwrap() = None;
+    // Only one local engine: a model Ollama holds gives its memory back first.
+    crate::ollama::unload_all().await;
     let port = free_port()?;
     let gpu = if installed_runtime().as_deref() == Some("vulkan") { prefs.gpu_layers } else { 0 };
     let mut cmd = Command::new(&exe);
@@ -804,6 +985,12 @@ pub struct ModelsStatus {
     pub profile: Profile,
     pub recommended_profile: &'static str,
     pub downloading: bool,
+    /// Catalogue ids that suit this PC (≤ 40 % of its memory once loaded).
+    pub fits: Vec<&'static str>,
+    /// The "Light local" model for this PC.
+    pub light_pick: &'static str,
+    /// The last start was refused because memory was short: what it needed.
+    pub short_memory: Option<u64>,
 }
 
 #[tauri::command]
@@ -831,6 +1018,9 @@ pub fn models_status(shared: tauri::State<crate::Shared>) -> ModelsStatus {
         profile: prof,
         recommended_profile: recommended_profile(memory.total),
         downloading: DOWNLOADING.load(Ordering::Relaxed),
+        fits: CATALOG.iter().filter(|m| fits_pc(catalog_ram(m), memory.total)).map(|m| m.id).collect(),
+        light_pick: light_pick(memory.total),
+        short_memory: *SHORT.lock().unwrap(),
     }
 }
 
@@ -1008,12 +1198,55 @@ mod tests {
     }
 
     #[test]
-    fn refuses_a_model_that_does_not_fit() {
+    fn light_local_picks_one_model_by_memory_and_it_fits() {
         const GB: u64 = 1024 * 1024 * 1024;
-        let mem = MemoryInfo { total: 8 * GB, available: 3 * GB };
-        assert!(memory_refusal(GB, mem, 0.6).is_none());
-        let why = memory_refusal(5 * GB, mem, 0.6).unwrap();
-        assert!(why.contains("Lightweight"));
+        assert_eq!(light_pick(4 * GB), "qwen2.5-0.5b");
+        assert_eq!(light_pick(8 * GB - GB / 2), "gemma3-1b");
+        assert_eq!(light_pick(16 * GB), "qwen3-1.7b");
+        for total in [4 * GB, 8 * GB, 16 * GB, 32 * GB] {
+            let m = CATALOG.iter().find(|m| m.id == light_pick(total)).expect("in the catalogue");
+            assert!(fits_pc(catalog_ram(m), total), "{} on {total}", m.id);
+            assert!(is_light_file(m.file));
+        }
+        // On 8 GB every measured small model suits the PC; Qwen3 4B doesn't.
+        let fits8: Vec<_> = CATALOG.iter().filter(|m| fits_pc(catalog_ram(m), 8 * GB)).map(|m| m.id).collect();
+        for id in ["qwen2.5-0.5b", "qwen3-0.6b", "gemma3-1b", "llama3.2-1b", "qwen3-1.7b"] {
+            assert!(fits8.contains(&id), "{id}");
+        }
+        assert!(!fits8.contains(&"qwen3-4b"));
+    }
+
+    #[test]
+    fn models_are_judged_by_the_pc_not_by_this_second() {
+        const GB: u64 = 1024 * 1024 * 1024;
+        const MB: u64 = 1024 * 1024;
+        // The owner's PC: 8 GB at 91 % used, about 700 MB free.
+        let busy = MemoryInfo { total: 8 * GB, available: 700 * MB };
+        // Qwen2.5 0.5B (~0.9 GB with its context) suits the PC: short now, not refused for good.
+        assert_eq!(memory_check(900 * MB, busy), MemoryCheck::Short { needed: 900 * MB, free: 700 * MB });
+        let why = memory_refusal(memory_check(900 * MB, busy), false).unwrap();
+        assert!(why.contains("Load anyway"), "{why}");
+        assert!(memory_refusal(memory_check(900 * MB, busy), true).is_none());
+        // Free memory: fine.
+        assert_eq!(memory_check(900 * MB, MemoryInfo { total: 8 * GB, available: 3 * GB }), MemoryCheck::Fine);
+        // Up to ~3.2 GB suits 8 GB; 4 GB doesn't, even with memory free, and Load anyway can't override it.
+        assert!(fits_pc(3 * GB, 8 * GB));
+        assert!(!fits_pc(4 * GB, 8 * GB));
+        let big = memory_check(4 * GB, MemoryInfo { total: 8 * GB, available: 6 * GB });
+        assert!(matches!(big, MemoryCheck::TooBig { .. }));
+        assert!(memory_refusal(big, true).unwrap().contains("lighter"));
+    }
+
+    #[test]
+    fn the_biggest_apps_come_first_without_groovy() {
+        let mut m = std::collections::HashMap::new();
+        m.insert("chrome".to_string(), 900);
+        m.insert("Groovy".to_string(), 2000);
+        m.insert("llama-server".to_string(), 1500);
+        m.insert("Discord".to_string(), 400);
+        m.insert("Teams".to_string(), 600);
+        let top = top_hogs(m, 2);
+        assert_eq!(top.iter().map(|h| h.name.as_str()).collect::<Vec<_>>(), ["chrome", "Teams"]);
     }
 
     #[test]

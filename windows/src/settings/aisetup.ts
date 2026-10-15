@@ -10,6 +10,7 @@ import type { ProviderId } from "../core/providers";
 import { h, clear } from "../views/dom";
 import { showError } from "../views/toast";
 import { t } from "../i18n/i18n";
+import { lightLocalCard } from "./lightlocal";
 
 const GB = 1024 ** 3;
 
@@ -48,7 +49,8 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
   const draw = async () => {
     clear(section);
     const p = prefs();
-    const memory = (await Bridge.modelsStatus())?.memory.total ?? 0;
+    const models = await Bridge.modelsStatus();
+    const memory = models?.memory.total ?? 0;
     const clis = (await Bridge.aiClis()) ?? { claudeCode: false, codex: false };
     const choose = (c: Parameters<typeof applyChoice>[1]) => {
       const next = applyChoice(p, c);
@@ -124,7 +126,17 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
       h("div", { class: "hint", text: t("Uses the command-line tool you already signed in to, for « OK Groovy », dictation and notes (answers without tools). The chat still needs a key.") }),
     );
 
-    // 4. Local, last.
+    // 4. Light local: one small model picked for this PC, one click.
+    const light = models ? lightLocalCard(models, settings, prefs, save, () => void draw()) : null;
+    if (light) {
+      section.append(
+        h("div", { class: "subhead", text: t("Light local — fully offline") }),
+        h("div", { class: "hint", text: t("A small model picked for this PC. Private and free; its answers are shorter and simpler than a cloud AI's.") }),
+        light,
+      );
+    }
+
+    // 5. Any local model, last.
     // Memory unknown (no answer): no warning rather than a wrong one.
     const advice = memory > 0 ? localAdvice(memory) : { recommended: false, warning: null };
     const local = h("button", { text: t("Use local AI") }) as HTMLButtonElement;
@@ -134,7 +146,7 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
       h("div", {
         class: advice.warning === "slow" ? "notice err" : advice.warning ? "notice warn" : "hint",
         text: advice.warning === "slow"
-          ? t("This PC has {total}: a local model takes about 2 GB and will slow everything down. A cloud AI is better here.", { total: `${(memory / GB).toFixed(0)} GB` })
+          ? t("This PC has {total}: bigger local models slow everything down. Use Light local above, or a cloud AI.", { total: `${(memory / GB).toFixed(0)} GB` })
           : advice.warning
             ? t("This PC has {total}: small local models work, but slowly. 16 GB or more is recommended.", { total: `${(memory / GB).toFixed(0)} GB` })
             : t("Runs on this computer, offline and private. Download a model in Groovy → Models afterwards."),

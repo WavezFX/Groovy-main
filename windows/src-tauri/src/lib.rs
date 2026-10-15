@@ -881,11 +881,22 @@ pub fn run() {
     // A Claude chat with no key: the first cloud provider that has one, else
     // the local model only if local AI was chosen (otherwise the chat says what
     // to set up instead of quietly loading a model).
+    // Ollama was the default chat before round 2: without Ollama on the PC
+    // it is Groovy's own engine (one local engine, never both).
+    if loaded.chat_provider == "ollama" && !ollama::installed() {
+        loaded.chat_provider = "llamacpp".into();
+    }
     if loaded.chat_provider == chat::ANTHROPIC && !secrets::present("anthropic-api-key") {
         if let Some(p) = openai_compat::PROVIDERS.iter().find(|p| secrets::present(p.key)) {
             loaded.chat_provider = p.id.to_string();
         } else if loaded.assistant.local_allowed() {
             loaded.chat_provider = loaded.assistant.local_provider.clone();
+        }
+    }
+    // A local chat with no local AI chosen goes to a cloud key when there is one.
+    if loaded.chat_provider == "llamacpp" && !loaded.assistant.local_allowed() {
+        if let Some(p) = openai_compat::PROVIDERS.iter().find(|p| secrets::present(p.key)) {
+            loaded.chat_provider = p.id.to_string();
         }
     }
     // On a small PC the light profile is the default (llama-server's context and
@@ -1058,6 +1069,8 @@ pub fn run() {
             tasks::task_delete,
             tasks::task_clear_done,
             models::models_status,
+            models::memory_hogs,
+            models::models_load_anyway,
             models::models_install_runtime,
             models::models_download,
             models::models_cancel_download,

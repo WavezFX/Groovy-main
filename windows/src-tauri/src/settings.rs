@@ -191,7 +191,7 @@ impl Default for Settings {
             plan_relay_installed: false,
             show_codex_plan_in_notch: false,
             // Offline first: a local Ollama model, no API key needed.
-            chat_provider: "ollama".into(),
+            chat_provider: "llamacpp".into(),
             chat_models: BTreeMap::new(),
             ollama_url: String::new(),
             lmstudio_url: String::new(),

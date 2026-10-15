@@ -5451,17 +5451,6 @@
    "ru": "Контекст 2K, половина ядер, остановка после 5 минут простоя, меньше анимации. Для ноутбуков с 8 ГБ.",
    "id": "Konteks 2K, separuh inti, berhenti setelah 5 menit diam, animasi dikurangi. Untuk laptop 8 GB."
   },
-  "4K context, most cores, stops after 15 idle minutes.": {
-   "zh-Hans": "4K 上下文，大部分核心，空闲 15 分钟后停止。",
-   "hi": "4K संदर्भ, ज़्यादातर कोर, 15 मिनट निष्क्रिय रहने पर रुकता है।",
-   "es": "Contexto de 4K, casi todos los núcleos, se detiene tras 15 minutos inactivo.",
-   "ar": "سياق 4K، معظم الأنوية، يتوقف بعد 15 دقيقة خمول.",
-   "fr": "Contexte 4K, la plupart des cœurs, s'arrête après 15 minutes d'inactivité.",
-   "bn": "4K কনটেক্সট, বেশিরভাগ কোর, ১৫ মিনিট নিষ্ক্রিয় থাকলে থামে।",
-   "pt-BR": "Contexto de 4K, a maioria dos núcleos, para após 15 minutos ocioso.",
-   "ru": "Контекст 4K, большинство ядер, остановка после 15 минут простоя.",
-   "id": "Konteks 4K, sebagian besar inti, berhenti setelah 15 menit diam."
-  },
   "High performance": {
    "zh-Hans": "高性能",
    "hi": "उच्च प्रदर्शन",
@@ -5627,17 +5616,6 @@
    "ru": "Рекомендуется",
    "id": "Disarankan"
   },
-  "too big for now": {
-   "zh-Hans": "目前太大",
-   "hi": "अभी के लिए बहुत बड़ा",
-   "es": "demasiado grande ahora",
-   "ar": "كبير جدًا الآن",
-   "fr": "trop gros pour l'instant",
-   "bn": "এখনকার জন্য খুব বড়",
-   "pt-BR": "grande demais agora",
-   "ru": "сейчас слишком велика",
-   "id": "terlalu besar untuk saat ini"
-  },
   "Performance profile": {
    "zh-Hans": "性能配置",
    "hi": "प्रदर्शन प्रोफ़ाइल",
@@ -5769,17 +5747,6 @@
    "pt-BR": "Baixando {what}: {done} de {total}",
    "ru": "Загрузка {what}: {done} из {total}",
    "id": "Mengunduh {what}: {done} dari {total}"
-  },
-  "Small models are much weaker than online ones and slow on a laptop CPU: expect a few words per second from a 3B model on 8 GB. Every file is checked against its SHA-256 and deleted if it doesn't match.": {
-   "zh-Hans": "小模型比在线模型弱得多，在笔记本 CPU 上也较慢：8 GB 机器上的 3B 模型每秒只能输出几个词。每个文件都会校验 SHA-256，不匹配即删除。",
-   "hi": "छोटे मॉडल ऑनलाइन मॉडलों से काफ़ी कमज़ोर और लैपटॉप CPU पर धीमे होते हैं: 8 GB पर 3B मॉडल से प्रति सेकंड कुछ ही शब्द की उम्मीद करें। हर फ़ाइल SHA-256 से जाँची जाती है और मेल न खाने पर हटा दी जाती है।",
-   "es": "Los modelos pequeños son mucho más débiles que los en línea y lentos en la CPU de un portátil: espera unas pocas palabras por segundo de un modelo 3B con 8 GB. Cada archivo se verifica con su SHA-256 y se elimina si no coincide.",
-   "ar": "النماذج الصغيرة أضعف كثيرًا من النماذج عبر الإنترنت وبطيئة على معالج الحاسوب المحمول: توقّع بضع كلمات في الثانية من نموذج 3B على 8 غيغابايت. يُتحقق من كل ملف عبر SHA-256 ويُحذف إن لم يطابق.",
-   "fr": "Les petits modèles sont bien plus faibles que ceux en ligne et lents sur le processeur d'un portable : comptez quelques mots par seconde pour un modèle 3B avec 8 Go. Chaque fichier est vérifié par son SHA-256 et supprimé s'il ne correspond pas.",
-   "bn": "ছোট মডেল অনলাইনের চেয়ে অনেক দুর্বল আর ল্যাপটপ CPU-তে ধীর: ৮ GB-তে 3B মডেল থেকে প্রতি সেকেন্ডে কয়েকটি শব্দ আশা করুন। প্রতিটি ফাইল SHA-256 দিয়ে যাচাই করা হয় এবং না মিললে মুছে ফেলা হয়।",
-   "pt-BR": "Modelos pequenos são bem mais fracos que os online e lentos na CPU de um notebook: espere poucas palavras por segundo de um modelo 3B com 8 GB. Cada arquivo é verificado pelo SHA-256 e excluído se não bater.",
-   "ru": "Маленькие модели гораздо слабее онлайн-моделей и медленные на процессоре ноутбука: от модели 3B на 8 ГБ ждите несколько слов в секунду. Каждый файл проверяется по SHA-256 и удаляется при несовпадении.",
-   "id": "Model kecil jauh lebih lemah daripada model online dan lambat di CPU laptop: harapkan beberapa kata per detik dari model 3B di 8 GB. Setiap berkas diperiksa dengan SHA-256 dan dihapus jika tidak cocok."
   },
   "Open Groovy's settings from the app to manage models.": {
    "zh-Hans": "请从应用中打开 Groovy 设置来管理模型。",
@@ -11556,17 +11523,6 @@
    "ru": "Локально (нужен мощный ПК)",
    "id": "Lokal (butuh PC yang kuat)"
   },
-  "This PC has {total}: a local model takes about 2 GB and will slow everything down. A cloud AI is better here.": {
-   "zh-Hans": "这台电脑有 {total}：本地模型约占 2 GB，会拖慢一切。这里更适合用云端 AI。",
-   "hi": "इस PC में {total} है: स्थानीय मॉडल लगभग 2 GB लेता है और सब कुछ धीमा कर देगा। यहाँ क्लाउड AI बेहतर है।",
-   "es": "Este PC tiene {total}: un modelo local ocupa unos 2 GB y ralentizará todo. Aquí es mejor una IA en la nube.",
-   "ar": "لدى هذا الكمبيوتر {total}: يأخذ النموذج المحلي نحو 2 GB وسيبطئ كل شيء. الذكاء الاصطناعي السحابي أفضل هنا.",
-   "fr": "Ce PC a {total} : un modèle local prend environ 2 Go et ralentira tout. Une IA en ligne est préférable ici.",
-   "bn": "এই PC-তে {total} আছে: একটি স্থানীয় মডেল প্রায় 2 GB নেয় এবং সবকিছু ধীর করে দেবে। এখানে ক্লাউড AI ভালো।",
-   "pt-BR": "Este PC tem {total}: um modelo local ocupa cerca de 2 GB e vai deixar tudo lento. Uma IA na nuvem é melhor aqui.",
-   "ru": "На этом ПК {total}: локальная модель занимает около 2 ГБ и замедлит всё. Здесь лучше облачный ИИ.",
-   "id": "PC ini punya {total}: model lokal memakan sekitar 2 GB dan akan memperlambat semuanya. AI cloud lebih baik di sini."
-  },
   "This PC has {total}: small local models work, but slowly. 16 GB or more is recommended.": {
    "zh-Hans": "这台电脑有 {total}：小型本地模型可以运行，但较慢。建议 16 GB 或以上。",
    "hi": "इस PC में {total} है: छोटे स्थानीय मॉडल चलते हैं, पर धीरे। 16 GB या अधिक की सलाह है।",
@@ -12699,6 +12655,193 @@
    "pt-BR": "Usar",
    "ru": "Включить",
    "id": "Gunakan"
+  },
+  "Light local — fully offline": {
+   "zh-Hans": "轻量本地 — 完全离线",
+   "hi": "हल्का लोकल — पूरी तरह ऑफ़लाइन",
+   "es": "Local ligero — totalmente sin conexión",
+   "ar": "محلي خفيف — دون اتصال تمامًا",
+   "fr": "Local léger — entièrement hors ligne",
+   "bn": "হালকা লোকাল — পুরোপুরি অফলাইন",
+   "pt-BR": "Local leve — totalmente offline",
+   "ru": "Лёгкая локальная — полностью офлайн",
+   "id": "Lokal ringan — sepenuhnya offline"
+  },
+  "A small model picked for this PC. Private and free; its answers are shorter and simpler than a cloud AI's.": {
+   "zh-Hans": "为这台电脑挑选的小模型。私密且免费；回答比云端 AI 更短、更简单。",
+   "hi": "इस PC के लिए चुना गया एक छोटा मॉडल। निजी और मुफ़्त; इसके जवाब क्लाउड AI से छोटे और सरल होते हैं।",
+   "es": "Un modelo pequeño elegido para este PC. Privado y gratuito; sus respuestas son más cortas y sencillas que las de una IA en la nube.",
+   "ar": "نموذج صغير مختار لهذا الحاسوب. خاص ومجاني؛ إجاباته أقصر وأبسط من إجابات الذكاء الاصطناعي السحابي.",
+   "fr": "Un petit modèle choisi pour ce PC. Privé et gratuit ; ses réponses sont plus courtes et plus simples que celles d'une IA en ligne.",
+   "bn": "এই পিসির জন্য বাছাই করা একটি ছোট মডেল। ব্যক্তিগত ও বিনামূল্যে; এর উত্তর ক্লাউড AI-এর চেয়ে ছোট ও সহজ।",
+   "pt-BR": "Um modelo pequeno escolhido para este PC. Privado e gratuito; as respostas são mais curtas e simples que as de uma IA na nuvem.",
+   "ru": "Небольшая модель, подобранная для этого ПК. Приватно и бесплатно; ответы короче и проще, чем у облачного ИИ.",
+   "id": "Model kecil yang dipilih untuk PC ini. Privat dan gratis; jawabannya lebih singkat dan sederhana daripada AI cloud."
+  },
+  "This PC has {total}: bigger local models slow everything down. Use Light local above, or a cloud AI.": {
+   "zh-Hans": "这台电脑有 {total}：较大的本地模型会拖慢一切。请使用上面的轻量本地或云端 AI。",
+   "hi": "इस PC में {total} है: बड़े लोकल मॉडल सब कुछ धीमा कर देते हैं। ऊपर हल्का लोकल या कोई क्लाउड AI इस्तेमाल करें।",
+   "es": "Este PC tiene {total}: los modelos locales grandes lo ralentizan todo. Usa Local ligero (arriba) o una IA en la nube.",
+   "ar": "في هذا الحاسوب {total}: النماذج المحلية الأكبر تبطئ كل شيء. استخدم «محلي خفيف» أعلاه أو ذكاءً اصطناعيًا سحابيًا.",
+   "fr": "Ce PC a {total} : les gros modèles locaux ralentissent tout. Utilisez Local léger ci-dessus, ou une IA en ligne.",
+   "bn": "এই পিসিতে {total} আছে: বড় লোকাল মডেল সবকিছু ধীর করে দেয়। উপরের হালকা লোকাল বা একটি ক্লাউড AI ব্যবহার করুন।",
+   "pt-BR": "Este PC tem {total}: modelos locais maiores deixam tudo lento. Use o Local leve acima ou uma IA na nuvem.",
+   "ru": "На этом ПК {total}: большие локальные модели замедляют всё. Выберите «Лёгкую локальную» выше или облачный ИИ.",
+   "id": "PC ini punya {total}: model lokal yang lebih besar memperlambat semuanya. Pakai Lokal ringan di atas, atau AI cloud."
+  },
+  "Download and use · {size}": {
+   "zh-Hans": "下载并使用 · {size}",
+   "hi": "डाउनलोड करें और इस्तेमाल करें · {size}",
+   "es": "Descargar y usar · {size}",
+   "ar": "تنزيل واستخدام · {size}",
+   "fr": "Télécharger et utiliser · {size}",
+   "bn": "ডাউনলোড করে ব্যবহার করুন · {size}",
+   "pt-BR": "Baixar e usar · {size}",
+   "ru": "Скачать и использовать · {size}",
+   "id": "Unduh dan pakai · {size}"
+  },
+  "Light local: {model}": {
+   "zh-Hans": "轻量本地：{model}",
+   "hi": "हल्का लोकल: {model}",
+   "es": "Local ligero: {model}",
+   "ar": "محلي خفيف: {model}",
+   "fr": "Local léger : {model}",
+   "bn": "হালকা লোকাল: {model}",
+   "pt-BR": "Local leve: {model}",
+   "ru": "Лёгкая локальная: {model}",
+   "id": "Lokal ringan: {model}"
+  },
+  "{size} download, about {ram} MB of memory while loaded, about {words} words a second.": {
+   "zh-Hans": "下载 {size}，加载时约占 {ram} MB 内存，每秒约 {words} 个词。",
+   "hi": "{size} डाउनलोड, लोड रहने पर लगभग {ram} MB मेमोरी, प्रति सेकंड लगभग {words} शब्द।",
+   "es": "{size} de descarga, unos {ram} MB de memoria mientras está cargado, unas {words} palabras por segundo.",
+   "ar": "تنزيل {size}، ونحو {ram} م.ب من الذاكرة أثناء التحميل، ونحو {words} كلمات في الثانية.",
+   "fr": "{size} à télécharger, environ {ram} Mo de mémoire une fois chargé, environ {words} mots par seconde.",
+   "bn": "{size} ডাউনলোড, লোড থাকলে প্রায় {ram} MB মেমরি, প্রতি সেকেন্ডে প্রায় {words}টি শব্দ।",
+   "pt-BR": "{size} para baixar, cerca de {ram} MB de memória enquanto carregado, cerca de {words} palavras por segundo.",
+   "ru": "Загрузка {size}, около {ram} МБ памяти во время работы, около {words} слов в секунду.",
+   "id": "Unduhan {size}, sekitar {ram} MB memori saat dimuat, sekitar {words} kata per detik."
+  },
+  "4K context, most cores, stops after 10 idle minutes.": {
+   "zh-Hans": "4K 上下文，大部分核心，空闲 10 分钟后停止。",
+   "hi": "4K कॉन्टेक्स्ट, ज़्यादातर कोर, 10 मिनट निष्क्रिय रहने पर रुकता है।",
+   "es": "Contexto de 4K, casi todos los núcleos, se detiene tras 10 minutos sin uso.",
+   "ar": "سياق 4K، ومعظم الأنوية، ويتوقف بعد 10 دقائق من الخمول.",
+   "fr": "Contexte 4K, la plupart des cœurs, s'arrête après 10 minutes d'inactivité.",
+   "bn": "4K কনটেক্সট, বেশিরভাগ কোর, ১০ মিনিট অলস থাকলে বন্ধ হয়।",
+   "pt-BR": "Contexto de 4K, a maioria dos núcleos, para após 10 minutos ocioso.",
+   "ru": "Контекст 4K, большинство ядер, останавливается после 10 минут простоя.",
+   "id": "Konteks 4K, sebagian besar inti, berhenti setelah 10 menit menganggur."
+  },
+  "Too big for this PC": {
+   "zh-Hans": "对这台电脑来说太大",
+   "hi": "इस PC के लिए बहुत बड़ा",
+   "es": "Demasiado grande para este PC",
+   "ar": "أكبر من أن يناسب هذا الحاسوب",
+   "fr": "Trop gros pour ce PC",
+   "bn": "এই পিসির জন্য খুব বড়",
+   "pt-BR": "Grande demais para este PC",
+   "ru": "Слишком велика для этого ПК",
+   "id": "Terlalu besar untuk PC ini"
+  },
+  "Fits this PC": {
+   "zh-Hans": "适合这台电脑",
+   "hi": "इस PC पर चलेगा",
+   "es": "Cabe en este PC",
+   "ar": "يناسب هذا الحاسوب",
+   "fr": "Adapté à ce PC",
+   "bn": "এই পিসিতে চলবে",
+   "pt-BR": "Cabe neste PC",
+   "ru": "Подходит этому ПК",
+   "id": "Cocok untuk PC ini"
+  },
+  "Only {free} of memory is free right now and the model needs about {needed}.": {
+   "zh-Hans": "现在只有 {free} 可用内存，而该模型需要约 {needed}。",
+   "hi": "अभी केवल {free} मेमोरी खाली है और मॉडल को लगभग {needed} चाहिए।",
+   "es": "Ahora solo hay {free} de memoria libre y el modelo necesita unos {needed}.",
+   "ar": "المتاح من الذاكرة الآن {free} فقط والنموذج يحتاج نحو {needed}.",
+   "fr": "Seulement {free} de mémoire libre pour l'instant, et le modèle a besoin d'environ {needed}.",
+   "bn": "এখন মাত্র {free} মেমরি খালি, আর মডেলটির প্রায় {needed} দরকার।",
+   "pt-BR": "Só há {free} de memória livre agora e o modelo precisa de cerca de {needed}.",
+   "ru": "Сейчас свободно только {free} памяти, а модели нужно около {needed}.",
+   "id": "Saat ini hanya {free} memori yang kosong dan model butuh sekitar {needed}."
+  },
+  "Free up memory": {
+   "zh-Hans": "释放内存",
+   "hi": "मेमोरी खाली करें",
+   "es": "Liberar memoria",
+   "ar": "تحرير الذاكرة",
+   "fr": "Libérer de la mémoire",
+   "bn": "মেমরি খালি করুন",
+   "pt-BR": "Liberar memória",
+   "ru": "Освободить память",
+   "id": "Kosongkan memori"
+  },
+  "Close the apps you don't need, then load the model again:": {
+   "zh-Hans": "关闭不需要的应用，然后再次加载模型：",
+   "hi": "जिन ऐप्स की ज़रूरत नहीं उन्हें बंद करें, फिर मॉडल दोबारा लोड करें:",
+   "es": "Cierra las apps que no necesites y vuelve a cargar el modelo:",
+   "ar": "أغلق التطبيقات التي لا تحتاجها، ثم حمّل النموذج مجددًا:",
+   "fr": "Fermez les applications inutiles, puis rechargez le modèle :",
+   "bn": "যে অ্যাপগুলো দরকার নেই সেগুলো বন্ধ করে আবার মডেল লোড করুন:",
+   "pt-BR": "Feche os apps de que não precisa e carregue o modelo de novo:",
+   "ru": "Закройте ненужные приложения и снова загрузите модель:",
+   "id": "Tutup aplikasi yang tidak diperlukan, lalu muat model lagi:"
+  },
+  "Load anyway": {
+   "zh-Hans": "仍然加载",
+   "hi": "फिर भी लोड करें",
+   "es": "Cargar de todos modos",
+   "ar": "التحميل على أي حال",
+   "fr": "Charger quand même",
+   "bn": "তবুও লোড করুন",
+   "pt-BR": "Carregar mesmo assim",
+   "ru": "Всё равно загрузить",
+   "id": "Muat saja"
+  },
+  "Light local": {
+   "zh-Hans": "轻量本地",
+   "hi": "हल्का लोकल",
+   "es": "Local ligero",
+   "ar": "محلي خفيف",
+   "fr": "Local léger",
+   "bn": "হালকা লোকাল",
+   "pt-BR": "Local leve",
+   "ru": "Лёгкая локальная",
+   "id": "Lokal ringan"
+  },
+  "Small models are much weaker than online ones. Memory and speed were measured with llama.cpp on a 4-thread CPU; a laptop may be a little slower. Every file is checked against its SHA-256 and deleted if it doesn't match.": {
+   "zh-Hans": "小模型比在线模型弱得多。内存和速度是用 llama.cpp 在 4 线程 CPU 上测得的；笔记本可能稍慢。每个文件都会核对 SHA-256，不匹配就删除。",
+   "hi": "छोटे मॉडल ऑनलाइन मॉडलों से काफ़ी कमज़ोर होते हैं। मेमोरी और गति 4-थ्रेड CPU पर llama.cpp से मापी गई है; लैपटॉप थोड़ा धीमा हो सकता है। हर फ़ाइल उसके SHA-256 से जाँची जाती है और मेल न खाने पर हटा दी जाती है।",
+   "es": "Los modelos pequeños son mucho más flojos que los en línea. La memoria y la velocidad se midieron con llama.cpp en una CPU de 4 hilos; un portátil puede ir algo más lento. Cada archivo se comprueba con su SHA-256 y se borra si no coincide.",
+   "ar": "النماذج الصغيرة أضعف بكثير من النماذج عبر الإنترنت. قيست الذاكرة والسرعة باستخدام llama.cpp على معالج بأربعة خيوط؛ قد يكون الحاسوب المحمول أبطأ قليلًا. يُتحقق من كل ملف عبر SHA-256 ويُحذف إن لم يطابق.",
+   "fr": "Les petits modèles sont bien moins bons que ceux en ligne. Mémoire et vitesse mesurées avec llama.cpp sur un processeur à 4 threads ; un portable peut être un peu plus lent. Chaque fichier est vérifié avec son SHA-256 et supprimé s'il ne correspond pas.",
+   "bn": "ছোট মডেল অনলাইন মডেলের চেয়ে অনেক দুর্বল। মেমরি ও গতি ৪-থ্রেড CPU-তে llama.cpp দিয়ে মাপা; ল্যাপটপ একটু ধীর হতে পারে। প্রতিটি ফাইল তার SHA-256 দিয়ে যাচাই হয়, না মিললে মুছে ফেলা হয়।",
+   "pt-BR": "Modelos pequenos são bem mais fracos que os online. Memória e velocidade foram medidas com llama.cpp numa CPU de 4 threads; um notebook pode ser um pouco mais lento. Cada arquivo é conferido pelo SHA-256 e apagado se não bater.",
+   "ru": "Маленькие модели намного слабее онлайн-моделей. Память и скорость измерены в llama.cpp на 4-поточном процессоре; ноутбук может быть чуть медленнее. Каждый файл сверяется с SHA-256 и удаляется при несовпадении.",
+   "id": "Model kecil jauh lebih lemah daripada model online. Memori dan kecepatan diukur dengan llama.cpp pada CPU 4 thread; laptop mungkin sedikit lebih lambat. Setiap file diperiksa dengan SHA-256-nya dan dihapus jika tidak cocok."
+  },
+  "This model needs about {needed} MB, too much for this PC ({total} MB of memory). Pick a lighter one in Groovy → Models.": {
+   "zh-Hans": "这个模型需要约 {needed} MB，对这台电脑（{total} MB 内存）来说太多。请在 Groovy → 模型 中选一个更轻的。",
+   "hi": "इस मॉडल को लगभग {needed} MB चाहिए, जो इस PC ({total} MB मेमोरी) के लिए बहुत है। Groovy → मॉडल में कोई हल्का चुनें।",
+   "es": "Este modelo necesita unos {needed} MB, demasiado para este PC ({total} MB de memoria). Elige uno más ligero en Groovy → Modelos.",
+   "ar": "يحتاج هذا النموذج نحو {needed} م.ب، وهذا كثير على هذا الحاسوب ({total} م.ب من الذاكرة). اختر نموذجًا أخف في Groovy ← النماذج.",
+   "fr": "Ce modèle a besoin d'environ {needed} Mo, trop pour ce PC ({total} Mo de mémoire). Choisissez-en un plus léger dans Groovy → Modèles.",
+   "bn": "এই মডেলের প্রায় {needed} MB দরকার, যা এই পিসির ({total} MB মেমরি) জন্য বেশি। Groovy → মডেল থেকে হালকা একটি বেছে নিন।",
+   "pt-BR": "Este modelo precisa de cerca de {needed} MB, demais para este PC ({total} MB de memória). Escolha um mais leve em Groovy → Modelos.",
+   "ru": "Этой модели нужно около {needed} МБ — слишком много для этого ПК ({total} МБ памяти). Выберите более лёгкую в Groovy → Модели.",
+   "id": "Model ini butuh sekitar {needed} MB, terlalu banyak untuk PC ini ({total} MB memori). Pilih yang lebih ringan di Groovy → Model."
+  },
+  "Only {free} MB of memory is free right now and this model needs about {needed} MB. Close some apps, or choose Load anyway in Groovy → Models.": {
+   "zh-Hans": "现在只有 {free} MB 可用内存，而这个模型需要约 {needed} MB。请关闭一些应用，或在 Groovy → 模型 中选择“仍然加载”。",
+   "hi": "अभी केवल {free} MB मेमोरी खाली है और इस मॉडल को लगभग {needed} MB चाहिए। कुछ ऐप्स बंद करें, या Groovy → मॉडल में \"फिर भी लोड करें\" चुनें।",
+   "es": "Ahora solo hay {free} MB de memoria libre y este modelo necesita unos {needed} MB. Cierra algunas apps o elige «Cargar de todos modos» en Groovy → Modelos.",
+   "ar": "المتاح من الذاكرة الآن {free} م.ب فقط ويحتاج هذا النموذج نحو {needed} م.ب. أغلق بعض التطبيقات، أو اختر «التحميل على أي حال» في Groovy ← النماذج.",
+   "fr": "Seulement {free} Mo de mémoire libre pour l'instant, et ce modèle a besoin d'environ {needed} Mo. Fermez quelques applications, ou choisissez « Charger quand même » dans Groovy → Modèles.",
+   "bn": "এখন মাত্র {free} MB মেমরি খালি, আর এই মডেলের প্রায় {needed} MB দরকার। কিছু অ্যাপ বন্ধ করুন, বা Groovy → মডেল-এ \"তবুও লোড করুন\" বেছে নিন।",
+   "pt-BR": "Só há {free} MB de memória livre agora e este modelo precisa de cerca de {needed} MB. Feche alguns apps ou escolha \"Carregar mesmo assim\" em Groovy → Modelos.",
+   "ru": "Сейчас свободно только {free} МБ памяти, а этой модели нужно около {needed} МБ. Закройте часть приложений или выберите «Всё равно загрузить» в Groovy → Модели.",
+   "id": "Saat ini hanya {free} MB memori yang kosong dan model ini butuh sekitar {needed} MB. Tutup beberapa aplikasi, atau pilih \"Muat saja\" di Groovy → Model."
   }
  }
 }

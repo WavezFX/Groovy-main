@@ -761,3 +761,13 @@ input[type="search"] {
 .audit-row { display: grid; grid-template-columns: 120px 110px 120px minmax(0, 1fr); gap: 8px; font-size: 12px; align-items: baseline; }
 .audit-row .path { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 760px) { .audit-row { grid-template-columns: 1fr 1fr; } }
+
+/* Light local (round 2 item 3) */
+.card.light-local {
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.card.light-local .name {
+  flex: 1;
+}

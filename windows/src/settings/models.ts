@@ -1,10 +1,11 @@
 // Settings → Models: Groovy's own offline engine (models.rs). Install the
 // llama.cpp runtime once, download a GGUF model (both pinned to a SHA-256 and
 // checked), pick one, and chat with no internet. Every model shows its size,
-// quantisation and the memory it needs with the current performance profile,
-// against what this computer has free right now.
+// quantisation and the memory it needs, judged against this PC's total memory
+// (not what happens to be free this second, FIXES_ROUND2 item 3).
 
 import { Bridge, onEvent, type CatalogModel, type LocalModelInfo, type ModelsStatus } from "../core/bridge";
+import { lightLocalCard } from "./lightlocal";
 import { DEFAULT_ASSISTANT, type AssistantPrefs, type Settings } from "../core/state";
 import { clear, h } from "../views/dom";
 import { N_, t } from "../i18n/i18n";
@@ -12,7 +13,7 @@ import { confirmClick, statusDot } from "./parts";
 
 const PROFILES: [AssistantPrefs["performanceProfile"], string, string][] = [
   ["lightweight", N_("Lightweight"), N_("2K context, half the cores, stops after 5 idle minutes, reduced animation. For 8 GB laptops.")],
-  ["balanced", N_("Balanced"), N_("4K context, most cores, stops after 15 idle minutes.")],
+  ["balanced", N_("Balanced"), N_("4K context, most cores, stops after 10 idle minutes.")],
   ["performance", N_("High performance"), N_("8K context, every core, stays loaded. Needs 16 GB or more.")],
 ];
 
@@ -22,11 +23,27 @@ export function formatBytes(n: number): string {
   return `${Math.round(n / 1024)} KB`;
 }
 
-/** How a model fits in the memory free now, with the profile's share of it. */
-export function fit(needed: number, available: number, share: number): "ok" | "tight" | "no" {
-  if (needed <= available * share * 0.8) return "ok";
-  if (needed <= available * share) return "tight";
-  return "no";
+/** Share of the PC's memory a model may need and still suit it (models.rs FIT_SHARE). */
+export const FIT_SHARE = 0.4;
+
+/** How a model suits this PC: by its total memory; "short" when other apps hold it right now. */
+export function fit(needed: number, total: number, available: number): "fits" | "short" | "too-big" {
+  if (needed > total * FIT_SHARE) return "too-big";
+  if (needed > available) return "short";
+  return "fits";
+}
+
+/** What a catalogue model takes once loaded: measured, or estimated from its size (models.rs catalog_ram). */
+export function catalogRam(c: CatalogModel): number {
+  return c.ramMb > 0 ? c.ramMb * 1024 ** 2 : c.size * 1.25 + 350 * 1024 ** 2;
+}
+
+function fitTag(verdict: ReturnType<typeof fit>, needed: number): HTMLElement {
+  return h("span", {
+    class: verdict === "too-big" ? "tag err" : "tag",
+    text: verdict === "too-big" ? t("Too big for this PC") : t("Fits this PC"),
+    title: t("needs ~{ram}", { ram: formatBytes(needed) }),
+  });
 }
 
 export function modelsSection(settings: Settings, save: () => void): HTMLElement {
@@ -95,14 +112,9 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
   function localRow(m: LocalModelInfo, s: ModelsStatus): HTMLElement {
     const selected = (prefs().localModel || s.local.find((x) => x.info)?.file) === m.file;
     const running = s.running === m.file;
-    const verdict = m.info ? fit(m.ramNeeded, s.memory.available, s.profile.ramShare) : "no";
-    const tag = h("span", {
-      class: verdict === "ok" ? "tag" : verdict === "tight" ? "tag warn" : "tag err",
-      text: m.info
-        ? t("needs ~{ram}", { ram: formatBytes(m.ramNeeded) })
-        : t("unreadable"),
-      title: m.error ?? "",
-    });
+    const tag = m.info
+      ? fitTag(fit(m.ramNeeded, s.memory.total, s.memory.available), m.ramNeeded)
+      : h("span", { class: "tag err", text: t("unreadable"), title: m.error ?? "" });
     const meta = m.info
       ? `${formatBytes(m.size)} · ${m.info.quantization} · ${m.info.architecture}${m.info.contextLength ? ` · ${Math.round(m.info.contextLength / 1024)}K` : ""}`
       : m.error ?? "";
@@ -128,12 +140,13 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
 
   function catalogRow(c: CatalogModel, s: ModelsStatus): HTMLElement | null {
     if (s.local.some((m) => m.file === c.file)) return null;
-    const verdict = fit(c.size * 1.25 + 350 * 1024 ** 2, s.memory.available, s.profile.ramShare);
+    const needed = catalogRam(c);
+    const verdict = fit(needed, s.memory.total, s.memory.available);
     const b = h("button", { text: t("Download · {size}", { size: formatBytes(c.size) }) }) as HTMLButtonElement;
     b.disabled = s.downloading;
     const download = () => void run(b, () => Bridge.modelsDownload(c.id));
-    // Too big for the memory free now: one more click to say so knowingly.
-    if (verdict === "no") confirmClick(b, t("Click again to download anyway"), download);
+    // Too big for this PC: one more click to say so knowingly.
+    if (verdict === "too-big") confirmClick(b, t("Click again to download anyway"), download);
     else b.addEventListener("click", download);
     return h(
       "div",
@@ -141,12 +154,29 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
       h(
         "div",
         { class: "name" },
-        h("div", {}, h("span", { text: c.label }), c.id === "qwen2.5-1.5b" ? h("span", { class: "tag", text: t("Recommended") }) : null),
+        h("div", {}, h("span", { text: c.label }), c.id === s.lightPick ? h("span", { class: "tag", text: t("Recommended") }) : null),
         h("div", { class: "hint", text: `${c.goodFor} · ${c.license}` }),
       ),
-      verdict === "no" ? h("span", { class: "tag err", text: t("too big for now") }) : null,
+      fitTag(verdict, needed),
       b,
     );
+  }
+
+  /** The last start found too little memory free: who holds it, and Load anyway. */
+  function shortMemoryBlock(s: ModelsStatus, needed: number): HTMLElement {
+    const box = h("div", { class: "notice warn" },
+      h("div", { text: t("Only {free} of memory is free right now and the model needs about {needed}.", { free: formatBytes(s.memory.available), needed: formatBytes(needed) }) }),
+    );
+    const list = h("ul", { class: "hint" });
+    const free = h("button", { text: t("Free up memory") }) as HTMLButtonElement;
+    free.addEventListener("click", () => void Bridge.memoryHogs().then((hogs) => {
+      list.replaceChildren(...(hogs ?? []).map((x) => h("li", { text: `${x.name} · ${formatBytes(x.bytes)}` })));
+      list.prepend(h("li", { text: t("Close the apps you don't need, then load the model again:") }));
+    }));
+    const anyway = h("button", { text: t("Load anyway") }) as HTMLButtonElement;
+    anyway.addEventListener("click", () => void run(anyway, () => Bridge.modelsLoadAnyway()));
+    box.append(h("div", { class: "row" }, free, anyway), list);
+    return box;
   }
 
   function draw(s: ModelsStatus) {
@@ -165,6 +195,9 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
         h("div", { class: "row" }, use),
       );
     }
+    if (s.shortMemory) body.append(shortMemoryBlock(s, s.shortMemory));
+    const light = lightLocalCard(s, settings, prefs, save, () => void refresh());
+    if (light) body.append(h("div", { class: "subhead", text: t("Light local") }), light);
     const prof = PROFILES.find((x) => x[0] === p.performanceProfile) ?? PROFILES[1];
     const profile = h("select", {}) as HTMLSelectElement;
     for (const [v, label] of PROFILES) profile.append(h("option", { value: v, text: t(label) }));
@@ -229,7 +262,7 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
     body.append(
       h("div", {
         class: "hint",
-        text: t("Small models are much weaker than online ones and slow on a laptop CPU: expect a few words per second from a 3B model on 8 GB. Every file is checked against its SHA-256 and deleted if it doesn't match."),
+        text: t("Small models are much weaker than online ones. Memory and speed were measured with llama.cpp on a 4-thread CPU; a laptop may be a little slower. Every file is checked against its SHA-256 and deleted if it doesn't match."),
       }),
     );
   }

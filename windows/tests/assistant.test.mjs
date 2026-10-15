@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DEFAULT_ASSISTANT, DEFAULT_SETTINGS } from "../src/core/state.ts";
-import { fit, formatBytes } from "../src/settings/models.ts";
+import { catalogRam, fit, formatBytes } from "../src/settings/models.ts";
+import { useLight, wordsPerSecond } from "../src/settings/lightlocal.ts";
 import { dueLabel, parseLocal } from "../src/settings/tasks.ts";
 import { snoozeReminder } from "../src/island/breaks.ts";
 
@@ -34,11 +35,30 @@ test("sizes read like a person would write them", () => {
   assert.equal(formatBytes(9_216), "9 KB");
 });
 
-test("a model fits, is tight, or does not fit in the memory free now", () => {
+test("a model is judged by the PC, not by the memory free this second", () => {
   const GB = 1024 ** 3;
-  assert.equal(fit(1 * GB, 4 * GB, 0.6), "ok");
-  assert.equal(fit(2.2 * GB, 4 * GB, 0.6), "tight");
-  assert.equal(fit(3 * GB, 4 * GB, 0.6), "no");
+  const MB = 1024 ** 2;
+  // The owner's 8 GB PC at 91 %: the 0.5B model still suits it, memory is just short now.
+  assert.equal(fit(600 * MB, 8 * GB, 700 * MB), "fits");
+  assert.equal(fit(970 * MB, 8 * GB, 700 * MB), "short");
+  assert.equal(fit(3 * GB, 8 * GB, 6 * GB), "fits");
+  assert.equal(fit(4 * GB, 8 * GB, 6 * GB), "too-big");
+});
+
+test("catalogue models use their measured memory, else an estimate", () => {
+  const MB = 1024 ** 2;
+  assert.equal(catalogRam({ ramMb: 971, size: 806_058_240 }), 971 * MB);
+  assert.equal(catalogRam({ ramMb: 0, size: 1000 * MB }), 1250 * MB + 350 * MB);
+});
+
+test("Light local uses Groovy's own engine with the picked model", () => {
+  const next = useLight({ ...DEFAULT_ASSISTANT, aiSetup: "", localProvider: "ollama" }, "gemma-3-1b-it-Q4_K_M.gguf");
+  assert.equal(next.chatProvider, "llamacpp");
+  assert.equal(next.assistant.aiSetup, "local");
+  assert.equal(next.assistant.localProvider, "llamacpp");
+  assert.equal(next.assistant.localModel, "gemma-3-1b-it-Q4_K_M.gguf");
+  assert.equal(wordsPerSecond(18), 14);
+  assert.equal(wordsPerSecond(0), 1);
 });
 
 test("reminder times come from the date field in local time", () => {

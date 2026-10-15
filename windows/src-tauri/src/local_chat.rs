@@ -281,6 +281,15 @@ fn request_body(model: &str, system: &str, history: &[Value], user: &Value) -> V
     json!({ "model": model, "messages": messages, "stream": true, "max_tokens": MAX_TOKENS })
 }
 
+/// Groovy's own engine answers straight away: models that can think first
+/// (Qwen3) are asked not to, so a light model on a laptop CPU feels quick.
+fn quick_answers(mut body: Value, server_id: &str) -> Value {
+    if server_id == crate::chat::LLAMACPP {
+        body["chat_template_kwargs"] = json!({ "enable_thinking": false });
+    }
+    body
+}
+
 /// One chat turn with a model server; the island gets the streamed text as `chat-delta` events.
 pub async fn send(
     app: &AppHandle,
@@ -309,9 +318,13 @@ pub async fn send_with(
     if model.is_empty() {
         return Err(t("Pick a model above the chat box first."));
     }
+    // Only one local engine: Ollama on this PC takes over from Groovy's own.
+    if server.id == "ollama" && crate::models::running_model().is_some() {
+        crate::models::stop();
+    }
     let turn = chat.begin(server.id);
     let user = json!({ "role": "user", "content": user_text(turn.first, context.as_ref(), &query) });
-    let body = request_body(model, &chat.system_prompt(false), &turn.history, &user);
+    let body = quick_answers(request_body(model, &chat.system_prompt(false), &turn.history, &user), server.id);
 
     let answer = stream(&base, server.key.as_deref(), model, &body, on_delta).await?;
     if answer.is_empty() {
@@ -471,6 +484,13 @@ mod tests {
         assert_eq!(body["model"], "llama3.2");
         assert_eq!(body["messages"].as_array().unwrap().len(), 4);
         assert_eq!(body["messages"][0]["role"], "system");
+    }
+
+    #[test]
+    fn groovys_own_engine_answers_without_thinking_first() {
+        let body = request_body("m", "sys", &[], &json!({"role":"user","content":"hi"}));
+        assert_eq!(quick_answers(body.clone(), "llamacpp")["chat_template_kwargs"]["enable_thinking"], false);
+        assert!(quick_answers(body, "ollama").get("chat_template_kwargs").is_none());
     }
 
     #[test]
