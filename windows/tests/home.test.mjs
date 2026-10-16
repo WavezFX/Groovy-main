@@ -4,10 +4,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CELLS_E, CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, cellsUnderPlayer, homeCells, nextMeeting, pagesOf, upNext,
+  CELLS_E, CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, cellsUnderPlayer, nextMeeting, pagesOf, upNext,
 } from "../src/core/home.ts";
 import { tile } from "../src/core/tiles.ts";
-import { SPOTIFY_ID } from "../src/core/spotify.ts";
 
 const now = Date.UTC(2026, 9, 16, 9, 0);
 const base = { now, hour: 9, meetings: [], mail: null, agent: null, reminder: null };
@@ -49,13 +48,6 @@ test("then new mail, then an agent, then a reminder due, then a greeting", () =>
   assert.equal(upNext({ ...base, reminder: { ...reminder, dueAt: now + 3_600_000 } }).kind, "greeting");
   assert.equal(upNext({ ...base, hour: 20 }).title, "Good evening");
   assert.equal(upNext({ ...base, hour: 9 }).title, "Good morning");
-});
-
-test("services turned on join the user's tiles; Spotify is the Music tile", () => {
-  const cells = homeCells([tile("mail"), tile("service", "integration_github")], ["integration_claude", "integration_github", SPOTIFY_ID]);
-  assert.deepEqual(cells.map((c) => c.id), ["mail", "service:integration_github", "service:integration_claude", "music"]);
-  // Spotify on, with a Music tile already there: one music tile only.
-  assert.equal(homeCells([tile("music")], [SPOTIFY_ID]).length, 1);
 });
 
 test("eight cells a page, one row of four under the player, the add tile last", () => {

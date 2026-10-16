@@ -5,6 +5,9 @@
 
 import type { Settings } from "./state";
 
+/** Spotify's pill: on the island it is the Music tile. */
+const SPOTIFY = "integration_spotify";
+
 export type TileKind = "app" | "site" | "folder" | "service" | "mail" | "music" | "agents" | "reminders" | "system";
 export type TileSize = "compact" | "expanded";
 export type IslandPreset = "developer" | "everyday" | "custom";
@@ -26,7 +29,8 @@ export interface IslandTiles {
   mailApps: string[];
 }
 
-export const MAX_TILES = 12;
+/** Generous: the island pages its tiles (round 3), this only stops a runaway file. */
+export const MAX_TILES = 60;
 const KINDS: readonly TileKind[] = ["app", "site", "folder", "service", "mail", "music", "agents", "reminders", "system"];
 const SINGLE: readonly TileKind[] = ["mail", "music", "agents", "reminders", "system"];
 
@@ -132,4 +136,46 @@ export function isMailNotification(app: string, mailApps: readonly string[]): bo
   const a = app.toLowerCase();
   if (mailApps.length > 0) return mailApps.some((m) => a.includes(m.toLowerCase()));
   return ["mail", "outlook", "thunderbird", "gmail", "proton", "spark"].some((m) => a.includes(m));
+}
+
+// ── One tile system (round 3 item 4) ──────────────────────────────────────────
+// The services turned on (settings.activeIntegrations, which Rust polls) and
+// the island's tiles are one list: every service on has its tile, in the
+// user's order, and a service tile means the service is on. Spotify is the
+// Music tile.
+
+/** The integration a tile stands for, if any. */
+export function tileService(x: Tile): string | null {
+  if (x.kind === "service") return x.target;
+  if (x.kind === "music") return SPOTIFY;
+  return null;
+}
+
+/**
+ * The tiles with the services as they are: a tile appended for each service
+ * turned on that has none, the tiles of services turned off removed. The
+ * main tool (Claude Code by default) is always on.
+ */
+export function withServices(t: IslandTiles, active: readonly string[], mainPill: string): IslandTiles {
+  const on = new Set([mainPill, ...active]);
+  const tiles = t.tiles.filter((x) => {
+    const id = tileService(x);
+    return id === null || on.has(id);
+  });
+  for (const id of [mainPill, ...active]) {
+    if (tiles.some((x) => tileService(x) === id)) continue;
+    tiles.push(id === SPOTIFY ? tile("music") : tile("service", id));
+  }
+  const same = tiles.length === t.tiles.length && tiles.every((x, i) => x === t.tiles[i]);
+  return same ? t : { ...t, tiles };
+}
+
+/** The services the tiles turn on, in tile order, without the main tool. */
+export function servicesOf(t: IslandTiles, mainPill: string): string[] {
+  const ids: string[] = [];
+  for (const x of t.tiles) {
+    const id = tileService(x);
+    if (id && id !== mainPill && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
 }

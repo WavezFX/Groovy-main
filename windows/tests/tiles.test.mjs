@@ -62,3 +62,35 @@ test("which notifications are mail", () => {
   assert.ok(isMailNotification("Google Chrome", ["chrome"]), "a browser for Gmail, when chosen");
   assert.ok(!isMailNotification("Outlook", ["chrome"]), "only the chosen apps");
 });
+
+// ── One tile system (FIXES_ROUND3 item 4) ─────────────────────────────────────
+
+import { servicesOf, tileService, withServices } from "../src/core/tiles.ts";
+
+test("every service turned on has its tile, in the user's order; Spotify is Music", () => {
+  const base = { preset: "custom", tiles: [tile("mail"), tile("service", "integration_github")], mailApps: [] };
+  const on = ["integration_github", "integration_notion", "integration_spotify", "integration_calcom"];
+  const t = withServices(base, on, "integration_claude");
+  assert.deepEqual(t.tiles.map((x) => x.id), [
+    "mail", "service:integration_github", "service:integration_claude", "service:integration_notion", "music", "service:integration_calcom",
+  ]);
+  // Nothing to add: the very same object comes back (no needless save).
+  assert.equal(withServices(t, on, "integration_claude"), t);
+  assert.equal(tileService(tile("music")), "integration_spotify");
+});
+
+test("a service turned off loses its tile; removing a tile turns its service off", () => {
+  const t = withServices({ preset: "custom", tiles: [], mailApps: [] }, ["integration_github", "integration_spotify"], "integration_claude");
+  assert.deepEqual(withServices(t, ["integration_spotify"], "integration_claude").tiles.map((x) => x.id), ["service:integration_claude", "music"]);
+  const without = removeTile(t, "music");
+  assert.deepEqual(servicesOf(without, "integration_claude"), ["integration_github"]);
+  // The main tool is never in the list of services: it is always on.
+  assert.ok(!servicesOf(t, "integration_claude").includes("integration_claude"));
+});
+
+test("no small limit on tiles any more", () => {
+  assert.ok(MAX_TILES >= 40);
+  let t = { preset: "custom", tiles: [], mailApps: [] };
+  for (let i = 0; i < 20; i++) t = addTile(t, tile("site", `https://example.com/${i}`)) ?? t;
+  assert.equal(t.tiles.length, 20);
+});

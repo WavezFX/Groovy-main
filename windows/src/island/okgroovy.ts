@@ -4,8 +4,9 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { Bridge, IS_TAURI, onEvent } from "../core/bridge";
-import { MAX_DECLARED, availablePills, chooseMainPill, pillDefinition, sanitizeDeclared, toggleDeclared } from "../core/pills";
+import { availablePills, chooseMainPill, pillDefinition, sanitizeDeclared, toggleDeclared } from "../core/pills";
 import { Spotify } from "../core/spotify";
+import { currentTiles, withServices } from "../core/tiles";
 import { State } from "../core/state";
 import { serviceCards } from "./phone-services";
 
@@ -37,7 +38,6 @@ function describe(): string {
   return JSON.stringify({
     main: name(d.mainPill),
     shown: d.activeIntegrations.map(name),
-    maxBesidesMain: MAX_DECLARED,
     available: all,
   });
 }
@@ -74,13 +74,16 @@ function pills(input: Ask["input"]): string {
     }
     const next = toggleDeclared(d, id, State.os);
     if (!next) {
-      failed.push(action === "add" ? `${label}: already ${MAX_DECLARED} pills, remove one first` : `${label}: the main pill cannot be removed`);
+      failed.push(`${label}: the main pill cannot be removed`);
       continue;
     }
     State.settings.activeIntegrations = next;
     done.push(label);
   }
   if (done.length) {
+    // One list: the island's tiles follow the services turned on or off.
+    const d = sanitizeDeclared(State.settings, State.os);
+    State.settings.islandTiles = withServices(currentTiles(State.settings), d.activeIntegrations, d.mainPill);
     const previousMain = State.mainPillId;
     State.loadIntegrationTasks();
     if (State.mainPillId !== previousMain) State.setFocus(State.mainPillId);

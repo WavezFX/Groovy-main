@@ -4,9 +4,7 @@
 // when the player shows — so the rules can be tested without a window.
 
 import { t } from "../i18n/i18n";
-import { SPOTIFY_ID } from "./spotify";
 import type { Tile } from "./tiles";
-import { tile as makeTile } from "./tiles";
 
 /** A meeting starting within this many minutes comes first. */
 export const MEETING_WINDOW_MIN = 30;
@@ -90,23 +88,6 @@ export function upNext(input: UpNextInput): UpNext {
   }
   const hello = input.hour < 5 ? t("Up late?") : input.hour < 12 ? t("Good morning") : input.hour < 18 ? t("Good afternoon") : t("Good evening");
   return { kind: "greeting", label: t("UP NEXT"), title: hello, detail: t("Nothing urgent. Ask me anything.") };
-}
-
-/**
- * Everything the tile grid shows, in order: the user's tiles, then the
- * services they turned on that have no tile yet. Spotify is the Music tile.
- */
-export function homeCells(tiles: Tile[], integrations: string[]): Tile[] {
-  const cells = [...tiles];
-  const has = (id: string) => cells.some((c) => c.id === id || (c.kind === "service" && c.target === id));
-  for (const id of integrations) {
-    if (id === SPOTIFY_ID) {
-      if (!cells.some((c) => c.kind === "music")) cells.push(makeTile("music"));
-      continue;
-    }
-    if (!has(id)) cells.push(makeTile("service", id));
-  }
-  return cells;
 }
 
 /** The cells on each page, the "+ Add tile" cell last. */

@@ -1651,17 +1651,6 @@
    "ru": "Выберите модель {name} над полем чата.",
    "id": "Pilih model {name} di atas kotak obrolan."
   },
-  "Pick up to {max} pills to show next to Groovy — {used}/{max} in use. Keys are stored in the {store}, never on disk.": {
-   "zh-Hans": "最多选择 {max} 个标签显示在 Groovy 旁边 — 已用 {used}/{max}。密钥保存在 {store} 中，绝不写入磁盘。",
-   "hi": "Groovy के बगल में दिखाने के लिए अधिकतम {max} टैब चुनें — {used}/{max} उपयोग में। कुंजियाँ {store} में रखी जाती हैं, डिस्क पर कभी नहीं।",
-   "es": "Elige hasta {max} pestañas para mostrar junto a Groovy — {used}/{max} en uso. Las claves se guardan en {store}, nunca en el disco.",
-   "ar": "اختر حتى {max} تبويبات لعرضها بجانب Groovy — {used}/{max} مستخدمة. تُحفظ المفاتيح في {store}، ولا تُكتب على القرص أبدًا.",
-   "fr": "Choisis jusqu'à {max} onglets à afficher à côté de Groovy — {used}/{max} utilisés. Les clés sont stockées dans {store}, jamais sur le disque.",
-   "bn": "Groovy-র পাশে দেখাতে সর্বোচ্চ {max}টি ট্যাব বেছে নিন — {used}/{max} ব্যবহৃত। কী {store}-এ রাখা হয়, কখনো ডিস্কে নয়।",
-   "pt-BR": "Escolha até {max} abas para mostrar ao lado do Groovy — {used}/{max} em uso. As chaves ficam em {store}, nunca no disco.",
-   "ru": "Выберите до {max} вкладок рядом с Groovy — занято {used}/{max}. Ключи хранятся в {store}, никогда на диске.",
-   "id": "Pilih hingga {max} tab untuk ditampilkan di samping Groovy — {used}/{max} terpakai. Kunci disimpan di {store}, tidak pernah di disk."
-  },
   "Press keys…": {
    "zh-Hans": "请按键…",
    "hi": "कुंजियाँ दबाएँ…",
@@ -3272,17 +3261,6 @@
    "pt-BR": "{total} no último ano",
    "ru": "{total} за год",
    "id": "{total} setahun terakhir"
-  },
-  "{used}/{max} slots in use — the main tool doesn't take one.": {
-   "zh-Hans": "已用 {used}/{max} 个位置 — 主要工具不占位置。",
-   "hi": "{used}/{max} स्लॉट उपयोग में — मुख्य टूल कोई स्लॉट नहीं लेता।",
-   "es": "{used}/{max} espacios en uso — la herramienta principal no ocupa ninguno.",
-   "ar": "{used}/{max} من الخانات مستخدمة — الأداة الرئيسية لا تشغل خانة.",
-   "fr": "{used}/{max} emplacements utilisés — l'outil principal n'en prend pas.",
-   "bn": "{used}/{max} স্লট ব্যবহৃত — প্রধান টুল কোনো স্লট নেয় না।",
-   "pt-BR": "{used}/{max} espaços em uso — a ferramenta principal não ocupa nenhum.",
-   "ru": "Занято мест: {used}/{max} — основной инструмент место не занимает.",
-   "id": "{used}/{max} slot terpakai — alat utama tidak memakai slot."
   },
   "{what} has an unexpected type — Groovy has not touched it.": {
    "zh-Hans": "{what} 的类型不符合预期 — Groovy 没有修改它。",
@@ -11105,17 +11083,6 @@
    "ru": "Что-то пошло не так.",
    "id": "Terjadi kesalahan."
   },
-  "At most {n} pills besides the main one: turn one off first.": {
-   "zh-Hans": "除主胶囊外最多 {n} 个：请先关闭一个。",
-   "hi": "मुख्य के अलावा अधिकतम {n} पिल्स: पहले एक बंद करें।",
-   "es": "Como máximo {n} píldoras además de la principal: apaga una primero.",
-   "ar": "بحد أقصى {n} حبوب إلى جانب الرئيسية: أوقف واحدة أولًا.",
-   "fr": "{n} pilules au plus en plus de la principale : désactives-en une d'abord.",
-   "bn": "মূলটি ছাড়া সর্বোচ্চ {n}টি পিল: আগে একটি বন্ধ করুন।",
-   "pt-BR": "No máximo {n} pílulas além da principal: desligue uma primeiro.",
-   "ru": "Не больше {n} пилюль помимо главной: сначала выключите одну.",
-   "id": "Paling banyak {n} pil selain yang utama: matikan satu dulu."
-  },
   "This file can't be read as a GGUF model.": {
    "zh-Hans": "无法将此文件读取为 GGUF 模型。",
    "hi": "यह फ़ाइल GGUF मॉडल के रूप में पढ़ी नहीं जा सकती।",
@@ -12017,17 +11984,6 @@
    "pt-BR": "Mover para baixo",
    "ru": "Ниже",
    "id": "Pindah ke bawah"
-  },
-  "No tiles: the island shows your agents as before.": {
-   "zh-Hans": "没有卡片：岛会像以前一样显示你的代理。",
-   "hi": "कोई टाइल नहीं: आइलैंड पहले की तरह आपके एजेंट दिखाता है।",
-   "es": "Sin mosaicos: la isla muestra tus agentes como antes.",
-   "ar": "لا بلاطات: تعرض الجزيرة وكلاءك كما في السابق.",
-   "fr": "Aucune tuile : l'île montre tes agents comme avant.",
-   "bn": "কোনো টাইল নেই: আইল্যান্ড আগের মতো আপনার এজেন্টদের দেখায়।",
-   "pt-BR": "Sem blocos: a ilha mostra seus agentes como antes.",
-   "ru": "Плиток нет: остров показывает ваших агентов, как раньше.",
-   "id": "Tidak ada ubin: pulau menampilkan agenmu seperti sebelumnya."
   },
   "Tiles": {
    "zh-Hans": "卡片",
@@ -13656,6 +13612,83 @@
    "pt-BR": "Gravando chamada · {0}",
    "ru": "Запись звонка · {0}",
    "id": "Merekam panggilan · {0}"
+  },
+  "No tiles yet: add one below.": {
+   "zh-Hans": "还没有磁贴：在下面添加一个。",
+   "hi": "अभी कोई टाइल नहीं: नीचे एक जोड़ें।",
+   "es": "Aún no hay mosaicos: añade uno abajo.",
+   "ar": "لا توجد مربعات بعد: أضف واحدًا أدناه.",
+   "fr": "Pas encore de tuiles : ajoutez-en une ci-dessous.",
+   "bn": "এখনো কোনো টাইল নেই: নিচে একটি যোগ করুন।",
+   "pt-BR": "Nenhum bloco ainda: adicione um abaixo.",
+   "ru": "Плиток пока нет: добавьте ниже.",
+   "id": "Belum ada ubin: tambahkan di bawah."
+  },
+  "{name} key": {
+   "zh-Hans": "{name} 密钥",
+   "hi": "{name} कुंजी",
+   "es": "Clave de {name}",
+   "ar": "مفتاح {name}",
+   "fr": "Clé {name}",
+   "bn": "{name} কী",
+   "pt-BR": "Chave do {name}",
+   "ru": "Ключ {name}",
+   "id": "Kunci {name}"
+  },
+  "{name} needs its key:": {
+   "zh-Hans": "{name} 需要密钥：",
+   "hi": "{name} को उसकी कुंजी चाहिए:",
+   "es": "{name} necesita su clave:",
+   "ar": "يحتاج {name} إلى مفتاحه:",
+   "fr": "{name} a besoin de sa clé :",
+   "bn": "{name}-এর কী দরকার:",
+   "pt-BR": "O {name} precisa da chave:",
+   "ru": "Для {name} нужен ключ:",
+   "id": "{name} perlu kuncinya:"
+  },
+  "Get a key ↗": {
+   "zh-Hans": "获取密钥 ↗",
+   "hi": "कुंजी पाएँ ↗",
+   "es": "Obtener una clave ↗",
+   "ar": "احصل على مفتاح ↗",
+   "fr": "Obtenir une clé ↗",
+   "bn": "কী নিন ↗",
+   "pt-BR": "Obter uma chave ↗",
+   "ru": "Получить ключ ↗",
+   "id": "Dapatkan kunci ↗"
+  },
+  "Turn on as many as you like: each one is a tile on the island.": {
+   "zh-Hans": "想开多少就开多少：每一个都是灵动岛上的一个磁贴。",
+   "hi": "जितने चाहें चालू करें: हर एक आइलैंड पर एक टाइल है।",
+   "es": "Activa tantos como quieras: cada uno es un mosaico en la isla.",
+   "ar": "فعّل ما تشاء منها: كل واحد مربع على الجزيرة.",
+   "fr": "Activez-en autant que vous voulez : chacun est une tuile sur l'île.",
+   "bn": "যতগুলো খুশি চালু করুন: প্রতিটি আইল্যান্ডে একটি টাইল।",
+   "pt-BR": "Ative quantos quiser: cada um é um bloco na ilha.",
+   "ru": "Включайте сколько угодно: каждый — плитка на острове.",
+   "id": "Nyalakan sebanyak yang kamu mau: masing-masing jadi ubin di pulau."
+  },
+  "Turn on any service: each one gets a tile on the island, in the order set in My island. Keys are stored in the {store}, never on disk.": {
+   "zh-Hans": "任何服务都可以打开：每个都会在灵动岛上有一个磁贴，顺序在“我的灵动岛”中设置。密钥保存在{store}中，绝不写入磁盘。",
+   "hi": "कोई भी सेवा चालू करें: हर एक को आइलैंड पर एक टाइल मिलती है, उसी क्रम में जो मेरा आइलैंड में तय है। कुंजियाँ {store} में रखी जाती हैं, डिस्क पर कभी नहीं।",
+   "es": "Activa cualquier servicio: cada uno tiene un mosaico en la isla, en el orden fijado en Mi isla. Las claves se guardan en el {store}, nunca en el disco.",
+   "ar": "فعّل أي خدمة: لكل واحدة مربع على الجزيرة، بالترتيب المحدد في جزيرتي. تُحفظ المفاتيح في {store}، ولا تُكتب على القرص أبدًا.",
+   "fr": "Activez n'importe quel service : chacun a sa tuile sur l'île, dans l'ordre choisi dans Mon île. Les clés sont gardées dans le {store}, jamais sur le disque.",
+   "bn": "যেকোনো সার্ভিস চালু করুন: প্রতিটি আইল্যান্ডে একটি টাইল পায়, আমার আইল্যান্ডে ঠিক করা ক্রমে। কী {store}-এ রাখা হয়, কখনো ডিস্কে নয়।",
+   "pt-BR": "Ative qualquer serviço: cada um ganha um bloco na ilha, na ordem definida em Minha ilha. As chaves ficam no {store}, nunca no disco.",
+   "ru": "Включайте любой сервис: у каждого будет плитка на острове, в порядке из «Мой остров». Ключи хранятся в {store}, никогда на диске.",
+   "id": "Nyalakan layanan apa saja: masing-masing mendapat ubin di pulau, sesuai urutan di Pulau saya. Kunci disimpan di {store}, tidak pernah di disk."
+  },
+  "{name} needs its key to show anything: paste it here.": {
+   "zh-Hans": "{name} 需要密钥才能显示内容：请粘贴在这里。",
+   "hi": "कुछ भी दिखाने के लिए {name} को उसकी कुंजी चाहिए: उसे यहाँ पेस्ट करें।",
+   "es": "{name} necesita su clave para mostrar algo: pégala aquí.",
+   "ar": "يحتاج {name} إلى مفتاحه ليعرض أي شيء: الصقه هنا.",
+   "fr": "{name} a besoin de sa clé pour afficher quoi que ce soit : collez-la ici.",
+   "bn": "কিছু দেখাতে {name}-এর কী দরকার: এখানে পেস্ট করুন।",
+   "pt-BR": "O {name} precisa da chave para mostrar algo: cole aqui.",
+   "ru": "Чтобы что-то показать, {name} нужен ключ: вставьте его сюда.",
+   "id": "{name} perlu kuncinya untuk menampilkan apa pun: tempel di sini."
   }
  }
 }

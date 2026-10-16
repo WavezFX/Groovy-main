@@ -1,13 +1,15 @@
-// Control Centre → My island (FIXES_ROUND1 item 4): which tiles the island
-// shows, in which order and size, from a preset or the user's own list, and
-// which apps' notifications pop up as mail. The agents and their hooks are set
-// up once in Coding agents; they don't need to sit on the island.
+// Control Centre → My island (FIXES_ROUND1 item 4, one list since round 3
+// item 4): every tile the island shows, in order — apps, websites, folders,
+// mail, music, reminders, the PC, and every service turned on (GitHub,
+// Notion, Cal.com…), with no limit: the island pages them. Adding a service
+// tile turns the service on and asks for its key; removing it turns it off.
+// The island's "+ Add tile" opens this page.
 
 import { Bridge } from "../core/bridge";
-import { availablePills } from "../core/pills";
+import { KEY_PAGES, availablePills, pillDefinition, sanitizeDeclared } from "../core/pills";
 import type { Settings } from "../core/state";
 import {
-  MAX_TILES, addTile, applyPreset, currentTiles, moveTile, removeTile, resizeTile, tile,
+  MAX_TILES, addTile, applyPreset, currentTiles, moveTile, removeTile, resizeTile, servicesOf, tile, tileService, withServices,
   type IslandPreset, type IslandTiles, type Tile, type TileKind,
 } from "../core/tiles";
 import { h, clear } from "../views/dom";
@@ -44,15 +46,21 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
   const section = h("section", { id: "my-island" });
   let apps: { name: string; target: string }[] | null = null;
 
+  /** Keys already stored, to say which service still needs one. */
+  const keys: Record<string, boolean> = {};
   const commit = (next: IslandTiles) => {
-    settings.islandTiles = next;
+    // One list: the service tiles are the services turned on.
+    const main = sanitizeDeclared(settings).mainPill;
+    settings.activeIntegrations = servicesOf(next, main);
+    settings.islandTiles = withServices(next, settings.activeIntegrations, main);
     save();
     draw();
   };
 
   function draw() {
     clear(section);
-    const cur = currentTiles(settings);
+    const declared = sanitizeDeclared(settings);
+    const cur = withServices(currentTiles(settings), declared.activeIntegrations, declared.mainPill);
     section.append(h("h2", {}, h("span", { text: t("My island") })));
 
     // Preset.
@@ -83,6 +91,8 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
       down.addEventListener("click", () => commit(moveTile(cur, x.id, i + 1)));
       const remove = h("button", { class: "danger", text: t("Remove") }) as HTMLButtonElement;
       remove.addEventListener("click", () => commit(removeTile(cur, x.id)));
+      // The main tool (Coding agents) is always on: its tile stays.
+      remove.hidden = tileService(x) === declared.mainPill;
       row.append(
         h("span", { class: "drag", text: "⠿", "aria-hidden": "true" }),
         h("label", { text: tileName(x) }),
@@ -90,8 +100,11 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
         size, up, down, remove,
       );
       list.append(row);
+      // A service that needs a key and has none: its field, never a silent refusal.
+      const def = x.kind === "service" ? pillDefinition(x.target) : undefined;
+      if (def?.connect.kind === "key" && keys[def.connect.key] === false) list.append(keyRow(def.id, def.name, def.connect.key));
     });
-    if (!cur.tiles.length) list.append(h("div", { class: "hint", text: t("No tiles: the island shows your agents as before.") }));
+    if (!cur.tiles.length) list.append(h("div", { class: "hint", text: t("No tiles yet: add one below.") }));
     section.append(h("div", { class: "subhead", text: t("Tiles") }), list);
 
     // Adding a tile.
@@ -172,6 +185,31 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
       h("div", { class: "hint", text: t("Agents and their hooks are set up in Coding agents.") }),
     );
   }
+
+  /** "Notion needs a key": the field, Save, and where to get one. */
+  function keyRow(id: string, name: string, key: string): HTMLElement {
+    const input = h("input", { type: "password", placeholder: t("{name} key", { name }), autocomplete: "off", spellcheck: "false", style: "flex:1" }) as HTMLInputElement;
+    const saveBtn = h("button", { class: "primary", text: t("Save") }) as HTMLButtonElement;
+    saveBtn.addEventListener("click", () => {
+      const value = input.value.trim();
+      if (!value) return;
+      void Bridge.secretSet(key, value).then(() => {
+        keys[key] = true;
+        draw();
+      }, showError);
+    });
+    const row = h("div", { class: "row tile-key" }, h("span", { class: "hint warn", text: t("{name} needs its key:", { name }) }), input, saveBtn);
+    const page = KEY_PAGES[id];
+    if (page) row.append(h("a", { href: "#", text: t("Get a key ↗"), onclick: (e: Event) => { e.preventDefault(); void Bridge.openUrl(page); } }));
+    return row;
+  }
+
+  // Which keys are there, once; the rows redraw when they are known.
+  const wanted = availablePills().flatMap((p) => (p.connect.kind === "key" ? [p.connect.key] : []));
+  void Promise.all(wanted.map(async (k) => [k, (await Bridge.secretPresent(k)) ?? false] as const)).then((pairs) => {
+    for (const [k, v] of pairs) keys[k] = v;
+    draw();
+  });
 
   draw();
   return section;

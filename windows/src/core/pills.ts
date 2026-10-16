@@ -139,9 +139,6 @@ export const PILL_CATALOG: readonly PillDefinition[] = [
 /** The always-on pill unless the user picks another workspace tool. */
 export const DEFAULT_MAIN_PILL = "integration_claude";
 
-/** How many declared pills may sit next to the main one. */
-export const MAX_DECLARED = 4;
-
 /** The OS this page runs on. Only the Windows webview says "Windows". */
 export const HOST_OS: HostOs =
   typeof navigator !== "undefined" && /Windows/.test(navigator.userAgent ?? "") ? "windows" : "linux";
@@ -211,16 +208,25 @@ export function sanitizeDeclared(d: Declared, os: HostOs = HOST_OS): Declared {
 
 /**
  * Declares or undeclares a pill. Returns the new list, or null when the click
- * changes nothing: the main pill is never toggled, an unknown pill never
- * declared, and a fifth pill never added.
+ * changes nothing: the main pill is never toggled and an unknown pill never
+ * declared. There is no limit (round 3): the island's tile pages hold any number.
  */
 export function toggleDeclared(d: Declared, id: string, os: HostOs = HOST_OS): string[] | null {
   if (id === d.mainPill) return null;
   if (!availablePills(os).some((p) => p.id === id)) return null;
   if (d.activeIntegrations.includes(id)) return d.activeIntegrations.filter((x) => x !== id);
-  if (d.activeIntegrations.length >= MAX_DECLARED) return null;
   return [...d.activeIntegrations, id];
 }
+
+/** Where to get the key a service needs (opened next to its key field). */
+export const KEY_PAGES: Record<string, string> = {
+  integration_stripe: "https://dashboard.stripe.com/apikeys",
+  integration_github: "https://github.com/settings/tokens",
+  integration_vercel: "https://vercel.com/account/tokens",
+  integration_resend: "https://resend.com/api-keys",
+  integration_notion: "https://www.notion.so/profile/integrations",
+  integration_calcom: "https://app.cal.com/settings/developer/api-keys",
+};
 
 /**
  * Picks a new main pill. The old main pill is not declared on its own, and the

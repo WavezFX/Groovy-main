@@ -9,13 +9,13 @@ import { Bridge } from "../core/bridge";
 import { FlowBridge } from "../core/flow";
 import { readPulse } from "../core/github";
 import {
-  CELLS_E, CELLS_F, PlayerHold, cellsUnderPlayer, homeCells, pagesOf, upNext, type Meeting, type UpNext, type UpNextInput,
+  CELLS_E, CELLS_F, PlayerHold, cellsUnderPlayer, pagesOf, upNext, type Meeting, type UpNext, type UpNextInput,
 } from "../core/home";
 import type { IslandViewName } from "../core/layout";
 import { pillDefinition, sanitizeDeclared } from "../core/pills";
 import { Spotify, currentArtwork, formatTime, isAd, spotifyPosition } from "../core/spotify";
 import { State } from "../core/state";
-import { currentTiles, tile as makeTile, type Tile } from "../core/tiles";
+import { currentTiles, tile as makeTile, withServices, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
 import { CallControl } from "../voice/call";
 import { h, svg, clear } from "./dom";
@@ -289,7 +289,7 @@ export function buildHome(actions: ViewActions): ViewHost {
   function draw() {
     const playing = right.classList.contains("playing");
     const declared = sanitizeDeclared(State.settings, State.os);
-    let cells = homeCells(currentTiles(State.settings).tiles, [declared.mainPill, ...declared.activeIntegrations]);
+    let cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles;
     if (playing) cells = cellsUnderPlayer(cells);
     const pages = pagesOf(cells, playing ? CELLS_E : CELLS_F, ADD);
     pageCount = pages.length;

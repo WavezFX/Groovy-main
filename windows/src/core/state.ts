@@ -13,6 +13,7 @@ import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { DEFAULT_SKIN, type Skin } from "../mochi/skins";
 import { pillColor } from "./pill-colors";
+import { currentTiles, withServices } from "./tiles";
 import { Spotify, musicPlaying } from "./spotify";
 
 export type AgentSource = "claudeCode" | "n8n" | "agent";
@@ -655,6 +656,9 @@ class AppState {
     const next = toggleDeclared(sanitizeDeclared(this.settings, this.os), id, this.os);
     if (!next) return;
     this.settings.activeIntegrations = next;
+    // One list (round 3): the island's tiles follow.
+    const main = sanitizeDeclared(this.settings, this.os).mainPill;
+    this.settings.islandTiles = withServices(currentTiles(this.settings), next, main);
     if (!next.includes(id) && this.focusId === id) this.focusId = this.mainPillId;
     this.loadIntegrationTasks();
   }

@@ -15,9 +15,10 @@ import {
 import { DEFAULT_SETTINGS, type Settings } from "../core/state";
 import { SOUND_NAMES } from "../core/sound";
 import {
-  MAX_DECLARED, PILL_CATEGORIES, availablePills, chooseMainPill, isComingSoon, mainPillChoices,
+  KEY_PAGES, PILL_CATEGORIES, availablePills, chooseMainPill, isComingSoon, mainPillChoices,
   sanitizeDeclared, toggleDeclared, type PillDefinition,
 } from "../core/pills";
+import { currentTiles, withServices } from "../core/tiles";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
 import { FLOW_PAGE_RENDERERS } from "../hub/pages";
@@ -466,8 +467,7 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
   function row(def: PillDefinition): HTMLElement {
     const isMain = def.id === settings.mainPill;
     const on = settings.activeIntegrations.includes(def.id);
-    const full = !isMain && !on && settings.activeIntegrations.length >= MAX_ACTIVE;
-    const el = h("div", { class: full ? "pill-row full" : "pill-row" },
+    const el = h("div", { class: "pill-row" },
       colorDot(def, "width:10px;height:10px", () => settings.pillColors, pickColor),
       h("span", { class: "name", text: def.name }),
     );
@@ -478,13 +478,9 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
     const why = hint(def);
     el.append(h("span", { class: "state", text: why ?? "" }));
     const sw = h("button", { class: on ? "switch on" : "switch" }) as HTMLButtonElement;
-    if (full) sw.title = t("At most {n} pills besides the main one: turn one off first.", { n: MAX_ACTIVE });
     sw.addEventListener("click", () => {
       const next = toggleDeclared(settings, def.id);
-      if (!next) {
-        showError(t("At most {n} pills besides the main one: turn one off first.", { n: MAX_ACTIVE }));
-        return;
-      }
+      if (!next) return;
       settings.activeIntegrations = next;
       declaredChanged();
     });
@@ -493,9 +489,7 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
   }
 
   function draw() {
-    const used = settings.activeIntegrations.length;
-    slots.textContent = t("{used}/{max} slots in use — the main tool doesn't take one.", { used, max: MAX_ACTIVE });
-    slots.classList.toggle("full", used >= MAX_ACTIVE);
+    slots.textContent = t("Turn on as many as you like: each one is a tile on the island.");
     main.value = settings.mainPill;
     clear(groups);
     for (const cat of PILL_CATEGORIES) {
@@ -815,12 +809,13 @@ const INTEGRATIONS: IntegrationDef[] = [
   { id: "integration_spotify", name: "Spotify", color: "#1DB954", fields: [] },
 ];
 
-const MAX_ACTIVE = MAX_DECLARED;
-
 /** Everything that shows the declared pills, redrawn when any of them changes. */
 const declaredViews: (() => void)[] = [];
 
 function declaredChanged() {
+  // One list (round 3): every service turned on has its tile on the island.
+  const d = sanitizeDeclared(settings);
+  settings.islandTiles = withServices(currentTiles(settings), d.activeIntegrations, d.mainPill);
   for (const redraw of declaredViews) redraw();
   void save();
 }
@@ -830,8 +825,7 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   const list = h("div", { style: "display:flex;flex-direction:column;gap:14px" });
 
   function updateNote() {
-    const used = settings.activeIntegrations.length;
-    note.textContent = t("Pick up to {max} pills to show next to Groovy — {used}/{max} in use. Keys are stored in the {store}, never on disk.", { max: MAX_ACTIVE, used, store: KEY_STORE });
+    note.textContent = t("Turn on any service: each one gets a tile on the island, in the order set in My island. Keys are stored in the {store}, never on disk.", { store: KEY_STORE });
   }
   declaredViews.push(updateNote);
 
@@ -839,19 +833,25 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   for (const def of INTEGRATIONS.filter((d) => offered.has(d.id))) {
     const active = settings.activeIntegrations.includes(def.id);
     const sw = h("button", { class: active ? "switch on" : "switch" });
+    const rows = h("div", { style: "display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-width:0" });
+    const firstInput: HTMLInputElement[] = [];
     sw.addEventListener("click", () => {
       const on = settings.activeIntegrations.includes(def.id);
-      if (on) {
-        settings.activeIntegrations = settings.activeIntegrations.filter((x) => x !== def.id);
-      } else {
-        if (settings.activeIntegrations.length >= MAX_ACTIVE) return;
-        settings.activeIntegrations = [...settings.activeIntegrations, def.id];
-      }
+      settings.activeIntegrations = on
+        ? settings.activeIntegrations.filter((x) => x !== def.id)
+        : [...settings.activeIntegrations, def.id];
       sw.classList.toggle("on", !on);
       declaredChanged();
+      // Turned on without its key: straight to the field, never a silent refusal.
+      const missing = def.fields.find((f) => !present[f.key]);
+      if (!on && missing && firstInput[0]) {
+        firstInput[0].focus();
+        firstInput[0].scrollIntoView({ block: "center", behavior: "smooth" });
+        needs.hidden = false;
+      }
     });
-
-    const rows = h("div", { style: "display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-width:0" });
+    const needs = h("div", { class: "hint warn", hidden: true, text: t("{name} needs its key to show anything: paste it here.", { name: def.name }) });
+    rows.append(needs);
     for (const field of def.fields) {
       const input = h("input", {
         type: field.secret ? "password" : "text",
@@ -860,6 +860,7 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
         spellcheck: "false",
         style: "flex:1 1 auto;min-width:0",
       }) as HTMLInputElement;
+      firstInput.push(input);
       const saveBtn = h("button", { text: t("Save") });
       const dotEl = statusDot(present[field.key] ?? false);
       saveBtn.addEventListener("click", async () => {
@@ -883,6 +884,10 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
     }
 
     if (def.hint) rows.append(h("div", { class: "hint", text: t(def.hint) }));
+    const keyPage = KEY_PAGES[def.id];
+    if (keyPage) {
+      rows.append(h("div", { class: "hint" }, h("a", { href: "#", text: t("Get a key ↗"), onclick: (e: Event) => { e.preventDefault(); void Bridge.openUrl(keyPage); } })));
+    }
     if (def.id === "integration_spotify") {
       // As on the Mac's row: said only when there is no Spotify to launch.
       const hint = h("div", { class: "hint", style: "padding-top:5px" });
