@@ -5,9 +5,9 @@
 // you say into stretches; only a stretch of speech goes to Parakeet, on this
 // computer, and only a stretch that starts with « OK Groovy » goes further:
 // what you said after it goes to Claude with your own key (brain.rs), never
-// the audio. Groovy shows it all in the pill at the bottom of the screen —
+// the audio. Groovy shows it all in the island —
 // listening, thinking, then the answer, said out loud by the system's voice
-// (the pill's speechSynthesis) or ElevenLabs with your key.
+// (the island's speechSynthesis) or ElevenLabs with your key.
 //
 // It stops listening while you dictate, while a call is recorded and while it
 // speaks itself.
@@ -25,10 +25,10 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
 
-use crate::flow::pill;
+use crate::flow::live;
 use crate::speech::{self, audio};
 
-/// What the pill shows of a conversation.
+/// What the island shows of a conversation.
 #[derive(Debug, Clone, Serialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceView {
@@ -100,7 +100,7 @@ pub fn restart(app: &AppHandle) {
 }
 
 fn show(app: &AppHandle, view: Option<VoiceView>) {
-    pill::update(app, |s| s.voice = view);
+    live::update(app, |s| s.voice = view);
 }
 
 enum Mode {
@@ -137,7 +137,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         };
         let now = Instant::now();
-        // The pill's last answer goes away after a while.
+        // The island's last answer goes away after a while.
         if hide_at.is_some_and(|t| now > t) {
             hide_at = None;
             show(&app, None);
@@ -151,7 +151,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             _ => {}
         }
         // Dictation and calls have the microphone: Groovy doesn't listen meanwhile.
-        if pill::dictating(&app) || crate::notes::is_recording(&app) {
+        if live::dictating(&app) || crate::notes::is_recording(&app) {
             vad.reset();
             continue;
         }
@@ -250,13 +250,13 @@ fn speak(app: &AppHandle, text: &str) {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let (tx, rx) = mpsc::channel();
     pending().lock().unwrap().insert(id, tx);
-    let _ = app.emit_to(pill::LABEL, "voice-say", Say { id, text: text.into(), lang: wake::speech_lang(text), audio, gender });
+    let _ = app.emit_to(crate::island::WINDOW_LABEL, "voice-say", Say { id, text: text.into(), lang: wake::speech_lang(text), audio, gender });
     let words = crate::flow::text::word_count(text) as u64;
     let _ = rx.recv_timeout(Duration::from_millis(4000 + words * 600));
     pending().lock().unwrap().remove(&id);
 }
 
-/// The pill says it has finished speaking (`id`), or the island answers a question.
+/// The island says it has finished speaking (`id`), or the island answers a question.
 #[tauri::command]
 pub fn voice_done(id: u64, text: Option<String>) {
     if let Some(tx) = pending().lock().unwrap().remove(&id) {

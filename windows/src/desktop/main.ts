@@ -12,7 +12,7 @@ import type { BotEmoteName } from "../core/layout";
 import { Sound } from "../core/sound";
 import { installErrorReporting } from "../views/toast";
 
-installErrorReporting("pill");
+installErrorReporting("notice");
 import { BotEngine } from "../mochi/engine";
 import {
   DESKTOP_EVENTS, DOUBLE_CLICK_MS, DRAG_THRESHOLD, PANEL_SIZE, agentActive, gaze, isOverBody,

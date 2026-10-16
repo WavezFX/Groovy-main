@@ -12,6 +12,8 @@ import { currentTiles, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
 import { showError } from "./toast";
 import { h, clear } from "./dom";
+import { icon } from "../hub/ui";
+import { Notices, noticeIcon } from "../island/live";
 import type { ViewHost } from "./views";
 
 /** A new mail from Windows' notification feed (island_tiles.rs). */
@@ -184,22 +186,39 @@ export function buildTiles(setView: (v: IslandViewName) => void): ViewHost {
   };
 }
 
-/** The pop-up for a new mail: who, what, Open and Dismiss. */
+/**
+ * The pop-up for Groovy's own messages (flow/live.rs: what the bottom pill
+ * used to say) and for a new mail: who or what, Open or the message's button,
+ * and Dismiss. Groovy's messages come first.
+ */
 export function buildNotify(setView: (v: IslandViewName) => void, collapse: () => void): ViewHost {
   const who = h("b", {});
   const what = h("div", { class: "notify-body" });
   const app = h("div", { class: "notify-app" });
+  const mark = h("span", { class: "notify-icon" });
   const open = h("button", { class: "primary", text: t("Open") });
   const dismiss = h("button", { text: t("Dismiss") });
+  const after = () => {
+    if (Notices.current || Mail.notes.length) setView("notify");
+    else if (currentTiles(State.settings).preset !== "developer") setView("tiles");
+    else collapse();
+  };
   open.addEventListener("click", () => {
+    const notice = Notices.current;
+    if (notice) {
+      Notices.act(notice.id);
+      collapse();
+      return;
+    }
     const n = Mail.notes[0];
     if (n) void Bridge.mailOpen(n.appId).catch(showError);
     collapse();
   });
   dismiss.addEventListener("click", () => {
-    Mail.notes.shift();
-    if (currentTiles(State.settings).preset !== "developer") setView("tiles");
-    else collapse();
+    const notice = Notices.current;
+    if (notice) Notices.dismiss(notice.id);
+    else Mail.notes.shift();
+    after();
   });
   const el = h("div", { class: "view notify-view" },
     h("div", { class: "notify-card" }, app, who, what, h("div", { class: "notify-actions" }, open, dismiss)),
@@ -207,10 +226,25 @@ export function buildNotify(setView: (v: IslandViewName) => void, collapse: () =
   return {
     el,
     sync() {
+      const notice = Notices.current;
+      if (notice) {
+        mark.replaceChildren(icon(noticeIcon(notice.icon)));
+        mark.style.color = notice.tint;
+        app.replaceChildren(mark, document.createTextNode("Groovy"));
+        who.textContent = "";
+        what.textContent = notice.text;
+        what.classList.add("notice");
+        open.textContent = notice.action ?? "";
+        open.hidden = !notice.action;
+        return;
+      }
       const n = Mail.notes[0];
+      what.classList.remove("notice");
       app.textContent = n ? `✉ ${n.app}` : "";
       who.textContent = n?.title ?? "";
       what.textContent = n?.body ?? "";
+      open.textContent = t("Open");
+      open.hidden = !n;
     },
   };
 }

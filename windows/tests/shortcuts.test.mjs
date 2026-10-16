@@ -23,8 +23,10 @@ const MAC_IDS = [
 
 test("every Mac action has a default, in the Mac's order, with its Mac id", () => {
   // Then Groovy's own: the Control Centre from anywhere (FIXES_ROUND1 item 6).
-  assert.deepEqual(SHORTCUTS.map((d) => d.id), [...MAC_IDS, "openSettings"]);
-  assert.equal(SHORTCUTS.at(-1).defaultKeys, "Ctrl+Alt+Comma");
+  // Round 3: paste the last dictation again, which the bottom pill offered.
+  assert.deepEqual(SHORTCUTS.map((d) => d.id), [...MAC_IDS, "openSettings", "pasteDictation"]);
+  assert.equal(SHORTCUTS.find((d) => d.id === "openSettings").defaultKeys, "Ctrl+Alt+Comma");
+  assert.equal(SHORTCUTS.at(-1).defaultKeys, "Ctrl+Alt+V");
   for (const d of SHORTCUTS) assert.ok(SHORTCUT_TEXT[d.id], `${d.id} has no label`);
 });
 
@@ -82,7 +84,7 @@ test("only the island toggle is off by default; the one not ported yet is reserv
   }
   assert.deepEqual(activeKeys({}).map(([id]) => id), [
     "openChat", "goToAlert", "jumpToTerminal", "nextPill", "prevPill", "muteToggle", "desktopToggle",
-    "wardrobeToggle", "openSettings",
+    "wardrobeToggle", "openSettings", "pasteDictation",
   ]);
   // The Mac's ⌃⌥D, on the same letter.
   assert.equal(SHORTCUTS.find((d) => d.id === "desktopToggle").defaultKeys, "Ctrl+Alt+D");

@@ -1,12 +1,12 @@
 // Flow dictation, the voice models and the Notetaker, as the Groovy window and
-// the pill see them (src-tauri/src/flow, speech, notes).
+// the island see them (src-tauri/src/flow, speech, notes).
 
 import { invoke } from "@tauri-apps/api/core";
 import { showError } from "../views/toast";
 
 const QUIET = new Set([
   "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
-  "pill_state", "pill_hot", "pill_hover", "notes_state", "notes_markdown",
+  "live_state", "live_notices", "notes_state", "notes_markdown",
 ]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -29,13 +29,11 @@ async function callOrThrow<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 export type FlowKey = "right_ctrl" | "right_alt" | "right_shift" | "left_ctrl_super";
-export type Edge = "bottom" | "left" | "right";
 export type Style = "verbatim" | "natural" | "polished";
 
 export interface FlowPrefs {
   enabled: boolean;
   key: FlowKey;
-  edge: Edge;
   mic: string;
   keepDays: number;
   cleanup: boolean;
@@ -167,22 +165,24 @@ export interface NotesState {
   working: string[];
 }
 
-export interface Announcement {
+/** A message in the island, with an optional button (flow/live.rs). */
+export interface Notice {
   id: number;
   icon: string;
   tint: string;
   text: string;
   action?: string | null;
   actionId?: string | null;
+  /** How long it stays when nobody looks at it. */
+  seconds: number;
 }
 
-export interface PillState {
+/** What the island shows of dictation, a recorded call and « OK Groovy ». */
+export interface LiveState {
   phase: "idle" | "listening" | "thinking" | "locked" | "copied" | "failed" | "pastedAgain";
-  edge: Edge;
   /** "wayland" where the desktop holds the shortcut. */
   key: FlowKey | "wayland" | "";
   noteStartedAt: number | null;
-  announcement: Announcement | null;
   enabled: boolean;
   /** « OK Groovy » is talking with you. */
   voice: VoiceView | null;
@@ -227,11 +227,10 @@ export const FlowBridge = {
   markdown: (id: string) => call<string>("notes_markdown", { id }),
   exportNote: (id: string) => callOrThrow<string>("notes_export", { id }),
 
-  pillState: () => call<PillState>("pill_state"),
-  pillHot: (rects: [number, number, number, number][]) => call<void>("pill_hot", { rects }),
-  pillHover: (inside: boolean) => call<void>("pill_hover", { inside }),
-  pillAction: (action: string, id?: number) => call<void>("pill_action", { action, id: id ?? null }),
-  /** The pill has said what « OK Groovy » answered. */
+  liveState: () => call<LiveState>("live_state"),
+  liveNotices: () => call<Notice[]>("live_notices"),
+  liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
+  /** The island has said what « OK Groovy » answered. */
   voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),
   /** speech-dispatcher or espeak-ng, where the webview has no voice. */
   sayNative: (text: string, lang: string | null) => call<boolean>("voice_say_native", { text, lang }),

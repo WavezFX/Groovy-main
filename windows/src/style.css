@@ -2894,6 +2894,26 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   overflow: hidden;
 }
 
+.notify-icon {
+  display: inline-flex;
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+.notify-icon svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.notify-body.notice {
+  font-size: 14px;
+  opacity: 1;
+  -webkit-line-clamp: 3;
+}
+
 .notify-actions {
   display: flex;
   gap: 8px;

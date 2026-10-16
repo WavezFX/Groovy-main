@@ -21,6 +21,7 @@ import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
 import { combine, currentWardrobe } from "../mochi/appearance";
 import { VoiceHost } from "./voice";
+import { Notices } from "./live";
 import { BreakControl, Breaks, BREAKS, ReminderControl, snoozeReminder } from "./breaks";
 import { speak } from "../voice/speak";
 import { t } from "../i18n/i18n";
@@ -201,6 +202,38 @@ export class Island {
       void speak(`${t("Reminder")}: ${task.text}`, State.settings.voiceTts);
     }
     State.notify();
+  }
+
+  private noticeTimer: number | null = null;
+
+  /**
+   * A message from Groovy (flow/live.rs, what the bottom pill used to say):
+   * the island opens on it, unless a card waits for an answer or a call is on,
+   * then it waits its turn. It goes by itself after its time, not while the
+   * pointer is on the island.
+   */
+  showNotice() {
+    const n = Notices.current;
+    if (!n) return;
+    if (State.pendingApproval || State.voiceCall || State.reminderDue || (State.mode === "expanded" && State.view === "greeting")) {
+      window.setTimeout(() => this.showNotice(), 3000);
+      return;
+    }
+    this.alert("notify");
+    State.notify();
+    if (this.noticeTimer !== null) clearTimeout(this.noticeTimer);
+    const expire = () => {
+      this.noticeTimer = null;
+      if (Notices.current?.id !== n.id) return;
+      if (this.wasInIsland) {
+        this.noticeTimer = window.setTimeout(expire, 1000);
+        return;
+      }
+      Notices.dismiss(n.id);
+      if (Notices.current) this.showNotice();
+      else if (State.mode === "expanded" && State.view === "notify") this.collapse();
+    };
+    this.noticeTimer = window.setTimeout(expire, Math.max(3, n.seconds) * 1000);
   }
 
   /** The request has its answer: the card goes and the session carries on. */

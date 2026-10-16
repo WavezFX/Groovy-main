@@ -71,6 +71,8 @@ pub const ACTIONS: &[ActionDef] = &[
     action("wardrobeToggle", "Ctrl+Alt+G", true, true),
     // Not a Mac action: the Control Centre from anywhere (FIXES_ROUND1 item 6).
     action("openSettings", "Ctrl+Alt+Comma", true, true),
+    // Round 3: what the bottom pill offered, now from anywhere.
+    action("pasteDictation", "Ctrl+Alt+V", true, true),
 ];
 
 pub fn find(id: &str) -> Option<&'static ActionDef> {
@@ -95,6 +97,7 @@ pub fn description(id: &str) -> &'static str {
         "desktopToggle" => n_("Send Groovy to the desktop"),
         "wardrobeToggle" => n_("Open the wardrobe"),
         "openSettings" => n_("Open the Control Centre"),
+        "pasteDictation" => n_("Paste the last dictation again"),
         _ => "Groovy",
     }
 }
@@ -704,9 +707,9 @@ mod tests {
     #[test]
     fn every_mac_action_has_a_default_and_keeps_its_id() {
         let ids: Vec<_> = ACTIONS.iter().map(|a| a.id).collect();
-        // The Mac's ten, then Groovy's own Control Centre shortcut.
+        // The Mac's ten, then Groovy's own: the Control Centre, paste again.
         assert_eq!(&ids[..MAC_IDS.len()], MAC_IDS);
-        assert_eq!(&ids[MAC_IDS.len()..], ["openSettings"]);
+        assert_eq!(&ids[MAC_IDS.len()..], ["openSettings", "pasteDictation"]);
         assert!(parse(find("openSettings").unwrap().default_keys).is_some(), "Ctrl+Alt+Comma parses");
     }
 

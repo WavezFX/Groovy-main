@@ -170,6 +170,11 @@ pub fn wait_key_released(_key: FlowKey) {
     std::thread::sleep(Duration::from_millis(30));
 }
 
+/// The shortcut's keys are let go before X11 sees the paste.
+pub fn wait_modifiers_released() {
+    std::thread::sleep(Duration::from_millis(250));
+}
+
 /// Ctrl+V (Ctrl+Shift+V for a terminal) in the app in front: through XTest on
 /// X11, through the RemoteDesktop portal on Wayland.
 pub fn send_paste(shift: bool) -> Result<(), String> {

@@ -191,6 +191,20 @@ pub fn wait_key_released(key: FlowKey) {
     }
 }
 
+/// Waits (up to two seconds) until Ctrl, Alt, Shift and Windows are all up:
+/// "paste again" from its shortcut (Ctrl+Alt+V) would otherwise send Ctrl+Alt+V.
+pub fn wait_modifiers_released() {
+    // VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN.
+    const KEYS: [i32; 5] = [0x10, 0x11, 0x12, 0x5B, 0x5C];
+    let until = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < until {
+        if KEYS.iter().all(|&vk| unsafe { GetAsyncKeyState(vk) } as u16 & 0x8000 == 0) {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(15));
+    }
+}
+
 fn key_input(vk: u16, up: bool) -> INPUT {
     INPUT {
         r#type: INPUT_KEYBOARD,

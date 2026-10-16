@@ -7,6 +7,7 @@
 // island has the keyboard: it takes it for the chat, and when a global
 // shortcut opens it.
 
+import { FlowBridge } from "../core/flow";
 import { Bridge, onEvent } from "../core/bridge";
 import type { BotEmoteName, IslandViewName } from "../core/layout";
 import { cyclePill, islandKeyAction, navigate, pillByNumber, type IslandKeyAction } from "../core/shortcuts";
@@ -132,6 +133,10 @@ export function runGlobalShortcut(host: ShortcutHost, action: string, resume: ()
       host.flyOutOrHome();
       break;
 
+    case "pasteDictation":
+      // Into the app in front, as the bottom pill's button did.
+      void FlowBridge.liveAction("pasteAgain");
+      break;
     case "openSettings":
       void Bridge.openSettingsWindow();
       break;

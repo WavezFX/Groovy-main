@@ -905,12 +905,12 @@ fn on_context_menu(app: &AppHandle, id: &str) {
 }
 
 /// A user action failed in a window too small to show it (the island, Groovy
-/// on the desktop): the pill shows the error for a few seconds.
+/// on the desktop): the island shows it as a notice for a few seconds.
 #[tauri::command]
 fn notify_error(app: AppHandle, text: String) {
     let text: String = text.chars().take(200).collect();
     log::line(format!("shown error: {text}"));
-    flow::pill::announce(&app, "error", "#F05252", text, None, 8);
+    flow::live::announce(&app, "error", "#F05252", text, None, 8);
 }
 
 #[tauri::command]
@@ -1178,10 +1178,9 @@ pub fn run() {
             flow::flow_paste_again,
             flow::flow_models_download,
             flow::flow_models_remove,
-            flow::pill_state,
-            flow::pill_hot,
-            flow::pill_hover,
-            flow::pill_action,
+            flow::live_state,
+            flow::live_notices,
+            flow::live_action,
             notes::notes_state,
             notes::notes_start,
             notes::notes_stop,
@@ -1299,7 +1298,7 @@ pub fn run() {
                     let h = handle.clone();
                     tauri::async_runtime::spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_secs(4)).await;
-                        flow::pill::announce(&h, "bolt", "#7C5CFF", i18n::t("Choose Groovy's AI to start chatting"), Some((i18n::t("Choose"), "openAssistant")), 20);
+                        flow::live::announce(&h, "bolt", "#7C5CFF", i18n::t("Choose Groovy's AI to start chatting"), Some((i18n::t("Choose"), "openAssistant")), 20);
                     });
                 }
             } else if open_window && !launched_at_login() && !first_run {
@@ -1311,7 +1310,7 @@ pub fn run() {
                 let h = handle.clone();
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_secs(8)).await;
-                    flow::pill::announce(&h, "bolt", "#7C5CFF", i18n::t("The island can now close as soon as the mouse leaves it."), Some((i18n::t("Use it"), "closeOnLeave")), 20);
+                    flow::live::announce(&h, "bolt", "#7C5CFF", i18n::t("The island can now close as soon as the mouse leaves it."), Some((i18n::t("Use it"), "closeOnLeave")), 20);
                 });
             }
             if !loaded.close_on_leave_offered {

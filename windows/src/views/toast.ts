@@ -33,15 +33,15 @@ export function showError(err: unknown) {
 let installed = false;
 
 /**
- * Shows reported errors. `mode`: "page" draws toasts in this window; "pill"
- * hands them to the pill window (notify_error).
+ * Shows reported errors. `mode`: "page" draws toasts in this window; "notice"
+ * hands them to Rust, which shows them as a notice in the island (notify_error).
  */
-export function installErrorReporting(mode: "page" | "pill") {
+export function installErrorReporting(mode: "page" | "notice") {
   if (installed || typeof window === "undefined") return;
   installed = true;
   let box: HTMLElement | null = null;
   const show = (text: string) => {
-    if (mode === "pill") {
+    if (mode === "notice") {
       void invoke("notify_error", { text }).catch(() => {});
       return;
     }

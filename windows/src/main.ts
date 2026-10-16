@@ -13,6 +13,7 @@ import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
 import { registerShortcutHandlers } from "./island/shortcuts";
 import { registerVoiceHandlers } from "./island/okgroovy";
+import { registerLiveHandlers } from "./island/live";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { SPOTIFY_ID } from "./core/spotify";
 import { Recap } from "./recap/recap";
@@ -24,7 +25,7 @@ function applyLanguage() {
 }
 
 async function main() {
-  installErrorReporting("pill");
+  installErrorReporting("notice");
   const root = document.getElementById("root");
   if (!root) return;
 
@@ -144,6 +145,8 @@ async function main() {
   registerIntegrationHandlers(island);
   registerShortcutHandlers(island, () => setPaused(false));
   registerVoiceHandlers();
+  // Dictation, calls being recorded, « OK Groovy » and Groovy's messages (flow/live.rs).
+  void registerLiveHandlers(island);
   // "My island": a new mail from Windows' notifications pops up when the island has a Mail tile.
   await onEvent<MailNote>("mail-notification", (n) => {
     if (!wantsMail() || !isMailNotification(n.app, currentTiles(State.settings).mailApps)) return;

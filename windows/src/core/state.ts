@@ -362,6 +362,8 @@ class AppState {
   appearancePreview: import("../mochi/appearance").Appearance | null = null;
   /** Dictation is listening for one message to put in the text field. */
   dictating = false;
+  /** Flow dictation (the hotkey), a recorded call and « OK Groovy », from flow/live.rs. */
+  live: import("./flow").LiveState = { phase: "idle", key: "", noteStartedAt: null, enabled: false, voice: null };
   /** What dictation heard, waiting for the chat view to put in the text field. */
   dictation: string | null = null;
   /** The offline brain's setup on the note card (island/brain.ts). */

@@ -67,15 +67,6 @@ pub struct AppStyle {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
-pub enum Edge {
-    #[default]
-    Bottom,
-    Left,
-    Right,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
 pub enum SummaryEngine {
     /// Groovy's AI (brain_ai.rs): the local model by default, Claude when chosen.
     /// Written "claude" before Groovy made it local-first.
@@ -92,7 +83,6 @@ pub struct Prefs {
     /// Hold a key to dictate anywhere. Off until the user turns it on.
     pub enabled: bool,
     pub key: FlowKey,
-    pub edge: Edge,
     /// The microphone by name; empty is the system's default.
     pub mic: String,
     /// Days the history is kept: 0 = not kept, -1 = forever.
@@ -123,7 +113,6 @@ impl Default for Prefs {
         Self {
             enabled: false,
             key: FlowKey::default(),
-            edge: Edge::Bottom,
             mic: String::new(),
             keep_days: 30,
             cleanup: false,

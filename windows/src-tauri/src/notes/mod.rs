@@ -17,7 +17,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::flow::{pill, store::SummaryEngine};
+use crate::flow::{live, store::SummaryEngine};
 use crate::i18n::{t, tf};
 use crate::speech::{self, audio};
 use builder::{Line, Speaker, TimedWord, Todo};
@@ -230,7 +230,7 @@ pub fn setup(app: &AppHandle) {
     }
 }
 
-/// The pill's record button: starts or stops, and says what is missing.
+/// The island's Record button: starts or stops, and says what is missing.
 pub fn toggle(app: &AppHandle) {
     if is_recording(app) {
         stop(app);
@@ -240,7 +240,7 @@ pub fn toggle(app: &AppHandle) {
         } else {
             (err, None)
         };
-        pill::announce(app, "error", "#FF6B6B", text, action, 8);
+        live::announce(app, "error", "#FF6B6B", text, action, 8);
     }
 }
 
@@ -319,7 +319,7 @@ fn start_inner(app: &AppHandle, taker: &Arc<NoteTaker>) -> Result<String, String
     });
     speech::preload();
     spawn_live(app.clone(), taker.clone(), id.clone(), mic_channel, system_channel, stop_live);
-    pill::update(app, |s| s.note_started_at = Some(note.start));
+    live::update(app, |s| s.note_started_at = Some(note.start));
     let _ = app.emit_to(crate::HUB_LABEL, "notes-changed", &id);
     crate::log::line("notes: recording");
     Ok(id)
@@ -377,7 +377,7 @@ pub fn stop(app: &AppHandle) {
         n.end = Some(now_ms());
         n.status = Status::Processing;
     });
-    pill::update(app, |s| s.note_started_at = None);
+    live::update(app, |s| s.note_started_at = None);
     let app = app.clone();
     let id = rec.id.clone();
     std::thread::spawn(move || process(&app, &id));
@@ -438,7 +438,7 @@ fn process(app: &AppHandle, id: &str) {
             summarize(app, id);
         }
         let title = taker.note(id).map(|n| n.title).unwrap_or_default();
-        pill::announce(
+        live::announce(
             app,
             "check",
             "#34D399",

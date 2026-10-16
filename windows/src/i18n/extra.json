@@ -8157,39 +8157,6 @@
    "ru": "Правая {0}",
    "id": "{0} kanan"
   },
-  "Bottom": {
-   "zh-Hans": "底部",
-   "hi": "नीचे",
-   "es": "Abajo",
-   "ar": "أسفل",
-   "fr": "En bas",
-   "bn": "নিচে",
-   "pt-BR": "Embaixo",
-   "ru": "Внизу",
-   "id": "Bawah"
-  },
-  "Left": {
-   "zh-Hans": "左侧",
-   "hi": "बाएँ",
-   "es": "Izquierda",
-   "ar": "يسار",
-   "fr": "À gauche",
-   "bn": "বাঁয়ে",
-   "pt-BR": "Esquerda",
-   "ru": "Слева",
-   "id": "Kiri"
-  },
-  "Right": {
-   "zh-Hans": "右侧",
-   "hi": "दाएँ",
-   "es": "Derecha",
-   "ar": "يمين",
-   "fr": "À droite",
-   "bn": "ডানে",
-   "pt-BR": "Direita",
-   "ru": "Справа",
-   "id": "Kanan"
-  },
   "Keys": {
    "zh-Hans": "按键",
    "hi": "कुंजियाँ",
@@ -8233,17 +8200,6 @@
    "pt-BR": "Em um teclado com AltGr, o Alt direito digita caracteres: escolha outra tecla.",
    "ru": "На клавиатуре с AltGr правый Alt набирает символы: выберите другую клавишу.",
    "id": "Pada keyboard dengan AltGr, Alt kanan mengetik karakter: pilih tombol lain."
-  },
-  "Where the pill is": {
-   "zh-Hans": "胶囊位置",
-   "hi": "पिल की जगह",
-   "es": "Posición de la píldora",
-   "ar": "موضع الحبة",
-   "fr": "Position de la pilule",
-   "bn": "পিলের অবস্থান",
-   "pt-BR": "Posição da pílula",
-   "ru": "Где пилюля",
-   "id": "Posisi pil"
   },
   "Hands-free": {
    "zh-Hans": "免手持",
@@ -8332,17 +8288,6 @@
    "pt-BR": "No Wayland, a área de trabalho cuida da tecla de ditado para o Groovy: Ctrl+Alt+V, ou as teclas que você escolheu quando ela perguntou. Na primeira vez que colar, ela pergunta uma única vez se o Groovy pode digitar por você.",
    "ru": "В Wayland клавишей диктовки для Groovy управляет рабочий стол: Ctrl+Alt+V или клавиши, которые вы выбрали, когда он спросил. При первой вставке он один раз спросит, разрешить ли Groovy печатать за вас.",
    "id": "Di Wayland, desktop yang memegang tombol dikte untuk Groovy: Ctrl+Alt+V, atau tombol yang kamu pilih saat ditanya. Saat menempel pertama kali, desktop akan bertanya sekali apakah Groovy boleh mengetik untukmu."
-  },
-  "Groovy can't watch the keyboard here: use the pill's microphone to dictate.": {
-   "zh-Hans": "Groovy 在这里无法监听键盘：请用胶囊上的麦克风听写。",
-   "hi": "Groovy यहाँ कीबोर्ड नहीं देख सकता: बोलकर लिखने के लिए पिल का माइक्रोफ़ोन इस्तेमाल करें।",
-   "es": "Groovy no puede vigilar el teclado aquí: usa el micrófono de la píldora para dictar.",
-   "ar": "لا يستطيع Groovy مراقبة لوحة المفاتيح هنا: استخدم ميكروفون الكبسولة للإملاء.",
-   "fr": "Groovy ne peut pas surveiller le clavier ici : utilise le micro de la pilule pour dicter.",
-   "bn": "Groovy এখানে কিবোর্ড দেখতে পারে না: ডিক্টেট করতে পিলের মাইক্রোফোন ব্যবহার করুন।",
-   "pt-BR": "O Groovy não consegue observar o teclado aqui: use o microfone da pílula para ditar.",
-   "ru": "Здесь Groovy не может следить за клавиатурой: диктуйте через микрофон на пилюле.",
-   "id": "Groovy tidak bisa memantau keyboard di sini: gunakan mikrofon pil untuk mendikte."
   },
   "The one Groovy listens to for dictation and calls.": {
    "zh-Hans": "Groovy 听写和录制通话时使用的麦克风。",
@@ -9520,50 +9465,6 @@
    "pt-BR": "Pronto · segure {0}",
    "ru": "Готово · удерживайте {0}",
    "id": "Siap · tahan {0}"
-  },
-  "Copied · press Ctrl+V to paste": {
-   "zh-Hans": "已复制 · 按 Ctrl+V 粘贴",
-   "hi": "कॉपी हुआ · पेस्ट करने के लिए Ctrl+V दबाएँ",
-   "es": "Copiado · pulsa Ctrl+V para pegar",
-   "ar": "تم النسخ · اضغط Ctrl+V للصق",
-   "fr": "Copié · Ctrl+V pour coller",
-   "bn": "কপি হয়েছে · পেস্ট করতে Ctrl+V চাপুন",
-   "pt-BR": "Copiado · pressione Ctrl+V para colar",
-   "ru": "Скопировано · Ctrl+V, чтобы вставить",
-   "id": "Disalin · tekan Ctrl+V untuk menempel"
-  },
-  "Last dictation pasted": {
-   "zh-Hans": "已粘贴上一次听写",
-   "hi": "पिछला डिक्टेशन चिपकाया गया",
-   "es": "Último dictado pegado",
-   "ar": "تم لصق آخر إملاء",
-   "fr": "Dernière dictée collée",
-   "bn": "শেষ ডিক্টেশন পেস্ট হয়েছে",
-   "pt-BR": "Último ditado colado",
-   "ru": "Последняя диктовка вставлена",
-   "id": "Dikte terakhir ditempel"
-  },
-  "Dictate · {0}": {
-   "zh-Hans": "听写 · {0}",
-   "hi": "डिक्टेट करें · {0}",
-   "es": "Dictar · {0}",
-   "ar": "إملاء · {0}",
-   "fr": "Dicter · {0}",
-   "bn": "ডিক্টেট · {0}",
-   "pt-BR": "Ditar · {0}",
-   "ru": "Диктовать · {0}",
-   "id": "Dikte · {0}"
-  },
-  "Paste · or press {0}": {
-   "zh-Hans": "粘贴 · 或按 {0}",
-   "hi": "चिपकाएँ · या {0} दबाएँ",
-   "es": "Pegar · o pulsa {0}",
-   "ar": "لصق · أو اضغط {0}",
-   "fr": "Coller · ou appuie sur {0}",
-   "bn": "পেস্ট · বা {0} চাপুন",
-   "pt-BR": "Colar · ou pressione {0}",
-   "ru": "Вставить · или нажмите {0}",
-   "id": "Tempel · atau tekan {0}"
   },
   "Claude (your key)": {
    "zh-Hans": "Claude（你的密钥）",
@@ -11831,17 +11732,6 @@
    "ru": "3. Проверка",
    "id": "3. Tes"
   },
-  "Hold {0} to dictate": {
-   "zh-Hans": "按住 {0} 进行听写",
-   "hi": "डिक्टेट करने के लिए {0} दबाए रखें",
-   "es": "Mantén {0} para dictar",
-   "ar": "اضغط مطولًا على {0} للإملاء",
-   "fr": "Maintiens {0} pour dicter",
-   "bn": "ডিক্টেট করতে {0} চেপে ধরুন",
-   "pt-BR": "Segure {0} para ditar",
-   "ru": "Удерживайте {0} для диктовки",
-   "id": "Tahan {0} untuk dikte"
-  },
   "Dictation needs its speech model: set it up once (about 2 minutes).": {
    "zh-Hans": "听写需要语音模型：设置一次即可（约 2 分钟）。",
    "hi": "डिक्टेशन को अपना स्पीच मॉडल चाहिए: इसे एक बार सेट करें (लगभग 2 मिनट)।",
@@ -13315,6 +13205,17 @@
    "pt-BR": "Experimente aqui",
    "ru": "Попробуйте здесь",
    "id": "Coba di sini"
+  },
+  "Groovy can't watch the keyboard here: use the Dictate button in the island.": {
+   "zh-Hans": "Groovy 无法在这里监听键盘：请使用灵动岛中的“听写”按钮。",
+   "hi": "Groovy यहाँ कीबोर्ड नहीं देख सकता: आइलैंड में डिक्टेट बटन का इस्तेमाल करें।",
+   "es": "Groovy no puede vigilar el teclado aquí: usa el botón Dictar de la isla.",
+   "ar": "لا يستطيع Groovy مراقبة لوحة المفاتيح هنا: استخدم زر الإملاء في الجزيرة.",
+   "fr": "Groovy ne peut pas surveiller le clavier ici : utilisez le bouton Dicter de l'île.",
+   "bn": "Groovy এখানে কিবোর্ড দেখতে পারে না: আইল্যান্ডের ডিক্টেট বোতামটি ব্যবহার করুন।",
+   "pt-BR": "O Groovy não consegue observar o teclado aqui: use o botão Ditar da ilha.",
+   "ru": "Groovy не может следить за клавиатурой здесь: используйте кнопку «Диктовать» на острове.",
+   "id": "Groovy tidak bisa memantau keyboard di sini: gunakan tombol Dikte di pulau."
   }
  }
 }

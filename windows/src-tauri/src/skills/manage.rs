@@ -733,12 +733,12 @@ pub async fn skills_session_started(app: AppHandle, cwd: String) -> Result<(), S
         .map(|r| r.id())
         .filter(|id| !state.dismissed.contains(id) && !state.announced.contains(id))
         .collect();
-    if fresh.is_empty() || crate::flow::pill::dictating(&app) || crate::notes::is_recording(&app) {
+    if fresh.is_empty() || crate::flow::live::dictating(&app) || crate::notes::is_recording(&app) {
         return Ok(());
     }
     let name = project.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let text = crate::i18n::tf("{0} skills could help {1}", &[("0", &fresh.len().to_string()), ("1", &name)]);
-    crate::flow::pill::announce(&app, "bolt", "#22D3EE", text, Some((crate::i18n::t("Review"), "openSkills")), 10);
+    crate::flow::live::announce(&app, "bolt", "#22D3EE", text, Some((crate::i18n::t("Review"), "openSkills")), 10);
     state.announced.extend(fresh);
     store::save(&project, &state)
 }

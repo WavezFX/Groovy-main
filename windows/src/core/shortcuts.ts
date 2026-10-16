@@ -30,6 +30,7 @@ export const SHORTCUT_TEXT = {
   desktopToggle: N_("Send Groovy to the desktop"),
   wardrobeToggle: N_("Open the wardrobe"),
   openSettings: N_("Open the Control Centre"),
+  pasteDictation: N_("Paste the last dictation again"),
   island: {
     nextPrev: N_("Next or previous pill"),
     byNumber: N_("Go to pill 1 to 9"),
@@ -58,7 +59,8 @@ export type ShortcutId =
   | "muteToggle"
   | "desktopToggle"
   | "wardrobeToggle"
-  | "openSettings";
+  | "openSettings"
+  | "pasteDictation";
 
 export interface ShortcutDef {
   id: ShortcutId;
@@ -84,6 +86,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   def("desktopToggle", "Ctrl+Alt+D", true, true),
   def("wardrobeToggle", "Ctrl+Alt+G", true, true),
   def("openSettings", "Ctrl+Alt+Comma", true, true),
+  def("pasteDictation", "Ctrl+Alt+V", true, true),
 ];
 
 export interface Binding {

@@ -2,7 +2,7 @@
 // where you type. Port of FlowDictation.swift for Windows and Linux.
 //
 // One thread owns the dictation: the key's events come in from the OS listener
-// (os_windows.rs / os_linux.rs) and the pill's buttons, KeyLogic turns them
+// (os_windows.rs / os_linux.rs) and the island's buttons, KeyLogic turns them
 // into start / lock / finish / cancel, the microphone is opened on the first
 // press, and when you let go the words go to Parakeet on this computer, then
 // through the dictionary, the snippets and (if turned on) Claude's clean-up,
@@ -11,7 +11,7 @@
 pub mod cleanup;
 pub mod logic;
 pub mod paste;
-pub mod pill;
+pub mod live;
 pub mod store;
 pub mod text;
 
@@ -46,11 +46,11 @@ pub enum KeyEvent {
     /// Another key while the dictation key is held: a shortcut.
     Other,
     Escape,
-    /// The pill's microphone: hands-free straight away.
+    /// The island's Dictate button: hands-free straight away.
     HandsFree,
-    /// The pill's ✓: paste now.
+    /// The island's ✓: paste now.
     Finish,
-    /// The pill's ✕.
+    /// The island's ✕.
     Cancel,
     Quit,
 }
@@ -118,12 +118,9 @@ fn is_terminal(id: &str) -> bool {
 pub fn setup(app: &AppHandle) {
     let flow = Arc::new(Flow { store: Mutex::new(Store::load()), running: Mutex::new(None) });
     app.manage(flow.clone());
-    pill::setup(app);
+    live::setup(app);
     let prefs = flow.store.lock().unwrap().prefs.clone();
-    pill::update(app, |s| {
-        s.edge = pill::edge_name(prefs.edge).into();
-        s.key = key_id(prefs.key);
-    });
+    live::update(app, |s| s.key = key_id(prefs.key));
     if prefs.enabled {
         enable(app, &flow);
     }
@@ -157,7 +154,7 @@ fn enable(app: &AppHandle, flow: &Arc<Flow>) {
         #[cfg(target_os = "linux")]
         Err("wayland") => wayland::listen(tx.clone()).map(|h| Box::new(h) as Box<dyn std::any::Any + Send>),
         Err(why) => {
-            crate::log::line(format!("flow: no key on this desktop ({why}); the pill's buttons still work"));
+            crate::log::line(format!("flow: no key on this desktop ({why}); the island's buttons still work"));
             None
         }
     };
@@ -170,7 +167,7 @@ fn enable(app: &AppHandle, flow: &Arc<Flow>) {
     *running = Some(Running { tx, _listener: listener });
     drop(running);
     speech::preload();
-    pill::update(app, |s| s.enabled = true);
+    live::update(app, |s| s.enabled = true);
     crate::log::line(format!("flow dictation on ({})", prefs.key.label()));
 }
 
@@ -179,7 +176,7 @@ fn disable(app: &AppHandle, flow: &Arc<Flow>) {
     if let Some(r) = running {
         let _ = r.tx.send((KeyEvent::Quit, Instant::now()));
     }
-    pill::update(app, |s| {
+    live::update(app, |s| {
         s.enabled = false;
         s.phase = "idle".into();
     });
@@ -242,7 +239,7 @@ fn run(app: AppHandle, flow: Arc<Flow>, rx: mpsc::Receiver<(KeyEvent, Instant)>)
                         }
                     }
                     if listening.is_some() {
-                        pill::update(&app, |s| s.phase = "locked".into());
+                        live::update(&app, |s| s.phase = "locked".into());
                     }
                     Action::None
                 }
@@ -276,32 +273,32 @@ fn run(app: AppHandle, flow: Arc<Flow>, rx: mpsc::Receiver<(KeyEvent, Instant)>)
                     logic.reset();
                 }
             }
-            Action::Lock => pill::update(&app, |s| s.phase = "locked".into()),
+            Action::Lock => live::update(&app, |s| s.phase = "locked".into()),
             Action::Cancel => {
                 drop(listening.take());
-                pill::update(&app, |s| s.phase = "idle".into());
+                live::update(&app, |s| s.phase = "idle".into());
             }
             Action::Finish => {
                 if let Some(l) = listening.take() {
                     finish(&app, &flow, l, busy.clone());
                 } else {
-                    pill::update(&app, |s| s.phase = "idle".into());
+                    live::update(&app, |s| s.phase = "idle".into());
                 }
             }
         }
-        // The pill's dots, about 30 times a second while you speak.
+        // The island's bars, about 30 times a second while you speak.
         if let Some(l) = &listening {
             let levels = l.take.lock().unwrap().meter.levels;
-            let _ = app.emit_to(pill::LABEL, "pill-bands", levels);
+            live::bands(&app, &levels);
         }
     }
-    pill::update(&app, |s| s.phase = "idle".into());
+    live::update(&app, |s| s.phase = "idle".into());
 }
 
-/// Opens the microphone. None (and the pill says why) when it can't.
+/// Opens the microphone. None (and the island says why) when it can't.
 fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
     if !speech::is_ready() {
-        pill::announce(
+        live::announce(
             app,
             "download",
             "#3B9EFF",
@@ -327,14 +324,14 @@ fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
     match capture {
         Ok(capture) => {
             let app_front = os::foreground_app().filter(|(id, _)| !is_shell(id));
-            pill::update(app, |s| s.phase = "listening".into());
+            live::update(app, |s| s.phase = "listening".into());
             Some(Listening { capture, take, started: Instant::now(), app: app_front })
         }
         Err(err) => {
             crate::log::line(format!("flow: microphone: {err}"));
-            pill::update(app, |s| s.phase = "failed".into());
-            pill::rest_after(app, "failed", 1800);
-            pill::announce(
+            live::update(app, |s| s.phase = "failed".into());
+            live::rest_after(app, "failed", 1800);
+            live::announce(
                 app,
                 "mic",
                 "#FF6B6B",
@@ -358,10 +355,10 @@ fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicB
     };
     // Too short or silent: nothing to send to the model.
     if samples.len() < 16_000 / 4 || peak < 0.004 {
-        pill::update(app, |s| s.phase = "idle".into());
+        live::update(app, |s| s.phase = "idle".into());
         return;
     }
-    pill::update(app, |s| s.phase = "thinking".into());
+    live::update(app, |s| s.phase = "thinking".into());
     let app = app.clone();
     let flow = flow.clone();
     let front = l.app.clone();
@@ -371,7 +368,7 @@ fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicB
         busy.store(false, Ordering::Relaxed);
         if let Err(err) = result {
             crate::log::line(format!("flow: {err}"));
-            pill::update(&app, |s| s.phase = "idle".into());
+            live::update(&app, |s| s.phase = "idle".into());
         }
     });
 }
@@ -381,7 +378,7 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
     let transcript = speech::transcribe(samples).ok_or("the voice model is not loaded")?;
     let raw = transcript.text.trim().to_string();
     if raw.is_empty() {
-        pill::update(app, |s| s.phase = "idle".into());
+        live::update(app, |s| s.phase = "idle".into());
         return Ok(());
     }
     let (prepared, style, cleanup, words, key) = {
@@ -409,11 +406,11 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
     };
     let _ = app.emit_to(crate::HUB_LABEL, "flow-history", entry);
     match outcome {
-        paste::Outcome::Pasted => pill::update(app, |s| s.phase = "idle".into()),
+        paste::Outcome::Pasted => live::update(app, |s| s.phase = "idle".into()),
         paste::Outcome::Copied => {
-            pill::update(app, |s| s.phase = "copied".into());
-            pill::rest_after(app, "copied", 1800);
-            pill::announce(
+            live::update(app, |s| s.phase = "copied".into());
+            live::rest_after(app, "copied", 1800);
+            live::announce(
                 app,
                 "clipboard",
                 "#F7B32B",
@@ -423,7 +420,7 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
             );
         }
         paste::Outcome::Failed => {
-            pill::update(app, |s| s.phase = "idle".into());
+            live::update(app, |s| s.phase = "idle".into());
             return Err("the clipboard refused the text".into());
         }
     }
@@ -433,12 +430,20 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
 /// "Paste again": the last dictation, in the app in front now.
 fn paste_again(app: &AppHandle, flow: &Arc<Flow>) {
     let Some(text) = flow.store.lock().unwrap().last_text() else { return };
+    os::wait_modifiers_released();
     let front = os::foreground_app();
     let terminal = front.as_ref().is_some_and(|(id, _)| is_terminal(id));
     if paste::paste(&text, terminal) == paste::Outcome::Pasted {
-        pill::update(app, |s| s.phase = "pastedAgain".into());
-        pill::rest_after(app, "pastedAgain", 1600);
+        live::update(app, |s| s.phase = "pastedAgain".into());
+        live::rest_after(app, "pastedAgain", 1600);
     }
+}
+
+/// The shortcut (and the island's button): paste the last dictation again.
+fn paste_last(app: &AppHandle) {
+    let Some(flow) = app.try_state::<Arc<Flow>>().map(|f| f.inner().clone()) else { return };
+    let app = app.clone();
+    std::thread::spawn(move || paste_again(&app, &flow));
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────────
@@ -518,10 +523,7 @@ pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
         }
         before
     };
-    pill::update(&app, |s| {
-        s.edge = pill::edge_name(prefs.edge).into();
-        s.key = key_id(prefs.key);
-    });
+    live::update(&app, |s| s.key = key_id(prefs.key));
     sync_engine(&app);
     let restart = before.key != prefs.key;
     if before.enabled && (!prefs.enabled || restart) {
@@ -684,32 +686,26 @@ pub fn flow_models_remove(app: AppHandle) {
     speech::remove(&app);
 }
 
-// ── The pill's page ───────────────────────────────────────────────────────────
+// ── The island's live strip ───────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn pill_state(app: AppHandle) -> Option<pill::PillState> {
-    pill::get(&app).map(|p| p.state())
+pub fn live_state(app: AppHandle) -> Option<live::LiveState> {
+    live::get(&app).map(|p| p.state())
 }
 
 #[tauri::command]
-pub fn pill_hot(app: AppHandle, rects: Vec<(f64, f64, f64, f64)>) {
-    pill::set_hot(&app, rects);
+pub fn live_notices(app: AppHandle) -> Vec<live::Notice> {
+    live::pending(&app)
 }
 
 #[tauri::command]
-pub fn pill_hover(app: AppHandle, inside: bool) {
-    if let Some(p) = pill::get(&app) {
-        p.hovered.store(inside, Ordering::Relaxed);
-    }
-}
-
-#[tauri::command]
-pub fn pill_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: Option<u64>) {
+pub fn live_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: Option<u64>) {
     let flow = flow.inner().clone();
     match action.as_str() {
         "dictate" => {
             if flow.running.lock().unwrap().is_none() {
-                // Dictation off: the pill only shows for a call or a message.
+                // Dictation off: turn it on in the Hub first.
+                crate::show_hub(&app, Some("dictation"));
                 return;
             }
             flow.send(KeyEvent::HandsFree);
@@ -719,21 +715,18 @@ pub fn pill_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: O
         "note" => crate::notes::toggle(&app),
         "stopNote" => crate::notes::stop(&app),
         "hub" => crate::show_hub(&app, None),
+        "pasteAgain" => paste_last(&app),
         "announcement" | "dismiss" => {
-            let state = pill::get(&app).map(|p| p.state());
-            let current = state.and_then(|s| s.announcement).filter(|a| Some(a.id) == id);
-            if let Some(a) = current {
-                pill::dismiss(&app, a.id);
-                if action == "announcement" {
-                    match a.action_id.as_deref() {
-                        Some("openSettings") => crate::show_hub(&app, Some("settings")),
-                        Some("openNotes") => crate::show_hub(&app, Some("notes")),
-                        Some("openSkills") => crate::show_hub(&app, Some("skills")),
-                        Some("openAssistant") => crate::show_hub(&app, Some("assistant")),
-                        Some("openSpeechSetup") => crate::show_hub(&app, Some("speechsetup")),
-                        Some("closeOnLeave") => crate::set_setting(&app, |s| s.auto_close_interval = 0.0),
-                        _ => {}
-                    }
+            let Some(n) = id.and_then(|id| live::dismiss(&app, id)) else { return };
+            if action == "announcement" {
+                match n.action_id.as_deref() {
+                    Some("openSettings") => crate::show_hub(&app, Some("settings")),
+                    Some("openNotes") => crate::show_hub(&app, Some("notes")),
+                    Some("openSkills") => crate::show_hub(&app, Some("skills")),
+                    Some("openAssistant") => crate::show_hub(&app, Some("assistant")),
+                    Some("openSpeechSetup") => crate::show_hub(&app, Some("speechsetup")),
+                    Some("closeOnLeave") => crate::set_setting(&app, |s| s.auto_close_interval = 0.0),
+                    _ => {}
                 }
             }
         }
