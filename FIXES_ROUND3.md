@@ -1,4 +1,4 @@
-# Groovy round 3: Groovy's own island, one island only, wardrobe and growing looks
+# Groovy round 3: Groovy's own island, one island only, wardrobe, growing looks and the Seed intro
 
 Owner's decisions from 16 Oct 2026, after reviewing design mockups. The mockups are in `docs/design/island-round3/`:
 - `MixF.dc.html`: the normal state;
@@ -126,6 +126,31 @@ Today there are six separate looks (`src/mochi/skins.ts`: night, ember, frost, g
 - Remove `grove`, `blaze` and `tide` as separate selectable looks. Their colour styles stay as the stage-5 targets.
 - Tests: the stage from runtime, stages that never go backwards, migration, and drawing each stage without errors.
 
+## 7. New intro animation: "Seed" (replaces Coucou's drop-and-wave)
+- Today's launch greeting (`src/mochi/greeting.ts`, a port of Coucou's `GreetingCanvasView.swift`) drops Groovy into the island, bounces, slides aside and waves. It also plays Coucou's `greeting` sound. Replace both.
+- Mockup: `docs/design/island-round3/IntroSeed.dc.html`. Its CSS keyframes give the order and rough timing; a 6 s loop there is about 3 s in the app.
+- **First launch after install (about 3 s):**
+  1. A small **glowing seed** in the current look's colour (Night green, Ember orange, Frost blue) falls from the top edge into the island's spot. It bounces once and squashes slightly.
+  2. It **cracks open** into two halves that fall away and fade, with a soft flash of light.
+  3. **Groovy pops out** at **stage 0** with a small overshoot (scale about 1.15, then 1) and blinks.
+  4. His stage touch appears: for stage 0, a single tiny sprout, spark or droplet.
+  5. The **glass island grows around him** from a small point to full size (scale with a slight overshoot).
+  6. Text fades in: "Hi, I'm Groovy." / "I'll grow the longer we work together."
+  7. It settles into the normal island (F layout).
+- **Every later launch (about 1 s):** the seed lands, a quick crack, and Groovy pops out **at his current stage**, showing his current growth.
+  - If he reached a new stage since last time, add one beat: the new leaf, flame or water level grows in, with the line "I grew while you were away!".
+  - Otherwise show "Up next" (e.g. "2 new emails").
+- **Rules:**
+  - Click to skip.
+  - Never shown more than once per launch.
+  - Respect Windows "Show animations" / reduced motion: just fade the island in.
+  - Draw it on the existing canvas engine (`BotEngine`), and **don't** keep it in memory once it's finished.
+  - Keep the frame rate cheap on the Lightweight profile.
+- **Sound:** a new short sound of Groovy's own (a soft "pop" plus a rising chime, under 1 s), with volume and mute following the sound setting.
+  - Don't use Coucou's `greeting.wav`.
+  - **Also check every file in `windows/sounds/`:** `LICENSE-ASSETS.md` reserves Coucou's sounds, so replace any that came from Coucou with original or properly licensed ones before any public release, and list where each comes from in `windows/sounds/SOURCES.md`.
+- Tests: the stage shown matches the saved stage, the first-launch vs returning choice, skipping, and reduced motion.
+
 ## Done means
 - One island, glass by default, with a Solid option and a measured cost.
 - The F layout normally, which turns into E while music plays and back about 5 s after it stops. The Spotify tile's ⏮ ▶ ⏭ work.
@@ -133,4 +158,5 @@ Today there are six separate looks (`src/mochi/skins.ts`: night, ember, frost, g
 - Any integration can be added. Spotify, Cal.com and Notion were tested.
 - The wardrobe has independent Head, Face and Neck slots.
 - The three looks grow over 5 stages.
+- The Seed intro replaces the old greeting, with no Coucou sounds left.
 - STATUS.md is updated with what was tested on Windows and how.
