@@ -81,6 +81,18 @@ How the seasons work:
 - **Pool ring** sits around his middle (draw it over the lower body). Every other item uses its normal slot.
 - **Today is in the Halloween window,** so the Halloween items should earn on the first launch after this ships.
 
+## Item 6: Choose your Groovy and name him when he hatches
+
+When someone first installs Groovy, the Seed intro (round 3 item 7) hatches him. At that moment:
+
+1. **Pick his look.** After the egg cracks, three little hatchlings appear side by side: **Night** (grows into Grove), **Ember** (grows into Blaze) and **Frost** (grows into Tide). Each one shows a tiny preview of its stage 5 form and a one-line description. Tap one: the other two fade away and he hops into place.
+2. **Name him.** A glass name field reads "What will you call him?", pre-filled with "Groovy". Accept it or type any name (1–20 characters; letters, numbers, spaces and simple punctuation). The name is saved in settings and used everywhere he's mentioned: greetings, toasts, the stage line ("Pip reached stage 2!"), the tray tooltip, Settings and the six-month moment.
+3. **The wake word stays "OK Groovy"** by default, so it works reliably. In Settings → Voice there's an option "Also wake to his name", which adds the custom name to the keyword spotter (round 3B item 10) as long as it's 2+ syllables. Show a hint if it's too short to be reliable.
+4. **Changing it later:** the name can be changed in Settings at any time. The **look** can be switched in the wardrobe as before. Growth is shared across looks, so nothing is lost.
+5. **Existing users** (already hatched) aren't asked again. They get a one-time toast: "You can now give him a name: Settings → Groovy".
+6. All three choices and the name screen are animated (round 3B item 8) and work with Windows' reduce-motion setting.
+7. **Tests:** first run shows the picker; the choice and name are saved; a name with emoji or empty is handled; existing users skip the picker; the name appears in the strings above.
+
 ## Item 5: Tests and checks
 
 - **Unit tests:**

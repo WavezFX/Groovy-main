@@ -133,6 +133,38 @@ The owner doesn't like the current voice. Add **Fish Audio** as a speech (TTS) p
 - **Licence:** the user brings their own key, so Fish Audio's own terms apply to them. Don't bundle Fish Audio's model weights or copy any of its code.
 - **Test:** a mocked Fish Audio API checks streaming, the fallback to Kokoro, and that the key never appears in logs or settings.
 
+## Item 10: Real-world memory and CPU (owner's Task Manager, 16 Oct)
+
+On the owner's laptop, with Settings open and Spotify playing, Task Manager shows:
+
+- **Groovy main process: about 700 MB and 20% CPU.**
+- **WebView2: about 210 MB.** The Control Centre is 78 MB, the island 55 MB, and the GPU process 32 MB at **17% CPU**.
+
+That's about **900 MB and roughly 40% CPU**. CI passes only because the CI machine has no speech model or local AI downloaded. **The 300 MB budget is for the real app on a real PC, not an empty one.**
+
+What's using it:
+
+1. **Parakeet stays loaded all the time** (about 670 MB). `speech::preload()` runs after the models download (`speech/mod.rs:257`) and whenever « OK Groovy » turns on (`okgroovy/mod.rs:113`), and it's only freed when both dictation and OK Groovy are off.
+2. **« OK Groovy » probably runs the full Parakeet model on the microphone non-stop** to catch the wake phrase, which explains the 20% CPU while idle.
+3. **The local AI** (Gemma 3 1B, `local_chat.rs`, in-process) stays in memory after use.
+4. **The GPU process at 17% while nothing is changing** means something is still animating or repainting all the time.
+
+Fixes:
+
+- **Wake word: a tiny keyword spotter, not the full speech model.** Use sherpa-onnx's keyword spotting (KWS) with a small model (a few MB, about 1–2% CPU) to listen for "OK Groovy" / "Hey Groovy". Only after it fires do you load or use the full speech engine, or the cloud one (round 3B item 6), for the command. Voice activity detection (`voice/vad.ts` or Silero VAD) gates even the spotter, so silence costs almost nothing.
+- **Load speech models on demand and free them when idle.** No `preload()` at startup, after download, or when OK Groovy turns on. Load when dictation, a call or a command actually starts (show "Getting ready…" on the island if it takes more than about 300 ms). **Free it after 2 minutes unused**, with a setting for 30 s / 2 min / 5 min / Keep loaded. When a cloud speech engine is set up, don't load Parakeet at all unless the cloud one fails.
+- **Local AI:** load it on first use, free it after 2 minutes idle (same setting), and never preload it. Run it in a **separate helper process** (or Ollama, LM Studio or llama-server) so that freeing it really gives the memory back to Windows. Groovy's own process must drop back down after an unload.
+- **Idle CPU and GPU near zero.** With the island collapsed, nothing animating and no music, the main process should use under 1% CPU and the WebView2 GPU process under 1%. Find whatever keeps painting (a CSS animation left running, a canvas `requestAnimationFrame` loop, a blur being re-applied, a timer) and stop it. Hidden or closed windows render nothing.
+- **Free memory after closing.** When Settings (the Control Centre) closes, destroy its window, so its WebView2 process exits and its memory comes back. Check this in Task Manager terms.
+- **A realistic smoke test in CI:**
+  - download the speech models and the small local model in CI (cache them);
+  - turn on dictation and OK Groovy, then run one dictation, one OK Groovy command and one local AI reply;
+  - wait for the idle unload;
+  - measure the **private working set of every Groovy process plus every WebView2 child of Groovy**;
+  - **Fail if idle total > 300 MB or idle CPU > 2%** (averaged over 60 s, all Groovy processes together).
+  - Also report the peak while working.
+- In `STATUS.md`, list the idle memory and CPU of each process before and after, so the owner can compare them with Task Manager.
+
 ## Item 9: Checks
 
 - The Rust and TS tests stay green on Windows CI.

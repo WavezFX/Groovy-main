@@ -23,6 +23,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 8. Animate everything
 - [x] 8b. Smooth and efficient: no lag anywhere (frame-time test in CI). **Added after the owner's test.**
 - [x] 8c. Fish Audio voice (owner's key and voice ID entered in Settings), Kokoro fallback. **Added after the owner's test.**
+- [ ] 10. Real-world memory and CPU: tiny wake-word spotter, load or unload models on demand, idle CPU near 0, realistic CI test. **Added after the owner's Task Manager screenshot: do this next.**
 - [ ] 9. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
@@ -38,6 +39,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 2. Stage 6 at six months
 - [ ] 3. Wardrobe v2. **Keep round 3B item 4's speed fixes** (cached previews, one live engine).
 - [ ] 4. Seasonal collection
+- [ ] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
 - [ ] 5. Tests and checks
 
 ## Later (don't start yet)
