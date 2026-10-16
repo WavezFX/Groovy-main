@@ -273,21 +273,10 @@ fn body_disc() -> MouseShape {
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
-/// Same reasoning as the settings window: created hidden at launch, before the
-/// island's webview, then only shown and hidden. Nothing is created where the
-/// feature is off.
+/// His window is made only when he goes out on the desktop, and destroyed when
+/// he is brought home (round 3 §9: a webview less while he lives in the island).
 pub fn setup(app: &AppHandle) {
-    let mut mode = platform::desktop_mode();
-    if mode != DesktopMode::Off {
-        match create_window(app, mode) {
-            Some(win) if platform::prepare_desktop_window(&win, mode) => {}
-            Some(win) => {
-                let _ = win.destroy();
-                mode = DesktopMode::Off;
-            }
-            None => mode = DesktopMode::Off,
-        }
-    }
+    let mode = platform::desktop_mode();
     crate::log::line(format!("desktop Groovy: {}", mode.as_str()));
     let desktop = Arc::new(Desktop::new(mode));
     app.manage(desktop.clone());
@@ -306,6 +295,26 @@ fn page_url(app: &AppHandle) -> WebviewUrl {
     }
     let _ = app;
     WebviewUrl::App("mochi.html".into())
+}
+
+/// His window, made now if he has none (from a command's thread, never the
+/// event loop's: see lib.rs create_hub_window). False when it can't be made.
+fn ensure_window(app: &AppHandle, d: &Desktop) -> bool {
+    if window(app).is_some() {
+        return true;
+    }
+    match create_window(app, d.mode) {
+        Some(win) if platform::prepare_desktop_window(&win, d.mode) => {
+            crate::log::line("desktop Groovy: window made");
+            *d.inner.lock().unwrap() = Inner::default();
+            true
+        }
+        Some(win) => {
+            let _ = win.destroy();
+            false
+        }
+        None => false,
+    }
 }
 
 fn create_window(app: &AppHandle, _mode: DesktopMode) -> Option<WebviewWindow> {
@@ -698,7 +707,7 @@ pub fn desktop_mochi_info(app: AppHandle, desktop: State<Arc<Desktop>>) -> Deskt
 #[tauri::command]
 pub async fn desktop_mochi_pick_up(app: AppHandle, x: f64, y: f64) -> bool {
     let d = app.state::<Arc<Desktop>>().inner().clone();
-    if d.mode == DesktopMode::Off || window(&app).is_none() || d.inner.lock().unwrap().shown {
+    if d.mode == DesktopMode::Off || d.inner.lock().unwrap().shown || !ensure_window(&app, &d) {
         return false;
     }
     refresh_layer_display(&app, &d);
@@ -817,7 +826,7 @@ pub async fn desktop_mochi_drag_end(app: AppHandle, x: f64, y: f64) {
 #[tauri::command]
 pub async fn desktop_mochi_fly_out(app: AppHandle, anywhere: Option<bool>) -> bool {
     let d = app.state::<Arc<Desktop>>().inner().clone();
-    if d.mode == DesktopMode::Off || window(&app).is_none() {
+    if d.mode == DesktopMode::Off || !ensure_window(&app, &d) {
         return false;
     }
     refresh_layer_display(&app, &d);
@@ -877,6 +886,12 @@ pub async fn desktop_mochi_fly_home(app: AppHandle, forget: bool) -> bool {
     }
     if forget {
         remember(&app, |p| p.on_desktop = false);
+        // Home for good: his window goes, it is made again next time he goes out.
+        if done {
+            if let Some(win) = window(&app) {
+                let _ = win.destroy();
+            }
+        }
     }
     done
 }

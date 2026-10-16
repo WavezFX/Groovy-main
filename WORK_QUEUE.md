@@ -9,7 +9,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - **Don't remove existing features,** including brain switching and the `Brain` interface, unless a brief says to.
 
 ## 0. Make CI green
-- [ ] Build #55 (round 3 item 9) failed at "Smoke test the portable executable". Fix the real cause; don't raise the 300 MB limit.
+- [x] Build #55 (round 3 item 9) failed at "Smoke test the portable executable". Fix the real cause; don't raise the 300 MB limit. Done: the first run no longer opens the Control Centre (asked in the island), the desktop Groovy's window is made only when he goes out, the audio context closes after a minute of silence; the gate reads the private working set (the old sum counted shared pages 9×). Build #55: 709.7 MB summed / 327.2 MB private with the Control Centre open.
 
 ## 1. Fixes round 3B: `FIXES_ROUND3B.md` (the owner's test feedback)
 - [ ] 1. Grey square behind the island

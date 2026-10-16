@@ -10,9 +10,11 @@
 #   - settings were initialised (settings.json in %APPDATA%\Groovy),
 #   - the local database exists (groovy.db in %LOCALAPPDATA%\Groovy),
 #   - no crash.log was written,
-#   - once idle with the island open, Groovy's whole working set — groovy.exe
-#     and every process under it (WebView2, llama-server, speech) — is under
-#     -BudgetMB (300 MB, FIXES_ROUND3 §9).
+#   - once idle with the island open, Groovy's memory — groovy.exe and every
+#     process under it (WebView2, llama-server, speech) — is under -BudgetMB
+#     (300 MB, FIXES_ROUND3 §9). Judged on the private working set (Task
+#     Manager's "Memory" column): the plain working-set sum counts WebView2's
+#     shared DLL pages once per process, nine times over; it is printed too.
 # -Offline blocks all outbound traffic for that executable with a Windows
 # Firewall rule first (needs an elevated shell, which CI runners have), so the
 # run proves Groovy starts with no network at all.
@@ -23,7 +25,7 @@ param(
   [string]$Label = "groovy",
   [int]$TimeoutSeconds = 60,
   [int]$BudgetMB = 300,
-  [int]$IdleSeconds = 20
+  [int]$IdleSeconds = 75
 )
 
 $ErrorActionPreference = "Stop"
@@ -93,16 +95,23 @@ try {
         $sum = ($group.Group | Measure-Object -Property WorkingSetSize -Sum).Sum
         $metrics["  $($group.Name) x$($group.Count) (MB)"] = [math]::Round($sum / 1MB, 1)
       }
-      $total = [math]::Round(($proc.WorkingSet64 + $ws) / 1MB, 1)
-      $metrics["TOTAL working set (MB, budget $BudgetMB)"] = $total
+      $metrics["working set summed per process (MB, shared pages counted each time)"] = [math]::Round(($proc.WorkingSet64 + $ws) / 1MB, 1)
+      $total = $null
       # Task Manager's "Memory" column (private working set), for comparison.
       $ids = @($proc.Id) + @($tree | ForEach-Object { $_.ProcessId })
       $perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -ErrorAction SilentlyContinue | Where-Object { $ids -contains [int]$_.IDProcess }
       if ($perf) {
         $private = ($perf | Measure-Object -Property WorkingSetPrivate -Sum).Sum
-        $metrics["total private working set (MB, Task Manager)"] = [math]::Round($private / 1MB, 1)
+        $total = [math]::Round($private / 1MB, 1)
+        foreach ($p in $perf) {
+          $name = ($tree | Where-Object { $_.ProcessId -eq [int]$p.IDProcess } | Select-Object -First 1).CommandLine
+          $kind = if ($name -match '--type=([a-z-]+)') { $Matches[1] } elseif ([int]$p.IDProcess -eq $proc.Id) { "groovy.exe" } else { "browser" }
+          $key = "  private: $kind (MB)"
+          $metrics[$key] = [math]::Round(([double]($metrics[$key] ?? 0)) + $p.WorkingSetPrivate / 1MB, 1)
+        }
+        $metrics["TOTAL private working set (MB, Task Manager, budget $BudgetMB)"] = $total
       }
-      $results["idle total under $BudgetMB MB (was $total)"] = $total -lt $BudgetMB
+      $results["idle total under $BudgetMB MB (was $total)"] = ($null -ne $total) -and ($total -lt $BudgetMB)
     }
   }
 

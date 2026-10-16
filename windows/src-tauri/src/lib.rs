@@ -1341,16 +1341,16 @@ pub fn run() {
             let open_window = flow::get(&handle).map(|f| f.store.lock().unwrap().prefs.open_at_launch).unwrap_or(false);
             // No AI chosen yet: the first start opens the choice; later starts
             // remind once in the pill. Nothing loads a model meanwhile.
+            // Asked in the island, after the intro, with a button to the choice:
+            // the Control Centre is a whole second webview, opened only when
+            // the user wants it (round 3 §9, under 300 MB at idle).
             if loaded.assistant.ai_setup.is_empty() && !launched_at_login() {
-                if first_run {
-                    show_hub(&handle, Some("assistant"));
-                } else {
-                    let h = handle.clone();
-                    tauri::async_runtime::spawn(async move {
-                        tokio::time::sleep(std::time::Duration::from_secs(4)).await;
-                        flow::live::announce(&h, "bolt", "#7C5CFF", i18n::t("Choose Groovy's AI to start chatting"), Some((i18n::t("Choose"), "openAssistant")), 20);
-                    });
-                }
+                let h = handle.clone();
+                let wait = if first_run { 5 } else { 4 };
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(wait)).await;
+                    flow::live::announce(&h, "bolt", "#7C5CFF", i18n::t("Choose Groovy's AI to start chatting"), Some((i18n::t("Choose"), "openAssistant")), 30);
+                });
             } else if open_window && !launched_at_login() && !first_run {
                 show_hub(&handle, None);
             }
