@@ -8,8 +8,10 @@
 // water filling him up). The stage, 0…5, comes from how long Groovy has run
 // (./growth.ts); the colours move from the look's toward its grown one.
 
-import { proj, type Head } from "./outfits";
+import type { Head } from "./outfits";
 import { N_ } from "../i18n/i18n";
+import { drawShapes, toBoard, type Art } from "./art/draw";
+import { GROWTH_ART } from "./art/growth";
 
 export type Skin = "night" | "ember" | "frost";
 
@@ -169,6 +171,10 @@ export function styleAt(skin: Skin, stage: number): SkinStyle {
     irisCore: mixCss(a.irisCore, b.irisCore, k),
     stage: st,
   };
+  // The eyes take the board's colours for the stage (round 5 item 1).
+  const art = GROWTH_ART[skin][st];
+  if (art?.iris) style.iris = art.iris;
+  if (art?.core) style.irisCore = art.core;
   atCache.set(key, style);
   return style;
 }
@@ -183,36 +189,25 @@ export interface SkinState {
   lite?: boolean;
 }
 
-/** Behind the body: Blaze's fire round him (stages 4 and 5). */
+/** Behind the body: Blaze's fire round him. */
 export function drawSkinBehind(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, H: Head, st: SkinState) {
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
-  if (st.shown < 0.02 || s.nature !== "flame" || s.stage < 4) return;
-  x.save();
-  x.globalAlpha *= st.shown;
-  drawFireAround(x, H, st, s.stage);
-  x.restore();
+  if (st.shown < 0.02 || s.stage < 1) return;
+  drawLayer(x, s, H, st, "behind");
 }
 
-/** On the body (clipped to it): what grows inside — moss, embers, water. */
+/** On the body: what grows inside it (Tide's water, clipped to his body). */
 export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, body: Path2D, H: Head, st: SkinState) {
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
-  if (st.shown < 0.02 || !s.nature || s.stage < 1) return;
-  x.save();
-  x.clip(body);
-  x.globalAlpha *= st.shown;
-  drawNatureInside(x, s, H, st);
-  x.restore();
+  if (st.shown < 0.02 || s.stage < 1) return;
+  drawLayer(x, s, H, st, "body", body);
 }
 
-/** In front: what grows on the crown (Night's plant, Ember's flame). */
+/** In front: what grows on top (Grove's plant, Blaze's flame, Tide's crest). */
 export function drawSkinFront(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, H: Head, st: SkinState) {
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02 || s.stage < 1) return;
-  x.save();
-  x.globalAlpha *= st.shown;
-  if (s.nature === "leaf") drawPlant(x, H, st, s.stage);
-  if (s.nature === "flame") drawCrownFire(x, H, st, s.stage);
-  x.restore();
+  drawLayer(x, s, H, st, "front");
 }
 
 export type MouthMood = "calm" | "happy" | "sad" | "open" | "none";
@@ -309,319 +304,66 @@ export function drawAlmondEye(x: CanvasRenderingContext2D, skin: Skin | SkinStyl
   }
 }
 
-// ── What grows (FIXES_ROUND3 item 6) ─────────────────────────────────────────
+// ── What grows (round 5 item 1) ──────────────────────────────────────────────
+//
+// Each stage is drawn from docs/design/wardrobe-v2/Main.dc.html (art/growth.ts):
+// Grove's sprout → bonsai, Blaze's spark → aura, Tide's droplets → full sea.
+// One shared phase moves them, from the engine's clock: leaves sway, the flame
+// flickers, the water bobs. The engine stops drawing while the island is
+// hidden, so they cost nothing then.
 
-/** Water's fill for Frost's stages: drops only, then a quarter, half, three quarters, full. */
-export const WATER_FILL = [0, 0, 0.25, 0.5, 0.75, 0.97] as const;
+const LOOK_OF: Record<NonNullable<SkinStyle["nature"]>, Skin> = { leaf: "night", flame: "ember", water: "frost" };
 
-/** Inside the body: moss (Night), embers (Ember) or water (Frost) by stage. */
-function drawNatureInside(x: CanvasRenderingContext2D, s: SkinStyle, H: Head, st: SkinState) {
-  const { rx, ry, R } = H;
-  const t = st.lite ? st.time * 0.5 : st.time;
-  if (s.nature === "leaf") {
-    // Moss at the bottom from the sapling on, a little more each stage.
-    if (s.stage < 3) return;
-    const top = ry * (0.55 - (s.stage - 3) * 0.12);
-    const g = x.createLinearGradient(0, top, 0, ry);
-    g.addColorStop(0, "rgba(90,150,70,0)");
-    g.addColorStop(1, `rgba(90,150,70,${0.22 + (s.stage - 3) * 0.08})`);
-    x.fillStyle = g;
-    x.fillRect(-rx * 1.5, top, rx * 3, ry);
-  } else if (s.nature === "flame") {
-    if (s.stage < 2) return;
-    const flick = 0.85 + 0.15 * Math.sin(t * 7.3) * Math.sin(t * 3.1);
-    const top = ry * (0.5 - s.stage * 0.08);
-    const g = x.createLinearGradient(0, top, 0, ry);
-    g.addColorStop(0, "rgba(255,140,40,0)");
-    g.addColorStop(1, `rgba(255,110,30,${(0.12 + s.stage * 0.05) * flick})`);
-    x.fillStyle = g;
-    x.fillRect(-rx * 1.5, top, rx * 3, ry);
-  } else if (s.nature === "water") {
-    const fill = WATER_FILL[s.stage] ?? 0;
-    if (fill <= 0) {
-      // Stage 1: a few drops resting at the bottom.
-      x.fillStyle = "rgba(90,170,255,0.45)";
-      const drops: [number, number, number][] = [[-0.35, 0.78, 0.07], [0.1, 0.86, 0.055], [0.42, 0.74, 0.045]];
-      for (const [dx, dy, r] of drops) {
-        const wob = Math.sin(t * 1.3 + dx * 4) * R * 0.006;
-        x.beginPath();
-        x.ellipse(dx * rx, dy * ry + wob, R * r, R * r * 1.15, 0, 0, Math.PI * 2);
-        x.fill();
-      }
-      return;
-    }
-    // A water level that tilts and ripples as he moves.
-    const tiltK = (-H.physDx * 0.35 - H.yaw * 0.15) * (fill > 0.9 ? 0.3 : 1);
-    const level = ry - fill * 2 * ry;
-    const ripple = st.lite ? 0.5 : 1;
-    const surf = (px: number) =>
-      level + px * tiltK + (Math.sin(px / rx * 3 + t * 2.2) * R * 0.025 + Math.sin(px / rx * 5 - t * 1.7) * R * 0.012) * ripple;
-    const steps = st.lite ? 16 : 40;
-    const p = new Path2D();
-    p.moveTo(-rx * 1.3, surf(-rx * 1.3));
-    for (let i = 1; i <= steps; i++) {
-      const px = -rx * 1.3 + (i / steps) * rx * 2.6;
-      p.lineTo(px, surf(px));
-    }
-    p.lineTo(rx * 1.3, ry * 1.2);
-    p.lineTo(-rx * 1.3, ry * 1.2);
-    p.closePath();
-    const g = x.createLinearGradient(0, level, 0, ry);
-    g.addColorStop(0, "rgba(90,170,255,0.28)");
-    g.addColorStop(1, "rgba(40,110,230,0.45)");
-    x.fillStyle = g;
-    x.fill(p);
-    // The bright surface line.
-    x.beginPath();
-    for (let i = 0; i <= steps; i++) {
-      const px = -rx * 1.3 + (i / steps) * rx * 2.6;
-      if (i === 0) x.moveTo(px, surf(px));
-      else x.lineTo(px, surf(px));
-    }
-    x.strokeStyle = "rgba(220,240,255,0.7)";
-    x.lineWidth = R * 0.02;
-    x.stroke();
-    // Bubbles drifting up: more as he fills.
-    x.fillStyle = "rgba(230,245,255,0.55)";
-    const count = st.lite ? 1 : 1 + s.stage;
-    for (let i = 0; i < count; i++) {
-      const ph = (t * 0.35 + i / count) % 1;
-      const bx = (((i * 0.37) % 1) * 1.3 - 0.65) * rx + Math.sin(t * 2 + i) * R * 0.03;
-      const by = ry * 0.95 - ph * (ry * 0.95 - level);
-      x.beginPath();
-      x.arc(bx, by, R * (0.022 + 0.008 * (i % 3)), 0, Math.PI * 2);
-      x.fill();
-    }
+/** The card for a style's look and stage, if it has grown at all. */
+export function artFor(s: SkinStyle): Art | null {
+  if (!s.nature) return null;
+  return GROWTH_ART[LOOK_OF[s.nature]][Math.max(0, Math.min(5, s.stage))] ?? null;
+}
+
+/** The shared phase, slower in the Lightweight profile. */
+function phase(st: SkinState): number {
+  return (st.lite ? st.time * 0.5 : st.time) * 1.6;
+}
+
+/** Leaves sway round the plant's foot, the flame flickers from its base, the water bobs. */
+function animate(x: CanvasRenderingContext2D, s: SkinStyle, st: SkinState, layer: "behind" | "body" | "front") {
+  const p = phase(st);
+  if (s.nature === "leaf" && layer === "front") {
+    x.translate(50, 30);
+    x.rotate(Math.sin(p) * 0.045);
+    x.translate(-50, -30);
+  } else if (s.nature === "flame" && layer !== "body") {
+    const k = 1 + Math.sin(p * 3.1) * 0.035 + Math.sin(p * 5.3) * 0.02;
+    x.translate(50, 31);
+    x.scale(1 + (k - 1) * 0.4, k);
+    x.translate(-50, -31);
+  } else if (s.nature === "water" && layer === "body") {
+    x.translate(0, Math.sin(p) * 0.8);
   }
 }
 
-/** Top of the head, in body space. */
-function crown(H: Head) {
-  return proj(H, [0, 1.0, 0.05]);
-}
-
-function leaf(x: CanvasRenderingContext2D, L: number, W: number, light = "rgb(150,215,100)", dark = "rgb(80,150,60)") {
-  const p = new Path2D();
-  p.moveTo(0, 0);
-  p.quadraticCurveTo(W, -L * 0.5, 0, -L);
-  p.quadraticCurveTo(-W, -L * 0.5, 0, 0);
-  const g = x.createLinearGradient(0, 0, 0, -L);
-  g.addColorStop(0, dark);
-  g.addColorStop(1, light);
-  x.fillStyle = g;
-  x.fill(p);
-}
-
-/**
- * Night → Grove on the crown: 1 a tiny sprout, 2 two small leaves, 3 a
- * sapling with a few leaves, 4 leafy branches, 5 a small bonsai.
- */
-function drawPlant(x: CanvasRenderingContext2D, H: Head, st: SkinState, stage: number) {
-  const a = st.hatless;
-  if (a < 0.02) return;
-  const R = H.R;
-  const c = crown(H);
-  const t = st.lite ? 0 : st.time;
-  const sway = Math.sin(t * 1.8) * 0.1 - H.physDx * 0.8;
+function drawLayer(x: CanvasRenderingContext2D, s: SkinStyle, H: Head, st: SkinState, layer: "behind" | "body" | "front", body?: Path2D) {
+  const art = artFor(s);
+  const shapes = art?.[layer];
+  if (!shapes?.length) return;
   x.save();
-  x.globalAlpha *= a;
-  x.translate(c.x, c.y + R * 0.03);
-  x.rotate(sway * (stage >= 5 ? 0.4 : 1));
-  x.lineCap = "round";
-  const stem = (h: number, w: number, bend = 0.03) => {
-    x.strokeStyle = stage >= 5 ? "rgb(120,85,55)" : "rgb(96,140,70)";
-    x.lineWidth = R * w;
-    x.beginPath();
-    x.moveTo(0, 0);
-    x.quadraticCurveTo(R * bend, -R * h * 0.55, 0, -R * h);
-    x.stroke();
-  };
-  if (stage === 1) {
-    stem(0.1, 0.035);
-    x.translate(0, -R * 0.1);
-    x.rotate(0.7 + Math.sin(t * 2.4) * 0.08);
-    leaf(x, R * 0.12, R * 0.055);
-  } else if (stage === 2) {
-    x.scale(1.45, 1.45);
-    stem(0.22, 0.045);
-    for (const sd of [-1, 1]) {
-      x.save();
-      x.translate(0, -R * 0.2);
-      x.rotate(sd * (0.9 + Math.sin(t * 2.4 + sd) * 0.08));
-      leaf(x, R * 0.26, R * 0.11);
-      x.restore();
-    }
-  } else if (stage === 3) {
-    // A sapling: a taller stem and four leaves up it.
-    x.scale(1.5, 1.5);
-    stem(0.42, 0.05, 0.05);
-    const spots: [number, number, number][] = [[0.2, -1, 0.2], [0.28, 1, 0.22], [0.38, -1, 0.24], [0.44, 1, 0.2]];
-    for (const [h, sd, L] of spots) {
-      x.save();
-      x.translate(0, -R * h);
-      x.rotate(sd * (1.0 + Math.sin(t * 2.2 + h * 9) * 0.07));
-      leaf(x, R * L, R * L * 0.42);
-      x.restore();
-    }
-  } else if (stage === 4) {
-    // Leafy branches: the stem forks, each branch tipped with leaves.
-    x.scale(1.55, 1.55);
-    stem(0.3, 0.06);
-    for (const sd of [-1, 1]) {
-      x.save();
-      x.translate(0, -R * 0.28);
-      x.rotate(sd * 0.55);
-      x.strokeStyle = "rgb(96,140,70)";
-      x.lineWidth = R * 0.04;
-      x.beginPath();
-      x.moveTo(0, 0);
-      x.lineTo(0, -R * 0.2);
-      x.stroke();
-      x.translate(0, -R * 0.2);
-      for (const k of [-1, 0, 1]) {
-        x.save();
-        x.rotate(k * 0.75 + Math.sin(t * 2.4 + k + sd) * 0.06);
-        leaf(x, R * 0.2, R * 0.085);
-        x.restore();
-      }
-      x.restore();
-    }
+  x.globalAlpha *= st.shown;
+  // The art turns a little with his head, as the eyes do.
+  const shift = Math.sin(H.yaw) * H.rx * (layer === "body" ? 0.8 : 0.35);
+  if (layer === "body" && body) {
+    // What the board clips to his body is clipped to the real body.
+    x.save();
+    x.clip(body);
+    toBoard(x, H.rx, H.ry, shift);
+    animate(x, s, st, layer);
+    drawShapes(x, shapes, "clipped");
+    x.restore();
+    toBoard(x, H.rx, H.ry, shift);
+    drawShapes(x, shapes, "free");
   } else {
-    // A small bonsai: a curved trunk and three round pads of leaves.
-    x.scale(1.5, 1.5);
-    x.strokeStyle = "rgb(120,85,55)";
-    x.lineWidth = R * 0.075;
-    x.beginPath();
-    x.moveTo(0, 0);
-    x.bezierCurveTo(R * 0.12, -R * 0.12, -R * 0.12, -R * 0.24, R * 0.02, -R * 0.38);
-    x.stroke();
-    x.lineWidth = R * 0.04;
-    x.beginPath();
-    x.moveTo(-R * 0.02, -R * 0.2);
-    x.quadraticCurveTo(-R * 0.14, -R * 0.24, -R * 0.24, -R * 0.26);
-    x.moveTo(R * 0.02, -R * 0.28);
-    x.quadraticCurveTo(R * 0.14, -R * 0.3, R * 0.25, -R * 0.36);
-    x.stroke();
-    const pads: [number, number, number][] = [[-0.25, -0.3, 0.13], [0.25, -0.4, 0.12], [0.02, -0.48, 0.16]];
-    for (const [px, py, r] of pads) {
-      const g = x.createRadialGradient(px * R, (py - r * 0.4) * R, 0, px * R, py * R, r * R * 1.3);
-      g.addColorStop(0, "rgb(150,215,100)");
-      g.addColorStop(1, "rgb(70,135,55)");
-      x.fillStyle = g;
-      x.beginPath();
-      x.ellipse(px * R, py * R, r * R * 1.25, r * R * 0.8, 0, 0, Math.PI * 2);
-      x.fill();
-    }
+    toBoard(x, H.rx, H.ry, shift);
+    animate(x, s, st, layer);
+    drawShapes(x, shapes);
   }
   x.restore();
-}
-
-/** One flame tongue from (0,0) up to height L, half width W, leaning by `lean`. */
-function tongue(x: CanvasRenderingContext2D, L: number, W: number, lean: number, base: string, tip: string) {
-  const p = new Path2D();
-  p.moveTo(-W, 0);
-  p.bezierCurveTo(-W, -L * 0.45, lean * L - W * 0.2, -L * 0.7, lean * L, -L);
-  p.bezierCurveTo(lean * L + W * 0.2, -L * 0.7, W, -L * 0.45, W, 0);
-  p.quadraticCurveTo(0, W * 0.5, -W, 0);
-  const g = x.createLinearGradient(0, 0, 0, -L);
-  g.addColorStop(0, base);
-  g.addColorStop(1, tip);
-  x.fillStyle = g;
-  x.fill(p);
-}
-
-const TONGUES: Array<[number, number, number, string, string]> = [
-  // offset, height, width, base colour, tip colour
-  [-0.1, 0.36, 0.12, "rgba(235,70,20,0.95)", "rgba(255,60,0,0.15)"],
-  [0.1, 0.32, 0.12, "rgba(235,70,20,0.95)", "rgba(255,60,0,0.15)"],
-  [0, 0.5, 0.16, "rgba(255,130,30,0.95)", "rgba(255,90,0,0.2)"],
-  [0, 0.28, 0.09, "rgba(255,220,120,0.95)", "rgba(255,190,70,0.3)"],
-];
-
-/** Ember → Blaze on the crown: 1 a spark, 2 a small flame, 3 a bigger one, 4–5 a big flame. */
-function drawCrownFire(x: CanvasRenderingContext2D, H: Head, st: SkinState, stage: number) {
-  const a = st.hatless;
-  if (a < 0.02) return;
-  const R = H.R;
-  const t = st.lite ? st.time * 0.6 : st.time;
-  const c = crown(H);
-  x.save();
-  x.globalAlpha *= a;
-  x.translate(c.x, c.y + R * 0.05);
-  if (stage === 1) {
-    // A spark: a glowing point and a few tiny embers rising off it.
-    const glow = x.createRadialGradient(0, -R * 0.05, 0, 0, -R * 0.05, R * 0.16);
-    glow.addColorStop(0, "rgba(255,230,150,0.95)");
-    glow.addColorStop(0.4, "rgba(255,140,40,0.6)");
-    glow.addColorStop(1, "rgba(255,120,30,0)");
-    x.fillStyle = glow;
-    x.beginPath();
-    x.arc(0, -R * 0.05, R * 0.16, 0, Math.PI * 2);
-    x.fill();
-    const embers = st.lite ? 1 : 3;
-    for (let i = 0; i < embers; i++) {
-      const ph = (t * 0.6 + i / embers) % 1;
-      x.fillStyle = `rgba(255,180,80,${0.9 * (1 - ph)})`;
-      x.beginPath();
-      x.arc(Math.sin(t * 3 + i * 2) * R * 0.06, -R * (0.08 + ph * 0.3), R * 0.018, 0, Math.PI * 2);
-      x.fill();
-    }
-    x.restore();
-    return;
-  }
-  const size = stage === 2 ? 0.6 : stage === 3 ? 0.95 : 1.25;
-  const lean = -H.physDx * 0.6 + Math.sin(t * 2.3) * 0.05;
-  const glow = x.createRadialGradient(0, -R * 0.15 * size, 0, 0, -R * 0.15 * size, R * 0.45 * size);
-  glow.addColorStop(0, "rgba(255,140,40,0.35)");
-  glow.addColorStop(1, "rgba(255,120,30,0)");
-  x.fillStyle = glow;
-  x.beginPath();
-  x.arc(0, -R * 0.15 * size, R * 0.45 * size, 0, Math.PI * 2);
-  x.fill();
-  TONGUES.forEach(([off, ht, wd, base, tip], i) => {
-    const flick = 1 + 0.18 * Math.sin(t * (9 + i * 2.7) + i) + 0.08 * Math.sin(t * 17 + i * 3);
-    x.save();
-    x.translate(R * off * size, 0);
-    tongue(x, R * ht * flick * size, R * wd * size, lean, base, tip);
-    x.restore();
-  });
-  x.restore();
-}
-
-/** Ember → Blaze round the body: 4 flames climbing his sides, 5 a fire aura all round. */
-function drawFireAround(x: CanvasRenderingContext2D, H: Head, st: SkinState, stage: number) {
-  const { rx, ry, R } = H;
-  const t = st.lite ? st.time * 0.6 : st.time;
-  if (stage >= 5) {
-    // The aura: a soft orange halo, then a ring of tongues licking outward.
-    const halo = x.createRadialGradient(0, 0, Math.min(rx, ry) * 0.8, 0, 0, Math.max(rx, ry) * 1.55);
-    halo.addColorStop(0, "rgba(255,130,40,0.45)");
-    halo.addColorStop(0.6, "rgba(255,90,20,0.18)");
-    halo.addColorStop(1, "rgba(255,80,10,0)");
-    x.fillStyle = halo;
-    x.beginPath();
-    x.ellipse(0, 0, rx * 1.6, ry * 1.6, 0, 0, Math.PI * 2);
-    x.fill();
-  }
-  const count = stage >= 5 ? (st.lite ? 8 : 14) : st.lite ? 4 : 6;
-  const half = Math.ceil(count / 2);
-  for (let i = 0; i < count; i++) {
-    // Stage 5: all round. Stage 4: up both sides, from the bottom to the shoulders
-    // (angles in body space, y down: π/2 is the bottom, 0 the right side).
-    let ang: number;
-    if (stage >= 5) ang = (i / count) * Math.PI * 2;
-    else {
-      const k = (i % half) / Math.max(1, half - 1);
-      const right = Math.PI * 0.38 - k * Math.PI * 0.58;
-      ang = i < half ? right : Math.PI - right;
-    }
-    const ex = Math.cos(ang) * rx * 0.98;
-    const ey = Math.sin(ang) * ry * 0.98;
-    const flick = 1 + 0.25 * Math.sin(t * (7 + i * 1.3) + i * 2);
-    x.save();
-    x.translate(ex, ey);
-    x.rotate(ang + Math.PI / 2);
-    tongue(x, R * (stage >= 5 ? 0.34 : 0.26) * flick, R * 0.09, Math.sin(t * 2 + i) * 0.08, "rgba(255,110,30,0.85)", "rgba(255,70,0,0)");
-    x.restore();
-  }
 }
