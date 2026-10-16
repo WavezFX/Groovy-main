@@ -25,6 +25,8 @@ export interface Growth {
   reached: number;
   /** The stage the user chose to show, ≤ reached; null: the one reached. */
   shown: number | null;
+  /** The stage the last launch intro greeted him at; -1 before the first intro (mochi/seed.ts). */
+  seen: number;
 }
 
 const stageOf = (v: unknown): number | null =>
@@ -36,7 +38,8 @@ export function parseGrowth(v: unknown): Growth {
   const secs = typeof o.activeSeconds === "number" && Number.isFinite(o.activeSeconds) && o.activeSeconds > 0 ? o.activeSeconds : 0;
   const reached = Math.max(stageOf(o.reached) ?? 0, stageFor(secs));
   const shown = stageOf(o.shown);
-  return { activeSeconds: secs, reached, shown: shown != null && shown <= reached ? shown : null };
+  const seen = stageOf(o.seen);
+  return { activeSeconds: secs, reached, shown: shown != null && shown <= reached ? shown : null, seen: seen != null ? Math.min(seen, reached) : -1 };
 }
 
 /** The stage that many active seconds reach. */
@@ -92,7 +95,8 @@ export function migrateGrownLook(settings: { groovyLook: string; growth: unknown
   if (!base) return false;
   const g = parseGrowth(settings.growth);
   settings.groovyLook = parseSkin(base);
-  settings.growth = { ...g, reached: MAX_STAGE, shown: null };
+  // Not a first meeting: the next intro is a plain hello at his full stage.
+  settings.growth = { ...g, reached: MAX_STAGE, shown: null, seen: MAX_STAGE };
   return true;
 }
 
@@ -101,7 +105,12 @@ export function mergeGrowth(older: unknown, newer: unknown): Growth {
   const a = parseGrowth(older);
   const b = parseGrowth(newer);
   const reached = Math.max(a.reached, b.reached);
-  return { activeSeconds: Math.max(a.activeSeconds, b.activeSeconds), reached, shown: b.shown != null && b.shown <= reached ? b.shown : null };
+  return {
+    activeSeconds: Math.max(a.activeSeconds, b.activeSeconds),
+    reached,
+    shown: b.shown != null && b.shown <= reached ? b.shown : null,
+    seen: Math.max(a.seen, b.seen),
+  };
 }
 
 /**

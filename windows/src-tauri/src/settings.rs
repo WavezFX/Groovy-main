@@ -304,10 +304,13 @@ pub fn merge_growth(old: &Value, new: &Value) -> Value {
     let stage = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).filter(|s| *s <= 5);
     let reached = stage(old, "reached").unwrap_or(0).max(stage(new, "reached").unwrap_or(0));
     let shown = stage(new, "shown").filter(|s| *s <= reached);
+    // The stage the launch intro last greeted him at (-1: never).
+    let seen = stage(old, "seen").max(stage(new, "seen")).map_or(-1, |s| s.min(reached) as i64);
     serde_json::json!({
         "activeSeconds": seconds(old).max(seconds(new)),
         "reached": reached,
         "shown": shown,
+        "seen": seen,
     })
 }
 
@@ -724,7 +727,10 @@ mod tests {
         assert_eq!(merged["shown"], Value::Null);
         // Junk is nothing, never a crash.
         let merged = merge_growth(&serde_json::json!("x"), &serde_json::json!({ "activeSeconds": -5, "reached": 9 }));
-        assert_eq!(merged, serde_json::json!({ "activeSeconds": 0.0, "reached": 0, "shown": null }));
+        assert_eq!(merged, serde_json::json!({ "activeSeconds": 0.0, "reached": 0, "shown": null, "seen": -1 }));
+        // The intro's stage is kept from whichever copy has it.
+        let a = serde_json::json!({ "activeSeconds": 1.0, "reached": 3, "seen": 3 });
+        assert_eq!(merge_growth(&a, &serde_json::json!({}))["seen"], 3);
     }
 
     #[test]

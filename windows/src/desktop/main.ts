@@ -7,6 +7,7 @@
 // like the Mac, and a few frames a second asleep — with no cursor polling at
 // all while he sleeps.
 
+import { flavorOf } from "../core/sounds-synth";
 import { Bridge, emitToWindow, onEvent, type DesktopMode } from "../core/bridge";
 import type { BotEmoteName } from "../core/layout";
 import { Sound } from "../core/sound";
@@ -112,6 +113,7 @@ class DesktopMochi {
     this.informed = true;
     Sound.setEnabled(s.soundEnabled);
     Sound.setVolume(s.soundVolume);
+    Sound.setFlavor(flavorOf(s.look));
     if (agentActive(s.state)) this.lastAgentActive = performance.now();
     if (!this.asleep) this.engine.setState(s.state);
     this.updateSleep(performance.now());

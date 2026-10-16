@@ -13678,6 +13678,39 @@
    "pt-BR": "cresce até virar {name}",
    "ru": "вырастает в {name}",
    "id": "tumbuh menjadi {name}"
+  },
+  "I grew while you were away!": {
+   "zh-Hans": "你不在的时候我长大了！",
+   "hi": "आपके जाने के बाद मैं बड़ा हो गया!",
+   "es": "¡He crecido mientras no estabas!",
+   "ar": "كبرتُ أثناء غيابك!",
+   "fr": "J'ai grandi pendant ton absence !",
+   "bn": "তুমি না থাকার সময় আমি বড় হয়েছি!",
+   "pt-BR": "Eu cresci enquanto você estava fora!",
+   "ru": "Я подрос, пока тебя не было!",
+   "id": "Aku tumbuh saat kamu pergi!"
+  },
+  "Hi, I'm Groovy.": {
+   "zh-Hans": "你好，我是 Groovy。",
+   "hi": "नमस्ते, मैं Groovy हूँ।",
+   "es": "Hola, soy Groovy.",
+   "ar": "مرحبًا، أنا Groovy.",
+   "fr": "Salut, je suis Groovy.",
+   "bn": "হাই, আমি Groovy।",
+   "pt-BR": "Oi, eu sou o Groovy.",
+   "ru": "Привет, я Groovy.",
+   "id": "Hai, aku Groovy."
+  },
+  "I'll grow the longer we work together.": {
+   "zh-Hans": "我们一起工作得越久，我就长得越大。",
+   "hi": "हम जितना साथ काम करेंगे, मैं उतना बढ़ूँगा।",
+   "es": "Creceré cuanto más trabajemos juntos.",
+   "ar": "سأكبر كلما عملنا معًا مدة أطول.",
+   "fr": "Je grandirai à mesure qu'on travaille ensemble.",
+   "bn": "আমরা যত বেশি একসাথে কাজ করব, আমি তত বড় হব।",
+   "pt-BR": "Vou crescer quanto mais trabalharmos juntos.",
+   "ru": "Чем дольше мы работаем вместе, тем больше я расту.",
+   "id": "Aku akan tumbuh makin lama kita bekerja bersama."
   }
  }
 }

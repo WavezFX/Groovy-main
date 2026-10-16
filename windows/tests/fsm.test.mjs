@@ -25,23 +25,35 @@ test("starts hidden and opens on the greeting at launch", () => {
   assert.deepEqual(transitions, ["hidden>groovy"]);
 });
 
-test("the greeting collapses to the compact island 0.6 s after it ends", () => {
+test("the intro settles into the open island when it ends", () => {
   fsm.launch();
   fsm.greetComplete();
-  seconds(0.5);
-  assert.equal(fsm.state, "groovy");
-  seconds(0.1);
+  assert.equal(fsm.state, "home");
+  assert.deepEqual(transitions, ["hidden>groovy", "groovy>home"]);
+});
+
+test("after the intro, Up next stays for a few seconds even with close-on-leave", () => {
+  fsm.homeToPetitDelay = 0;
+  fsm.launch();
+  fsm.greetComplete();
+  fsm.mouseLeft();
+  seconds(5.9);
+  assert.equal(fsm.state, "home");
+  seconds(0.2);
+  assert.equal(fsm.state, "petit");
+  // Later openings fold as set.
+  fsm.click();
+  fsm.mouseLeft();
+  seconds(1);
   assert.equal(fsm.state, "petit");
 });
 
-test("a hovered greeting stays for 10 s, whatever the animation does", () => {
+test("a hovered intro still ends on the open island", () => {
   fsm.launch();
   fsm.mouseEntered();
+  seconds(5);
   fsm.greetComplete();
-  seconds(9.9);
-  assert.equal(fsm.state, "groovy");
-  seconds(0.1);
-  assert.equal(fsm.state, "petit");
+  assert.equal(fsm.state, "home");
 });
 
 test("leaving the greeting collapses it at once", () => {
@@ -218,17 +230,6 @@ test("a delay edit while the island is hovered starts no countdown", () => {
   assert.equal(fsm.state, "home");
   fsm.mouseLeft();
   seconds(0.05);
-  assert.equal(fsm.state, "petit");
-});
-
-test("the greeting keeps its own timing whatever the auto-close delay", () => {
-  fsm.greetAutoCollapseDelay = 0.15;
-  fsm.launch();
-  fsm.greetComplete();
-  fsm.homeToPetitDelay = 0.01;
-  seconds(0.05);
-  assert.equal(fsm.state, "groovy");
-  seconds(0.1);
   assert.equal(fsm.state, "petit");
 });
 

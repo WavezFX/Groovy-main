@@ -31,7 +31,7 @@ Groovy is a fork of [Coucou](https://github.com/Louis-CFM/coucou) by Louis Raill
 - **Voice.** Say **"Groovy"**, **"Hey Groovy"** or **"Yo Groovy"**, then what
   you want — or all in one breath ("Hey Groovy, what's on today?"). See
   [Voice](#voice).
-- **Original sounds and icon**, made in code (`scripts/gen-sounds.py`,
+- **Original sounds and icon**, made in code (`src/core/sounds-synth.ts`,
   `src-tauri/icons/icon-1024.png`).
 
 ## Install
@@ -332,8 +332,8 @@ Installing is optional — `target/release/groovy.exe` runs on its own. There is
 window in the taskbar and no console: the island at the top of the screen and the
 Groovy in the notification area are the whole app, and Quit lives in its menu.
 
-Groovy's 29 sounds are in `windows/sounds/`, made by `python scripts/gen-sounds.py`
-(needs NumPy). The app icon set in `src-tauri/icons/` comes from
+Groovy's 29 sounds are made in code at start-up (`src/core/sounds-synth.ts`;
+how each is made: `windows/sounds/SOURCES.md`). The app icon set in `src-tauri/icons/` comes from
 `icon-1024.png`, a render of Night Groovy.
 
 ### Layout

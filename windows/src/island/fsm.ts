@@ -1,6 +1,9 @@
 // Island open/close FSM — port of IslandStateMachine.swift.
 // No DOM, no Tauri: it only reports transitions.
 
+/** Seconds the open island stays after the launch intro, whatever the auto-close. */
+export const INTRO_HOLD = 6;
+
 export type FsmState = "hidden" | "petit" | "home" | "groovy";
 
 /** Auto-close "When I leave" (delay 0): the grace period, seconds, so a pointer brushing the edge doesn't flicker it. */
@@ -33,8 +36,6 @@ export class IslandStateMachine {
    * stays on screen as the small pill instead of hiding away.
    */
   keepVisible = false;
-  /** groovy → petit once the greeting animation ends (no hover). */
-  greetAutoCollapseDelay = 0.6;
   /** groovy → petit while the mouse hovers the greeting. */
   greetHoverCollapseDelay = 10;
   /** An alert waiting for an answer stays open, even when the mouse leaves. */
@@ -70,6 +71,8 @@ export class IslandStateMachine {
   private petitHide: number | null = null;
   private homeCollapse: number | null = null;
   private greetCollapse: number | null = null;
+  /** The open island is the one the intro settled into (INTRO_HOLD). */
+  private afterIntro = false;
 
   // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -126,10 +129,15 @@ export class IslandStateMachine {
     this.transition("home");
   }
 
-  /** Greeting animation finished (T.end). Doesn't override a running hover timer. */
+  /**
+   * The launch intro ended: it settles into the open island (round 3 item 7),
+   * which then folds as any open island does when the pointer is away.
+   */
   greetComplete() {
     if (this.state !== "groovy") return;
-    if (this.greetCollapse == null) this.scheduleGreetCollapse(this.greetAutoCollapseDelay);
+    this.cancelTimers();
+    this.afterIntro = true;
+    this.transition("home");
   }
 
   /** Non-alert work event: show compact from hidden. */
@@ -192,7 +200,10 @@ export class IslandStateMachine {
   private scheduleHomeCollapse() {
     this.clear("homeCollapse");
     if (this.pinned) return;
-    const delay = this.byHover ? this.hoverCloseDelay : this.homeDelay;
+    let delay = this.byHover ? this.hoverCloseDelay : this.homeDelay;
+    // Just after the intro, Up next stays long enough to be read.
+    if (this.afterIntro) delay = Math.max(delay, INTRO_HOLD);
+    this.afterIntro = false;
     const ms = (delay === 0 ? LEAVE_GRACE : delay) * 1000;
     this.homeCollapseDueAt = performance.now() + ms;
     this.homeCollapse = window.setTimeout(() => this.collapseHome(), ms);

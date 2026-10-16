@@ -1,7 +1,8 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
-import { parseGrowth, shownStage } from "../mochi/growth";
+import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { flavorOf } from "../core/sounds-synth";
 import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
@@ -16,7 +17,7 @@ import { Sound } from "../core/sound";
 import { State } from "../core/state";
 import { SPOTIFY_ID, islandDances } from "../core/spotify";
 import { BotEngine, hexToRGB } from "../mochi/engine";
-import { Greeting } from "../mochi/greeting";
+import { SEED_ISLAND, SeedIntro, seedKind } from "../mochi/seed";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
 import { parseSkin } from "../mochi/skins";
 import { clearSlot, currentWardrobe, tryOn, wear } from "../mochi/appearance";
@@ -95,7 +96,9 @@ export class Island {
       }
     },
   });
-  private greeting = new Greeting();
+  /** The launch intro ("Seed"): made at launch, let go when it ends. */
+  private intro: SeedIntro | null = null;
+  private introUsed = false;
   private greetingShown = false;
 
   private running = false;
@@ -146,10 +149,6 @@ export class Island {
     this.wireFsm();
     this.wireInput();
     this.engine.onDizzy = () => this.handleDizzy();
-    this.greeting.onComplete = () => {
-      this.fsm.greetComplete();
-      this.onGreetingDone?.();
-    };
     State.subscribe(() => {
       this.dirty = true;
       this.ensureRunning();
@@ -406,6 +405,7 @@ export class Island {
         if (parseSkin(State.settings.groovyLook) === look) return;
         State.settings.groovyLook = look;
         void Bridge.saveSettings(State.settings);
+        Sound.setFlavor(flavorOf(look));
         Sound.play("pop");
         this.engine.triggerEmote("proud");
         State.notify();
@@ -492,7 +492,7 @@ export class Island {
           this.setMode("hidden");
           break;
         case "petit":
-          if (from === "groovy") this.greeting.interrupt();
+          if (from === "groovy") this.intro?.interrupt();
           else if (from === "hidden" && !this.silentReveal) Sound.play("peek");
           this.setMode("compact");
           if (from === "groovy") State.view = State.defaultView();
@@ -507,7 +507,8 @@ export class Island {
           break;
         case "groovy":
           this.expand("greeting");
-          this.greeting.start();
+          // Once per launch: a second "groovy" goes straight on to the open island.
+          if (!this.startIntro()) queueMicrotask(() => this.fsm.greetComplete());
           break;
       }
       State.notify();
@@ -517,6 +518,49 @@ export class Island {
 
   launch() {
     this.fsm.launch();
+  }
+
+  /**
+   * The Seed intro, once per launch: the first one ever, one with a stage
+   * reached since the last launch, or a plain hello; a still fade-in when
+   * Windows' animations are off.
+   */
+  private startIntro(): boolean {
+    if (this.introUsed) return false;
+    this.introUsed = true;
+    const g = parseGrowth(State.settings.growth);
+    const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const kind = seedKind(g.seen, g.reached, reduced);
+    const appearance = currentWardrobe(State.settings.wardrobe).appearance;
+    const worn = tryOn(appearance.layers, null);
+    const intro = new SeedIntro(kind, {
+      skin: parseSkin(State.settings.groovyLook),
+      stage: kind === "grew" ? Math.min(g.seen, shownStage(g)) : shownStage(g),
+      next: shownStage(g),
+      appearance,
+      outfit: worn[0] ?? "none",
+      layers: worn.slice(1),
+      lite: State.settings.assistant.performanceProfile === "lightweight",
+    }, kind === "grew"
+      ? { title: t("I grew while you were away!"), sub: progressLine(g) }
+      : { title: t("Hi, I'm Groovy."), sub: t("I'll grow the longer we work together.") });
+    intro.onGrow = () => this.animateGeometry(false);
+    intro.onComplete = () => {
+      if (this.intro === intro) this.intro = null;
+      // Nothing of it is kept: its canvas gives its pixels back too.
+      this.greetingCanvas.width = 1;
+      this.greetingCanvas.height = 1;
+      this.fsm.greetComplete();
+      this.onGreetingDone?.();
+    };
+    this.intro = intro;
+    intro.start();
+    // Greeted at this stage: the next launch knows what is new.
+    if (g.seen !== g.reached) {
+      State.settings.growth = { ...g, seen: g.reached };
+      void Bridge.saveGrowth(State.settings.growth);
+    }
+    return true;
   }
 
   // ── Mode / view ─────────────────────────────────────────────────────────────
@@ -819,6 +863,10 @@ export class Island {
 
   private targetSize(): { w: number; h: number; r: number } {
     let { w, h } = islandSize(State.mode, State.view, State.chatHistory.length);
+    // The intro's seed falls into a small island, which grows around Groovy.
+    if (State.mode === "expanded" && State.view === "greeting" && this.intro && !this.intro.grown) {
+      return { w: SEED_ISLAND.w, h: SEED_ISLAND.h, r: EXPANDED_CORNER };
+    }
     if (State.mode === "expanded" && State.view === "question" && State.pendingApproval?.questions) {
       h = QUESTION_PICKER_H;
     }
@@ -979,6 +1027,11 @@ export class Island {
       }
       // Right-click: the menu (contextmenu below), not a press.
       if (e.button === 2) return;
+      // A click skips the intro.
+      if (State.mode === "expanded" && State.view === "greeting") {
+        this.intro?.skip();
+        return;
+      }
       // Pressed on an empty part of the island (not Groovy, not a button or
       // field): it may be a slide along the top of the screen. A plain click on
       // the closed island still opens it, on release.
@@ -1101,7 +1154,7 @@ export class Island {
     const wasIn = this.wasInIsland;
     this.wasInIsland = inIsland;
     if (inIsland && !wasIn) {
-      if (this.fsm.state === "groovy") this.greeting.hover();
+      if (this.fsm.state === "groovy") this.intro?.hover();
       this.fsm.mouseEntered();
     }
     if (!inIsland && wasIn) {
@@ -1221,7 +1274,7 @@ export class Island {
       if (gctx) {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        this.greeting.draw(gctx);
+        this.intro?.draw(gctx);
       }
     } else {
       // Kept running even while the drop canvas is up, so the island's own Groovy
@@ -1413,7 +1466,7 @@ export class Island {
     this.greetingCanvas.style.display = greetingActive ? "block" : "none";
 
     // Leaving the greeting, however it ends, lets its sound fade out.
-    if (this.greetingShown && !greetingActive) this.greeting.leave();
+    if (this.greetingShown && !greetingActive) this.intro?.leave();
     this.greetingShown = greetingActive;
     // A wardrobe try-on never outlives the wardrobe.
     if (State.wardrobePreview && !(expanded && State.view === "wardrobe")) State.wardrobePreview = null;
@@ -1479,6 +1532,7 @@ export class Island {
   applySettings() {
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
+    Sound.setFlavor(flavorOf(parseSkin(State.settings.groovyLook)));
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;
     this.fsm.openOnHover = State.settings.openOnHover;
     this.fsm.keepVisible = State.settings.keepVisible !== false;

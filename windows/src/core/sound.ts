@@ -1,11 +1,12 @@
 // SoundEngine — port of SoundEngine.swift.
-// The 29 WAVs are the macOS app's own files (see SOUNDS_DIR in vite.config.ts);
-// they are served at /sounds/<name>.wav. Default volume 0.12, slider range 0–0.2,
-// exactly like the Mac player, and several sounds may overlap.
+// Groovy's 29 sounds are made in code (core/sounds-synth.ts): no audio files.
+// Their timbre follows the look (Night woody, Ember warm, Frost glassy).
+// Default volume 0.12, slider range 0–0.2, and several sounds may overlap.
 // A file of the user's own in the sounds folder (src-tauri/src/sounds.rs)
 // replaces a sound; one that doesn't decode falls back to the built-in one.
 
 import { Bridge } from "./bridge";
+import { renderSound, type Flavor } from "./sounds-synth";
 
 export const SOUND_NAMES = [
   "peek", "open", "close", "hover", "blip", "slap", "annoyed", "dizzy", "greet",
@@ -25,6 +26,8 @@ class SoundEngine {
   private buffers = new Map<string, AudioBuffer>();
   private loading: Promise<void> | null = null;
   private idleTimer: number | null = null;
+  /** The look's timbre the built-in sounds were made with. */
+  private flavor: Flavor = "wood";
   /** The sounds a file of the user's own replaces, as last loaded. */
   customized = new Set<string>();
   /** Sounds still playing, by name, so one can be faded out (the greeting). */
@@ -70,17 +73,31 @@ class SoundEngine {
             /* not a format this webview decodes: the built-in sound stays */
           }
         }
-        try {
-          const res = await fetch(`/sounds/${name}.wav`);
-          if (!res.ok) return;
-          const buf = await ctx.decodeAudioData(await res.arrayBuffer());
-          this.buffers.set(name, buf);
-        } catch {
-          /* a missing sound must never break the island */
-        }
+        this.makeBuiltIn(ctx, name);
       }),
     );
     this.customized = customized;
+  }
+
+  private makeBuiltIn(ctx: AudioContext, name: string) {
+    try {
+      const samples = renderSound(name, this.flavor, ctx.sampleRate);
+      if (!samples) return;
+      const buf = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+      buf.copyToChannel(samples, 0);
+      this.buffers.set(name, buf);
+    } catch {
+      /* a missing sound must never break the island */
+    }
+  }
+
+  /** The look changed: the built-in sounds are made again in its timbre. */
+  setFlavor(flavor: Flavor) {
+    if (flavor === this.flavor) return;
+    this.flavor = flavor;
+    const ctx = this.ctx;
+    if (!ctx) return;
+    for (const name of SOUND_NAMES) if (!this.customized.has(name)) this.makeBuiltIn(ctx, name);
   }
 
   /** WebView2 can hand us a suspended context; call after any user input. */

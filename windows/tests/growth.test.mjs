@@ -25,7 +25,7 @@ test("the stage follows the time he has run: 1 day, 3 days, 1 week, 2 weeks, 1 m
 
 test("growing counts running time only, never more than two ticks at once, and never goes back", () => {
   let g = parseGrowth({});
-  assert.deepEqual(g, { activeSeconds: 0, reached: 0, shown: null });
+  assert.deepEqual(g, { activeSeconds: 0, reached: 0, shown: null, seen: -1 });
   g = grow(g, 60);
   assert.equal(g.activeSeconds, 60);
   // A night asleep (the timer was suspended) is one gap: at most two ticks.
@@ -38,11 +38,11 @@ test("growing counts running time only, never more than two ticks at once, and n
 });
 
 test("the furthest of two copies wins, as Rust keeps them", () => {
-  const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1 };
+  const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3 };
   const stale = { activeSeconds: 2 * DAY, reached: 1, shown: null };
-  assert.deepEqual(mergeGrowth(island, stale), { activeSeconds: 8 * DAY, reached: 3, shown: null });
-  assert.deepEqual(mergeGrowth(stale, island), { activeSeconds: 8 * DAY, reached: 3, shown: 1 });
-  assert.deepEqual(mergeGrowth("junk", null), { activeSeconds: 0, reached: 0, shown: null });
+  assert.deepEqual(mergeGrowth(island, stale), { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3 });
+  assert.deepEqual(mergeGrowth(stale, island), { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3 });
+  assert.deepEqual(mergeGrowth("junk", null), { activeSeconds: 0, reached: 0, shown: null, seen: -1 });
 });
 
 test("only a stage already reached can be shown", () => {
@@ -72,7 +72,7 @@ test("Grove, Blaze and Tide become their base look, fully grown", () => {
     const s = { groovyLook: old, growth: { activeSeconds: 120, reached: 0, shown: null } };
     assert.equal(migrateGrownLook(s), true);
     assert.equal(s.groovyLook, base);
-    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 5, shown: null });
+    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 5, shown: null, seen: 5 });
     assert.equal(migrateGrownLook(s), false, "once");
     assert.equal(parseSkin(old), base);
   }
