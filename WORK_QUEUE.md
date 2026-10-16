@@ -15,7 +15,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Grey square behind the island
 - [x] 2. Music layout: smoother, back to normal quicker
 - [x] 3. Night must look green
-- [ ] 4. Choosing a look doesn't stick; the wardrobe lags
+- [x] 4. Choosing a look doesn't stick; the wardrobe lags
 - [ ] 5. No stage picking
 - [ ] 6. Dictation: names and model numbers
 - [ ] 7. GitHub and the other integrations vanished from Settings

@@ -13,7 +13,7 @@ import { desktopDances } from "../core/spotify";
 import {
   DESKTOP_EVENTS, DesktopMochiController, alertActive, type DesktopSnapshot,
 } from "../mochi/desktop-logic";
-import { parseSkin } from "../mochi/skins";
+import { shownLook } from "../core/lookchoice";
 
 /** Label of the desktop Groovy's window (desktop.rs LABEL). */
 const WINDOW = "mochi";
@@ -177,7 +177,7 @@ export class DesktopLink {
     const snapshot: DesktopSnapshot = {
       state: State.effectiveState,
       ...this.dressed(),
-      look: State.lookPreview ?? parseSkin(State.settings.groovyLook),
+      look: shownLook(State.lookPreview, State.settings.groovyLook),
       stage: shownStage(parseGrowth(State.settings.growth)),
       soundEnabled: State.settings.soundEnabled,
       soundVolume: State.settings.soundVolume,

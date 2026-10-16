@@ -8,9 +8,10 @@ import { Bridge } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { clear, h } from "../views/dom";
 import { BotEngine } from "../mochi/engine";
-import { drawWardrobeIcon } from "../mochi/outfits";
 import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
+import { chooseLook } from "../core/lookchoice";
+import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
 import { parseGrowth, progressLine, showStage, shownStage } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
@@ -122,20 +123,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const matches = (id: string, label: string) =>
     (!favouritesOnly || prefs.favourites.includes(id)) && (!query || folded(t(label)).includes(query) || folded(id).includes(query));
 
-  const iconCanvas = (sel: Outfit, size = 30) => {
-    const c = h("canvas") as HTMLCanvasElement;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    c.width = size * dpr;
-    c.height = size * dpr;
-    c.style.width = `${size}px`;
-    c.style.height = `${size}px`;
-    const ctx = c.getContext("2d");
-    if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawWardrobeIcon(ctx, size, sel);
-    }
-    return c;
-  };
+  // Drawn once, then copied (round 3B item 4: the wardrobe lagged).
+  const iconCanvas = (sel: Outfit, size = 30) => spriteCanvas(itemSprite(sel, size, Math.min(2, window.devicePixelRatio || 1)), size);
 
   function drawLooks() {
     clear(looks);
@@ -155,24 +144,10 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     if (g.reached > 0) growthRow.append(h("label", { text: t("Show stage") }), pick);
     for (const look of SKINS) {
       if (!matches(look, SKIN_KEYS[look])) continue;
-      const portrait = h("canvas") as HTMLCanvasElement;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      portrait.width = 34 * dpr;
-      portrait.height = 34 * dpr;
-      portrait.style.width = "34px";
-      portrait.style.height = "34px";
-      const ctx = portrait.getContext("2d");
-      if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const e = new BotEngine();
-        e.setSkin(look, false);
-        e.setStage(shown, false);
-        e.lite = true;
-        e.draw(ctx, 34, 34);
-      }
+      const portrait = spriteCanvas(lookSprite(look, shown, 34, Math.min(2, window.devicePixelRatio || 1)), 34);
       const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), h("span", { class: "hint", text: t("grows into {name}", { name: t(GROWS_INTO[look]) }) }), star(look)) as HTMLButtonElement;
       b.addEventListener("click", () => {
-        settings.groovyLook = look;
+        chooseLook(settings, look);
         save();
         drawAll();
       });

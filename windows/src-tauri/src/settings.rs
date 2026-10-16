@@ -61,6 +61,9 @@ pub struct Settings {
     /// src/mochi/skins.ts. Kept as it comes: the island reads anything it
     /// doesn't know as the default.
     pub groovy_look: String,
+    /// When the look was last chosen (Unix ms): of two windows' saves, the
+    /// newer choice wins (keep_newer_look, round 3B item 4).
+    pub look_at: f64,
     /// Voice: Groovy listens for "Groovy" / "Hey Groovy" / "Yo Groovy" while on.
     pub voice_enabled: bool,
     /// "local" (Whisper on this computer) or "livekit" (a live conversation
@@ -209,6 +212,7 @@ impl Default for Settings {
             // Round 3: no outfit any more, only Head/Face/Neck layers (the wardrobe).
             mochi_outfit: "none".into(),
             groovy_look: "night".into(),
+            look_at: 0.0,
             voice_enabled: false,
             voice_engine: "local".into(),
             voice_model: "base.en".into(),
@@ -293,6 +297,17 @@ fn note(message: String) {
     crate::log::line(message);
     #[cfg(test)]
     eprintln!("{message}");
+}
+
+/// Of the look already saved and the one a window sends, the newer choice:
+/// a slower save of an older copy never undoes a look chosen since.
+pub fn keep_newer_look(current: (&str, f64), incoming: (&str, f64)) -> (String, f64) {
+    let at = |t: f64| if t.is_finite() { t } else { 0.0 };
+    if at(incoming.1) >= at(current.1) {
+        (incoming.0.to_string(), at(incoming.1))
+    } else {
+        (current.0.to_string(), at(current.1))
+    }
 }
 
 /// The furthest of two growth records (round 3 item 6): the most active
@@ -544,6 +559,7 @@ mod tests {
   "shortcuts": { "openChat": { "keys": "Ctrl+Shift+K", "enabled": false } },
   "mochiOutfit": "witchHat",
   "groovyLook": "tide",
+  "lookAt": 1760000000000.5,
   "voiceEnabled": true,
   "voiceEngine": "livekit",
   "voiceModel": "tiny.en",
@@ -710,6 +726,30 @@ mod tests {
         let mut expected = custom();
         expected["model"] = json!(crate::claude::DEFAULT_MODEL);
         assert_eq!(loaded, expected);
+    }
+
+    #[test]
+    fn a_slower_save_never_undoes_a_newer_look() {
+        // Night → Ember → Frost → Night twenty times over, saves arriving out of order.
+        let mut saved = ("night".to_string(), 0.0);
+        let mut at = 1000.0;
+        let mut sends = Vec::new();
+        for round in 0..20 {
+            for look in ["ember", "frost", "night"] {
+                at += 1.0;
+                sends.push((look, at));
+            }
+            if round % 3 == 0 {
+                sends.reverse();
+            }
+        }
+        for (look, t) in &sends {
+            saved = keep_newer_look((&saved.0, saved.1), (look, *t));
+        }
+        assert_eq!(saved, ("night".to_string(), at));
+        // An old copy without a stamp loses to any chosen look.
+        assert_eq!(keep_newer_look(("frost", 5.0), ("ember", 0.0)).0, "frost");
+        assert_eq!(keep_newer_look(("frost", 5.0), ("ember", f64::NAN)).0, "frost");
     }
 
     #[test]
@@ -1139,6 +1179,7 @@ mod tests {
                 "shortcuts",
                 "mochiOutfit",
                 "groovyLook",
+                "lookAt",
                 "voiceEnabled",
                 "voiceEngine",
                 "voiceModel",

@@ -19,6 +19,7 @@ import { SPOTIFY_ID, islandDances } from "../core/spotify";
 import { BotEngine } from "../mochi/engine";
 import { SEED_ISLAND, SeedIntro, seedKind } from "../mochi/seed";
 import { MOTION, duration, easeOut } from "../core/motion";
+import { DebouncedSave, chooseLook, shownLook } from "../core/lookchoice";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
 import { parseSkin } from "../mochi/skins";
 import { clearSlot, currentWardrobe, tryOn, wear } from "../mochi/appearance";
@@ -45,6 +46,8 @@ const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
 const BOT_SIDE = 24;
 /** One frame in ten (10 fps) for his looping animation in the small island. */
 const SLOW_FRAME_MS = 100;
+/** A look try-on ends by itself after this, should its mouseleave be lost. */
+const LOOK_PREVIEW_MS = 4000;
 /** Same margin as the Rust hit test (src-tauri/src/island.rs). */
 const HIT_MARGIN = 14;
 
@@ -97,6 +100,10 @@ export class Island {
       }
     },
   });
+  /** Look choices are saved once after 300 ms of quiet (round 3B item 4). */
+  private lookSave = new DebouncedSave(() => void Bridge.saveSettings(State.settings));
+  private lookPreviewTimer: number | null = null;
+
   /** The launch intro ("Seed"): made at launch, let go when it ends. */
   private intro: SeedIntro | null = null;
   private introUsed = false;
@@ -404,9 +411,11 @@ export class Island {
         State.notify();
       },
       chooseLook: (look) => {
+        // Chosen: the try-on ends, the choice shows at once and is saved once.
+        this.clearLookPreview();
         if (parseSkin(State.settings.groovyLook) === look) return;
-        State.settings.groovyLook = look;
-        void Bridge.saveSettings(State.settings);
+        chooseLook(State.settings, look);
+        this.lookSave.schedule();
         Sound.setFlavor(flavorOf(look));
         Sound.play("pop");
         this.engine.triggerEmote("proud");
@@ -414,6 +423,9 @@ export class Island {
       },
       previewLook: (look) => {
         State.lookPreview = look;
+        // A lost mouseleave never pins a try-on: it ends by itself.
+        if (this.lookPreviewTimer !== null) window.clearTimeout(this.lookPreviewTimer);
+        this.lookPreviewTimer = look ? window.setTimeout(() => this.clearLookPreview(), LOOK_PREVIEW_MS) : null;
         State.notify();
       },
     };
@@ -520,6 +532,15 @@ export class Island {
 
   launch() {
     this.fsm.launch();
+  }
+
+  /** Ends a look try-on (the wardrobe closed, a look was chosen, or it timed out). */
+  private clearLookPreview(notify = true) {
+    if (this.lookPreviewTimer !== null) window.clearTimeout(this.lookPreviewTimer);
+    this.lookPreviewTimer = null;
+    if (State.lookPreview === null) return;
+    State.lookPreview = null;
+    if (notify) State.notify();
   }
 
   /**
@@ -1400,7 +1421,7 @@ export class Island {
     this.engine.setOutfit(showOutfit ? (worn[0] ?? "none") : "none", !inWardrobe);
     this.engine.layers = showOutfit ? worn.slice(1) : [];
     this.engine.appearance = appearance;
-    this.engine.setSkin(State.lookPreview ?? parseSkin(State.settings.groovyLook), !inWardrobe);
+    this.engine.setSkin(shownLook(State.lookPreview, State.settings.groovyLook), !inWardrobe);
     this.engine.setStage(shownStage(parseGrowth(State.settings.growth)), !inWardrobe);
     // Fewer particles and calmer motion when asked to, and in the small island.
     this.engine.lite = State.settings.assistant.performanceProfile === "lightweight" || State.mode !== "expanded";
@@ -1473,7 +1494,7 @@ export class Island {
     this.greetingShown = greetingActive;
     // A wardrobe try-on never outlives the wardrobe.
     if (State.wardrobePreview && !(expanded && State.view === "wardrobe")) State.wardrobePreview = null;
-    if (State.lookPreview && !(expanded && State.view === "wardrobe")) State.lookPreview = null;
+    if (State.lookPreview && !(expanded && State.view === "wardrobe")) this.clearLookPreview(false);
     // Closing the island stops listening for a command (and hangs up a call).
     if (!expanded && State.voiceListening) this.voice.dismiss();
     // Setting up the brain or on a call: the island stays open until it's over.

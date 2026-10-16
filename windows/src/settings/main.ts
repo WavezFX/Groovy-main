@@ -1366,7 +1366,9 @@ async function main() {
   });
   void onEvent<Settings>("settings-changed", (s) => {
     const before = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;
-    settings = { ...settings, ...s };
+    // In place: the sections hold this object (the wardrobe's look choice was
+    // lost on a copy that no longer was the one saved, round 3B item 4).
+    Object.assign(settings, s);
     shortcutsListener?.settingsChanged();
     for (const redraw of declaredViews) redraw();
     const after = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;

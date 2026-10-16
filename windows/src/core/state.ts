@@ -191,6 +191,8 @@ export interface Settings {
   mochiOutfit: string;
   /** Groovy's look (src/mochi/skins.ts); read it through parseSkin. */
   groovyLook: string;
+  /** When the look was last chosen (ms): the newer choice wins between windows. */
+  lookAt: number;
   /** Voice (Settings → Voice): listening for the wake words. */
   voiceEnabled: boolean;
   /** "local" (Whisper on this computer) or "livekit". */
@@ -285,6 +287,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shortcuts: {},
   mochiOutfit: DEFAULT_OUTFIT,
   groovyLook: DEFAULT_SKIN,
+  lookAt: 0,
   voiceEnabled: false,
   voiceEngine: "local",
   voiceModel: "base.en",

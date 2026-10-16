@@ -5,11 +5,10 @@
 
 import { h } from "./dom";
 import { State } from "../core/state";
-import { drawWardrobeIcon } from "../mochi/outfits";
 import { ACCESSORIES, OUTFIT_KEYS, type Accessory } from "../mochi/wardrobe";
 import { SLOTS, SLOT_OF, currentWardrobe, worn, type Slot } from "../mochi/appearance";
 import type { ViewActions, ViewHost } from "./views";
-import { BotEngine } from "../mochi/engine";
+import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
 import { parseGrowth, progressLine, showStage, shownStage } from "../mochi/growth";
 import { Bridge } from "../core/bridge";
@@ -20,16 +19,7 @@ const ICON = 26;
 export const SLOT_TITLES: Record<Slot, string> = { head: N_("Head"), face: N_("Face"), neck: N_("Neck") };
 
 function icon(item: Accessory | "none"): HTMLCanvasElement {
-  const canvas = h("canvas") as HTMLCanvasElement;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.round(ICON * dpr);
-  canvas.height = Math.round(ICON * dpr);
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawWardrobeIcon(ctx, ICON, item);
-  }
-  return canvas;
+  return spriteCanvas(itemSprite(item, ICON, Math.min(2, window.devicePixelRatio || 1)), ICON);
 }
 
 export function buildWardrobe(actions: ViewActions): ViewHost {
@@ -103,17 +93,7 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const size = 40;
     for (const [look, button] of lookItems) {
-      const canvas = button.querySelector("canvas")!;
-      canvas.width = Math.round(size * dpr);
-      canvas.height = Math.round(size * dpr);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const engine = new BotEngine();
-      engine.setSkin(look, false);
-      engine.setStage(stage, false);
-      engine.lite = true;
-      engine.draw(ctx, size, size);
+      button.querySelector("canvas")!.replaceWith(spriteCanvas(lookSprite(look, stage, size, dpr), size));
     }
   };
 
