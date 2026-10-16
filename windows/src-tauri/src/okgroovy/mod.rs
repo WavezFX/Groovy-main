@@ -110,7 +110,7 @@ pub fn sync(app: &AppHandle) {
             let stop2 = stop.clone();
             std::thread::Builder::new().name("groovy-voice".into()).spawn(move || run(app2, stop2)).ok();
             *running = Some(Running { stop });
-            speech::preload();
+            speech::fetch_kws();
             crate::log::line("voice: « OK Groovy » listening");
         }
         (false, true) => {
@@ -127,7 +127,23 @@ pub fn sync(app: &AppHandle) {
     }
 }
 
-/// « OK Groovy » is listening (the voice model stays loaded).
+/// Cloud speech answers first (Settings → Voice), when it has a key.
+fn cloud_first(app: &AppHandle) -> bool {
+    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech) && !speech::cloud::available().is_empty()
+}
+
+/// The words of a command: the cloud engine first when it is set up, the
+/// PC's own (loaded now if it isn't) when there is none or it fails.
+fn hear(app: &AppHandle, samples: &[f32]) -> Option<String> {
+    if cloud_first(app) {
+        if let Some((text, _)) = tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &[], None)) {
+            return Some(text.trim().to_string());
+        }
+    }
+    speech::transcribe(samples).map(|t| t.text.trim().to_string())
+}
+
+/// « OK Groovy » is listening.
 pub fn is_listening() -> bool {
     RUNNING.lock().unwrap().is_some()
 }
@@ -179,6 +195,8 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
         }
     };
     let mut vad = wake::Vad::default();
+    // The small spotter hears « OK Groovy »; the full engine is asked only after it.
+    let mut spotter = speech::kws::Spotter::load();
     let mut mode = Mode::Wake;
     let mut brain = brain::Brain::default();
     let mut hide_at: Option<Instant> = None;
@@ -212,12 +230,27 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             if segment.len() < speech::SAMPLE_RATE as usize * 35 / 100 {
                 continue;
             }
-            let Some(heard) = speech::transcribe(&segment).map(|t| t.text.trim().to_string()) else { continue };
-            if heard.is_empty() {
+            if spotter.is_none() && speech::kws::is_present() {
+                spotter = speech::kws::Spotter::load();
+            }
+            let spotted = matches!(mode, Mode::Wake) && spotter.is_some();
+            if spotted && !spotter.as_ref().is_some_and(|k| k.heard(&segment)) {
                 continue;
             }
+            if spotted {
+                // Loads now, while the command is still being said.
+                if !cloud_first(&app) {
+                    speech::get_ready(&app);
+                }
+            }
+            let Some(heard) = hear(&app, &segment) else { continue };
+            if heard.is_empty() && !spotted {
+                continue;
+            }
+            // The spotter heard the wake phrase even if the engine wrote it oddly.
+            let wake_rest = wake::after_wake(&heard).or_else(|| spotted.then(|| wake::drop_wake_words(&heard)));
             let question = match &mut mode {
-                Mode::Wake => match wake::after_wake(&heard) {
+                Mode::Wake => match wake_rest {
                     Some(rest) => {
                         crate::log::line("voice: « OK Groovy » heard");
                         test_step(&app, "wake", true, "");

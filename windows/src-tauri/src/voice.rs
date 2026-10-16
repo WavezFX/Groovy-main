@@ -190,6 +190,20 @@ type Loaded = (String, ());
 /// The model in memory, by name: loaded on the first segment, kept while used.
 static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 
+/// When Whisper was last used: freed once unused for the idle setting (round 3B item 10).
+static WHISPER_USED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+
+/// Frees Whisper once unused for the idle setting (speech::spawn_idle_reaper).
+pub fn free_if_idle() {
+    let idle = WHISPER_USED.lock().unwrap().is_some_and(crate::idle::expired);
+    // A transcription in progress holds the lock: try again on the next check.
+    if let (true, Ok(mut loaded)) = (idle, LOADED.try_lock()) {
+        if loaded.take().is_some() {
+            crate::log::line("Whisper freed");
+        }
+    }
+}
+
 /// Transcribes up to 30 s of 16 kHz audio, on the calling thread: for
 /// dictation and notes when Whisper is chosen over Parakeet (speech/mod.rs).
 /// The dictation vocabulary Whisper is prompted with (Flow's dictionary).
@@ -224,6 +238,7 @@ fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<S
     if !installed(model) {
         return Err("Download a speech model in Settings → Voice first.".into());
     }
+    *WHISPER_USED.lock().unwrap() = Some(std::time::Instant::now());
     let mut guard = LOADED.lock().unwrap();
     if guard.as_ref().map(|(name, _)| name.as_str()) != Some(model) {
         let ctx = WhisperContext::new_with_params(&path.to_string_lossy(), WhisperContextParameters::default())

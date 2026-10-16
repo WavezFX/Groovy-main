@@ -317,7 +317,7 @@ fn start_inner(app: &AppHandle, taker: &Arc<NoteTaker>) -> Result<String, String
         system_channel: system_channel.clone(),
         stop_live: stop_live.clone(),
     });
-    speech::preload();
+    speech::get_ready(app);
     spawn_live(app.clone(), taker.clone(), id.clone(), mic_channel, system_channel, stop_live);
     live::update(app, |s| s.note_started_at = Some(note.start));
     let _ = app.emit_to(crate::HUB_LABEL, "notes-changed", &id);

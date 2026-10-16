@@ -16,6 +16,8 @@ mod glass;
 mod github;
 mod hooks;
 mod i18n;
+mod idle;
+mod worktest;
 mod identity;
 mod integrations;
 mod island;
@@ -186,6 +188,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     flow::sync_engine(&app);
     spotify::sync(&app, &settings.active_integrations);
     glass::apply(&app);
+    idle::set(&settings.unload_after);
     if shortcuts_changed {
         shortcuts::apply(&app, &settings.shortcuts);
     }
@@ -647,6 +650,28 @@ async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Ve
         (s.voice_model.clone(), s.voice_language.clone())
     };
     let language = voice::language_for(&model, &language);
+    // Round 3B item 10: the small spotter listens for "Hey Groovy"; the full
+    // engine is loaded and asked only once it has heard it.
+    let spotted = if wake {
+        let pcm: Vec<f32> = samples.iter().map(|&s| s as f32 / 32768.0).collect();
+        match tauri::async_runtime::spawn_blocking(move || speech::kws::heard_shared(&pcm)).await.map_err(|e| e.to_string())? {
+            Some(false) => return Ok(String::new()),
+            Some(true) => true,
+            None => false,
+        }
+    } else {
+        false
+    };
+    let text = voice_words(&app, model, language, samples, wake).await?;
+    // Heard by the spotter, written oddly by the engine: the wake phrase is put back.
+    if spotted && okgroovy::wake::after_wake(&text).is_none() {
+        return Ok(format!("Hey Groovy, {}", okgroovy::wake::drop_wake_words(&text)).trim_end_matches([',', ' ']).to_string());
+    }
+    Ok(text)
+}
+
+async fn voice_words(app: &AppHandle, model: String, language: Option<String>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
+    let app = app.clone();
     // One speech engine for everything (round 2): calls use what dictation,
     // the Notetaker and « OK Groovy » use — Parakeet, or Whisper when chosen.
     let whisper = flow::uses_whisper(&app);
@@ -1118,7 +1143,7 @@ pub fn run() {
         }
     }
     // On a small PC the light profile is the default (llama-server's context and
-    // threads, and the 5-minute unload), unless the user picked another one.
+    // threads), unless the user picked another one.
     if first_run {
         loaded.assistant.performance_profile = models::recommended_profile(models::memory_info().total).to_string();
     }
@@ -1145,6 +1170,7 @@ pub fn run() {
         }
     }
     i18n::set_picked(&loaded.language);
+    idle::set(&loaded.unload_after);
     let gate = Arc::new(PollGate::new());
 
     let mut builder = tauri::Builder::default()
@@ -1513,6 +1539,8 @@ pub fn run() {
             }
             music::init(&handle);
             models::spawn_idle_reaper();
+            speech::spawn_idle_reaper();
+            worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);

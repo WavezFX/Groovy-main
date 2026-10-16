@@ -31,8 +31,6 @@ const FISH_REST: Duration = Duration::from_secs(600);
 /// A rough price for the cost line: Fish Audio bills by text length, about
 /// US$15 per million characters, about £11.50.
 const GBP_PER_MILLION_CHARS: f64 = 11.5;
-/// Kokoro stays loaded this long after it last spoke.
-const KOKORO_IDLE: Duration = Duration::from_secs(90);
 
 /// Kokoro 82M v1.0, int8 (Apache-2.0), with espeak-ng's data (about 173 MB).
 pub static KOKORO: ModelSet = ModelSet { id: "kokoro-int8-v1_0", files: super::kokoro_files::FILES };
@@ -241,12 +239,12 @@ fn load() -> Option<Arc<OfflineTts>> {
     let tts = Arc::new(OfflineTts::create(&config)?);
     crate::log::line(format!("Kokoro loaded in {:?}", started.elapsed()));
     *e = Some(Loaded { tts: tts.clone(), used: Instant::now() });
-    // Unloaded once it has been quiet a while: the 300 MB idle budget.
+    // Unloaded once it has been quiet for the idle setting (round 3B item 10).
     let _ = std::thread::Builder::new().name("groovy-kokoro-idle".into()).spawn(|| loop {
-        std::thread::sleep(Duration::from_secs(15));
+        std::thread::sleep(crate::idle::CHECK_EVERY);
         let mut e = engine().lock().unwrap();
         match e.as_ref() {
-            Some(l) if l.used.elapsed() > KOKORO_IDLE => {
+            Some(l) if crate::idle::expired(l.used) => {
                 *e = None;
                 crate::log::line("Kokoro unloaded");
                 return;

@@ -247,17 +247,15 @@ fn is_light_file(file: &str) -> bool {
 pub struct Profile {
     pub context: u32,
     pub threads: u32,
-    /// Stop the server after this many idle minutes to give the memory back; 0 = never.
-    pub idle_minutes: u64,
     pub animation: &'static str,
 }
 
 pub fn profile(name: &str, cpus: u32) -> Profile {
     let cpus = cpus.max(1);
     match name {
-        "lightweight" => Profile { context: 2048, threads: (cpus / 2).clamp(1, 4), idle_minutes: 5, animation: "reduced" },
-        "performance" => Profile { context: 8192, threads: cpus, idle_minutes: 0, animation: "full" },
-        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), idle_minutes: 10, animation: "full" },
+        "lightweight" => Profile { context: 2048, threads: (cpus / 2).clamp(1, 4), animation: "reduced" },
+        "performance" => Profile { context: 8192, threads: cpus, animation: "full" },
+        _ => Profile { context: 4096, threads: (cpus.saturating_sub(2)).max(1).min(8), animation: "full" },
     }
 }
 
@@ -694,7 +692,6 @@ struct Running {
     file: String,
     port: u16,
     last_used: Instant,
-    idle_minutes: u64,
 }
 
 static SERVER: Mutex<Option<Running>> = Mutex::new(None);
@@ -819,7 +816,7 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
         let _ = app.emit("local-model", serde_json::json!({ "state": "loading", "model": wanted }));
     }
     *SERVER.lock().unwrap() =
-        Some(Running { child, file: wanted.clone(), port, last_used: Instant::now(), idle_minutes: prof.idle_minutes });
+        Some(Running { child, file: wanted.clone(), port, last_used: Instant::now() });
     let url = format!("http://127.0.0.1:{port}");
     let started = Instant::now();
     let client = reqwest::Client::builder().no_proxy().timeout(Duration::from_secs(3)).build().map_err(|e| e.to_string())?;
@@ -845,15 +842,13 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     Ok(url)
 }
 
-/// Stops an idle server when the profile says so, to give its memory back.
+/// Stops the server once unused for the idle setting (round 3B item 10):
+/// it is its own process, so all of its memory goes back to Windows.
 pub fn spawn_idle_reaper() {
     tauri::async_runtime::spawn(async {
         loop {
-            tokio::time::sleep(Duration::from_secs(30)).await;
-            let idle = {
-                let s = SERVER.lock().unwrap();
-                s.as_ref().is_some_and(|r| r.idle_minutes > 0 && r.last_used.elapsed() > Duration::from_secs(r.idle_minutes * 60))
-            };
+            tokio::time::sleep(crate::idle::CHECK_EVERY).await;
+            let idle = SERVER.lock().unwrap().as_ref().is_some_and(|r| crate::idle::expired(r.last_used));
             if idle {
                 stop();
             }
@@ -1257,7 +1252,7 @@ mod tests {
         assert_eq!(recommended_profile(16 * GB), "balanced");
         assert_eq!(recommended_profile(32 * GB), "performance");
         let l = profile("lightweight", 8);
-        assert_eq!((l.context, l.threads, l.idle_minutes), (2048, 4, 5));
+        assert_eq!((l.context, l.threads), (2048, 4));
         let b = profile("balanced", 8);
         assert_eq!((b.context, b.threads), (4096, 6));
         assert_eq!(profile("performance", 8).threads, 8);

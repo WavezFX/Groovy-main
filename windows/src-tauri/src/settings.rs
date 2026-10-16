@@ -156,6 +156,10 @@ pub struct Settings {
     pub glass_strength: String,
     /// Settings → Voice → While listening, show: "badge" (default) or "strip".
     pub listening_view: String,
+    /// Settings → Voice → Free memory after (round 3B item 10): "30s", "2m"
+    /// (the default), "5m" or "keep": how long an unused speech model or
+    /// the local AI stays loaded.
+    pub unload_after: String,
     /// How far Groovy's look has grown: active seconds, the stage reached and
     /// the stage shown (round 3 item 6). The page owns its shape
     /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
@@ -253,6 +257,7 @@ impl Default for Settings {
             close_on_leave_offered: false,
             island_style: "glass".into(),
             glass_strength: "balanced".into(),
+            unload_after: "2m".into(),
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
             integrations_restored: false,
@@ -653,6 +658,7 @@ mod tests {
   "islandStyle": "solid",
   "glassStrength": "frosted",
   "listeningView": "strip",
+  "unloadAfter": "5m",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true
 }"##;
@@ -1279,6 +1285,7 @@ mod tests {
                 "islandStyle",
                 "glassStrength",
                 "listeningView",
+                "unloadAfter",
                 "growth",
                 "integrationsRestored",
             ]

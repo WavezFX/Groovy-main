@@ -14525,6 +14525,83 @@
    "pt-BR": "Oi, eu sou o Groovy. Esta é a minha voz.",
    "ru": "Привет, я Groovy. Вот так звучит мой голос.",
    "id": "Hai, saya Groovy. Beginilah suara saya."
+  },
+  "30 seconds": {
+   "zh-Hans": "30 秒",
+   "hi": "30 सेकंड",
+   "es": "30 segundos",
+   "ar": "30 ثانية",
+   "fr": "30 secondes",
+   "bn": "30 সেকেন্ড",
+   "pt-BR": "30 segundos",
+   "ru": "30 секунд",
+   "id": "30 detik"
+  },
+  "2 minutes": {
+   "zh-Hans": "2 分钟",
+   "hi": "2 मिनट",
+   "es": "2 minutos",
+   "ar": "دقيقتان",
+   "fr": "2 minutes",
+   "bn": "2 মিনিট",
+   "pt-BR": "2 minutos",
+   "ru": "2 минуты",
+   "id": "2 menit"
+  },
+  "5 minutes": {
+   "zh-Hans": "5 分钟",
+   "hi": "5 मिनट",
+   "es": "5 minutos",
+   "ar": "5 دقائق",
+   "fr": "5 minutes",
+   "bn": "5 মিনিট",
+   "pt-BR": "5 minutos",
+   "ru": "5 минут",
+   "id": "5 menit"
+  },
+  "Keep loaded": {
+   "zh-Hans": "一直保留",
+   "hi": "लोड रखें",
+   "es": "Mantener cargado",
+   "ar": "إبقاؤه محمّلًا",
+   "fr": "Garder en mémoire",
+   "bn": "লোড রাখুন",
+   "pt-BR": "Manter carregado",
+   "ru": "Не выгружать",
+   "id": "Tetap dimuat"
+  },
+  "Free memory after": {
+   "zh-Hans": "多久后释放内存",
+   "hi": "इतने समय बाद मेमोरी खाली करें",
+   "es": "Liberar memoria tras",
+   "ar": "تحرير الذاكرة بعد",
+   "fr": "Libérer la mémoire après",
+   "bn": "এত সময় পরে মেমরি খালি করুন",
+   "pt-BR": "Liberar memória após",
+   "ru": "Освобождать память через",
+   "id": "Kosongkan memori setelah"
+  },
+  "Speech models and the local AI load when you use them and give their memory back once unused for this long.": {
+   "zh-Hans": "语音模型和本地 AI 在使用时才加载，闲置这么久后会释放内存。",
+   "hi": "स्पीच मॉडल और लोकल AI इस्तेमाल करने पर ही लोड होते हैं, और इतनी देर इस्तेमाल न होने पर मेमोरी लौटा देते हैं।",
+   "es": "Los modelos de voz y la IA local se cargan al usarlos y liberan su memoria tras este tiempo sin uso.",
+   "ar": "تُحمَّل نماذج الكلام والذكاء الاصطناعي المحلي عند استخدامها، وتُحرِّر ذاكرتها بعد عدم استخدامها لهذه المدة.",
+   "fr": "Les modèles vocaux et l’IA locale se chargent quand vous les utilisez et rendent leur mémoire après ce délai sans usage.",
+   "bn": "স্পিচ মডেল আর লোকাল AI ব্যবহার করলে তবেই লোড হয়, আর এতক্ষণ ব্যবহার না হলে মেমরি ফিরিয়ে দেয়।",
+   "pt-BR": "Os modelos de voz e a IA local carregam quando você os usa e devolvem a memória após esse tempo sem uso.",
+   "ru": "Речевые модели и локальный ИИ загружаются, когда нужны, и освобождают память, если не используются столько времени.",
+   "id": "Model suara dan AI lokal dimuat saat dipakai dan mengembalikan memorinya setelah tidak dipakai selama ini."
+  },
+  "Getting ready…": {
+   "zh-Hans": "正在准备…",
+   "hi": "तैयार हो रहा है…",
+   "es": "Preparándose…",
+   "ar": "جارٍ التجهيز…",
+   "fr": "Préparation…",
+   "bn": "প্রস্তুত হচ্ছে…",
+   "pt-BR": "Preparando…",
+   "ru": "Готовлюсь…",
+   "id": "Sedang bersiap…"
   }
  }
 }

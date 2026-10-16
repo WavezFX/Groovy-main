@@ -11,6 +11,7 @@ pub mod audio;
 pub mod check;
 pub mod cloud;
 mod kokoro_files;
+pub mod kws;
 pub mod tts;
 
 use std::io::Write;
@@ -160,7 +161,7 @@ pub fn status() -> ModelsStatus {
     } else {
         ModelState::Missing
     };
-    ModelsStatus { parakeet, download_mb: (PARAKEET.total_size() + DIARIZER.total_size()) / 1_000_000 }
+    ModelsStatus { parakeet, download_mb: (PARAKEET.total_size() + DIARIZER.total_size()) / 1_000_000 + kws::download_mb() }
 }
 
 /// Whisper instead of Parakeet, for the languages Parakeet doesn't know
@@ -254,7 +255,6 @@ pub fn download(app: AppHandle) {
         match result {
             Ok(()) => {
                 crate::log::line("speech models downloaded");
-                preload();
             }
             Err(err) => crate::log::line(format!("speech models download failed: {err}")),
         }
@@ -262,7 +262,7 @@ pub fn download(app: AppHandle) {
     });
 }
 
-async fn download_all(app: &AppHandle) -> Result<(), String> {
+pub(crate) async fn download_all(app: &AppHandle) -> Result<(), String> {
     let total = PARAKEET.total_size() + DIARIZER.total_size();
     let mut done: u64 = 0;
     let client = download_client()?;
@@ -277,7 +277,29 @@ async fn download_all(app: &AppHandle) -> Result<(), String> {
         })
         .await?;
     }
+    // « OK Groovy »'s ear comes with them (round 3B item 10).
+    kws::download(&client).await?;
     Ok(())
+}
+
+/// The models came before the wake word spotter did: it follows on its own
+/// when « OK Groovy » is turned on (the speech models were already agreed to).
+pub fn fetch_kws() {
+    static FETCHING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if kws::is_present() || !PARAKEET.is_present() || FETCHING.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+    tauri::async_runtime::spawn(async {
+        let result = match download_client() {
+            Ok(client) => kws::download(&client).await,
+            Err(e) => Err(e),
+        };
+        match result {
+            Ok(()) => crate::log::line("voice: wake word spotter downloaded"),
+            Err(e) => crate::log::line(format!("voice: wake word spotter download failed: {e}")),
+        }
+        FETCHING.store(false, std::sync::atomic::Ordering::SeqCst);
+    });
 }
 
 fn download_client() -> Result<reqwest::Client, String> {
@@ -338,6 +360,7 @@ pub fn remove(app: &AppHandle) {
     unload();
     let _ = std::fs::remove_dir_all(PARAKEET.dir());
     let _ = std::fs::remove_dir_all(DIARIZER.dir());
+    kws::remove();
     downloads().lock().unwrap().error = None;
     emit_status(app);
 }
@@ -359,8 +382,21 @@ fn threads() -> i32 {
     std::thread::available_parallelism().map(|n| n.get().clamp(1, 4) as i32).unwrap_or(2)
 }
 
+/// When Parakeet was last used: it is freed once unused for the idle setting (idle.rs).
+static LAST_USED: Mutex<Option<Instant>> = Mutex::new(None);
+
+fn touch() {
+    *LAST_USED.lock().unwrap() = Some(Instant::now());
+}
+
+/// Parakeet is in memory now.
+pub fn is_loaded() -> bool {
+    recognizer_slot().lock().unwrap().is_some()
+}
+
 /// The loaded recognizer, loading it on first use (about 2 s).
 pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
+    touch();
     if let Some(r) = recognizer_slot().lock().unwrap().clone() {
         return Some(r);
     }
@@ -390,19 +426,50 @@ pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
     r
 }
 
-/// Loads the model in the background, so the first dictation is not slowed down.
-pub fn preload() {
-    if !PARAKEET.is_present() || recognizer_slot().lock().unwrap().is_some() {
+/// Loads the engine that will be used, before the words come: shows
+/// "Getting ready…" in the island when that takes more than a moment.
+/// Nothing is loaded ahead of need (round 3B item 10): this runs when
+/// dictation, a call or a command has started.
+pub fn get_ready(app: &AppHandle) {
+    if whisper().is_some() || !PARAKEET.is_present() || is_loaded() {
         return;
     }
-    std::thread::spawn(|| {
+    let done = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let done2 = done.clone();
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(READY_NOTE_AFTER);
+        if !done2.load(std::sync::atomic::Ordering::Relaxed) {
+            crate::flow::live::announce(&app2, "bolt", "#8E8E93", crate::i18n::t("Getting ready…"), None, 3);
+        }
+    });
+    std::thread::spawn(move || {
         let _ = recognizer();
+        done.store(true, std::sync::atomic::Ordering::Relaxed);
     });
 }
 
+/// Loading for longer than this shows "Getting ready…".
+const READY_NOTE_AFTER: Duration = Duration::from_millis(300);
+
 /// Frees the model's memory (dictation turned off, models removed).
 pub fn unload() {
-    *recognizer_slot().lock().unwrap() = None;
+    if recognizer_slot().lock().unwrap().take().is_some() {
+        crate::log::line("Parakeet freed");
+    }
+}
+
+/// Frees Parakeet, and Whisper, once unused for the idle setting.
+pub fn spawn_idle_reaper() {
+    let _ = std::thread::Builder::new().name("groovy-speech-idle".into()).spawn(|| loop {
+        std::thread::sleep(crate::idle::CHECK_EVERY);
+        let last = *LAST_USED.lock().unwrap();
+        if is_loaded() && last.is_some_and(crate::idle::expired) {
+            unload();
+        }
+        crate::voice::free_if_idle();
+        kws::free_if_idle();
+    });
 }
 
 /// What was said, and each word with its place in the audio.
@@ -552,6 +619,14 @@ mod tests {
             }
         }
     }
+}
+
+/// A 16-bit mono 16 kHz WAV from src-tauri/tests/audio, as samples.
+#[cfg(test)]
+pub fn tests_audio(name: &str) -> Vec<f32> {
+    let bytes = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/audio").join(name)).unwrap();
+    let data = bytes.windows(4).position(|w| w == b"data").expect("a data chunk") + 8;
+    bytes[data..].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect()
 }
 
 /// With the models downloaded: `GROOVY_TEST_WAV=… cargo test -- --ignored speech`.

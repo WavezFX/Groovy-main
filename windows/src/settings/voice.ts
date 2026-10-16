@@ -310,6 +310,19 @@ export function voiceSection(
   const listeningRow = h("div", { class: "row" }, h("label", { text: t("While listening, show") }), listening);
   const listeningHint = h("div", { class: "hint", text: t("Badge keeps the island as it is with a small timer; Live strip shrinks it to Groovy, your voice and Stop.") });
 
+  // Round 3B item 10: speech models and the local AI load when needed and go after this long unused.
+  const unload = h("select", {}) as HTMLSelectElement;
+  for (const [value, label] of [["30s", t("30 seconds")], ["2m", t("2 minutes")], ["5m", t("5 minutes")], ["keep", t("Keep loaded")]] as const) {
+    unload.append(h("option", { value, text: label }));
+  }
+  unload.value = ["30s", "5m", "keep"].includes(settings.unloadAfter) ? settings.unloadAfter : "2m";
+  unload.addEventListener("change", () => {
+    settings.unloadAfter = unload.value as typeof settings.unloadAfter;
+    save();
+  });
+  const unloadRow = h("div", { class: "row" }, h("label", { text: t("Free memory after") }), unload);
+  const unloadHint = h("div", { class: "hint", text: t("Speech models and the local AI load when you use them and give their memory back once unused for this long.") });
+
   return h(
     "section",
     {},
@@ -332,6 +345,8 @@ export function voiceSection(
     livekitRows,
     listeningRow,
     listeningHint,
+    unloadRow,
+    unloadHint,
     h("div", { class: "subhead", text: t("Check") }),
     voiceTestBlock(settings),
     feedback,

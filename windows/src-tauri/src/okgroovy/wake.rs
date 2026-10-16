@@ -79,6 +79,12 @@ pub fn after_wake(text: &str) -> Option<String> {
     None
 }
 
+/// The spotter heard the wake phrase but the engine wrote it some other way
+/// ("Okey Gruby, what time…"): the two words it took are dropped.
+pub fn drop_wake_words(text: &str) -> String {
+    text.split_whitespace().skip(2).collect::<Vec<_>>().join(" ").trim_start_matches([',', '.', '!', ' ']).to_string()
+}
+
 /// Speech or silence, 30 ms at a time, against a noise floor that follows the
 /// room. A stretch of speech is handed out once followed by `hangover` frames
 /// of silence, or when it gets too long.
@@ -191,6 +197,13 @@ pub fn speech_lang(text: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_misspelt_wake_phrase_heard_by_the_spotter_is_dropped() {
+        assert_eq!(drop_wake_words("Okey Gruby, what time is it?"), "what time is it?");
+        assert_eq!(drop_wake_words("Okey Gruby."), "");
+        assert_eq!(drop_wake_words(""), "");
+    }
+
     use super::*;
 
     #[test]

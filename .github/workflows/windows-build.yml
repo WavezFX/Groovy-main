@@ -194,6 +194,31 @@ jobs:
           if (Test-Path (Join-Path $env:dir "groovy.exe")) { throw "groovy.exe still present after uninstall" }
           "uninstalled"
 
+      # Round 3B item 10: the budget is for a real PC with the models on it.
+      # Parakeet, the wake word spotter, llama.cpp and the smallest local
+      # model are cached between runs (about 1.2 GB).
+      - name: Restore the downloaded models
+        id: models-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v1
+
+      - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
+        shell: pwsh
+        run: ./scripts/work-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
+
+      - name: Save the downloaded models
+        if: always() && steps.models-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v1
+
       - name: Type check
         run: npx tsc --noEmit
 
@@ -212,6 +237,8 @@ jobs:
         shell: pwsh
         run: |
           cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo test -p groovy kws_hears_ok_groovy -- --ignored --nocapture
           exit $LASTEXITCODE
 
       # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):

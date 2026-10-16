@@ -37,20 +37,49 @@ function loop(now: number) {
     a.shown = true;
     a.draw(dt, t);
   }
-  if (live.size > 0 && document.visibilityState === "visible") frame = requestAnimationFrame(loop);
+  if (live.size === 0 || document.visibilityState !== "visible") return;
+  // Round 3B item 10: full speed only while you use the window; left alone,
+  // the drift goes on at a few frames a second, so the GPU rests.
+  const calm = now - lastActivity > CALM_AFTER_MS;
+  if (!calm) frame = requestAnimationFrame(loop);
+  else pause = window.setTimeout(() => {
+    pause = null;
+    frame = requestAnimationFrame(loop);
+  }, document.hasFocus() ? CALM_FRAME_MS : AWAY_FRAME_MS);
 }
 
+/** Left alone this long, the window draws at a few frames a second. */
+const CALM_AFTER_MS = 3000;
+const CALM_FRAME_MS = 125;
+const AWAY_FRAME_MS = 500;
+let lastActivity = performance.now();
+let pause: number | null = null;
+
 function wake() {
-  if (frame === null && live.size > 0 && document.visibilityState === "visible") {
+  if (frame === null && pause === null && live.size > 0 && document.visibilityState === "visible") {
     last = performance.now();
     frame = requestAnimationFrame(loop);
   }
 }
 
+/** Something happened: back to full speed at once. */
+function stir() {
+  lastActivity = performance.now();
+  if (pause !== null) {
+    window.clearTimeout(pause);
+    pause = null;
+  }
+  wake();
+}
+
 document.addEventListener("visibilitychange", wake);
+for (const type of ["pointermove", "pointerdown", "wheel", "keydown", "focus"]) {
+  window.addEventListener(type, stir, { passive: true });
+}
 
 function add(a: Animated) {
   live.add(a);
+  lastActivity = performance.now();
   wake();
 }
 

@@ -132,7 +132,7 @@ export interface ModelsStatus {
   catalog: CatalogModel[];
   memory: { total: number; available: number };
   cpus: number;
-  profile: { context: number; threads: number; idleMinutes: number; animation: string };
+  profile: { context: number; threads: number; animation: string };
   recommendedProfile: "lightweight" | "balanced" | "performance";
   downloading: boolean;
   /** Catalogue ids that suit this PC (≤ 40 % of its memory once loaded). */

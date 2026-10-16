@@ -261,6 +261,8 @@ export interface Settings {
   glassStrength: GlassStrength;
   /** Settings → Voice → While listening, show: "badge" (default) or "strip". */
   listeningView: "badge" | "strip";
+  /** Round 3B item 10: how long an unused speech model or the local AI stays loaded. */
+  unloadAfter: "30s" | "2m" | "5m" | "keep";
   /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
   growth: unknown;
 }
@@ -315,6 +317,7 @@ export const DEFAULT_SETTINGS: Settings = {
   islandStyle: "glass",
   glassStrength: "balanced",
   listeningView: "badge",
+  unloadAfter: "2m",
   growth: {},
 };
 

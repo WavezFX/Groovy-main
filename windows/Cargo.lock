@@ -1901,6 +1901,7 @@ name = "groovy"
 version = "0.6.0"
 dependencies = [
  "arboard",
+ "bzip2 0.5.2",
  "cpal 0.18.2",
  "dbus",
  "futures-util",
@@ -1920,6 +1921,7 @@ dependencies = [
  "serde_json",
  "sherpa-onnx",
  "sysinfo",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

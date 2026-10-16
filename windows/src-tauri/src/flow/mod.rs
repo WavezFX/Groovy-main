@@ -169,7 +169,6 @@ fn enable(app: &AppHandle, flow: &Arc<Flow>) {
         .ok();
     *running = Some(Running { tx, _listener: listener });
     drop(running);
-    speech::preload();
     live::update(app, |s| s.enabled = true);
     crate::log::line(format!("flow dictation on ({})", prefs.key.label()));
 }
@@ -328,6 +327,11 @@ fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
         Ok(capture) => {
             let app_front = os::foreground_app().filter(|(id, _)| !is_shell(id));
             live::update(app, |s| s.phase = "listening".into());
+            // The PC's engine is loaded now, while you speak, unless the cloud one answers first.
+            let cloud_first = flow.store.lock().unwrap().prefs.cloud_speech && !speech::cloud::available().is_empty();
+            if !cloud_first {
+                speech::get_ready(app);
+            }
             Some(Listening { capture, take, started: Instant::now(), app: app_front })
         }
         Err(err) => {
