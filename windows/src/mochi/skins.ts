@@ -71,9 +71,10 @@ const SHAPE = { w: 1.0, h: 1.12, exp: 3.0, taper: -0.05 };
 const FACE = { eyeW: 3.0, eyeH: 1.75, eyeSp: 0.47, eyeY: 0.1, eyeTilt: -0.22 };
 
 const night: SkinStyle = {
-  bodyTop: [0.975, 0.99, 0.978],
-  bodyBottom: [0.8, 0.87, 0.82],
-  rimGlow: "rgba(90,255,150,0.9)",
+  bodyTop: [0.93, 0.99, 0.94],
+  // Night is green, as plainly as Ember is warm and Frost is cool (round 3B item 3).
+  bodyBottom: [0.7, 0.9, 0.76],
+  rimGlow: "rgba(70,240,130,1)",
   eyeInk: "rgb(150,255,185)",
   eyeGlow: "rgba(80,255,140,0.95)",
   iris: "rgb(70,235,120)",
@@ -114,9 +115,9 @@ export const SKIN_STYLES: Record<Skin, SkinStyle> = { night, ember, frost };
 export const GROWN_STYLES: Record<Skin, SkinStyle> = {
   night: {
     ...night,
-    bodyTop: [0.97, 0.985, 0.955],
-    bodyBottom: [0.78, 0.84, 0.74],
-    rimGlow: "rgba(120,220,110,0.7)",
+    bodyTop: [0.9, 0.97, 0.86],
+    bodyBottom: [0.6, 0.82, 0.56],
+    rimGlow: "rgba(110,225,95,0.95)",
     eyeInk: "rgb(170,240,140)",
     eyeGlow: "rgba(120,220,90,0.9)",
     iris: "rgb(110,215,90)",
