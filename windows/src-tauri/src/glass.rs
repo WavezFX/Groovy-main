@@ -107,7 +107,7 @@ pub fn apply(app: &AppHandle) {
     let now = match (glass, before) {
         // Already blurred (or on the page's glass): nothing to ask Windows again.
         (true, Look::Blur | Look::Css) => before,
-        (true, Look::Solid) => decide(true, os::set_accent(&win, true)),
+        (true, Look::Solid) => decide(true, !BLUR_LEAKS.load(Ordering::Relaxed) && os::set_accent(&win, true)),
         (false, _) => {
             if before == Look::Blur {
                 os::set_accent(&win, false);
@@ -120,7 +120,57 @@ pub fn apply(app: &AppHandle) {
     if now != before {
         crate::log::line(format!("island style: {}", now.as_str()));
         let _ = app.emit_to(WINDOW_LABEL, "island-glass", now.as_str());
+        if now == Look::Blur {
+            check_blur_later(app.clone());
+        }
     }
+}
+
+/// Some Windows builds and sessions (CI's runner among them) draw the accent
+/// "blur" as a flat, opaque tint over the whole window rectangle, whatever the
+/// region: the grey square again, and nothing shows through. Shortly after the
+/// blur goes on, one pixel just outside the island's rounded corner is read
+/// from the screen: if it is the tint while the desktop beside the window is
+/// not, the blur is turned off for this run and the page draws its own glass
+/// (round 3B items 1 and 1b).
+fn check_blur_later(app: AppHandle) {
+    let _ = std::thread::Builder::new().name("groovy-glass-check".into()).spawn(move || {
+        // Read once the island is open (folded away, its window is a thin strip).
+        let mut reading = None;
+        for _ in 0..60 {
+            std::thread::sleep(Duration::from_millis(1000));
+            if look() != Look::Blur {
+                return;
+            }
+            let Some(win) = app.get_webview_window(WINDOW_LABEL) else { return };
+            if let Some(r) = os::corner_pixels(&win) {
+                reading = Some((win, r));
+                break;
+            }
+        }
+        let Some((win, (corner, beside))) = reading else { return };
+        if blur_leaks(corner, &beside) {
+            os::set_accent(&win, false);
+            BLUR_LEAKS.store(true, Ordering::Relaxed);
+            LOOK.store(Look::Css as u8, Ordering::Relaxed);
+            reshape(&win);
+            crate::log::line(format!("island style: css (the blur filled the corners: rgb{corner:?})"));
+            let _ = app.emit_to(WINDOW_LABEL, "island-glass", Look::Css.as_str());
+        }
+    });
+}
+
+/// Set once the accent blur was seen filling the corners: this run keeps the page's glass.
+static BLUR_LEAKS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// The accent's tint, as it shows when Windows draws it flat.
+const TINT_RGB: (u8, u8, u8) = (0x12, 0x14, 0x18);
+
+/// The pixel outside the rounded corner is the flat tint while the desktop
+/// next to the window isn't: the blur is drawn outside the island.
+pub fn blur_leaks(corner: (u8, u8, u8), beside: &[(u8, u8, u8)]) -> bool {
+    let near = |a: (u8, u8, u8), b: (u8, u8, u8)| a.0.abs_diff(b.0) <= 6 && a.1.abs_diff(b.1) <= 6 && a.2.abs_diff(b.2) <= 6;
+    near(corner, TINT_RGB) && !beside.is_empty() && beside.iter().all(|&b| !near(b, TINT_RGB))
 }
 
 /// The island moved or changed size: the region follows it, in this same call.
@@ -338,6 +388,34 @@ mod os {
         format!("{path}|{}", unsafe { GetSysColor(COLOR_DESKTOP) })
     }
 
+    /// The screen just outside the island's bottom-left rounded corner (inside
+    /// the window, outside the region), and beside the window there.
+    pub fn corner_pixels(win: &WebviewWindow) -> Option<((u8, u8, u8), Vec<(u8, u8, u8)>)> {
+        let hwnd = hwnd(win)?;
+        let mut r = RECT::default();
+        unsafe { GetWindowRect(hwnd, &mut r) }.ok()?;
+        if r.right - r.left < 120 || r.bottom - r.top < 60 {
+            return None;
+        }
+        unsafe {
+            let dc = GetDC(None);
+            if dc.is_invalid() {
+                return None;
+            }
+            let read = |x: i32, y: i32| {
+                let c = GetPixel(dc, x, y).0;
+                (c != 0xFFFF_FFFF).then(|| ((c & 0xFF) as u8, ((c >> 8) & 0xFF) as u8, ((c >> 16) & 0xFF) as u8))
+            };
+            let corner = read(r.left + 1, r.bottom - 2);
+            let beside: Vec<_> = [(r.left - 4, r.bottom - 2), (r.left + 1, r.bottom + 4), (r.right + 3, r.bottom - 2)]
+                .into_iter()
+                .filter_map(|(x, y)| read(x, y))
+                .collect();
+            ReleaseDC(None, dc);
+            Some((corner?, beside))
+        }
+    }
+
     /// Pixels just around the island window: what shows through its glass.
     /// Twelve GetPixel calls, once a minute at most.
     pub fn backdrop(win: &WebviewWindow) -> Vec<(u8, u8, u8)> {
@@ -402,11 +480,26 @@ mod os {
     pub fn backdrop(_win: &WebviewWindow) -> Vec<(u8, u8, u8)> {
         Vec::new()
     }
+    pub fn corner_pixels(_win: &WebviewWindow) -> Option<((u8, u8, u8), Vec<(u8, u8, u8)>)> {
+        None
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_blur_that_fills_the_corners_is_caught() {
+        let tint = (0x12, 0x14, 0x18);
+        assert!(blur_leaks(tint, &[(255, 0, 255), (255, 0, 255)]));
+        assert!(blur_leaks((0x14, 0x15, 0x1a), &[(40, 120, 200)]));
+        // The desktop shows in the corner: fine.
+        assert!(!blur_leaks((255, 0, 255), &[(255, 0, 255)]));
+        // A dark wallpaper the colour of the tint: can't tell, keep the blur.
+        assert!(!blur_leaks(tint, &[tint]));
+        assert!(!blur_leaks(tint, &[]));
+    }
 
     #[test]
     fn only_a_bright_backdrop_raises_the_tint() {
