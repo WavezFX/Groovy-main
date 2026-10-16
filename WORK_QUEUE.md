@@ -24,7 +24,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 8b. Smooth and efficient: no lag anywhere (frame-time test in CI). **Added after the owner's test.**
 - [x] 8c. Fish Audio voice (owner's key and voice ID entered in Settings), Kokoro fallback. **Added after the owner's test.**
 - [x] 10. Real-world memory and CPU: tiny wake-word spotter, load or unload models on demand, idle CPU near 0, realistic CI test. **Added after the owner's Task Manager screenshot: do this next.**
-- [ ] 9. Checks
+- [x] 9. Checks
 
 ## 1C. Fixes round 3C: `FIXES_ROUND3C.md` (the owner's 0.6.0 test). **Do this next, after the item in progress.**
 - [ ] 1. Real frosted glass: translucent and blurred, clipped to the island's shape
