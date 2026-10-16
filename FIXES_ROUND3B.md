@@ -1,6 +1,6 @@
 # Fixes round 3B: the owner tested the round 3 build
 
-**Do these now, before continuing round 4.** If a round 4 item is half done, finish that commit first. Commit each item separately with "Fixes round 3B, item N: …" as the subject. These are round 3 items that don't work on the owner's PC yet (Windows 11 laptop).
+**Do these now, before continuing round 4. First make the failed smoke test in build #55 (round 3 item 9) pass.** If a round 4 item is half done, finish that commit first. Commit each item separately with "Fixes round 3B, item N: …" as the subject. These are round 3 items that don't work on the owner's PC yet (Windows 11 laptop).
 
 ## Item 1: The grey square behind the island (round 3 items 2 and 8)
 
@@ -68,7 +68,32 @@ The owner doesn't like picking the stage himself. Groovy should **always show th
 4. **Number formatting offline too:** convert spoken numbers to digits when they're next to letters or model-like words ("S fourteen", "RTX forty sixty", "iPhone fourteen pro" → "S14", "RTX 4060", "iPhone 14 Pro").
 5. **Accuracy test set:** at least 40 short recorded or synthesised (Kokoro) clips of product names, brands, model numbers, mixed accents and everyday sentences, with expected text. Report the word error rate per engine in CI, and fail if the default pipeline's proper-noun accuracy gets worse.
 
-## Item 7: Checks
+## Item 7: GitHub and the other integrations vanished from Settings
+
+Integrations like GitHub were showing in Settings, and now they've **all gone**. Several round 3 commits touched this area: item 4 (`1447426`, "any integration can be turned on, one tile list"), item 2 (tiles), items 6, 7 and 8 (settings) and item 9 (on-demand windows).
+
+- Find which commit dropped them. Common causes:
+  - a settings migration that rewrote the integrations list;
+  - a parse that throws away unknown or old entries;
+  - the tile list replacing the integrations list;
+  - the Settings window being created on demand before the list loads.
+- **Restore the user's data:** turned-on integrations, their tokens in the secret store, and their tile order. If the old values are still in the settings file or a backup, migrate them back; never silently drop them.
+- Every integration (GitHub, Vercel, Neon, Resend, mail, Spotify and the rest) must appear in Settings, ready to turn on. There's no slot limit.
+- **Test:** load a settings file from before round 3 (with GitHub and Vercel on) and from after it, then check that both show their integrations in Settings and on the island.
+
+## Item 8: Animate everything
+
+Nothing in Groovy should just pop in or out. **Every** open, close and change is animated, and it should feel like it grows **out of the island**.
+
+- **Quick settings, the detail card, the wardrobe and menus:** they unfold downward from the island, morphing from the island's shape (scale and clip-path from the island's edge, about 260–320 ms, spring or ease-out), and fold back into it on close.
+- **The full Settings window:** it opens out of the island (it starts small at the island's position and expands to its place, with a fade), and closes back into it. On Windows, animate the window's size and position together with a CSS reveal of its content, so it doesn't snap.
+- **Inside Settings:** pages slide and fade when switching sections, lists animate rows in and out, toggles and checkboxes animate, and choosing a look or item gives a small bounce.
+- **The island:** layout changes (F ↔ E, voice states, toasts, tiles appearing and disappearing) morph smoothly. This uses the same system as item 2.
+- **One shared motion module** (durations, easing, springs) so everything feels the same. Use GPU-friendly properties only (transform, opacity, clip-path), no layout thrash.
+- **Respect Windows "Animation effects"** (reduce motion): when it's off, use short fades instead.
+- **Battery and memory:** animations run only while something is changing, idle CPU stays near zero, and the 300 MB budget holds.
+
+## Item 9: Checks
 
 - The Rust and TS tests stay green on Windows CI.
 - The idle smoke test stays **under 300 MB**.
