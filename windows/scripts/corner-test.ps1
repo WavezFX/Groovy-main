@@ -34,6 +34,19 @@ public static class CornerWin {
   [DllImport("user32.dll")] public static extern bool SetSysColors(int n, int[] elements, int[] colors);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SystemParametersInfo(int action, int param, string value, int flags);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("gdi32.dll")] public static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+  [DllImport("user32.dll")] public static extern int GetWindowRgn(IntPtr hwnd, IntPtr rgn);
+  [DllImport("gdi32.dll")] public static extern int GetRgnBox(IntPtr rgn, out RECT r);
+  [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr o);
+  public static IntPtr Island = IntPtr.Zero;
+  /// The island window's region, as "kind l,t,r,b" (kind 0: none, 1: empty, 2: a rectangle, 3: complex).
+  public static string RegionOf(IntPtr hwnd) {
+    IntPtr rgn = CreateRectRgn(0, 0, 0, 0);
+    int kind = GetWindowRgn(hwnd, rgn);
+    RECT b; GetRgnBox(rgn, out b);
+    DeleteObject(rgn);
+    return kind + " " + b.Left + "," + b.Top + "," + b.Right + "," + b.Bottom;
+  }
   public static List<RECT> Windows(uint pid) {
     var found = new List<RECT>();
     EnumWindows((h, l) => {
@@ -41,7 +54,7 @@ public static class CornerWin {
       if (p != pid || !IsWindowVisible(h)) return true;
       var title = new StringBuilder(256); GetWindowText(h, title, 256);
       RECT r; GetWindowRect(h, out r);
-      if (title.ToString() == "Groovy" && r.Right - r.Left > 100 && r.Bottom - r.Top > 40) found.Add(r);
+      if (title.ToString() == "Groovy" && r.Right - r.Left > 100 && r.Bottom - r.Top > 40) { found.Add(r); Island = h; }
       return true;
     }, IntPtr.Zero);
     return found;
@@ -76,6 +89,7 @@ foreach ($view in $Views) {
     continue
   }
   $r = $rects[0]
+  Write-Host "  ${view}: window $($r.Left),$($r.Top) to $($r.Right),$($r.Bottom); region (kind box): $([CornerWin]::RegionOf([CornerWin]::Island))"
   $w = $r.Right - $r.Left
   $h = $r.Bottom - $r.Top
   $bmp = New-Object System.Drawing.Bitmap $w, $h
@@ -97,6 +111,8 @@ foreach ($view in $Views) {
   $bmp.Dispose()
 }
 Remove-Item Env:GROOVY_SMOKE_VIEW -ErrorAction SilentlyContinue
+$log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
+if (Test-Path $log) { Get-Content $log | Select-String "island style|glass|region" | ForEach-Object { Write-Host "  log: $_" } }
 Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 if ($env:GITHUB_STEP_SUMMARY) {

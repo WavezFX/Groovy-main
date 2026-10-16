@@ -152,6 +152,12 @@ fn reshape(win: &tauri::WebviewWindow) {
         shape.0 = centred_left(size.width as f64 / scale, shape.2);
     }
     os::set_region(win, region(shape, scale));
+    // Windows works out where the accent blur goes when it is set: set after
+    // a new region, or it keeps filling the old one (CI's corner test saw the
+    // tint in the corners, round 3B item 1).
+    if look() == Look::Blur {
+        os::set_accent(win, true);
+    }
 }
 
 /// Looks again every 30 seconds: transparency switched off, battery saver on.
