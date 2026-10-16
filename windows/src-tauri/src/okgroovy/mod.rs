@@ -616,6 +616,57 @@ pub fn run_tool(app: &AppHandle, name: &str, input: &Value) -> (String, bool) {
         "music" => music(app, input),
         "skills" => crate::skills::manage::voice_tool(app, input),
         "open_app" => open_app(input["name"].as_str().unwrap_or("")),
+        "pc" => {
+            use crate::pc::{Action, Change, Discord, WindowHow};
+            let text = |k: &str| input[k].as_str().unwrap_or("").trim().to_string();
+            let level = input["level"].as_u64().map(|n| n.min(100) as u8);
+            let change = match (input["change"].as_str(), level) {
+                (Some("up"), _) => Change::Up,
+                (Some("down"), _) => Change::Down,
+                (Some("mute"), _) => Change::Mute,
+                (Some("unmute"), _) => Change::Unmute,
+                (_, Some(n)) => Change::Set(n),
+                _ => Change::Up,
+            };
+            let app = (!text("app").is_empty()).then(|| text("app"));
+            let on = input["on"].as_bool().unwrap_or(true);
+            let action = match input["action"].as_str().unwrap_or("") {
+                "switch_to" => Action::SwitchTo(text("app")),
+                "close" => Action::Close(text("app")),
+                "minimise" => Action::Window { app, how: WindowHow::Minimise },
+                "maximise" => Action::Window { app, how: WindowHow::Maximise },
+                "snap_left" => Action::Window { app, how: WindowHow::SnapLeft },
+                "snap_right" => Action::Window { app, how: WindowHow::SnapRight },
+                "other_monitor" => Action::Window { app, how: WindowHow::OtherMonitor },
+                "volume" => match level {
+                    Some(n) => Action::Volume(n),
+                    None => return ("volume needs a level from 0 to 100".into(), false),
+                },
+                "app_volume" => Action::AppVolume { app: text("app"), change },
+                "output_device" => Action::OutputDevice,
+                "discord_open" => Action::Discord(Discord::Open),
+                "discord_mute" => Action::Discord(Discord::Mute),
+                "discord_deafen" => Action::Discord(Discord::Deafen),
+                "discord_link" => Action::Discord(Discord::Link(text("url"))),
+                "spotify_play" => Action::SpotifyPlay(text("text")),
+                "open_recent" => Action::OpenRecent((!text("text").is_empty()).then(|| text("text"))),
+                "dark_mode" => Action::Theme { dark: true },
+                "light_mode" => Action::Theme { dark: false },
+                "do_not_disturb" => Action::DoNotDisturb,
+                "night_light" => Action::NightLight,
+                "wifi" => Action::Radio { wifi: true, on },
+                "bluetooth" => Action::Radio { wifi: false, on },
+                "brightness" => Action::Brightness(change),
+                "set_clipboard" => Action::SetClipboard(text("text")),
+                "type" => Action::Type(text("text")),
+                "memory_use" => Action::MemoryUse,
+                other => return (format!("unknown pc action {other}"), false),
+            };
+            match crate::tools::handle(crate::tools::Call::Pc(action)) {
+                (answer, None) => (answer, true),
+                (question, Some(_)) => (format!("Needs the user's permission first: {question}"), false),
+            }
+        }
         "browser" => {
             use crate::browser::Action;
             use crate::tools::Call;

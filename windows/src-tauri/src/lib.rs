@@ -17,6 +17,7 @@ mod github;
 mod hooks;
 mod i18n;
 mod idle;
+mod pc;
 mod browser;
 mod calls;
 mod worktest;

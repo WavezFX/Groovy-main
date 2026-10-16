@@ -40,7 +40,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
 - [x] 3. Live voice chat, like ChatGPT Voice
 - [x] 4. DuckDuckGo browser
-- [ ] 5. More PC control, behind permissions
+- [x] 5. More PC control, behind permissions
 - [ ] 6. Replace every Coucou sound. **Round 3 item 7 already generates sounds in code:** check that no Coucou sound file or sound copied from Coucou is left, and finish whatever is missing.
 
 ## 3. Fixes round 5: `FIXES_ROUND5.md` (Groovy's own wardrobe)

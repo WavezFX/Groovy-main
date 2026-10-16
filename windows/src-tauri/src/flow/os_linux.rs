@@ -182,6 +182,10 @@ pub fn send_chord(_modifiers: &[u16], _key: u16) -> Result<(), String> {
     Err("not on this system".into())
 }
 
+pub fn send_text(_text: &str) -> Result<(), String> {
+    Err("not on this system".into())
+}
+
 pub fn send_keys(_keys: &[u16]) -> Result<(), String> {
     Err("not on this system".into())
 }

@@ -200,12 +200,13 @@ mod tests {
         assert_eq!(parse("Open notepad"), Some(Basic::Tool(Call::OpenApp("notepad".into()))));
         assert!(matches!(parse("open github.com"), Some(Basic::Tool(Call::OpenUrl(_)))));
         assert!(matches!(parse("remind me to call Sam in 10 minutes"), Some(Basic::Tool(Call::Remind { .. }))));
+        // Round 4 item 5: "play X" that isn't plain music is a Spotify search.
+        assert!(matches!(parse("play the latest Taylor Swift album"), Some(Basic::Tool(Call::Pc(crate::pc::Action::SpotifyPlay(_))))));
     }
 
     #[test]
     fn real_questions_still_go_to_the_ai() {
         for q in [
-            "play the latest Taylor Swift album",
             "what's the time in Tokyo",
             "stop",
             "continue",

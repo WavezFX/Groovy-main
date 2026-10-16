@@ -104,6 +104,9 @@ windows = { version = "0.61", features = [
   "UI_Notifications_Management",
   # The Spotify pill's volume: Spotify's session in the Windows mixer.
   "Win32_Media_Audio",
+  # Round 4 item 5: the master volume, and Wi-Fi/Bluetooth with the radios API.
+  "Win32_Media_Audio_Endpoints",
+  "Devices_Radios",
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
   "Win32_System_Variant",

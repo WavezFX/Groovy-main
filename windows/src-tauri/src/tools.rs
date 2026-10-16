@@ -66,6 +66,15 @@ pub const TOOLS: &[ToolDef] = &[
     ToolDef { id: "web_search", label: n_("Search the web"), description: n_("“Search for pizza near me” — in your browser, with your search engine."), default: Perm::Allow },
     ToolDef { id: "browser", label: n_("Control the browser"), description: n_("“New tab”, “go back”, “what page is this?” — in the browser in front."), default: Perm::Allow },
     ToolDef { id: "browser_click", label: n_("Press buttons on web pages"), description: n_("“Click Sign in” — a visible button or link, by its name."), default: Perm::Ask },
+    ToolDef { id: "windows", label: n_("Switch and arrange windows"), description: n_("“Switch to Outlook”, “minimise”, “snap this left”, “move it to the other screen”."), default: Perm::Allow },
+    ToolDef { id: "close_app", label: n_("Close apps"), description: n_("“Close Spotify” — always asks first: anything unsaved could be lost."), default: Perm::Ask },
+    ToolDef { id: "sound", label: n_("Volume and sound"), description: n_("“Set the volume to 30%”, “turn Discord down”, “mute Spotify”."), default: Perm::Allow },
+    ToolDef { id: "discord", label: n_("Discord"), description: n_("“Mute me on Discord”, “deafen me” — with Discord's own shortcuts — and discord:// links."), default: Perm::Allow },
+    ToolDef { id: "spotify_play", label: n_("Play on Spotify"), description: n_("“Play Daft Punk on Spotify” — found with Spotify's search."), default: Perm::Allow },
+    ToolDef { id: "recent_files", label: n_("Open recent files"), description: n_("“Open my last file”, “open recent budget”."), default: Perm::Allow },
+    ToolDef { id: "system_settings", label: n_("Windows settings"), description: n_("Dark or light mode, Wi-Fi, Bluetooth, brightness, Do not disturb, Night light."), default: Perm::Ask },
+    ToolDef { id: "set_clipboard", label: n_("Set the clipboard"), description: n_("“Copy this to the clipboard”."), default: Perm::Ask },
+    ToolDef { id: "type_text", label: n_("Type for you"), description: n_("“Type Dear Sam” — where the cursor is."), default: Perm::Ask },
     ToolDef { id: "open_app", label: n_("Open apps"), description: n_("“Open Notepad” — apps from the Start menu only."), default: Perm::Ask },
     ToolDef { id: "open_folder", label: n_("Open folders"), description: n_("“Open my downloads” — your own folders only."), default: Perm::Allow },
     ToolDef { id: "search_files", label: n_("Search your files"), description: n_("“Find files named invoice” — by name, in your own folders."), default: Perm::Ask },
@@ -79,10 +88,16 @@ pub fn def(id: &str) -> Option<&'static ToolDef> {
 }
 
 pub fn permission(conn: &Connection, id: &str) -> Perm {
-    crate::music::kv_get(conn, &format!("perm.{id}"))
+    let perm = crate::music::kv_get(conn, &format!("perm.{id}"))
         .and_then(|v| Perm::parse(&v))
         .or_else(|| def(id).map(|d| d.default))
-        .unwrap_or(Perm::Deny)
+        .unwrap_or(Perm::Deny);
+    // Closing an app always asks (round 4 item 5): its unsaved work is at stake.
+    if id == "close_app" && perm == Perm::Allow {
+        Perm::Ask
+    } else {
+        perm
+    }
 }
 
 pub fn set_permission(conn: &Connection, id: &str, perm: Perm) -> Result<(), String> {
@@ -108,6 +123,7 @@ pub enum Call {
     OpenUrl(String),
     WebSearch(String),
     Browser(crate::browser::Action),
+    Pc(crate::pc::Action),
     OpenApp(String),
     OpenFolder(KnownFolder),
     SearchFiles(String),
@@ -143,6 +159,7 @@ impl Call {
             Call::WebSearch(_) => "web_search",
             Call::Browser(crate::browser::Action::Press(_)) => "browser_click",
             Call::Browser(_) => "browser",
+            Call::Pc(a) => a.tool(),
             Call::OpenApp(_) => "open_app",
             Call::OpenFolder(_) => "open_folder",
             Call::SearchFiles(_) => "search_files",
@@ -157,6 +174,7 @@ impl Call {
             Call::OpenUrl(u) => json!({ "url": u }),
             Call::WebSearch(q) => json!({ "query": q }),
             Call::Browser(a) => json!({ "action": format!("{a:?}") }),
+            Call::Pc(a) => json!({ "action": format!("{a:?}") }),
             Call::OpenApp(a) => json!({ "app": a }),
             Call::OpenFolder(f) => json!({ "folder": f }),
             Call::SearchFiles(q) => json!({ "query": q }),
@@ -173,6 +191,7 @@ impl Call {
             Call::WebSearch(q) => tf("Search the web for “{query}”?", &[("query", q)]),
             Call::Browser(crate::browser::Action::Press(name)) => tf("Press “{name}” on the page in front?", &[("name", name)]),
             Call::Browser(_) => t("Use the browser in front?"),
+            Call::Pc(a) => a.describe(),
             Call::OpenApp(a) => tf("Open {app}?", &[("app", a)]),
             Call::OpenFolder(f) => tf("Open your {folder} folder?", &[("folder", &format!("{f:?}"))]),
             Call::SearchFiles(q) => tf("Search your folders for files named “{query}”?", &[("query", q)]),
@@ -405,6 +424,11 @@ pub fn parse(text: &str) -> Option<Call> {
             other => other,
         }));
     }
+    // The PC: windows, sound, Discord, Spotify, recent files, Windows settings,
+    // the clipboard and typing (round 4 item 5).
+    if let Some(action) = crate::pc::parse(t, &cased) {
+        return Some(Call::Pc(action));
+    }
     // Open: a website, a folder or an app.
     let what = t.strip_prefix("open ").or_else(|| t.strip_prefix("launch ")).or_else(|| t.strip_prefix("start ")).or_else(|| t.strip_prefix("go to "))?;
     let what = what.trim();
@@ -517,6 +541,7 @@ fn run(call: &Call) -> String {
         Call::OpenUrl(url) => crate::browser::open(url).map(|browser| tf("Opened {url} in {browser}.", &[("url", url), ("browser", &browser)])),
         Call::WebSearch(q) => crate::browser::search(q),
         Call::Browser(action) => crate::browser::act(action),
+        Call::Pc(action) => crate::pc::run(action),
         Call::OpenFolder(f) => match folder_path(*f) {
             Some(p) if p.is_dir() => {
                 crate::platform::reveal_folder(&p.to_string_lossy());
