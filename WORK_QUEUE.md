@@ -21,6 +21,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 6. Dictation: names and model numbers
 - [x] 7. GitHub and the other integrations vanished from Settings
 - [x] 8. Animate everything
+- [ ] 8b. Smooth and efficient: no lag anywhere (frame-time test in CI). **Added after the owner's test.**
+- [ ] 8c. Fish Audio voice (owner's key and voice ID entered in Settings), Kokoro fallback. **Added after the owner's test.**
 - [ ] 9. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`

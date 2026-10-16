@@ -103,6 +103,36 @@ Nothing in Groovy should just pop in or out. **Every** open, close and change is
 - **Respect Windows "Animation effects"** (reduce motion): when it's off, use short fades instead.
 - **Battery and memory:** animations run only while something is changing, idle CPU stays near zero, and the 300 MB budget holds.
 
+## Item 8b: Smooth and efficient: no lag anywhere
+
+The owner says Groovy feels **laggy**: the island, its animations and the rest of the UI aren't smooth. Low memory must not mean low frame rate. Everything has to be **smooth and efficient at the same time**.
+
+- **Measure first, in CI.** Add a frame-timing test: drive the island through F → E → detail card → quick settings → wardrobe and back, record frame times with `requestAnimationFrame` deltas and the WebView2 performance APIs, and **fail** if more than 5% of frames take over 20 ms, or any frame takes over 50 ms. Upload the trace. Print CPU % while idle and while animating.
+- **Native window work off the animation path.** Never resize or move the native window per frame. Size the island window once to the largest state it needs (it's transparent and clipped by the rounded region), animate only in CSS and canvas, and update `SetWindowRgn` at most once per frame, from one place, batched.
+- **Compositor-only animation:** transform, opacity and clip-path, with `will-change` set only while animating. No animating of width, height, top, left or box-shadow. No `backdrop-filter` (the OS blur already does that).
+- **The character canvas:**
+  - render on `requestAnimationFrame` only while something moves;
+  - cache static layers (body, outfit) in an `OffscreenCanvas` or bitmap, and redraw only what changes (eyes, plant, flame, water);
+  - match the monitor's refresh rate and keep a steady frame rate, rather than bursts and pauses.
+- **The main thread stays free.** Move settings saves, file I/O, JSON parsing of big payloads, and Spotify/GSMTC polling off the animation's frame. Use Rust and events instead of JS timers. No synchronous `invoke` inside animation frames.
+- **WebView2:** keep GPU acceleration on. If `MemoryUsageTargetLevel` Low causes stutter while visible, set Low only while hidden or idle, and Normal while the island is open or animating. Remove any leftover polling timers (list them in `STATUS.md`).
+- **Targets:** 60 fps (or the display's rate) for all island and Settings animations on the owner's laptop, under 1% CPU while idle, and the 300 MB idle budget still holds.
+
+## Item 8c: Fish Audio voice for Groovy
+
+The owner doesn't like the current voice. Add **Fish Audio** as a speech (TTS) provider, the first choice whenever it's set up, with Kokoro (offline) as the fallback. This uses the same Auto order and limit-based switching as the brains.
+
+- **Settings → Voice → Fish Audio:**
+  - an API key, stored in Windows Credential Manager. **Never** put it in settings files, logs or the repo.
+  - a **Voice ID** (Fish Audio's `reference_id`, the model ID of the voice from its page on fish.audio), plus a "Test voice" button;
+  - a **Model** choice (default `s2-pro`). If Fish Audio offers a free API model at the time (it ran `s2.1-pro-free` until 31 Aug 2026), list it as an option and fall back automatically if it's refused.
+- **Low latency:** stream the audio as it's generated (use Fish Audio's streaming or WebSocket API if available; otherwise send it sentence by sentence through the existing `voice/sentences.ts` pipeline), so the first words play quickly. This also serves round 4 item 3 (live voice chat).
+- **Barge-in still works:** stop the playback immediately when the user speaks.
+- **Errors and limits** (no credit, rate limit, offline) switch to Kokoro for that reply, with a small note in quick settings' voice status. Nothing is ever silent.
+- **Cost display:** Fish Audio's API is billed by text length. Show a rough "about £x this month" in Voice settings, from the characters sent.
+- **Licence:** the user brings their own key, so Fish Audio's own terms apply to them. Don't bundle Fish Audio's model weights or copy any of its code.
+- **Test:** a mocked Fish Audio API checks streaming, the fallback to Kokoro, and that the key never appears in logs or settings.
+
 ## Item 9: Checks
 
 - The Rust and TS tests stay green on Windows CI.
