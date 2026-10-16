@@ -703,10 +703,12 @@ pub fn live_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: O
     let flow = flow.inner().clone();
     match action.as_str() {
         "dictate" => {
-            if flow.running.lock().unwrap().is_none() {
-                // Dictation off: turn it on in the Hub first.
-                crate::show_hub(&app, Some("dictation"));
-                return;
+            // The island's Dictate button works with the hotkey off too: the
+            // dictation worker starts for this session (the setting is unchanged).
+            let off = flow.running.lock().unwrap().is_none();
+            if off {
+                crate::log::line("flow: started from the island's Dictate button");
+                enable(&app, &flow);
             }
             flow.send(KeyEvent::HandsFree);
         }

@@ -44,6 +44,8 @@ export class IslandStateMachine {
    * (typing in a text field, dictating), then it asks again.
    */
   holdOpen: (() => boolean) | null = null;
+  /** Asked before the compact island hides: true keeps it on screen (Groovy is listening). */
+  stayVisible: (() => boolean) | null = null;
   /**
    * Hovering opens the island all the way instead of peeking (Settings →
    * General → Open on hover, off by default), as IslandStateMachine.openOnHover.
@@ -178,7 +180,12 @@ export class IslandStateMachine {
     if (this.pinned || this.keepVisible) return;
     this.petitHide = window.setTimeout(() => {
       this.petitHide = null;
-      if (this.state === "petit" && !this.pinned) this.transition("hidden");
+      if (this.state !== "petit" || this.pinned) return;
+      if (this.stayVisible?.()) {
+        this.schedulePetitHide();
+        return;
+      }
+      this.transition("hidden");
     }, this.petitToHiddenDelay * 1000);
   }
 

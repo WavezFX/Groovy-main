@@ -63,6 +63,10 @@ export const NOTCH_H = 32;
 export const COMPACT_W = 288; // NOTCH_W + 104
 export const EXPANDED_W = 640;
 
+/** The live strip (round 3 item 3): the island shrunk to Groovy, the voice, the clock and Stop. */
+export const LIVE_STRIP_W = 300;
+export const LIVE_STRIP_H = 40;
+
 export const ROUNDED_CORNER = 14; // hidden / compact
 export const EXPANDED_CORNER = 22;
 

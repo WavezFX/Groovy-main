@@ -3295,3 +3295,172 @@ body.glass .home-cell {
 body.glass .home-cell.music {
   background: rgba(29, 185, 84, 0.22);
 }
+
+/* ── While Groovy listens (round 3 item 3, mockup Voice.dc.html) ────────────── */
+#live {
+  position: absolute;
+  z-index: 5;
+  --tone: #46eb78;
+  --tone-bg: #1e3a27;
+  --tone-ink: #07210f;
+}
+#live[hidden] {
+  display: none;
+}
+#live.red {
+  --tone: #ff6b5e;
+  --tone-bg: #3a1e1e;
+  --tone-ink: #2a0b08;
+}
+#live.badge {
+  top: 13px;
+  right: 104px;
+}
+#live.badge.in-compact {
+  top: 4px;
+  right: 8px;
+}
+#live .live-strip,
+#live.badge .live-strip,
+#live.strip .live-badge {
+  display: none;
+}
+#live.strip {
+  inset: 0;
+}
+#live.strip .live-strip {
+  display: flex;
+}
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 3px 0 9px;
+  border-radius: 12px;
+  background: var(--tone-bg);
+  border: 1px solid var(--tone);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tone);
+}
+.live-text {
+  font-variant-numeric: tabular-nums;
+}
+.live-wave,
+.live-back,
+.live-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.live-wave {
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--tone);
+  color: var(--tone-ink);
+}
+.live-wave svg,
+.live-back svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.live-strip {
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px 0 44px;
+}
+.live-bars {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  flex: 1 1 auto;
+  height: 22px;
+}
+.live-bars i {
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--tone);
+  transform: scaleY(0.2);
+  will-change: transform;
+}
+.live-clock {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.live-back {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: #18211c;
+  border: 1px solid #2c3a31;
+  color: #e8f2ec;
+}
+.live-stop {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--tone);
+}
+.live-stop i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--tone-ink);
+}
+.live-rec {
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.live-rec::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 4px;
+  background: var(--tone);
+}
+.live-notes {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  border: 0;
+  background: var(--tone);
+  color: var(--tone-ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#live.strip .live-strip > [hidden] {
+  display: none;
+}
+#live.strip.recording .live-clock {
+  display: none;
+}
+#live.strip.recording .live-strip {
+  padding-left: 14px;
+}
+body.live-on .plan-pills {
+  display: none;
+}

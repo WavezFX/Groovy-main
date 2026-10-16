@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { Notices, liveBusy, noticeIcon, systemVoice } from "../src/island/live.ts";
+import { LiveClock, Notices, liveBusy, liveClock, liveView, noticeIcon, systemVoice } from "../src/island/live.ts";
 
 const idle = { phase: "idle", key: "right_ctrl", noteStartedAt: null, enabled: true, voice: null };
 
@@ -47,4 +47,32 @@ test("there is no second window at the bottom of the screen any more", () => {
   const caps = JSON.parse(readFileSync(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"));
   assert.ok(!caps.windows.includes("pill"));
   assert.ok(!readFileSync(new URL("../vite.config.ts", import.meta.url), "utf8").includes("pill.html"));
+});
+
+test("the badge shows the most important listener first", () => {
+  assert.equal(liveView(idle, false), null);
+  const rec = liveView({ ...idle, noteStartedAt: 1, phase: "listening" }, true);
+  assert.deepEqual([rec.kind, rec.tone, rec.stop], ["recording", "red", "stopNote"]);
+  const dict = liveView({ ...idle, phase: "locked" }, true);
+  assert.deepEqual([dict.kind, dict.tone, dict.label, dict.stop], ["dictating", "green", "Dictating {0}", "finish"]);
+  assert.equal(liveView({ ...idle, phase: "thinking" }, false).stop, null);
+  assert.equal(liveView(idle, true).stop, "endCall");
+  assert.equal(liveView({ ...idle, voice: { phase: "speaking", heard: "", answer: "" } }, false).label, "Speaking…");
+  assert.equal(liveView({ ...idle, phase: "pastedAgain" }, false).kind, "message");
+  assert.equal(liveView({ ...idle, phase: "failed" }, false).tone, "red");
+});
+
+test("the clock counts from when it began, the recording's from Rust's start", () => {
+  assert.equal(liveClock(4_000), "0:04");
+  assert.equal(liveClock(760_000), "12:40");
+  assert.equal(liveClock(3_725_000), "1:02:05");
+  const clocks = new LiveClock();
+  const dict = { ...idle, phase: "listening" };
+  const view = liveView(dict, false);
+  assert.equal(clocks.start(view, dict, 1000), 1000);
+  assert.equal(clocks.start(view, dict, 5000), 1000, "the same dictation keeps its start");
+  assert.equal(clocks.start(null, idle, 6000), null);
+  assert.equal(clocks.start(view, dict, 7000), 7000, "a new one starts again");
+  const rec = { ...idle, noteStartedAt: 42 };
+  assert.equal(clocks.start(liveView(rec, false), rec, 9000), 42);
 });

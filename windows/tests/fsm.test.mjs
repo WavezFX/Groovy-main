@@ -439,3 +439,14 @@ test("a pinned island doesn't fold on leave", () => {
   seconds(5);
   assert.equal(fsm.state, "home");
 });
+
+test("the compact island stays on screen while Groovy listens", () => {
+  let listening = true;
+  fsm.stayVisible = () => listening;
+  fsm.reveal();
+  seconds(fsm.petitToHiddenDelay + 1);
+  assert.equal(fsm.state, "petit", "kept while listening");
+  listening = false;
+  seconds(fsm.petitToHiddenDelay + 1);
+  assert.equal(fsm.state, "hidden");
+});

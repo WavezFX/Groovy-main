@@ -253,6 +253,8 @@ export interface Settings {
   closeOnLeaveOffered: boolean;
   /** Control Centre → Appearance → Island style: "glass" (default) or "solid". */
   islandStyle: "glass" | "solid";
+  /** Settings → Voice → While listening, show: "badge" (default) or "strip". */
+  listeningView: "badge" | "strip";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -302,6 +304,7 @@ export const DEFAULT_SETTINGS: Settings = {
   islandTiles: {},
   closeOnLeaveOffered: false,
   islandStyle: "glass",
+  listeningView: "badge",
 };
 
 type Listener = () => void;

@@ -13513,6 +13513,149 @@
    "pt-BR": "Início",
    "ru": "Главная",
    "id": "Beranda"
+  },
+  "Recording {0}": {
+   "zh-Hans": "录音中 {0}",
+   "hi": "रिकॉर्डिंग {0}",
+   "es": "Grabando {0}",
+   "ar": "تسجيل {0}",
+   "fr": "Enregistrement {0}",
+   "bn": "রেকর্ড হচ্ছে {0}",
+   "pt-BR": "Gravando {0}",
+   "ru": "Запись {0}",
+   "id": "Merekam {0}"
+  },
+  "Dictating {0}": {
+   "zh-Hans": "听写中 {0}",
+   "hi": "डिक्टेशन {0}",
+   "es": "Dictando {0}",
+   "ar": "إملاء {0}",
+   "fr": "Dictée {0}",
+   "bn": "ডিক্টেশন {0}",
+   "pt-BR": "Ditando {0}",
+   "ru": "Диктовка {0}",
+   "id": "Mendikte {0}"
+  },
+  "Talking with Groovy {0}": {
+   "zh-Hans": "与 Groovy 通话 {0}",
+   "hi": "Groovy से बात {0}",
+   "es": "Hablando con Groovy {0}",
+   "ar": "تتحدث مع Groovy {0}",
+   "fr": "En conversation avec Groovy {0}",
+   "bn": "Groovy-র সাথে কথা {0}",
+   "pt-BR": "Falando com o Groovy {0}",
+   "ru": "Разговор с Groovy {0}",
+   "id": "Bicara dengan Groovy {0}"
+  },
+  "Copied · press Ctrl+V": {
+   "zh-Hans": "已复制 · 按 Ctrl+V",
+   "hi": "कॉपी हुआ · Ctrl+V दबाएँ",
+   "es": "Copiado · pulsa Ctrl+V",
+   "ar": "تم النسخ · اضغط Ctrl+V",
+   "fr": "Copié · appuyez sur Ctrl+V",
+   "bn": "কপি হয়েছে · Ctrl+V চাপুন",
+   "pt-BR": "Copiado · pressione Ctrl+V",
+   "ru": "Скопировано · нажмите Ctrl+V",
+   "id": "Disalin · tekan Ctrl+V"
+  },
+  "Pasted again": {
+   "zh-Hans": "已再次粘贴",
+   "hi": "फिर से पेस्ट किया",
+   "es": "Pegado otra vez",
+   "ar": "أُلصق مرة أخرى",
+   "fr": "Collé à nouveau",
+   "bn": "আবার পেস্ট করা হয়েছে",
+   "pt-BR": "Colado de novo",
+   "ru": "Вставлено снова",
+   "id": "Ditempel lagi"
+  },
+  "Badge": {
+   "zh-Hans": "徽标",
+   "hi": "बैज",
+   "es": "Insignia",
+   "ar": "شارة",
+   "fr": "Badge",
+   "bn": "ব্যাজ",
+   "pt-BR": "Selo",
+   "ru": "Значок",
+   "id": "Lencana"
+  },
+  "Live strip": {
+   "zh-Hans": "实时条",
+   "hi": "लाइव पट्टी",
+   "es": "Barra en vivo",
+   "ar": "شريط مباشر",
+   "fr": "Bandeau en direct",
+   "bn": "লাইভ স্ট্রিপ",
+   "pt-BR": "Faixa ao vivo",
+   "ru": "Живая полоса",
+   "id": "Strip langsung"
+  },
+  "While listening, show": {
+   "zh-Hans": "聆听时显示",
+   "hi": "सुनते समय दिखाएँ",
+   "es": "Mientras escucha, mostrar",
+   "ar": "أثناء الاستماع، اعرض",
+   "fr": "Pendant l'écoute, afficher",
+   "bn": "শোনার সময় দেখান",
+   "pt-BR": "Enquanto ouve, mostrar",
+   "ru": "Во время прослушивания показывать",
+   "id": "Saat mendengarkan, tampilkan"
+  },
+  "Badge keeps the island as it is with a small timer; Live strip shrinks it to Groovy, your voice and Stop.": {
+   "zh-Hans": "徽标会保持灵动岛原样并显示一个小计时器；实时条会把它缩成 Groovy、你的声音和停止按钮。",
+   "hi": "बैज आइलैंड को वैसा ही रखता है और एक छोटा टाइमर दिखाता है; लाइव पट्टी उसे Groovy, आपकी आवाज़ और रोकें बटन तक छोटा कर देती है।",
+   "es": "Insignia deja la isla como está con un pequeño contador; Barra en vivo la reduce a Groovy, tu voz y Detener.",
+   "ar": "تُبقي الشارة الجزيرة كما هي مع مؤقت صغير؛ ويصغّرها الشريط المباشر إلى Groovy وصوتك وزر الإيقاف.",
+   "fr": "Le badge garde l'île telle quelle avec un petit minuteur ; le bandeau en direct la réduit à Groovy, votre voix et Arrêter.",
+   "bn": "ব্যাজ আইল্যান্ডকে যেমন আছে তেমন রাখে, সাথে একটি ছোট টাইমার; লাইভ স্ট্রিপ এটিকে Groovy, আপনার কণ্ঠ আর থামান বোতামে ছোট করে।",
+   "pt-BR": "Selo mantém a ilha como está com um pequeno cronômetro; Faixa ao vivo a reduz ao Groovy, sua voz e Parar.",
+   "ru": "Значок оставляет остров как есть с небольшим таймером; живая полоса сжимает его до Groovy, вашего голоса и кнопки «Стоп».",
+   "id": "Lencana membiarkan pulau seperti biasa dengan pengatur waktu kecil; Strip langsung mengecilkannya menjadi Groovy, suaramu, dan Berhenti."
+  },
+  "Show as live strip": {
+   "zh-Hans": "显示为实时条",
+   "hi": "लाइव पट्टी के रूप में दिखाएँ",
+   "es": "Mostrar como barra en vivo",
+   "ar": "اعرض كشريط مباشر",
+   "fr": "Afficher en bandeau en direct",
+   "bn": "লাইভ স্ট্রিপ হিসেবে দেখান",
+   "pt-BR": "Mostrar como faixa ao vivo",
+   "ru": "Показать живой полосой",
+   "id": "Tampilkan sebagai strip langsung"
+  },
+  "Back to the island": {
+   "zh-Hans": "回到灵动岛",
+   "hi": "आइलैंड पर वापस",
+   "es": "Volver a la isla",
+   "ar": "العودة إلى الجزيرة",
+   "fr": "Revenir à l'île",
+   "bn": "আইল্যান্ডে ফিরুন",
+   "pt-BR": "Voltar à ilha",
+   "ru": "Назад к острову",
+   "id": "Kembali ke pulau"
+  },
+  "Stop & write notes": {
+   "zh-Hans": "停止并写笔记",
+   "hi": "रोकें और नोट्स लिखें",
+   "es": "Detener y escribir notas",
+   "ar": "إيقاف وكتابة الملاحظات",
+   "fr": "Arrêter et rédiger les notes",
+   "bn": "থামান ও নোট লিখুন",
+   "pt-BR": "Parar e escrever notas",
+   "ru": "Стоп и записать заметки",
+   "id": "Berhenti & tulis catatan"
+  },
+  "Recording call · {0}": {
+   "zh-Hans": "正在录制通话 · {0}",
+   "hi": "कॉल रिकॉर्ड हो रही है · {0}",
+   "es": "Grabando llamada · {0}",
+   "ar": "تسجيل المكالمة · {0}",
+   "fr": "Enregistrement de l'appel · {0}",
+   "bn": "কল রেকর্ড হচ্ছে · {0}",
+   "pt-BR": "Gravando chamada · {0}",
+   "ru": "Запись звонка · {0}",
+   "id": "Merekam panggilan · {0}"
   }
  }
 }

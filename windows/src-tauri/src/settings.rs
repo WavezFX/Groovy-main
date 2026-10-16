@@ -148,6 +148,8 @@ pub struct Settings {
     /// Control Centre → Appearance → Island style: "glass" (Windows' own
     /// Acrylic, the default) or "solid" (the black island).
     pub island_style: String,
+    /// Settings → Voice → While listening, show: "badge" (default) or "strip".
+    pub listening_view: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -236,6 +238,7 @@ impl Default for Settings {
             island_tiles: Value::Object(Map::new()),
             close_on_leave_offered: false,
             island_style: "glass".into(),
+            listening_view: "badge".into(),
         }
     }
 }
@@ -572,7 +575,8 @@ mod tests {
   },
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
   "closeOnLeaveOffered": true,
-  "islandStyle": "solid"
+  "islandStyle": "solid",
+  "listeningView": "strip"
 }"##;
 
     fn custom() -> Value {
@@ -1122,6 +1126,7 @@ mod tests {
                 "islandTiles",
                 "closeOnLeaveOffered",
                 "islandStyle",
+                "listeningView",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

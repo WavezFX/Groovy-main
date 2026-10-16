@@ -8,6 +8,7 @@
 import { onEvent, IS_TAURI } from "../core/bridge";
 import { FlowBridge, type LiveState, type Notice } from "../core/flow";
 import { State } from "../core/state";
+import { N_ } from "../i18n/i18n";
 
 export const BANDS = 9;
 
@@ -149,4 +150,68 @@ export async function registerLiveHandlers(host: LiveHost) {
     host.showNotice();
   });
   void onEvent<Say>("voice-say", (s) => void say(s));
+}
+
+// ── The badge and the live strip (round 3 item 3, mockup Voice.dc.html) ──────
+
+export type LiveKind = "recording" | "dictating" | "call" | "voice" | "message";
+
+export interface LiveView {
+  kind: LiveKind;
+  /** Green while Groovy listens, red while a call is recorded. */
+  tone: "green" | "red";
+  /** English key, shown with t(); {0} is the clock when `timed`. */
+  label: string;
+  timed: boolean;
+  /** What Stop does: a live_action, or the island call's toggle; null: no Stop. */
+  stop: "finish" | "stopNote" | "endCall" | null;
+}
+
+/**
+ * What the badge shows, the most important first: a call being recorded,
+ * dictation, a voice call with Groovy, « OK Groovy », a short message.
+ * Null: nothing is listening, no badge.
+ */
+export function liveView(s: LiveState, voiceCall: boolean): LiveView | null {
+  if (s.noteStartedAt !== null) return { kind: "recording", tone: "red", label: N_("Recording {0}"), timed: true, stop: "stopNote" };
+  if (s.phase === "listening" || s.phase === "locked") return { kind: "dictating", tone: "green", label: N_("Dictating {0}"), timed: true, stop: "finish" };
+  if (s.phase === "thinking") return { kind: "dictating", tone: "green", label: N_("Writing it down…"), timed: false, stop: null };
+  if (voiceCall) return { kind: "call", tone: "green", label: N_("Talking with Groovy {0}"), timed: true, stop: "endCall" };
+  if (s.voice) {
+    const label = s.voice.phase === "thinking" ? N_("Thinking…") : s.voice.phase === "speaking" ? N_("Speaking…") : N_("Listening…");
+    return { kind: "voice", tone: "green", label, timed: false, stop: null };
+  }
+  switch (s.phase) {
+    case "copied":
+      return { kind: "message", tone: "green", label: N_("Copied · press Ctrl+V"), timed: false, stop: null };
+    case "pastedAgain":
+      return { kind: "message", tone: "green", label: N_("Pasted again"), timed: false, stop: null };
+    case "failed":
+      return { kind: "message", tone: "red", label: N_("Microphone unavailable"), timed: false, stop: null };
+    default:
+      return null;
+  }
+}
+
+/** m:ss, or h:mm:ss past an hour. */
+export function liveClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+/** When each kind started, as the island saw it (Rust sends the recording's own start). */
+export class LiveClock {
+  private started = new Map<LiveKind, number>();
+
+  /** The start time for `view` at `now`, remembered while it lasts. */
+  start(view: LiveView | null, s: LiveState, now: number): number | null {
+    for (const k of [...this.started.keys()]) if (k !== view?.kind) this.started.delete(k);
+    if (!view || !view.timed) return null;
+    if (view.kind === "recording" && s.noteStartedAt !== null) return s.noteStartedAt;
+    if (!this.started.has(view.kind)) this.started.set(view.kind, now);
+    return this.started.get(view.kind)!;
+  }
 }

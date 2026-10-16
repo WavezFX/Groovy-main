@@ -5,7 +5,7 @@ import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
 import {
-  EXPANDED_CORNER, EXPANDED_W, NOTCH_W, PANEL_H, PANEL_W,
+  EXPANDED_CORNER, EXPANDED_W, LIVE_STRIP_H, LIVE_STRIP_W, NOTCH_W, PANEL_H, PANEL_W,
   ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
   islandSize,
   QUESTION_PICKER_H,
@@ -21,7 +21,8 @@ import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
 import { combine, currentWardrobe } from "../mochi/appearance";
 import { VoiceHost } from "./voice";
-import { Notices } from "./live";
+import { Notices, liveBusy } from "./live";
+import { buildLiveBar } from "../views/livebar";
 import { BreakControl, Breaks, BREAKS, ReminderControl, snoozeReminder } from "./breaks";
 import { speak } from "../voice/speak";
 import { t } from "../i18n/i18n";
@@ -154,6 +155,7 @@ export class Island {
       this.dirty = true;
       this.ensureRunning();
       this.voice.sync();
+      this.syncLive();
     });
     this.voice.sync();
     BreakControl.done = () => {
@@ -205,6 +207,49 @@ export class Island {
   }
 
   private noticeTimer: number | null = null;
+
+  /** The badge and the live strip while Groovy listens (views/livebar.ts). */
+  private liveBar = buildLiveBar({ setStrip: (on) => this.setLiveStrip(on) });
+  /** The strip instead of the badge, for what is listening now. */
+  private liveStrip = false;
+  private liveShown: string | null = null;
+
+  /** The strip shows (compact island) rather than the badge. */
+  private stripActive(): boolean {
+    return this.liveStrip && this.liveShown !== null && State.mode === "compact";
+  }
+
+  setLiveStrip(on: boolean) {
+    this.liveStrip = on;
+    Sound.play("blip");
+    if (on) {
+      if (State.mode === "expanded") this.collapse();
+      else if (State.mode === "hidden") this.fsm.reveal();
+    } else {
+      this.alert(State.defaultView());
+    }
+    this.syncLive();
+    this.animateGeometry(on);
+  }
+
+  /** Something started or stopped listening: badge, strip, and staying on screen. */
+  private syncLive() {
+    const view = this.liveBar.sync(this.liveStrip);
+    const kind = view && view.kind !== "message" ? view.kind : null;
+    if (kind !== this.liveShown) {
+      const started = kind !== null && this.liveShown === null;
+      this.liveShown = view ? view.kind : null;
+      // Settings → Voice → While listening, show: the badge (default) or the strip.
+      if (started) this.liveStrip = State.settings.listeningView === "strip";
+      if (!view) this.liveStrip = false;
+      if (started && this.fsm.state === "hidden") this.fsm.reveal();
+      this.animateGeometry(!this.stripActive());
+    } else if (view) {
+      this.liveShown = view.kind;
+    }
+    document.body.classList.toggle("live-on", view !== null);
+    this.liveBar.el.classList.toggle("in-compact", State.mode === "compact");
+  }
 
   /**
    * A message from Groovy (flow/live.rs, what the bottom pill used to say):
@@ -407,6 +452,7 @@ export class Island {
       this.botCanvas,
       this.miniGrid,
       this.countdown,
+      this.liveBar.el,
     );
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -429,6 +475,8 @@ export class Island {
       const typing = !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable);
       return typing || State.dictating;
     };
+    // While Groovy listens, the compact island (with its badge or strip) stays.
+    this.fsm.stayVisible = () => liveBusy() || State.voiceCall;
     this.fsm.openOnHover = State.settings.openOnHover;
     this.fsm.keepVisible = State.settings.keepVisible !== false;
     if (this.fsm.keepVisible && this.fsm.state === "hidden" && this.greetingShown) this.fsm.reveal();
@@ -770,6 +818,8 @@ export class Island {
     if (State.mode === "expanded" && State.view === "question" && State.pendingApproval?.questions) {
       h = QUESTION_PICKER_H;
     }
+    // A recorded call's strip holds "Stop & write notes": a little wider.
+    if (this.stripActive()) return { w: this.liveShown === "recording" ? LIVE_STRIP_W + 64 : LIVE_STRIP_W, h: LIVE_STRIP_H, r: LIVE_STRIP_H / 2 };
     const r = State.mode === "expanded" ? EXPANDED_CORNER : ROUNDED_CORNER;
     return { w, h, r };
   }
@@ -1195,7 +1245,9 @@ export class Island {
   };
 
   private updateBotTargets() {
-    const p = botPosition(State.mode, State.view, this.height.value, State.uploadProgress);
+    const p = this.stripActive()
+      ? { cx: 24, cy: LIVE_STRIP_H / 2, diameter: 22, opacity: this.liveShown === "recording" ? 0 : 1 }
+      : botPosition(State.mode, State.view, this.height.value, State.uploadProgress);
     this.botCx.target = p.cx;
     this.botCy.target = p.cy;
     this.botSize.target = p.diameter / 0.6;
@@ -1381,7 +1433,8 @@ export class Island {
     }
 
     // Compact mini grid
-    const showGrid = State.mode === "compact";
+    // The badge takes the grid's place on the compact island.
+    const showGrid = State.mode === "compact" && this.liveShown === null;
     this.miniGrid.style.opacity = showGrid ? "1" : "0";
     if (showGrid) {
       const others = State.otherTasks.slice(0, 4);

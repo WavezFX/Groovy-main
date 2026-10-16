@@ -297,6 +297,19 @@ export function voiceSection(
   }
   void refresh();
 
+  // Round 3: what the island shows while Groovy listens (dictation, a call, a recording).
+  const listening = h("select", {}) as HTMLSelectElement;
+  for (const [value, label] of [["badge", t("Badge")], ["strip", t("Live strip")]] as const) {
+    listening.append(h("option", { value, text: label }));
+  }
+  listening.value = settings.listeningView === "strip" ? "strip" : "badge";
+  listening.addEventListener("change", () => {
+    settings.listeningView = listening.value === "strip" ? "strip" : "badge";
+    save();
+  });
+  const listeningRow = h("div", { class: "row" }, h("label", { text: t("While listening, show") }), listening);
+  const listeningHint = h("div", { class: "hint", text: t("Badge keeps the island as it is with a small timer; Live strip shrinks it to Groovy, your voice and Stop.") });
+
   return h(
     "section",
     {},
@@ -317,6 +330,8 @@ export function voiceSection(
     languageHint,
     modelHint,
     livekitRows,
+    listeningRow,
+    listeningHint,
     h("div", { class: "subhead", text: t("Check") }),
     voiceTestBlock(settings),
     feedback,
