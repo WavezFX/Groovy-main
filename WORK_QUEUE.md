@@ -26,6 +26,15 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 10. Real-world memory and CPU: tiny wake-word spotter, load or unload models on demand, idle CPU near 0, realistic CI test. **Added after the owner's Task Manager screenshot: do this next.**
 - [ ] 9. Checks
 
+## 1C. Fixes round 3C: `FIXES_ROUND3C.md` (the owner's 0.6.0 test). **Do this next, after the item in progress.**
+- [ ] 1. Real frosted glass: translucent and blurred, clipped to the island's shape
+- [ ] 2. Hover opens the island; leaving closes it
+- [ ] 3. Bigger icons and controls (Spotify buttons)
+- [ ] 4. Tiles open in the island (soft settings): Reminders, This PC, Mail, Spotify and the others
+- [ ] 5. Connect real mail: Gmail, Outlook, iCloud (iPhone) and IMAP
+- [ ] 6. Settings animates open and closed (no pop-in, no white flash)
+- [ ] 7. Checks
+
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
