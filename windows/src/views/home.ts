@@ -3,7 +3,8 @@
 // thing that matters now and the Dictate, Call and Record buttons — and the
 // tiles on the right, four by two, with pages when there are more. While
 // music plays, the right card turns into a wide player over one row of tiles,
-// and folds back five seconds after it stops. Only transform and opacity move.
+// and folds back 1.5 s after it stops. Only transform and opacity move: the
+// grid keeps its two rows and slides under the player (no layout change mid-way).
 
 import { Bridge } from "../core/bridge";
 import { FlowBridge } from "../core/flow";
@@ -299,7 +300,6 @@ export function buildHome(actions: ViewActions): ViewHost {
     if (key === lastGrid) return;
     lastGrid = key;
     clear(grid);
-    grid.classList.toggle("one-row", playing);
     for (const c of pages[page]) grid.append(cell(c, actions.setView));
     clear(dots);
     dots.hidden = pageCount < 2;
@@ -338,7 +338,7 @@ export function buildHome(actions: ViewActions): ViewHost {
         drawProgress(now);
       }
       draw();
-      // Paused or stopped: look again once the five seconds are over.
+      // Paused or stopped: look again once the hold is over.
       const wait = hold.wait(now);
       if (holdTimer !== null) clearTimeout(holdTimer);
       holdTimer = wait === null ? null : window.setTimeout(() => {

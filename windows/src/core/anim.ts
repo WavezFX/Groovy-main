@@ -98,6 +98,7 @@ export class Tracked {
   private curveTo = 0;
   private curveStart = 0;
   private curveDur = 0;
+  private curveEase: (p: number) => number = closeCurve;
   private mode: "spring" | "curve" | "idle" = "idle";
 
   constructor(value: number) {
@@ -124,8 +125,9 @@ export class Tracked {
     this.mode = "spring";
   }
 
-  /** Timed curve to `v` (close / shrink), no overshoot. */
-  curveTowards(v: number, durationMs = 340, now = performance.now()) {
+  /** Timed curve to `v`, no overshoot. */
+  curveTowards(v: number, durationMs = 340, now = performance.now(), ease: (p: number) => number = closeCurve) {
+    this.curveEase = ease;
     this.curveFrom = this.spring.value;
     this.curveTo = v;
     this.curveStart = now;
@@ -145,7 +147,7 @@ export class Tracked {
       }
     } else if (this.mode === "curve") {
       const p = clamp((now - this.curveStart) / this.curveDur, 0, 1);
-      this.spring.value = lerp(this.curveFrom, this.curveTo, closeCurve(p));
+      this.spring.value = lerp(this.curveFrom, this.curveTo, this.curveEase(p));
       if (p >= 1) {
         this.spring.velocity = 0;
         this.mode = "idle";

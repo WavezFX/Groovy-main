@@ -13,7 +13,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 1. Fixes round 3B: `FIXES_ROUND3B.md` (the owner's test feedback)
 - [x] 1. Grey square behind the island
-- [ ] 2. Music layout: smoother, back to normal quicker
+- [x] 2. Music layout: smoother, back to normal quicker
 - [ ] 3. Night must look green
 - [ ] 4. Choosing a look doesn't stick; the wardrobe lags
 - [ ] 5. No stage picking

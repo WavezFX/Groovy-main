@@ -61,7 +61,8 @@ test("eight cells a page, one row of four under the player, the add tile last", 
   assert.deepEqual(cellsUnderPlayer([tile("music"), tile("mail")]).map((c) => c.id), ["mail"]);
 });
 
-test("the player shows at once and folds five seconds after the music stops", () => {
+test("the player shows at once and folds 1.5 s after the music stops", () => {
+  assert.equal(PLAYER_HOLD_MS, 1500);
   const hold = new PlayerHold();
   assert.equal(hold.update(false, 0), false);
   assert.equal(hold.update(true, 1000), true);

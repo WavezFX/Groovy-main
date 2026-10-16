@@ -8,7 +8,7 @@ import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
 import {
   EXPANDED_CORNER, EXPANDED_W, LIVE_STRIP_H, LIVE_STRIP_W, NOTCH_W, PANEL_H, PANEL_W,
-  ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
+  ROUNDED_CORNER, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
   islandSize,
   QUESTION_PICKER_H,
   type BotEmoteName, type IslandMode, type IslandViewName,
@@ -18,6 +18,7 @@ import { State } from "../core/state";
 import { SPOTIFY_ID, islandDances } from "../core/spotify";
 import { BotEngine, hexToRGB } from "../mochi/engine";
 import { SEED_ISLAND, SeedIntro, seedKind } from "../mochi/seed";
+import { MOTION, duration, easeOut } from "../core/motion";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
 import { parseSkin } from "../mochi/skins";
 import { clearSlot, currentWardrobe, tryOn, wear } from "../mochi/appearance";
@@ -52,8 +53,6 @@ const UPLOAD_VIEWS: ReadonlySet<IslandViewName> = new Set(["upload", "uploading"
 
 /** Seconds between the drop and the moment the progress bar starts filling. */
 const PRE_PROGRESS = USC.T_PROG_START - USC.T_DROP;
-
-const modeOrder = (m: IslandMode) => (m === "hidden" ? 0 : m === "compact" ? 1 : 2);
 
 export class Island {
   readonly fsm = new IslandStateMachine();
@@ -230,7 +229,7 @@ export class Island {
       this.alert(State.defaultView());
     }
     this.syncLive();
-    this.animateGeometry(on);
+    this.animateGeometry();
   }
 
   /** Something started or stopped listening: badge, strip, and staying on screen. */
@@ -244,7 +243,7 @@ export class Island {
       if (started) this.liveStrip = State.settings.listeningView === "strip";
       if (!view) this.liveStrip = false;
       if (started && this.fsm.state === "hidden") this.fsm.reveal();
-      this.animateGeometry(!this.stripActive());
+      this.animateGeometry();
     } else if (view) {
       this.liveShown = view.kind;
     }
@@ -427,7 +426,7 @@ export class Island {
     this.countdown = h("div", { id: "countdown" });
 
     this.header = buildHeader(actions);
-    this.views = buildViews(actions, () => this.animateGeometry(false));
+    this.views = buildViews(actions, () => this.animateGeometry());
     this.viewsEl = h("div", { id: "views" });
     for (const v of this.views.values()) this.viewsEl.append(v.el);
     this.contentEl = h("div", { id: "content" }, this.header.el, this.viewsEl);
@@ -547,7 +546,7 @@ export class Island {
     }, kind === "grew"
       ? { title: t("I grew while you were away!"), sub: progressLine(g) }
       : { title: t("Hi, I'm Groovy."), sub: t("I'll grow the longer we work together.") });
-    intro.onGrow = () => this.animateGeometry(false);
+    intro.onGrow = () => this.animateGeometry();
     intro.onComplete = () => {
       if (this.intro === intro) this.intro = null;
       // Nothing of it is kept: its canvas gives its pixels back too.
@@ -588,7 +587,7 @@ export class Island {
       UploadSeq.deactivate();
     }
     this.updateWindowCollapsed();
-    this.animateGeometry(modeOrder(mode) < modeOrder(prev));
+    this.animateGeometry();
     State.notify();
   }
 
@@ -607,7 +606,7 @@ export class Island {
     if (view !== "overview") closePlanCard();
     State.view = view;
     if (State.mode !== "expanded") this.setMode("expanded");
-    else this.animateGeometry(false);
+    else this.animateGeometry();
     State.lastActivity = performance.now();
     State.notify();
   }
@@ -618,14 +617,13 @@ export class Island {
     if (State.mode !== "expanded") {
       this.fsm.forceHome();
       State.view = view;
-      this.animateGeometry(false);
+      this.animateGeometry();
       State.notify();
       return;
     }
-    const grew = VIEW_LAYOUTS[view].height >= VIEW_LAYOUTS[State.view].height;
     State.view = view;
     State.lastActivity = performance.now();
-    this.animateGeometry(!grew);
+    this.animateGeometry();
     State.notify();
   }
 
@@ -891,19 +889,17 @@ export class Island {
     void Bridge.fitIsland(w, h);
   }
 
-  private animateGeometry(shrinking: boolean) {
+  private animateGeometry() {
     const { w, h, r } = this.targetSize();
     // Grown first to whichever is larger, now or after; shrunk when it settles (frame).
     this.fitWindow(Math.max(w, this.width.value), Math.max(h, this.height.value));
-    if (shrinking) {
-      this.width.curveTowards(w);
-      this.height.curveTowards(h);
-      this.radius.curveTowards(r);
-    } else {
-      this.width.springTo(w);
-      this.height.springTo(h);
-      this.radius.springTo(r);
-    }
+    // One ease-out curve each way (round 3B item 2): no overshoot past the
+    // window, which was just grown to the larger size, so nothing is cut.
+    const ms = duration(MOTION.island);
+    const now = performance.now();
+    this.width.curveTowards(w, ms, now, easeOut);
+    this.height.curveTowards(h, ms, now, easeOut);
+    this.radius.curveTowards(r, ms, now, easeOut);
     this.ensureRunning();
   }
 

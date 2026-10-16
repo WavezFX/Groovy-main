@@ -3204,7 +3204,7 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 6px;
   height: 100%;
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .home-cell {
   display: flex;
@@ -3352,19 +3352,16 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   opacity: 0;
   transform: translateY(-12px) scale(0.98);
   pointer-events: none;
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .home-right.playing .home-player {
   opacity: 1;
   transform: none;
   pointer-events: auto;
 }
+/* Round 3B item 2: the grid only slides; its second row goes under the card's edge. */
 .home-right.playing .home-grid {
   transform: translateY(68px);
-  height: calc(100% - 68px);
-}
-.home-grid.one-row {
-  grid-template-rows: minmax(0, 1fr);
 }
 .home-art {
   flex: 0 0 46px;
