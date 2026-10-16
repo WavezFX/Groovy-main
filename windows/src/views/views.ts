@@ -32,7 +32,8 @@ import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
 import { buildNotify } from "./tiles";
 import { buildHome } from "./home";
 import { settingsKeys, type Bindings } from "../core/shortcuts";
-import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
+import { AUTO_CLOSE_CHOICES, CLICK_AWAY, nearestChoice } from "../core/autoclose";
+import { FlowBridge, type QuickStatus } from "../core/flow";
 
 const LONG_PRESS_MS = 450;
 
@@ -130,24 +131,23 @@ export function buildHeader(actions: ViewActions): ViewHost {
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
   const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
 
-  // The gear opens the Control Centre; its small arrow (or a long press on it)
-  // opens the quick settings inside the island (sound, volume, auto-close).
-  const gearBtn = h("button", { class: "gear" }, svg(ICONS.gear, 15));
-  const quickBtn = h("button", { class: "quick", title: tl("Quick settings"), onclick: () => go(State.view === "settings" ? "home" : "settings") }, svg(ICONS.chevronDown, 8, { stroke: 2.4 }));
+  // Round 4 item 2: the gear unfolds quick settings out of the island; a long
+  // press, or "All settings →" in the panel, opens the Control Centre.
+  const gearBtn = h("button", { class: "gear", "aria-label": tl("Quick settings") }, svg(ICONS.gear, 15));
   let pressTimer = 0;
   let longPressed = false;
   gearBtn.addEventListener("pointerdown", () => {
     longPressed = false;
     pressTimer = window.setTimeout(() => {
       longPressed = true;
-      go("settings");
+      actions.blip();
+      void Bridge.openSettingsWindow();
     }, LONG_PRESS_MS);
   });
   for (const ev of ["pointerup", "pointerleave", "pointercancel"]) gearBtn.addEventListener(ev, () => window.clearTimeout(pressTimer));
   gearBtn.addEventListener("click", () => {
     if (longPressed) return;
-    actions.blip();
-    void Bridge.openSettingsWindow();
+    go(State.view === "settings" ? "home" : "settings");
   });
   const soundBtn = h("button", { title: tl("Mute"), onclick: () => actions.toggleSound() }, svg(ICONS.speakerOn, 14));
   // Plan usage pills (off by default): before the gear, Claude first, as on the Mac.
@@ -165,7 +165,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
     "div",
     { id: "header" },
     h("div", { class: "tabs" }, tabHome, tabChat, tabDrop),
-    h("div", { class: "header-actions" }, planPills, h("div", { class: "gear-group" }, gearBtn, quickBtn), soundBtn),
+    h("div", { class: "header-actions" }, planPills, h("div", { class: "gear-group" }, gearBtn), soundBtn),
   );
   const headerActions = el.lastElementChild as HTMLElement;
 
@@ -176,7 +176,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
       tabHome.classList.toggle("on", v === "home" || v === "overview" || v === "empty");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
-      quickBtn.classList.toggle("on", v === "settings");
+      gearBtn.classList.toggle("on", v === "settings");
       gearBtn.title = settingsTitle(State.settings.shortcuts);
       clear(soundBtn);
       soundBtn.append(svg(State.settings.soundEnabled ? ICONS.speakerOn : ICONS.speakerOff, 14));
@@ -742,47 +742,81 @@ function buildNote(): ViewHost {
 // ── In-island settings ────────────────────────────────────────────────────────
 
 function buildSettings(actions: ViewActions): ViewHost {
-  const soundSwitch = h("button", { class: "switch", onclick: () => actions.toggleSound() });
+  const soundSwitch = h("button", { class: "switch", "aria-label": tl("Sound"), onclick: () => actions.toggleSound() });
   const volume = h("input", {
-    type: "range", min: "0", max: "0.2", step: "0.005",
+    type: "range", min: "0", max: "0.2", step: "0.005", "aria-label": tl("Volume"),
     oninput: (e: Event) => actions.setVolume(Number((e.target as HTMLInputElement).value)),
   }) as HTMLInputElement;
-  const autoLabel = h("span", {});
   const segButtons = AUTO_CLOSE_CHOICES.map((s) =>
-    h("button", { title: s === 0 ? tl("When I leave") : undefined, onclick: () => actions.setAutoClose(s) }, s === 0 ? tl("Leave") : `${s}s`),
+    h("button", { onclick: () => actions.setAutoClose(s) }, s === 0 ? tl("When I leave") : s === CLICK_AWAY ? tl("Click away") : `${s} s`),
   );
-  const claudeBadge = h("span", { class: "status-badge" });
-  const apiBadge = h("span", { class: "status-badge" });
+  const aiLine = h("span", { class: "qs-status" });
+  const okSwitch = h("button", { class: "switch", "aria-label": tl("« OK Groovy »") });
+  const okChecks = h("span", { class: "qs-status" });
+  const voiceNote = h("div", { class: "qs-note" });
+  let status: QuickStatus | null = null;
+
+  okSwitch.addEventListener("click", async () => {
+    const flow = await FlowBridge.status();
+    if (!flow) return;
+    actions.blip();
+    await FlowBridge.setPrefs({ ...flow.prefs, voice: !flow.prefs.voice });
+    void refresh();
+  });
 
   const rows = h(
     "div",
-    { class: "settings-rows" },
-    h("div", { class: "settings-row" }, soundSwitch, h("span", { text: tl("Sound") }), volume),
-    h(
-      "div",
-      { class: "settings-row" },
-      svg(ICONS.timer, 12),
-      autoLabel,
-      h("div", { class: "seg" }, ...segButtons),
+    { class: "qs" },
+    h("div", { class: "qs-row" }, soundSwitch, h("span", { class: "qs-label", text: tl("Sound") }), volume),
+    h("div", { class: "qs-row" }, h("span", { class: "qs-label", text: tl("Island closes") }), h("div", { class: "seg qs-seg" }, ...segButtons)),
+    h("div", { class: "qs-row" },
+      h("span", { class: "qs-label", text: tl("AI") }), aiLine,
+      h("button", { class: "link-btn qs-link", text: tl("Change"), onclick: () => void Bridge.openSettingsWindow("assistant") }),
     ),
-    h(
-      "div",
-      { class: "settings-row", style: "gap:14px" },
-      claudeBadge,
-      apiBadge,
-      h("div", { class: "grow" }),
-      h("button", {
-        class: "link-btn",
-        style: "color:#8e939c;font-size:11.5px",
-        text: tl("Settings…"),
-        onclick: () => actions.openSettingsWindow(),
-      }),
+    h("div", { class: "qs-row" }, okSwitch, h("span", { class: "qs-label", text: tl("« OK Groovy »") }), okChecks),
+    voiceNote,
+    h("div", { class: "qs-row qs-end" },
+      h("button", { class: "link-btn qs-all", text: tl("All settings →"), onclick: () => actions.openSettingsWindow() }),
     ),
   );
 
-  const el = h("div", { class: "view" },
-    card(null, h("div", { class: "stack", style: "padding:14px 16px 14px 84px" }, rows)));
+  async function refresh() {
+    status = await FlowBridge.quickStatus();
+    draw();
+  }
 
+  function draw() {
+    clear(aiLine);
+    const ai = status?.ai ?? [];
+    if (!ai.some((a) => a.state === "ready")) aiLine.append(h("span", { class: "qs-bad", text: t("No AI yet") }));
+    ai.forEach((a, i) => {
+      if (i > 0 || !ai.some((x) => x.state === "ready")) aiLine.append(h("span", { class: "qs-sep", text: " · " }));
+      const good = a.state === "ready" || a.state === "on";
+      const text = a.state === "ready" ? t("{name} ✓ connected", { name: a.name })
+        : a.state === "no key" ? t("{name}: no key", { name: a.name })
+        : a.state === "on" ? t("{name}: on", { name: a.name })
+        : t("{name}: off", { name: a.name });
+      aiLine.append(h("span", { class: good ? "qs-good" : "qs-dim", text }));
+    });
+    const ok = status?.ok;
+    okSwitch.classList.toggle("on", !!ok?.on);
+    clear(okChecks);
+    if (ok) {
+      const mic = !ok.micError && !!ok.mic;
+      okChecks.append(
+        h("span", { class: mic ? "qs-good" : "qs-bad", text: `${mic ? "✓" : "✗"} ${t("Microphone")}` }),
+        h("span", { class: "qs-sep", text: " · " }),
+        h("span", { class: ok.speech ? "qs-good" : "qs-bad", text: `${ok.speech ? "✓" : "✗"} ${t("Speech model")}` }),
+      );
+    }
+    voiceNote.textContent = status?.voice === "fish" ? t("Groovy speaks with Fish Audio.")
+      : status?.voice === "kokoro" ? t("Groovy speaks with Kokoro, offline.")
+      : t("Groovy speaks with Windows' own voice.");
+  }
+
+  const el = h("div", { class: "view qs-view" }, card(null, h("div", { class: "stack", style: "padding:16px 16px 10px 84px" }, rows)));
+
+  let wasShown = false;
   return {
     el,
     sync() {
@@ -790,18 +824,12 @@ function buildSettings(actions: ViewActions): ViewHost {
       soundSwitch.classList.toggle("on", s.soundEnabled);
       volume.value = String(s.soundVolume);
       volume.style.opacity = s.soundEnabled ? "1" : "0.4";
-      autoLabel.textContent = s.autoCloseInterval > 0
-        ? t("Auto-close · {seconds}s", { seconds: Math.round(s.autoCloseInterval) })
-        : t("Auto-close · when I leave");
       const chosen = nearestChoice(s.autoCloseInterval);
       segButtons.forEach((b, i) => b.classList.toggle("on", chosen === AUTO_CLOSE_CHOICES[i]));
-      clear(claudeBadge);
-      claudeBadge.append(
-        dot(s.hooksInstalled ? "#22C55E" : "#F4505E", 6),
-        h("span", { text: "Claude Code" }),
-      );
-      clear(apiBadge);
-      apiBadge.append(dot("#F4505E", 6), h("span", { text: "API" }));
+      // Fresh each time it unfolds: the AI, the microphone and the voice may have changed.
+      const shown = State.view === "settings" && State.mode === "expanded";
+      if (shown && !wasShown) void refresh();
+      wasShown = shown;
     },
   };
 }

@@ -1,6 +1,8 @@
 // Island open/close FSM — port of IslandStateMachine.swift.
 // No DOM, no Tauri: it only reports transitions.
 
+import { CLICK_AWAY } from "../core/autoclose";
+
 /** Seconds the open island stays after the launch intro, whatever the auto-close. */
 export const INTRO_HOLD = 6;
 
@@ -25,7 +27,7 @@ export class IslandStateMachine {
     return this.homeDelay;
   }
   set homeToPetitDelay(seconds: number) {
-    if (!Number.isFinite(seconds) || seconds < 0 || seconds === this.homeDelay) return;
+    if (!Number.isFinite(seconds) || (seconds < 0 && seconds !== CLICK_AWAY) || seconds === this.homeDelay) return;
     this.homeDelay = seconds;
     if (this.state === "home" && this.homeCollapse != null) this.scheduleHomeCollapse();
   }
@@ -201,6 +203,11 @@ export class IslandStateMachine {
     this.clear("homeCollapse");
     if (this.pinned) return;
     let delay = this.byHover ? this.hoverCloseDelay : this.homeDelay;
+    // "Click away": leaving doesn't fold it; a click outside does (the island's blur).
+    if (delay === CLICK_AWAY) {
+      this.homeCollapseDueAt = null;
+      return;
+    }
     // Just after the intro, Up next stays long enough to be read.
     if (this.afterIntro) delay = Math.max(delay, INTRO_HOLD);
     this.afterIntro = false;

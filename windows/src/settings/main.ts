@@ -4,7 +4,7 @@
 // pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
 import { installErrorReporting, showError } from "../views/toast";
-import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
+import { AUTO_CLOSE_CHOICES, CLICK_AWAY, nearestChoice } from "../core/autoclose";
 import { glassStrength } from "../core/glass";
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
@@ -956,7 +956,7 @@ function generalSection(): HTMLElement {
   });
 
   const autoClose = h("select", {},
-    ...AUTO_CLOSE_CHOICES.map((c) => h("option", { value: String(c), text: c === 0 ? t("When I leave") : t("{seconds} s after I leave", { seconds: c }) })),
+    ...AUTO_CLOSE_CHOICES.map((c) => h("option", { value: String(c), text: c === 0 ? t("When I leave") : c === CLICK_AWAY ? t("When I click away") : t("{seconds} s after I leave", { seconds: c }) })),
   ) as HTMLSelectElement;
   autoClose.value = String(nearestChoice(settings.autoCloseInterval));
   autoClose.addEventListener("change", () => {

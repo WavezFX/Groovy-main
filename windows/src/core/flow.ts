@@ -238,6 +238,12 @@ export interface OkStatus {
   ai: string | null;
 }
 
+export interface QuickStatus {
+  ai: { name: string; state: "ready" | "no key" | "on" | "off" }[];
+  ok: OkStatus;
+  voice: "fish" | "kokoro" | "system";
+}
+
 /** One step of "Test OK Groovy": "wake", "words", "answer", "spoken". */
 export interface OkTestStep {
   step: "wake" | "words" | "answer" | "spoken";
@@ -291,6 +297,8 @@ export const FlowBridge = {
   kokoroRemove: () => call<void>("kokoro_remove"),
   /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
   okStatus: () => call<OkStatus>("okgroovy_status"),
+  /** Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice. */
+  quickStatus: () => call<QuickStatus>("quick_status"),
   /** Reports each step of the next « OK Groovy » ("okgroovy-test" events); throws why it can't. */
   okTest: () => callOrThrow<void>("okgroovy_test"),
   voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),

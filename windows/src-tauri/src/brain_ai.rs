@@ -177,6 +177,25 @@ pub fn active_name() -> Option<&'static str> {
     })
 }
 
+/// For quick settings (round 4 item 2): who answers first and the state of
+/// the others worth knowing about, as (name, "ready" | "no key" | "on" | "off").
+pub fn states() -> Vec<(&'static str, &'static str)> {
+    let Ok(app) = app() else { return vec![] };
+    let s = settings(app);
+    let prefs = s.assistant.clone().sanitised();
+    let mut v: Vec<(&'static str, &'static str)> = Vec::new();
+    if let Some(name) = active_name() {
+        v.push((name, "ready"));
+    }
+    if !v.iter().any(|(n, _)| *n == "Claude") && !has_key("anthropic") {
+        v.push(("Claude", "no key"));
+    }
+    if !v.iter().any(|(n, _)| *n == "Local") {
+        v.push(("Local", if prefs.local_allowed() && local_configured(&s, &prefs) { "on" } else { "off" }));
+    }
+    v
+}
+
 /// An error that says a free tier or plan ran out, or too many requests.
 pub fn is_limit(err: &str) -> bool {
     let e = err.to_ascii_lowercase();

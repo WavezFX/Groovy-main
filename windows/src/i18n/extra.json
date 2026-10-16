@@ -12249,28 +12249,6 @@
    "ru": "Через {seconds} с после ухода",
    "id": "{seconds} dtk setelah saya pergi"
   },
-  "Leave": {
-   "zh-Hans": "离开",
-   "hi": "हटते ही",
-   "es": "Salir",
-   "ar": "مغادرة",
-   "fr": "Départ",
-   "bn": "সরলে",
-   "pt-BR": "Sair",
-   "ru": "Уход",
-   "id": "Pergi"
-  },
-  "Auto-close · when I leave": {
-   "zh-Hans": "自动关闭 · 我离开时",
-   "hi": "अपने-आप बंद · जब मैं हटूँ",
-   "es": "Cierre automático · al salir",
-   "ar": "إغلاق تلقائي · عند المغادرة",
-   "fr": "Fermeture auto · quand je pars",
-   "bn": "স্বয়ংক্রিয় বন্ধ · আমি সরে গেলে",
-   "pt-BR": "Fechar sozinho · quando eu sair",
-   "ru": "Автозакрытие · когда я ухожу",
-   "id": "Tutup otomatis · saat saya pergi"
-  },
   "The island can now close as soon as the mouse leaves it.": {
    "zh-Hans": "现在鼠标一离开，岛就可以关闭。",
    "hi": "अब माउस हटते ही आइलैंड बंद हो सकता है।",
@@ -14602,6 +14580,160 @@
    "pt-BR": "Preparando…",
    "ru": "Готовлюсь…",
    "id": "Sedang bersiap…"
+  },
+  "When I click away": {
+   "zh-Hans": "在我点击别处时",
+   "hi": "जब मैं कहीं और क्लिक करूँ",
+   "es": "Al hacer clic fuera",
+   "ar": "عندما أنقر خارجها",
+   "fr": "Quand je clique ailleurs",
+   "bn": "যখন আমি অন্য কোথাও ক্লিক করি",
+   "pt-BR": "Quando eu clicar fora",
+   "ru": "Когда я щёлкну в другом месте",
+   "id": "Saat saya klik di luar"
+  },
+  "Click away": {
+   "zh-Hans": "点击别处",
+   "hi": "बाहर क्लिक",
+   "es": "Clic fuera",
+   "ar": "النقر خارجها",
+   "fr": "Clic ailleurs",
+   "bn": "বাইরে ক্লিক",
+   "pt-BR": "Clicar fora",
+   "ru": "Щелчок мимо",
+   "id": "Klik di luar"
+  },
+  "« OK Groovy »": {
+   "zh-Hans": "« OK Groovy »",
+   "hi": "« OK Groovy »",
+   "es": "« OK Groovy »",
+   "ar": "« OK Groovy »",
+   "fr": "« OK Groovy »",
+   "bn": "« OK Groovy »",
+   "pt-BR": "« OK Groovy »",
+   "ru": "« OK Groovy »",
+   "id": "« OK Groovy »"
+  },
+  "Island closes": {
+   "zh-Hans": "岛何时收起",
+   "hi": "आइलैंड कब बंद हो",
+   "es": "La isla se cierra",
+   "ar": "تُغلَق الجزيرة",
+   "fr": "L’île se ferme",
+   "bn": "আইল্যান্ড কখন বন্ধ হবে",
+   "pt-BR": "A ilha fecha",
+   "ru": "Остров закрывается",
+   "id": "Pulau menutup"
+  },
+  "Change": {
+   "zh-Hans": "更改",
+   "hi": "बदलें",
+   "es": "Cambiar",
+   "ar": "تغيير",
+   "fr": "Changer",
+   "bn": "বদলান",
+   "pt-BR": "Alterar",
+   "ru": "Изменить",
+   "id": "Ubah"
+  },
+  "All settings →": {
+   "zh-Hans": "全部设置 →",
+   "hi": "सभी सेटिंग्स →",
+   "es": "Todos los ajustes →",
+   "ar": "كل الإعدادات ←",
+   "fr": "Tous les réglages →",
+   "bn": "সব সেটিংস →",
+   "pt-BR": "Todas as configurações →",
+   "ru": "Все настройки →",
+   "id": "Semua pengaturan →"
+  },
+  "No AI yet": {
+   "zh-Hans": "还没有 AI",
+   "hi": "अभी कोई AI नहीं",
+   "es": "Aún no hay IA",
+   "ar": "لا يوجد ذكاء اصطناعي بعد",
+   "fr": "Pas encore d’IA",
+   "bn": "এখনও কোনো AI নেই",
+   "pt-BR": "Ainda sem IA",
+   "ru": "ИИ пока нет",
+   "id": "Belum ada AI"
+  },
+  "{name} ✓ connected": {
+   "zh-Hans": "{name} ✓ 已连接",
+   "hi": "{name} ✓ जुड़ा है",
+   "es": "{name} ✓ conectado",
+   "ar": "{name} ✓ متصل",
+   "fr": "{name} ✓ connecté",
+   "bn": "{name} ✓ সংযুক্ত",
+   "pt-BR": "{name} ✓ conectado",
+   "ru": "{name} ✓ подключён",
+   "id": "{name} ✓ terhubung"
+  },
+  "{name}: no key": {
+   "zh-Hans": "{name}：没有密钥",
+   "hi": "{name}: कोई कुंजी नहीं",
+   "es": "{name}: sin clave",
+   "ar": "{name}: لا يوجد مفتاح",
+   "fr": "{name} : pas de clé",
+   "bn": "{name}: কোনো কী নেই",
+   "pt-BR": "{name}: sem chave",
+   "ru": "{name}: нет ключа",
+   "id": "{name}: tidak ada kunci"
+  },
+  "{name}: on": {
+   "zh-Hans": "{name}：开",
+   "hi": "{name}: चालू",
+   "es": "{name}: activado",
+   "ar": "{name}: مُفعّل",
+   "fr": "{name} : activé",
+   "bn": "{name}: চালু",
+   "pt-BR": "{name}: ligado",
+   "ru": "{name}: вкл.",
+   "id": "{name}: aktif"
+  },
+  "{name}: off": {
+   "zh-Hans": "{name}：关",
+   "hi": "{name}: बंद",
+   "es": "{name}: desactivado",
+   "ar": "{name}: مُعطّل",
+   "fr": "{name} : désactivé",
+   "bn": "{name}: বন্ধ",
+   "pt-BR": "{name}: desligado",
+   "ru": "{name}: выкл.",
+   "id": "{name}: nonaktif"
+  },
+  "Groovy speaks with Fish Audio.": {
+   "zh-Hans": "Groovy 用 Fish Audio 说话。",
+   "hi": "Groovy Fish Audio से बोलता है।",
+   "es": "Groovy habla con Fish Audio.",
+   "ar": "يتحدث Groovy بصوت Fish Audio.",
+   "fr": "Groovy parle avec Fish Audio.",
+   "bn": "Groovy Fish Audio দিয়ে কথা বলে।",
+   "pt-BR": "Groovy fala com o Fish Audio.",
+   "ru": "Groovy говорит голосом Fish Audio.",
+   "id": "Groovy berbicara dengan Fish Audio."
+  },
+  "Groovy speaks with Kokoro, offline.": {
+   "zh-Hans": "Groovy 用 Kokoro 离线说话。",
+   "hi": "Groovy Kokoro से, ऑफ़लाइन, बोलता है।",
+   "es": "Groovy habla con Kokoro, sin conexión.",
+   "ar": "يتحدث Groovy بصوت Kokoro دون اتصال.",
+   "fr": "Groovy parle avec Kokoro, hors ligne.",
+   "bn": "Groovy Kokoro দিয়ে অফলাইনে কথা বলে।",
+   "pt-BR": "Groovy fala com o Kokoro, offline.",
+   "ru": "Groovy говорит голосом Kokoro, офлайн.",
+   "id": "Groovy berbicara dengan Kokoro, secara offline."
+  },
+  "Groovy speaks with Windows' own voice.": {
+   "zh-Hans": "Groovy 用 Windows 自带的声音说话。",
+   "hi": "Groovy Windows की अपनी आवाज़ में बोलता है।",
+   "es": "Groovy habla con la voz propia de Windows.",
+   "ar": "يتحدث Groovy بصوت Windows المدمج.",
+   "fr": "Groovy parle avec la voix de Windows.",
+   "bn": "Groovy Windows-এর নিজের কণ্ঠে কথা বলে।",
+   "pt-BR": "Groovy fala com a voz do próprio Windows.",
+   "ru": "Groovy говорит встроенным голосом Windows.",
+   "id": "Groovy berbicara dengan suara bawaan Windows."
   }
  }
 }

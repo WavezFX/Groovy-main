@@ -693,6 +693,17 @@ async fn voice_words(app: &AppHandle, model: String, language: Option<String>, s
     Ok(text)
 }
 
+/// Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice, in one call.
+#[tauri::command]
+fn quick_status(app: AppHandle) -> serde_json::Value {
+    let ai: Vec<serde_json::Value> = brain_ai::states().into_iter().map(|(name, state)| serde_json::json!({ "name": name, "state": state })).collect();
+    serde_json::json!({
+        "ai": ai,
+        "ok": okgroovy::okgroovy_status(app.clone()),
+        "voice": speech::tts::tts_status(app).speaking,
+    })
+}
+
 #[tauri::command]
 fn voice_status(app: AppHandle, shared: State<'_, Shared>) -> voice::VoiceStatus {
     let model = shared.settings.lock().unwrap().voice_model.clone();
@@ -1407,6 +1418,7 @@ pub fn run() {
             notes::notes_export,
             okgroovy::voice_done,
             okgroovy::okgroovy_status,
+            quick_status,
             frame_report,
             speech::tts::tts_audio,
             speech::tts::tts_status,

@@ -5,6 +5,7 @@ import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
 import { flavorOf } from "../core/sounds-synth";
 import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
+import { CLICK_AWAY } from "../core/autoclose";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
 import {
   EXPANDED_CORNER, EXPANDED_W, LIVE_STRIP_H, LIVE_STRIP_W, NOTCH_W, PANEL_H, PANEL_W,
@@ -118,6 +119,8 @@ export class Island {
 
   // Rust starts the window at full size so the launch greeting has room.
   private collapsed = false;
+  /** The island asked for keyboard focus (chat, quick settings, "Click away"). */
+  private focusWanted = false;
   private collapseTimer: number | null = null;
   private wasInIsland = false;
   /** Last shape handed to Rust for the click-through test. */
@@ -1137,6 +1140,18 @@ export class Island {
       if (this.desktop.carrying) this.desktop.carryEnd(e.clientX, e.clientY);
     });
 
+    // Round 4 item 2: a click outside the island (it had focus) closes quick
+    // settings, and with "Click away" chosen, folds the island too.
+    window.addEventListener("blur", () => {
+      if (State.mode !== "expanded" || !this.focusWanted) return;
+      const clickAway = State.settings.autoCloseInterval === CLICK_AWAY;
+      if (State.view === "settings") {
+        this.setView("home");
+        if (!clickAway) return;
+      }
+      if (clickAway && !State.isPinned && !State.pendingApproval && State.view !== "prompt") this.collapse();
+    });
+
     // Only keys typed into the island itself land here, never Escape typed in
     // a terminal — so it may fold a waiting card away, as Escape in the notch
     // does on macOS.
@@ -1554,17 +1569,18 @@ export class Island {
       if (on) view.sync();
     }
 
-    // The chat is the only view with a text field, so it is the only time the
-    // island is allowed to take keyboard focus.
-    if (this.lastSyncedView !== State.view) {
-      const wasChat = this.lastSyncedView === "prompt";
+    // The island takes keyboard focus only for the chat's text field, and
+    // (round 4 item 2) while quick settings or "Click away" need to know when
+    // you click somewhere else: that click is the window's blur.
+    const wantsFocus = expanded && (State.view === "prompt" || State.view === "settings" || State.settings.autoCloseInterval === CLICK_AWAY);
+    if (this.lastSyncedView !== State.view || wantsFocus !== this.focusWanted) {
+      const toChat = State.view === "prompt" && this.lastSyncedView !== "prompt";
       this.lastSyncedView = State.view;
-      if (State.view === "prompt") {
-        void Bridge.focusWindow(true);
-        window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
-      } else if (wasChat) {
-        void Bridge.focusWindow(false);
+      if (wantsFocus !== this.focusWanted) {
+        this.focusWanted = wantsFocus;
+        void Bridge.focusWindow(wantsFocus);
       }
+      if (toChat) window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
     }
 
     // Compact mini grid

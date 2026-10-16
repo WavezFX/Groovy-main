@@ -133,6 +133,15 @@ test("the collapse delay is the configured one", () => {
   assert.equal(fsm.state, "petit");
 });
 
+test("Click away: leaving doesn't fold the island (round 4 item 2)", () => {
+  fsm.homeToPetitDelay = -1;
+  assert.equal(fsm.homeToPetitDelay, -1);
+  fsm.forceHome();
+  fsm.mouseLeft();
+  seconds(600);
+  assert.equal(fsm.state, "home");
+});
+
 test("reveal shows the compact island from hidden and hides it again after 60 s", () => {
   fsm.reveal();
   assert.equal(fsm.state, "petit");
@@ -305,7 +314,7 @@ test("a folded card keeps the compact island on screen until it is answered", ()
 });
 
 test("an unusable delay is ignored", () => {
-  for (const bad of [NaN, -1, Infinity]) fsm.homeToPetitDelay = bad;
+  for (const bad of [NaN, -2, Infinity]) fsm.homeToPetitDelay = bad;
   assert.equal(fsm.homeToPetitDelay, 15);
 });
 
