@@ -5,7 +5,8 @@
 import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
-import { onEvent } from "../../core/bridge";
+import { Bridge, onEvent } from "../../core/bridge";
+import { showError } from "../../views/toast";
 import { FlowBridge, type FlowKey, type ModelsStatus } from "../../core/flow";
 import type { HubContext } from "../shell";
 import { button, card, divider, keyKeycap, keycap, label, number, row, segmented, select, toggle } from "../ui";
@@ -104,6 +105,14 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
 
   // ── Recognition ──
   page.append(label(t("Recognition")));
+  const cloudLine = h("div", { class: "hub-note" });
+  if (prefs.cloudSpeech) {
+    void FlowBridge.cloudServices().then((services) => {
+      cloudLine.textContent = services?.length
+        ? t("In use: {0}, then this computer.", { 0: services.join(" → ") })
+        : t("No key yet: this computer's engine does it all.");
+    });
+  }
   const engines: ["parakeet" | "whisper", string][] = [["parakeet", "Parakeet"], ["whisper", "Whisper"]];
   page.append(card(
     row(t("Speech engine"), t("Parakeet knows 25 European languages. Whisper knows about 99 (Punjabi, Hindi, Arabic, Japanese, Chinese…) and uses the model and language picked in Groovy → Voice calls."),
@@ -113,7 +122,18 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
       : null,
     divider(),
     row(t("Parakeet, on your computer"), t("The most accurate, offline, 25 languages. Downloaded once (about {0} MB).", { 0: number(status.models.downloadMb) }), modelsControl(ctx)),
-    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet or Whisper turns it into text here, and the recording is dropped as soon as it is pasted.") }),
+    divider(),
+    // Round 3B item 6: names, brands and model numbers right.
+    row(t("Cloud speech first"), t("With a Deepgram, OpenAI, ElevenLabs or Google AI key, dictation goes to that service first: it hears names and model numbers better. This computer's engine takes over without a key or a network."),
+      toggle(prefs.cloudSpeech, (on) => void ctx.setPrefs((p) => (p.cloudSpeech = on)).then(() => ctx.navigate("flowsettings")))),
+    cloudLine,
+    keyRow("deepgram-api-key", t("Deepgram key"), "https://console.deepgram.com/"),
+    divider(),
+    row(t("Learn names from my corrections"), t("Words you fix within a minute of dictating (a brand, a model, a name) join the Dictionary, and every engine is told them."),
+      toggle(prefs.learnWords, (on) => void ctx.setPrefs((p) => (p.learnWords = on)))),
+    h("div", { class: "hub-note", text: prefs.cloudSpeech
+      ? t("With a key, the recording goes to that service only, to be turned into text, then is dropped. Without one, it never leaves this computer.")
+      : t("Your voice never leaves this computer: Parakeet or Whisper turns it into text here, and the recording is dropped as soon as it is pasted.") }),
   ));
 
   // ── Notetaker ──
@@ -159,4 +179,22 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
     confirmRow,
     h("div", { class: "hub-note", text: t("The history, the statistics and your notes stay on this computer, in Groovy's folder. Dictations are never saved as audio; a call's audio is deleted as soon as its transcript is written.") }),
   ));
+}
+
+/** A key field for a speech service, with where to get one: kept in Windows' credential store. */
+function keyRow(key: string, name: string, page: string): HTMLElement {
+  const input = h("input", { type: "password", placeholder: name, autocomplete: "off", spellcheck: "false", style: "flex:1" }) as HTMLInputElement;
+  const save = button(t("Save"), () => {
+    const value = input.value.trim();
+    if (!value) return;
+    void Bridge.secretSet(key, value).then(() => {
+      input.value = "";
+      input.placeholder = t("{0} saved", { 0: name });
+    }, showError);
+  });
+  void Bridge.secretPresent(key).then((present) => {
+    if (present) input.placeholder = t("{0} saved", { 0: name });
+  });
+  const get = h("a", { href: "#", text: t("Get a key ↗"), onclick: (e: Event) => { e.preventDefault(); void Bridge.openUrl(page); } });
+  return h("div", { class: "hub-row" }, input, save, get);
 }

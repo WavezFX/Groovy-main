@@ -14,6 +14,9 @@ pub mod paste;
 pub mod live;
 pub mod store;
 pub mod text;
+pub mod vocab;
+#[cfg(test)]
+mod accuracy;
 
 #[cfg(windows)]
 #[path = "os_windows.rs"]
@@ -24,7 +27,7 @@ pub mod os;
 #[cfg(target_os = "linux")]
 pub mod wayland;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -373,10 +376,68 @@ fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicB
     });
 }
 
+/// A minute after a dictation, what the user corrected in it teaches the
+/// vocabulary its names and models (round 3B item 6). Only while the same app
+/// is in front; the field's text is compared and dropped, never kept.
+fn watch_corrections(app: AppHandle, flow: Arc<Flow>, inserted: String, front: Option<String>) {
+    static GENERATION: AtomicU64 = AtomicU64::new(0);
+    let mine = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    std::thread::spawn(move || {
+        // Checked a few times in the minute, the last look counting: the user
+        // may still be typing, or dictate again (a newer dictation takes over).
+        let mut last = None;
+        for _ in 0..6 {
+            std::thread::sleep(Duration::from_secs(10));
+            if GENERATION.load(Ordering::SeqCst) != mine {
+                return;
+            }
+            if os::foreground_app().map(|(id, _)| id) != front {
+                break;
+            }
+            if let Some(text) = os::focused_text() {
+                last = Some(text);
+            }
+        }
+        let Some(field) = last else { return };
+        let learned = vocab::learn(&inserted, &field);
+        if learned.is_empty() {
+            return;
+        }
+        let words = {
+            let mut store = flow.store.lock().unwrap();
+            let mut words = store.words.clone();
+            if !vocab::remember(&mut words.words, &learned) {
+                return;
+            }
+            store.words = words.clone();
+            store.save_words();
+            words
+        };
+        crate::log::line(format!("flow: learned {} word(s) from a correction", learned.len()));
+        let _ = app.emit_to(crate::HUB_LABEL, "flow-words", words);
+    });
+}
+
 fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(String, String)>, seconds: f64) -> Result<(), String> {
     let started = Instant::now();
-    let transcript = speech::transcribe(samples).ok_or("the voice model is not loaded")?;
-    let raw = transcript.text.trim().to_string();
+    let (vocabulary, cloud_first, learn_words) = {
+        let store = flow.store.lock().unwrap();
+        (store.words.words.clone(), store.prefs.cloud_speech, store.prefs.learn_words)
+    };
+    crate::voice::set_vocabulary(&vocabulary);
+    // Cloud speech-to-text first when there is a key (round 3B item 6), the
+    // PC's engine when there is none, no network or no answer in time.
+    let heard = if cloud_first {
+        tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &vocabulary, None)).map(|(text, _)| text)
+    } else {
+        None
+    };
+    let heard = match heard {
+        Some(text) => text,
+        None => speech::transcribe(samples).ok_or("the voice model is not loaded")?.text,
+    };
+    // Names heard in pieces and spoken model numbers, offline, for every engine.
+    let raw = vocab::model_numbers(&vocab::join_split(heard.trim(), &vocabulary));
     if raw.is_empty() {
         live::update(app, |s| s.phase = "idle".into());
         return Ok(());
@@ -389,7 +450,8 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
     let mut written = prepared.text.clone();
     if cleanup && style != store::Style::Verbatim && cleanup::has_key() {
         let app_name = front.map(|(_, n)| n.clone());
-        let cleaned = tauri::async_runtime::block_on(cleanup::clean(&prepared.text, style, app_name.as_deref(), &words));
+        let title = os::foreground_title();
+        let cleaned = tauri::async_runtime::block_on(cleanup::clean(&prepared.text, style, app_name.as_deref(), title.as_deref(), &words));
         if text::keeps_marks(&cleaned, &prepared.snippets) {
             written = cleaned;
         }
@@ -405,6 +467,9 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
         store.record(&final_text, front.map(|(_, n)| n.as_str()), seconds, store::today(), store::now_ms())
     };
     let _ = app.emit_to(crate::HUB_LABEL, "flow-history", entry);
+    if learn_words && matches!(outcome, paste::Outcome::Pasted) {
+        watch_corrections(app.clone(), flow.clone(), final_text.clone(), front.map(|(id, _)| id.clone()));
+    }
     match outcome {
         paste::Outcome::Pasted => live::update(app, |s| s.phase = "idle".into()),
         paste::Outcome::Copied => {
@@ -619,6 +684,12 @@ pub fn flow_stats(flow: State<Arc<Flow>>) -> StatsView {
 #[tauri::command]
 pub fn flow_words(flow: State<Arc<Flow>>) -> Words {
     flow.store.lock().unwrap().words.clone()
+}
+
+/// The cloud services dictation would try now, in order (round 3B item 6).
+#[tauri::command]
+pub fn speech_cloud_services() -> Vec<&'static str> {
+    speech::cloud::available().into_iter().map(|s| s.name()).collect()
 }
 
 #[tauri::command]

@@ -48,6 +48,10 @@ export interface FlowPrefs {
   voice: boolean;
   voiceOutput: VoiceOutput;
   voiceGender: "female" | "male";
+  /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
+  cloudSpeech: boolean;
+  /** Learn names and models from corrections made within a minute. */
+  learnWords: boolean;
 }
 
 export type ModelState =
@@ -198,6 +202,8 @@ export type VoiceOutput = "system" | "elevenlabs" | "off";
 
 export const FlowBridge = {
   status: () => call<FlowStatus>("flow_status"),
+  /** The cloud services dictation would try now, in order (empty: this computer only). */
+  cloudServices: () => call<string[]>("speech_cloud_services"),
   setPrefs: (prefs: FlowPrefs) => call<void>("flow_set_prefs", { prefs }),
   history: () => call<FlowEntry[]>("flow_history"),
   deleteEntry: (id: string) => call<void>("flow_delete", { id }),

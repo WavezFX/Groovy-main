@@ -271,6 +271,46 @@ pub fn foreground_app() -> Option<(String, String)> {
     program_of(hwnd)
 }
 
+/// The foreground window's title ("ASUS Vivobook S 14 | Laptops | ASUS…"): it
+/// tells the clean-up what the dictation is about (round 3B item 6).
+pub fn foreground_title() -> Option<String> {
+    use windows::Win32::UI::WindowsAndMessaging::GetWindowTextW;
+    let hwnd = unsafe { GetForegroundWindow() };
+    if hwnd.0.is_null() {
+        return None;
+    }
+    let mut buf = [0u16; 512];
+    let n = unsafe { GetWindowTextW(hwnd, &mut buf) };
+    let title = String::from_utf16_lossy(&buf[..n.max(0) as usize]).trim().to_string();
+    (!title.is_empty()).then_some(title)
+}
+
+/// The text of the field that has the keyboard focus, read with UI
+/// Automation, to see what the user corrected in a dictation (round 3B item
+/// 6). Never a password field; nothing is kept but the corrected names.
+pub fn focused_text() -> Option<String> {
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Accessibility::{
+        CUIAutomation, IUIAutomation, IUIAutomationTextPattern, IUIAutomationValuePattern, UIA_TextPatternId, UIA_ValuePatternId,
+    };
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+        let uia: IUIAutomation = CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).ok()?;
+        let element = uia.GetFocusedElement().ok()?;
+        if element.CurrentIsPassword().map(|b| b.as_bool()).unwrap_or(true) {
+            return None;
+        }
+        if let Ok(value) = element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId) {
+            if let Ok(text) = value.CurrentValue() {
+                return Some(text.to_string());
+            }
+        }
+        let text = element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId).ok()?;
+        let range = text.DocumentRange().ok()?;
+        Some(range.GetText(65_536).ok()?.to_string())
+    }
+}
+
 /// Apps with a visible window, for "Add an app" in Styles.
 pub fn running_apps() -> Vec<(String, String)> {
     unsafe extern "system" fn each(hwnd: HWND, lparam: LPARAM) -> windows::core::BOOL {

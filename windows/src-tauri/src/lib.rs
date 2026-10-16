@@ -1235,6 +1235,7 @@ pub fn run() {
             flow::flow_stats,
             flow::flow_words,
             flow::flow_set_words,
+            flow::speech_cloud_services,
             flow::flow_snippets,
             flow::flow_set_snippets,
             flow::flow_styles,

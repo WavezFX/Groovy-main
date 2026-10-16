@@ -222,6 +222,16 @@ fn class_of(conn: &RustConnection, window: u32) -> Option<(String, String)> {
 }
 
 /// The app in front: (id, name). None on Wayland, where only the desktop knows.
+/// The foreground window's title, for the clean-up (Windows only for now).
+pub fn foreground_title() -> Option<String> {
+    None
+}
+
+/// The focused field's text, to learn from corrections (Windows only for now).
+pub fn focused_text() -> Option<String> {
+    None
+}
+
 pub fn foreground_app() -> Option<(String, String)> {
     if is_wayland() {
         return None;

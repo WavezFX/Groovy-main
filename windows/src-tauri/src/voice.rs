@@ -192,6 +192,13 @@ static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 
 /// Transcribes up to 30 s of 16 kHz audio, on the calling thread: for
 /// dictation and notes when Whisper is chosen over Parakeet (speech/mod.rs).
+/// The dictation vocabulary Whisper is prompted with (Flow's dictionary).
+static VOCABULARY: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+pub fn set_vocabulary(words: &[String]) {
+    *VOCABULARY.lock().unwrap() = words.to_vec();
+}
+
 pub fn transcribe_blocking(model: &str, language: Option<&str>, pcm: &[f32]) -> Result<String, String> {
     run(model, language, pcm, false)
 }
@@ -236,8 +243,9 @@ fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<S
     params.set_print_realtime(false);
     params.set_print_timestamps(false);
     params.set_suppress_blank(true);
-    // The name, so Whisper spells it right.
-    params.set_initial_prompt("Hey Groovy.");
+    // The name, so Whisper spells it right, then the user's vocabulary (round 3B item 6).
+    let prompt = crate::flow::vocab::whisper_prompt(&VOCABULARY.lock().unwrap());
+    params.set_initial_prompt(&prompt);
     params.set_single_segment(wake);
     let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
     params.set_n_threads(threads.clamp(1, 8) as i32);

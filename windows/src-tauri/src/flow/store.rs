@@ -106,6 +106,11 @@ pub struct Prefs {
     pub voice_output: String,
     /// The ElevenLabs voice: "female" or "male".
     pub voice_gender: String,
+    /// Cloud speech-to-text first when a key is there (speech/cloud.rs), the
+    /// PC's engine after; off: only the PC's engine (round 3B item 6).
+    pub cloud_speech: bool,
+    /// Learn names and models from what is corrected within a minute of a dictation.
+    pub learn_words: bool,
 }
 
 impl Default for Prefs {
@@ -124,6 +129,8 @@ impl Default for Prefs {
             voice: false,
             voice_output: "system".into(),
             voice_gender: "female".into(),
+            cloud_speech: true,
+            learn_words: true,
         }
     }
 }

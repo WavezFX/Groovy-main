@@ -9,6 +9,7 @@
 
 pub mod audio;
 pub mod check;
+pub mod cloud;
 
 use std::io::Write;
 use std::path::PathBuf;

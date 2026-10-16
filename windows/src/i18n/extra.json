@@ -13689,6 +13689,105 @@
    "pt-BR": "Vou crescer quanto mais trabalharmos juntos.",
    "ru": "Чем дольше мы работаем вместе, тем больше я расту.",
    "id": "Aku akan tumbuh makin lama kita bekerja bersama."
+  },
+  "In use: {0}, then this computer.": {
+   "zh-Hans": "正在使用：{0}，然后是这台电脑。",
+   "hi": "उपयोग में: {0}, फिर यह कंप्यूटर।",
+   "es": "En uso: {0} y, después, este ordenador.",
+   "ar": "قيد الاستخدام: {0}، ثم هذا الكمبيوتر.",
+   "fr": "Utilisé : {0}, puis cet ordinateur.",
+   "bn": "ব্যবহৃত হচ্ছে: {0}, তারপর এই কম্পিউটার।",
+   "pt-BR": "Em uso: {0} e depois este computador.",
+   "ru": "Используется: {0}, затем этот компьютер.",
+   "id": "Dipakai: {0}, lalu komputer ini."
+  },
+  "No key yet: this computer's engine does it all.": {
+   "zh-Hans": "还没有密钥：全部由这台电脑的引擎完成。",
+   "hi": "अभी कोई कुंजी नहीं: सब कुछ इसी कंप्यूटर का इंजन करता है।",
+   "es": "Aún no hay clave: el motor de este ordenador lo hace todo.",
+   "ar": "لا يوجد مفتاح بعد: محرك هذا الكمبيوتر يتولى كل شيء.",
+   "fr": "Pas encore de clé : le moteur de cet ordinateur fait tout.",
+   "bn": "এখনও কোনো কী নেই: সব কাজ এই কম্পিউটারের ইঞ্জিন করে।",
+   "pt-BR": "Ainda sem chave: o mecanismo deste computador faz tudo.",
+   "ru": "Ключа пока нет: всё делает движок этого компьютера.",
+   "id": "Belum ada kunci: mesin komputer ini mengerjakan semuanya."
+  },
+  "Cloud speech first": {
+   "zh-Hans": "优先使用云端语音识别",
+   "hi": "पहले क्लाउड स्पीच",
+   "es": "Voz en la nube primero",
+   "ar": "تحويل الكلام في السحابة أولًا",
+   "fr": "Reconnaissance dans le cloud d'abord",
+   "bn": "আগে ক্লাউড স্পিচ",
+   "pt-BR": "Voz na nuvem primeiro",
+   "ru": "Сначала облачное распознавание",
+   "id": "Ucapan cloud lebih dulu"
+  },
+  "With a Deepgram, OpenAI, ElevenLabs or Google AI key, dictation goes to that service first: it hears names and model numbers better. This computer's engine takes over without a key or a network.": {
+   "zh-Hans": "有 Deepgram、OpenAI、ElevenLabs 或 Google AI 密钥时，听写会先交给该服务：它更能听准名称和型号。没有密钥或网络时，由这台电脑的引擎接手。",
+   "hi": "Deepgram, OpenAI, ElevenLabs या Google AI कुंजी होने पर डिक्टेशन पहले उसी सेवा को जाता है: वह नाम और मॉडल नंबर बेहतर सुनती है। कुंजी या नेटवर्क न होने पर इस कंप्यूटर का इंजन काम संभालता है।",
+   "es": "Con una clave de Deepgram, OpenAI, ElevenLabs o Google AI, el dictado va primero a ese servicio: entiende mejor los nombres y los números de modelo. Sin clave o sin red, se encarga el motor de este ordenador.",
+   "ar": "مع مفتاح Deepgram أو OpenAI أو ElevenLabs أو Google AI، يذهب الإملاء إلى تلك الخدمة أولًا: فهي تسمع الأسماء وأرقام الطرازات بشكل أفضل. ويتولى محرك هذا الكمبيوتر الأمر عند عدم وجود مفتاح أو شبكة.",
+   "fr": "Avec une clé Deepgram, OpenAI, ElevenLabs ou Google AI, la dictée passe d'abord par ce service : il entend mieux les noms et les numéros de modèle. Sans clé ni réseau, le moteur de cet ordinateur prend le relais.",
+   "bn": "Deepgram, OpenAI, ElevenLabs বা Google AI কী থাকলে ডিক্টেশন আগে সেই সেবায় যায়: সেটি নাম ও মডেল নম্বর ভালো শোনে। কী বা নেটওয়ার্ক না থাকলে এই কম্পিউটারের ইঞ্জিন কাজ করে।",
+   "pt-BR": "Com uma chave da Deepgram, OpenAI, ElevenLabs ou Google AI, o ditado vai primeiro para esse serviço: ele entende melhor nomes e números de modelo. Sem chave ou sem rede, o mecanismo deste computador assume.",
+   "ru": "С ключом Deepgram, OpenAI, ElevenLabs или Google AI диктовка сначала уходит в этот сервис: он лучше слышит названия и номера моделей. Без ключа или сети работает движок этого компьютера.",
+   "id": "Dengan kunci Deepgram, OpenAI, ElevenLabs, atau Google AI, dikte dikirim dulu ke layanan itu: ia lebih tepat mendengar nama dan nomor model. Tanpa kunci atau jaringan, mesin komputer ini mengambil alih."
+  },
+  "Deepgram key": {
+   "zh-Hans": "Deepgram 密钥",
+   "hi": "Deepgram कुंजी",
+   "es": "Clave de Deepgram",
+   "ar": "مفتاح Deepgram",
+   "fr": "Clé Deepgram",
+   "bn": "Deepgram কী",
+   "pt-BR": "Chave da Deepgram",
+   "ru": "Ключ Deepgram",
+   "id": "Kunci Deepgram"
+  },
+  "Learn names from my corrections": {
+   "zh-Hans": "从我的更正中学习名称",
+   "hi": "मेरे सुधारों से नाम सीखें",
+   "es": "Aprender nombres de mis correcciones",
+   "ar": "تعلّم الأسماء من تصحيحاتي",
+   "fr": "Apprendre les noms de mes corrections",
+   "bn": "আমার সংশোধন থেকে নাম শিখুন",
+   "pt-BR": "Aprender nomes com minhas correções",
+   "ru": "Запоминать названия из моих исправлений",
+   "id": "Pelajari nama dari koreksi saya"
+  },
+  "Words you fix within a minute of dictating (a brand, a model, a name) join the Dictionary, and every engine is told them.": {
+   "zh-Hans": "听写后一分钟内你改正的词（品牌、型号、名字）会加入词典，并告诉每个引擎。",
+   "hi": "डिक्टेशन के एक मिनट के भीतर आप जो शब्द ठीक करते हैं (ब्रांड, मॉडल, नाम) वे शब्दकोश में जुड़ जाते हैं, और हर इंजन को बताए जाते हैं।",
+   "es": "Las palabras que corriges en el minuto siguiente al dictado (una marca, un modelo, un nombre) se añaden al Diccionario y se les dicen a todos los motores.",
+   "ar": "الكلمات التي تصححها خلال دقيقة من الإملاء (علامة تجارية أو طراز أو اسم) تُضاف إلى القاموس، ويُبلَّغ بها كل محرك.",
+   "fr": "Les mots que vous corrigez dans la minute qui suit une dictée (une marque, un modèle, un nom) rejoignent le Dictionnaire, et chaque moteur les connaît.",
+   "bn": "ডিক্টেশনের এক মিনিটের মধ্যে আপনি যে শব্দ ঠিক করেন (ব্র্যান্ড, মডেল, নাম) সেগুলো অভিধানে যোগ হয়, আর প্রতিটি ইঞ্জিনকে জানানো হয়।",
+   "pt-BR": "As palavras que você corrige até um minuto depois do ditado (uma marca, um modelo, um nome) entram no Dicionário, e todos os mecanismos passam a conhecê-las.",
+   "ru": "Слова, которые вы исправляете в течение минуты после диктовки (бренд, модель, имя), попадают в Словарь, и о них узнаёт каждый движок.",
+   "id": "Kata yang Anda perbaiki dalam semenit setelah dikte (merek, model, nama) masuk ke Kamus, dan setiap mesin diberi tahu."
+  },
+  "With a key, the recording goes to that service only, to be turned into text, then is dropped. Without one, it never leaves this computer.": {
+   "zh-Hans": "有密钥时，录音只发送到该服务转成文字，然后删除。没有密钥时，它绝不会离开这台电脑。",
+   "hi": "कुंजी होने पर रिकॉर्डिंग केवल उसी सेवा को टेक्स्ट में बदलने के लिए जाती है, फिर हटा दी जाती है। कुंजी न होने पर यह इस कंप्यूटर से बाहर नहीं जाती।",
+   "es": "Con una clave, la grabación va solo a ese servicio para pasarla a texto y después se descarta. Sin clave, nunca sale de este ordenador.",
+   "ar": "مع وجود مفتاح، يذهب التسجيل إلى تلك الخدمة فقط ليُحوَّل إلى نص، ثم يُحذف. ومن دون مفتاح، لا يغادر هذا الكمبيوتر أبدًا.",
+   "fr": "Avec une clé, l'enregistrement va à ce seul service pour être mis en texte, puis est supprimé. Sans clé, il ne quitte jamais cet ordinateur.",
+   "bn": "কী থাকলে রেকর্ডিং কেবল সেই সেবায় যায় লেখায় রূপান্তরের জন্য, তারপর মুছে ফেলা হয়। কী না থাকলে এটি কখনো এই কম্পিউটার ছাড়ে না।",
+   "pt-BR": "Com uma chave, a gravação vai só para esse serviço para virar texto e depois é descartada. Sem chave, ela nunca sai deste computador.",
+   "ru": "С ключом запись отправляется только в этот сервис, чтобы превратиться в текст, и затем удаляется. Без ключа она не покидает этот компьютер.",
+   "id": "Dengan kunci, rekaman hanya dikirim ke layanan itu untuk diubah menjadi teks, lalu dihapus. Tanpa kunci, rekaman tidak pernah keluar dari komputer ini."
+  },
+  "{0} saved": {
+   "zh-Hans": "{0} 已保存",
+   "hi": "{0} सहेजी गई",
+   "es": "{0} guardada",
+   "ar": "تم حفظ {0}",
+   "fr": "{0} enregistrée",
+   "bn": "{0} সংরক্ষিত",
+   "pt-BR": "{0} salva",
+   "ru": "{0} сохранён",
+   "id": "{0} tersimpan"
   }
  }
 }
