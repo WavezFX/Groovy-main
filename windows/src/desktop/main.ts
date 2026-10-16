@@ -41,7 +41,7 @@ class DesktopMochi {
   private mode: DesktopMode = "off";
 
   private snap: DesktopSnapshot = {
-    state: "idle", outfit: "none", look: DEFAULT_SKIN, layers: [], appearance: DEFAULT_APPEARANCE,
+    state: "idle", outfit: "none", look: DEFAULT_SKIN, stage: 0, layers: [], appearance: DEFAULT_APPEARANCE,
     soundEnabled: true, soundVolume: 0.12, paused: false, dancing: false,
   };
 
@@ -129,6 +129,7 @@ class DesktopMochi {
       this.engine.setState(this.snap.state, true);
       this.engine.setOutfit(this.snap.outfit, false);
       this.engine.setSkin(parseSkin(this.snap.look), false);
+      this.engine.setStage(this.snap.stage ?? 0, false);
       this.engine.layers = this.snap.layers ?? [];
       this.engine.appearance = this.snap.appearance ?? null;
       this.schedule();
@@ -209,6 +210,7 @@ class DesktopMochi {
     const engine = this.engine;
     engine.setOutfit(this.snap.outfit, true);
     engine.setSkin(parseSkin(this.snap.look), true);
+    engine.setStage(this.snap.stage ?? 0, true);
     engine.layers = this.snap.layers ?? [];
     engine.appearance = this.snap.appearance ?? null;
     if (!this.asleep) {

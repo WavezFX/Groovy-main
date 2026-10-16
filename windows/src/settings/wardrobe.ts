@@ -10,7 +10,8 @@ import { clear, h } from "../views/dom";
 import { BotEngine } from "../mochi/engine";
 import { drawWardrobeIcon } from "../mochi/outfits";
 import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
-import { SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
+import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
+import { parseGrowth, progressLine, showStage, shownStage } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
@@ -65,6 +66,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const dressPreview = () => {
     const worn = wornOf(prefs.appearance.layers);
     engine.setSkin(parseSkin(settings.groovyLook), true);
+    engine.setStage(shownStage(parseGrowth(settings.growth)), true);
     engine.setOutfit(worn[0] ?? "none", true);
     engine.layers = worn.slice(1);
     engine.appearance = prefs.appearance;
@@ -98,6 +100,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
 
   // ── Looks ──
   const looks = h("div", { class: "studio-grid" });
+  // How far he has grown, and which stage reached to show (round 3 item 6).
+  const growthRow = h("div", { class: "row studio-growth" });
   // ── Head, Face, Neck ──
   const slots = h("div", { class: "stack" });
   const colours = h("div", { class: "stack" });
@@ -136,6 +140,19 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   function drawLooks() {
     clear(looks);
     const current = parseSkin(settings.groovyLook);
+    const g = parseGrowth(settings.growth);
+    const shown = shownStage(g);
+    const pick = h("select", { "aria-label": t("Show stage") }) as HTMLSelectElement;
+    for (let i = 0; i <= g.reached; i++) pick.append(h("option", { value: String(i), text: i === g.reached ? t("Stage {n} (now)", { n: i }) : t("Stage {n}", { n: i }) }));
+    pick.value = String(shown);
+    pick.addEventListener("change", () => {
+      settings.growth = showStage(parseGrowth(settings.growth), Number(pick.value));
+      void Bridge.saveGrowth(settings.growth);
+      engine.setStage(shownStage(parseGrowth(settings.growth)), true);
+      drawAll();
+    });
+    growthRow.replaceChildren(h("span", { class: "hint", text: progressLine(g) }));
+    if (g.reached > 0) growthRow.append(h("label", { text: t("Show stage") }), pick);
     for (const look of SKINS) {
       if (!matches(look, SKIN_KEYS[look])) continue;
       const portrait = h("canvas") as HTMLCanvasElement;
@@ -149,9 +166,11 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         const e = new BotEngine();
         e.setSkin(look, false);
+        e.setStage(shown, false);
+        e.lite = true;
         e.draw(ctx, 34, 34);
       }
-      const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), star(look)) as HTMLButtonElement;
+      const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), h("span", { class: "hint", text: t("grows into {name}", { name: t(GROWS_INTO[look]) }) }), star(look)) as HTMLButtonElement;
       b.addEventListener("click", () => {
         settings.groovyLook = look;
         save();
@@ -326,6 +345,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         h("div", { class: "row" }, search, favToggle),
         h("div", { class: "subhead", text: t("Look") }),
         looks,
+        growthRow,
         h("div", { class: "row" }, h("div", { class: "subhead", style: "flex:1", text: t("Wardrobe") }), removeAll),
         slots,
         h("div", { class: "subhead", text: t("Colours") }),

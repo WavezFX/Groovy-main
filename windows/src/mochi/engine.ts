@@ -9,7 +9,7 @@ import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
 import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
-import { DEFAULT_SKIN, SKIN_STYLES, drawAlmondEye, drawSkinBody, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
+import { DEFAULT_SKIN, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -216,15 +216,27 @@ export class BotEngine {
   layers: Outfit[] = [];
   /** The user's colours over the look (the main Groovy only). */
   appearance: Appearance | null = null;
-  private styleCache: { skin: Skin; appearance: Appearance | null; style: SkinStyle } | null = null;
+  /** How far the look has grown, 0–5 (growth.ts; FIXES_ROUND3 item 6). */
+  stage = 0;
+  /** Fewer particles and calmer motion (Lightweight profile, small portraits). */
+  lite = false;
+  private styleCache: { skin: Skin; stage: number; appearance: Appearance | null; style: SkinStyle } | null = null;
 
-  /** The look's style with the user's colours. */
+  /** The look at its stage, with the user's colours. */
   get style(): SkinStyle {
     const c = this.styleCache;
-    if (c && c.skin === this.skin && c.appearance === this.appearance) return c.style;
-    const style = styleWith(SKIN_STYLES[this.skin], this.isMini ? null : this.appearance);
-    this.styleCache = { skin: this.skin, appearance: this.appearance, style };
+    if (c && c.skin === this.skin && c.stage === this.stage && c.appearance === this.appearance) return c.style;
+    const style = styleWith(styleAt(this.skin, this.stage), this.isMini ? null : this.appearance);
+    this.styleCache = { skin: this.skin, stage: this.stage, appearance: this.appearance, style };
     return style;
+  }
+
+  /** Shows the look at another stage, with a little squash when animated. */
+  setStage(next: number, animated = true) {
+    const stage = Math.max(0, Math.min(5, Math.round(next)));
+    if (stage === this.stage) return;
+    this.stage = stage;
+    if (animated) this.squash();
   }
 
   // Spring lag of the soft parts (pompoms, hat tips, scarf end), −1…1.
@@ -838,6 +850,7 @@ export class BotEngine {
       hatless: dressed ? 1 - Math.min(1, this.outfitPresence) : 1,
       shown: Math.max(0, 1 - this.morph * 2),
       time: now(),
+      lite: this.lite,
     };
     if (head) {
       drawOutfitBehind(x, this.outfit, head, outfitState);
@@ -845,6 +858,7 @@ export class BotEngine {
     }
 
     const body = this.bodyPath(rx, ry, R);
+    if (skinHead) drawSkinBehind(x, this.style, skinHead, skinState);
     this.drawBody(x, body, R, rx, ry);
     if (skinHead) drawSkinBody(x, this.style, body, skinHead, skinState);
 

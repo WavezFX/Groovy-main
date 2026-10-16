@@ -9,6 +9,7 @@ import { currentTiles, isMailNotification } from "./core/tiles";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { migrateSettingsOutfit } from "./mochi/appearance";
+import { mergeGrowth, migrateGrownLook, startGrowthClock } from "./mochi/growth";
 import { registerHookHandlers } from "./island/hooks";
 import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
@@ -51,7 +52,18 @@ async function main() {
     State.settings = { ...State.settings, ...boot.settings };
     // Round 3: the old single outfit becomes a Head/Face/Neck layer, once.
     if (migrateSettingsOutfit(State.settings)) void Bridge.saveSettings(State.settings);
+    // Grove, Blaze and Tide are now Night, Ember and Frost fully grown, once.
+    if (migrateGrownLook(State.settings)) void Bridge.saveSettings(State.settings);
   }
+  // Groovy's look grows with the time he runs here (round 3 item 6).
+  startGrowthClock(
+    () => State.settings.growth,
+    (g, grew) => {
+      State.settings.growth = g;
+      if (grew) State.notify();
+    },
+    (g) => void Bridge.saveGrowth(g),
+  );
   // A language change redraws the island in place: the texts given as tl(…)
   // relabel themselves (views/dom.ts) and the views redraw the rest on this
   // sync. Nothing is rebuilt, so tasks, steps and the chat stay as they are.
@@ -140,7 +152,8 @@ async function main() {
   // The settings window writes preferences; apply them here without a restart.
   await onEvent<Settings>("settings-changed", (s) => {
     const previousMain = State.mainPillId;
-    State.settings = { ...State.settings, ...s };
+    const growth = mergeGrowth(State.settings.growth, s.growth);
+    State.settings = { ...State.settings, ...s, growth };
     applyLanguage();
     island.applySettings();
     State.loadIntegrationTasks();

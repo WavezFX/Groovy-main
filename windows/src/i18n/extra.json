@@ -13568,6 +13568,116 @@
    "pt-BR": "Remover tudo",
    "ru": "Снять всё",
    "id": "Lepas semua"
+  },
+  "Stage {n} of {max}": {
+   "zh-Hans": "第 {n} 阶段，共 {max} 阶段",
+   "hi": "चरण {n} / {max}",
+   "es": "Etapa {n} de {max}",
+   "ar": "المرحلة {n} من {max}",
+   "fr": "Étape {n} sur {max}",
+   "bn": "ধাপ {n} / {max}",
+   "pt-BR": "Estágio {n} de {max}",
+   "ru": "Этап {n} из {max}",
+   "id": "Tahap {n} dari {max}"
+  },
+  "fully grown": {
+   "zh-Hans": "已完全长成",
+   "hi": "पूरी तरह बड़ा हो गया",
+   "es": "ya ha crecido del todo",
+   "ar": "اكتمل نموه",
+   "fr": "il a fini de grandir",
+   "bn": "পুরোপুরি বড় হয়ে গেছে",
+   "pt-BR": "já cresceu por completo",
+   "ru": "полностью вырос",
+   "id": "sudah tumbuh penuh"
+  },
+  "next in less than an hour": {
+   "zh-Hans": "不到一小时后进入下一阶段",
+   "hi": "अगला चरण एक घंटे से कम में",
+   "es": "la siguiente en menos de una hora",
+   "ar": "التالية بعد أقل من ساعة",
+   "fr": "la suivante dans moins d'une heure",
+   "bn": "পরেরটি এক ঘণ্টার কম সময়ে",
+   "pt-BR": "o próximo em menos de uma hora",
+   "ru": "следующий меньше чем через час",
+   "id": "berikutnya kurang dari satu jam lagi"
+  },
+  "next in about an hour": {
+   "zh-Hans": "大约一小时后进入下一阶段",
+   "hi": "अगला चरण लगभग एक घंटे में",
+   "es": "la siguiente en una hora más o menos",
+   "ar": "التالية بعد ساعة تقريبًا",
+   "fr": "la suivante dans une heure environ",
+   "bn": "পরেরটি প্রায় এক ঘণ্টায়",
+   "pt-BR": "o próximo em cerca de uma hora",
+   "ru": "следующий примерно через час",
+   "id": "berikutnya sekitar satu jam lagi"
+  },
+  "next in about {n} hours": {
+   "zh-Hans": "大约 {n} 小时后进入下一阶段",
+   "hi": "अगला चरण लगभग {n} घंटे में",
+   "es": "la siguiente en unas {n} horas",
+   "ar": "التالية بعد {n} ساعة تقريبًا",
+   "fr": "la suivante dans {n} heures environ",
+   "bn": "পরেরটি প্রায় {n} ঘণ্টায়",
+   "pt-BR": "o próximo em cerca de {n} horas",
+   "ru": "следующий примерно через {n} ч",
+   "id": "berikutnya sekitar {n} jam lagi"
+  },
+  "next in about {n} days": {
+   "zh-Hans": "大约 {n} 天后进入下一阶段",
+   "hi": "अगला चरण लगभग {n} दिन में",
+   "es": "la siguiente en unos {n} días",
+   "ar": "التالية بعد {n} أيام تقريبًا",
+   "fr": "la suivante dans {n} jours environ",
+   "bn": "পরেরটি প্রায় {n} দিনে",
+   "pt-BR": "o próximo em cerca de {n} dias",
+   "ru": "следующий примерно через {n} дн.",
+   "id": "berikutnya sekitar {n} hari lagi"
+  },
+  "Show stage": {
+   "zh-Hans": "显示阶段",
+   "hi": "चरण दिखाएँ",
+   "es": "Mostrar etapa",
+   "ar": "عرض المرحلة",
+   "fr": "Étape affichée",
+   "bn": "ধাপ দেখান",
+   "pt-BR": "Mostrar estágio",
+   "ru": "Показать этап",
+   "id": "Tampilkan tahap"
+  },
+  "Stage {n} (now)": {
+   "zh-Hans": "第 {n} 阶段（当前）",
+   "hi": "चरण {n} (अभी)",
+   "es": "Etapa {n} (ahora)",
+   "ar": "المرحلة {n} (الآن)",
+   "fr": "Étape {n} (actuelle)",
+   "bn": "ধাপ {n} (এখন)",
+   "pt-BR": "Estágio {n} (agora)",
+   "ru": "Этап {n} (сейчас)",
+   "id": "Tahap {n} (sekarang)"
+  },
+  "Stage {n}": {
+   "zh-Hans": "第 {n} 阶段",
+   "hi": "चरण {n}",
+   "es": "Etapa {n}",
+   "ar": "المرحلة {n}",
+   "fr": "Étape {n}",
+   "bn": "ধাপ {n}",
+   "pt-BR": "Estágio {n}",
+   "ru": "Этап {n}",
+   "id": "Tahap {n}"
+  },
+  "grows into {name}": {
+   "zh-Hans": "会长成 {name}",
+   "hi": "बड़ा होकर {name} बनता है",
+   "es": "crece hasta ser {name}",
+   "ar": "ينمو ليصبح {name}",
+   "fr": "devient {name} en grandissant",
+   "bn": "বড় হয়ে {name} হয়",
+   "pt-BR": "cresce até virar {name}",
+   "ru": "вырастает в {name}",
+   "id": "tumbuh menjadi {name}"
   }
  }
 }

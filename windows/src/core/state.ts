@@ -256,6 +256,8 @@ export interface Settings {
   islandStyle: "glass" | "solid";
   /** Settings → Voice → While listening, show: "badge" (default) or "strip". */
   listeningView: "badge" | "strip";
+  /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
+  growth: unknown;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -306,6 +308,7 @@ export const DEFAULT_SETTINGS: Settings = {
   closeOnLeaveOffered: false,
   islandStyle: "glass",
   listeningView: "badge",
+  growth: {},
 };
 
 type Listener = () => void;

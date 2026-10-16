@@ -19,6 +19,8 @@ export interface DesktopSnapshot {
   outfit: Outfit;
   /** Groovy's look (try-ons included). */
   look: Skin;
+  /** How far the look has grown, 0–5 (mochi/growth.ts). */
+  stage: number;
   /** Accessories worn with the outfit, and his colours (mochi/appearance.ts). */
   layers: Outfit[];
   appearance: Appearance;

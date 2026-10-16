@@ -130,6 +130,9 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_relay = current.phone_relay;
         settings.phone_relay_url = current.phone_relay_url.clone();
         settings.phone_chat_models = current.phone_chat_models.clone();
+        // Two windows hold a copy: growth only ever moves forward, and the
+        // stage shown is save_growth's to change.
+        settings.growth = settings::merge_growth(&settings.growth, &current.growth);
         *current = settings;
         (screen_changed, autostart_changed, shortcuts_changed)
     };
@@ -203,6 +206,22 @@ fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width:
     if !platform::CURSOR_POLL {
         island::refresh_click_through(&app, &shared.gate);
     }
+}
+
+/// The island's growth clock (round 3 item 6): only this field, merged so it
+/// never goes back, without redrawing every window (no settings-changed). The
+/// Control Centre hears it as growth-changed for its look cards.
+#[tauri::command]
+fn save_growth(app: AppHandle, shared: State<Shared>, growth: serde_json::Value) {
+    let settings = {
+        let mut s = shared.settings.lock().unwrap();
+        s.growth = settings::merge_growth(&s.growth, &growth);
+        s.clone()
+    };
+    if let Err(err) = settings::save(&settings) {
+        log::line(format!("could not save settings: {err}"));
+    }
+    let _ = app.emit("growth-changed", settings.growth);
 }
 
 /// The island page asks for the window to be the island's size (round 3 §8 B).
@@ -1007,6 +1026,7 @@ pub fn run() {
             set_collapsed,
             set_island_rect,
             fit_island,
+            save_growth,
             glass::island_glass,
             focus_window,
             reposition,

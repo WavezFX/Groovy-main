@@ -150,6 +150,10 @@ pub struct Settings {
     pub island_style: String,
     /// Settings → Voice → While listening, show: "badge" (default) or "strip".
     pub listening_view: String,
+    /// How far Groovy's look has grown: active seconds, the stage reached and
+    /// the stage shown (round 3 item 6). The page owns its shape
+    /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
+    pub growth: Value,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -240,6 +244,7 @@ impl Default for Settings {
             close_on_leave_offered: false,
             island_style: "glass".into(),
             listening_view: "badge".into(),
+            growth: Value::Object(Map::new()),
         }
     }
 }
@@ -288,6 +293,22 @@ fn note(message: String) {
     crate::log::line(message);
     #[cfg(test)]
     eprintln!("{message}");
+}
+
+/// The furthest of two growth records (round 3 item 6): the most active
+/// seconds and the highest stage reached win, so a window with an older copy
+/// never makes Groovy smaller; the stage shown is the newer one's, kept within
+/// what was reached. Anything unreadable counts as nothing.
+pub fn merge_growth(old: &Value, new: &Value) -> Value {
+    let seconds = |v: &Value| v.get("activeSeconds").and_then(Value::as_f64).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
+    let stage = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).filter(|s| *s <= 5);
+    let reached = stage(old, "reached").unwrap_or(0).max(stage(new, "reached").unwrap_or(0));
+    let shown = stage(new, "shown").filter(|s| *s <= reached);
+    serde_json::json!({
+        "activeSeconds": seconds(old).max(seconds(new)),
+        "reached": reached,
+        "shown": shown,
+    })
 }
 
 /// The settings held in the bytes of a settings.json, or `None` when there is
@@ -577,7 +598,8 @@ mod tests {
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
   "closeOnLeaveOffered": true,
   "islandStyle": "solid",
-  "listeningView": "strip"
+  "listeningView": "strip",
+  "growth": { "activeSeconds": 90000, "reached": 1, "shown": null }
 }"##;
 
     fn custom() -> Value {
@@ -685,6 +707,24 @@ mod tests {
         let mut expected = custom();
         expected["model"] = json!(crate::claude::DEFAULT_MODEL);
         assert_eq!(loaded, expected);
+    }
+
+    #[test]
+    fn growth_never_goes_back_whichever_window_saves() {
+        let old = serde_json::json!({ "activeSeconds": 700000.0, "reached": 3, "shown": 2 });
+        let stale = serde_json::json!({ "activeSeconds": 1000.0, "reached": 0, "shown": null });
+        let merged = merge_growth(&old, &stale);
+        assert_eq!(merged["activeSeconds"], 700000.0);
+        assert_eq!(merged["reached"], 3);
+        assert_eq!(merged["shown"], Value::Null);
+        // A newer record moves it on, and a stage not reached cannot be shown.
+        let newer = serde_json::json!({ "activeSeconds": 800000.0, "reached": 4, "shown": 5 });
+        let merged = merge_growth(&old, &newer);
+        assert_eq!((merged["activeSeconds"].as_f64(), merged["reached"].as_u64()), (Some(800000.0), Some(4)));
+        assert_eq!(merged["shown"], Value::Null);
+        // Junk is nothing, never a crash.
+        let merged = merge_growth(&serde_json::json!("x"), &serde_json::json!({ "activeSeconds": -5, "reached": 9 }));
+        assert_eq!(merged, serde_json::json!({ "activeSeconds": 0.0, "reached": 0, "shown": null }));
     }
 
     #[test]
@@ -1128,6 +1168,7 @@ mod tests {
                 "closeOnLeaveOffered",
                 "islandStyle",
                 "listeningView",
+                "growth",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

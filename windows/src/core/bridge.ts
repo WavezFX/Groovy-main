@@ -403,6 +403,8 @@ export const Bridge = {
    */
   setIslandRect: (x: number, y: number, width: number, height: number, radius: number) =>
     call<void>("set_island_rect", { x, y, width, height, radius }),
+  /** The growth clock's record only (mochi/growth.ts); Rust keeps the furthest. */
+  saveGrowth: (growth: unknown) => call<void>("save_growth", { growth }),
   /** The window is sized to the island (round 3 §8 B): grown before it grows, shrunk after. */
   fitIsland: (width: number, height: number) => call<void>("fit_island", { width, height }),
   /** The island is glass now (Windows' Acrylic behind it), or solid. */

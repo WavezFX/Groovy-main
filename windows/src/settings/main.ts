@@ -20,6 +20,7 @@ import {
 } from "../core/pills";
 import { currentTiles, withServices } from "../core/tiles";
 import { migrateSettingsOutfit } from "../mochi/appearance";
+import { migrateGrownLook } from "../mochi/growth";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
 import { FLOW_PAGE_RENDERERS } from "../hub/pages";
@@ -1359,6 +1360,10 @@ async function main() {
   });
 
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
+  // The island's growth clock saves on its own (save_growth): keep this copy level.
+  void onEvent<unknown>("growth-changed", (g) => {
+    settings.growth = g;
+  });
   void onEvent<Settings>("settings-changed", (s) => {
     const before = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;
     settings = { ...settings, ...s };
@@ -1411,6 +1416,8 @@ async function render() {
   settings = { ...settings, ...sanitizeDeclared(settings) };
   // Round 3: an old single outfit becomes a Head/Face/Neck layer (as the island does).
   migrateSettingsOutfit(settings);
+  // Grove, Blaze and Tide are now their base look fully grown (round 3 item 6).
+  if (migrateGrownLook(settings)) void Bridge.saveSettings(settings);
   const connected: Record<string, boolean> = { ...((await Bridge.agentHooksStatus()) ?? {}) };
   for (const def of availablePills()) {
     if (def.connect.kind === "key") {

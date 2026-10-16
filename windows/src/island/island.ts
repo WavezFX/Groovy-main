@@ -1,6 +1,7 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
+import { parseGrowth, shownStage } from "../mochi/growth";
 import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onEvent, type TaskItem } from "../core/bridge";
@@ -1344,6 +1345,9 @@ export class Island {
     this.engine.layers = showOutfit ? worn.slice(1) : [];
     this.engine.appearance = appearance;
     this.engine.setSkin(State.lookPreview ?? parseSkin(State.settings.groovyLook), !inWardrobe);
+    this.engine.setStage(shownStage(parseGrowth(State.settings.growth)), !inWardrobe);
+    // Fewer particles and calmer motion when asked to, and in the small island.
+    this.engine.lite = State.settings.assistant.performanceProfile === "lightweight" || State.mode !== "expanded";
     // Dances while music plays: always in the compact island, expanded only on
     // the music pill's card (BotCanvasView, macOS). Asked every frame.
     this.engine.setDancing(islandDances({
