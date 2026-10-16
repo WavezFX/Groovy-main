@@ -5,7 +5,7 @@ import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
 import { Bridge, onEvent } from "../../core/bridge";
-import { FlowBridge, type OkTestStep, type VoiceOutput } from "../../core/flow";
+import { FlowBridge, type FlowPrefs, type OkTestStep, type VoiceOutput } from "../../core/flow";
 import type { HubContext } from "../shell";
 import { button, card, divider, label, row, segmented, toggle } from "../ui";
 import { modelsControl } from "./flowsettings";
@@ -15,22 +15,27 @@ const ELEVEN = "elevenlabs-api-key";
 const KEY_STORE = navigator.userAgent.includes("Windows") ? "Windows Credential Manager" : "Secret Service (GNOME Keyring, KWallet)";
 
 function elevenKey(): HTMLElement {
+  return keyBox(ELEVEN, t("ElevenLabs key"));
+}
+
+/** A key saved in the OS store, or a field to paste one: never shown back. */
+function keyBox(secret: string, placeholder: string, onChange?: () => void): HTMLElement {
   const box = h("div", { style: "display:flex;align-items:center;gap:8px" });
   const draw = async () => {
-    const present = (await Bridge.secretPresent(ELEVEN)) ?? false;
+    const present = (await Bridge.secretPresent(secret)) ?? false;
     clear(box);
     if (present) {
       box.append(
         h("span", { class: "hub-note", style: "color:var(--hub-green)", text: `✓ ${t("Key saved in the {store}.", { store: KEY_STORE })}` }),
-        button(t("Remove"), () => void Bridge.secretClear(ELEVEN).then(draw), "", true),
+        button(t("Remove"), () => void Bridge.secretClear(secret).then(draw).then(() => onChange?.()), "", true),
       );
       return;
     }
-    const input = h("input", { class: "hub-input", type: "password", placeholder: t("ElevenLabs key"), autocomplete: "off", spellcheck: "false", style: "width:220px" }) as HTMLInputElement;
+    const input = h("input", { class: "hub-input", type: "password", placeholder, autocomplete: "off", spellcheck: "false", style: "width:220px" }) as HTMLInputElement;
     const save = button(t("Save key"), () => {
       const value = input.value.trim();
       if (!value) return;
-      void Bridge.secretSet(ELEVEN, value).then(draw, () => input.classList.add("err"));
+      void Bridge.secretSet(secret, value).then(draw, () => input.classList.add("err")).then(() => onChange?.());
     }, "primary", true);
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") save.click();
@@ -86,6 +91,71 @@ function checkCard(): HTMLElement {
   return card(list, divider(), row(t("Test OK Groovy"), t("Shows each step of the next « OK Groovy »."), test), steps, hint);
 }
 
+const FISH = "fish-audio-api-key";
+
+/**
+ * Groovy's own voice (round 3B item 8c): Fish Audio with the user's key and a
+ * voice id, first whenever it is set up; Kokoro, offline, after it.
+ */
+function groovyVoiceCard(ctx: HubContext, prefs: FlowPrefs): HTMLElement {
+  const body = card();
+  const status = h("div", { class: "hub-note" });
+  const kokoroBox = h("div", { style: "display:flex;align-items:center;gap:8px" });
+  const usage = h("span", { class: "hub-note" });
+  const voiceId = h("input", { class: "hub-input", placeholder: t("Voice ID from fish.audio"), spellcheck: "false", style: "width:240px", value: prefs.fishVoice }) as HTMLInputElement;
+  voiceId.addEventListener("change", () => void ctx.setPrefs((p) => (p.fishVoice = voiceId.value.trim())).then(draw));
+  const model = h("select", { class: "hub-input" }) as HTMLSelectElement;
+  const testOut = h("span", { class: "hub-note" });
+  const test = button(t("Test voice"), () => {
+    testOut.textContent = "…";
+    FlowBridge.fishTest().then(
+      (a) => {
+        testOut.textContent = "";
+        void new Audio(`data:${a.mime};base64,${a.data}`).play();
+      },
+      (err: unknown) => (testOut.textContent = String(err)),
+    );
+  }, "", true);
+  async function draw() {
+    const s = await FlowBridge.ttsStatus();
+    if (!s) return;
+    if (model.options.length === 0) {
+      for (const m of s.fishModels) model.append(h("option", { value: m, text: m }));
+      model.value = s.fishModels.includes(prefs.fishModel) ? prefs.fishModel : s.fishModels[0];
+    }
+    const who = s.speaking === "fish" ? "Fish Audio" : s.speaking === "kokoro" ? "Kokoro" : t("the voice chosen below");
+    status.textContent = s.fishNote ?? t("Groovy speaks with {who}.", { who });
+    status.className = s.fishNote ? "hub-warn" : "hub-note";
+    usage.textContent = s.fishKey ? t("About £{gbp} this month ({chars} characters sent)", { gbp: s.monthGbp.toFixed(2), chars: String(s.monthChars) }) : "";
+    clear(kokoroBox);
+    const k = s.kokoro;
+    if (k.state === "ready") {
+      kokoroBox.append(h("span", { class: "hub-note", style: "color:var(--hub-green)", text: `✓ ${t("Downloaded")}` }), button(t("Remove"), () => void FlowBridge.kokoroRemove(), "", true));
+    } else if (k.state === "downloading") {
+      kokoroBox.append(h("span", { class: "hub-note", text: t("Downloading… {pct}%", { pct: String(Math.round(k.fraction * 100)) }) }));
+    } else {
+      if (k.state === "failed") kokoroBox.append(h("span", { class: "hub-warn", text: k.error }));
+      kokoroBox.append(button(t("Download ({mb} MB)", { mb: String(s.kokoroMb) }), () => void FlowBridge.kokoroDownload(), "primary", true));
+    }
+  }
+  model.addEventListener("change", () => void ctx.setPrefs((p) => (p.fishModel = model.value)));
+  void onEvent<null>("tts-status-changed", () => void draw());
+  body.append(
+    status,
+    divider(),
+    row(t("Fish Audio key"), t("Your own key, kept in the {store}. Fish Audio bills by text length; its terms apply.", { store: KEY_STORE }), keyBox(FISH, t("Fish Audio key"), () => void draw())),
+    divider(),
+    row(t("Voice ID"), t("The model ID on the voice's page at fish.audio."), voiceId),
+    divider(),
+    row(t("Model"), null, model, test),
+    h("div", { style: "display:flex;justify-content:space-between;gap:8px" }, testOut, usage),
+    divider(),
+    row(t("Kokoro, on your computer"), t("Groovy's offline voice: used when Fish Audio isn't set up or doesn't answer. Downloaded only when you ask."), kokoroBox),
+  );
+  void draw();
+  return body;
+}
+
 export async function voicePage(page: HTMLElement, ctx: HubContext) {
   const status = await ctx.refresh();
   const prefs = status.prefs;
@@ -109,6 +179,8 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
   page.append(label(t("Check")));
   page.append(checkCard());
 
+  page.append(label(t("Groovy's voice")));
+  page.append(groovyVoiceCard(ctx, prefs));
   page.append(label(t("Answers")));
   const outputs: [VoiceOutput, string][] = [["system", t("System voice")], ["elevenlabs", "ElevenLabs"], ["off", t("Text only")]];
   const answers = card(

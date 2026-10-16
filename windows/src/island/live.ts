@@ -53,8 +53,9 @@ interface Say {
   id: number;
   text: string;
   lang: string | null;
-  /** ElevenLabs' MP3, base64. */
+  /** Groovy's voice (Fish Audio's MP3 or Kokoro's WAV) or ElevenLabs' MP3, base64. */
   audio: string | null;
+  mime?: string | null;
   gender: "female" | "male";
 }
 
@@ -98,9 +99,9 @@ async function sayWithSystem(text: string, lang: string | null, gender: string):
   await FlowBridge.sayNative(text, lang);
 }
 
-async function sayMp3(base64: string): Promise<boolean> {
+async function sayAudio(base64: string, mime = "audio/mpeg"): Promise<boolean> {
   try {
-    const audio = new Audio(`data:audio/mpeg;base64,${base64}`);
+    const audio = new Audio(`data:${mime};base64,${base64}`);
     await audio.play();
     await new Promise<void>((resolve) => {
       audio.onended = () => resolve();
@@ -116,7 +117,7 @@ async function say(s: Say) {
   speaking = true;
   State.notify();
   try {
-    if (!(s.audio && (await sayMp3(s.audio)))) await sayWithSystem(s.text, s.lang, s.gender);
+    if (!(s.audio && (await sayAudio(s.audio, s.mime ?? undefined)))) await sayWithSystem(s.text, s.lang, s.gender);
   } finally {
     speaking = false;
     State.notify();

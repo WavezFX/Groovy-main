@@ -6,7 +6,7 @@ import { showError } from "../views/toast";
 
 const QUIET = new Set([
   "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
-  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status",
+  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_audio", "tts_status",
 ]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -48,6 +48,9 @@ export interface FlowPrefs {
   voice: boolean;
   voiceOutput: VoiceOutput;
   voiceGender: "female" | "male";
+  /** Fish Audio's voice id (its `reference_id`) and model; the key is in the OS store. */
+  fishVoice: string;
+  fishModel: string;
   /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
   cloudSpeech: boolean;
   /** Learn names and models from corrections made within a minute. */
@@ -200,6 +203,32 @@ export interface VoiceView {
 
 export type VoiceOutput = "system" | "elevenlabs" | "off";
 
+export interface TtsAudio {
+  mime: string;
+  /** Base64. */
+  data: string;
+  provider: "fish" | "kokoro";
+}
+
+export type DownloadState =
+  | { state: "missing" }
+  | { state: "downloading"; fraction: number }
+  | { state: "ready" }
+  | { state: "failed"; error: string };
+
+export interface TtsStatus {
+  fishReady: boolean;
+  fishKey: boolean;
+  fishNote: string | null;
+  fishModels: string[];
+  monthChars: number;
+  monthGbp: number;
+  kokoro: DownloadState;
+  kokoroMb: number;
+  /** Who speaks now. */
+  speaking: "fish" | "kokoro" | "system";
+}
+
 export interface OkStatus {
   on: boolean;
   listening: boolean;
@@ -253,6 +282,13 @@ export const FlowBridge = {
   liveNotices: () => call<Notice[]>("live_notices"),
   liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
   /** The island has said what « OK Groovy » answered. */
+  /** Groovy's voice for one sentence (Fish Audio, then Kokoro); null: the page's own voice says it. */
+  ttsAudio: (text: string) => call<TtsAudio>("tts_audio", { text }),
+  ttsStatus: () => call<TtsStatus>("tts_status"),
+  /** Fish Audio alone, so its own error shows; throws why it couldn't. */
+  fishTest: () => callOrThrow<TtsAudio>("fish_test"),
+  kokoroDownload: () => call<void>("kokoro_download"),
+  kokoroRemove: () => call<void>("kokoro_remove"),
   /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
   okStatus: () => call<OkStatus>("okgroovy_status"),
   /** Reports each step of the next « OK Groovy » ("okgroovy-test" events); throws why it can't. */

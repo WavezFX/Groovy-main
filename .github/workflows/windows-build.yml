@@ -206,6 +206,14 @@ jobs:
           cargo test --workspace 2>&1 | Tee-Object -FilePath rust-tests.txt
           exit $LASTEXITCODE
 
+      # Groovy's offline voice (round 3B item 8c): Kokoro downloaded as
+      # Settings would, then a sentence spoken through the same path.
+      - name: Kokoro speaks
+        shell: pwsh
+        run: |
+          cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
+          exit $LASTEXITCODE
+
       # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):
       # add a local skill, list it, remove it with a backup.
       - name: Skills CLI end-to-end

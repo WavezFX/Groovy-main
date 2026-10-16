@@ -106,6 +106,10 @@ pub struct Prefs {
     pub voice_output: String,
     /// The ElevenLabs voice: "female" or "male".
     pub voice_gender: String,
+    /// Fish Audio (round 3B item 8c): the voice's id from its page on
+    /// fish.audio (`reference_id`), and the model. The key is in the OS store.
+    pub fish_voice: String,
+    pub fish_model: String,
     /// Cloud speech-to-text first when a key is there (speech/cloud.rs), the
     /// PC's engine after; off: only the PC's engine (round 3B item 6).
     pub cloud_speech: bool,
@@ -129,6 +133,8 @@ impl Default for Prefs {
             voice: false,
             voice_output: "system".into(),
             voice_gender: "female".into(),
+            fish_voice: String::new(),
+            fish_model: "s2-pro".into(),
             cloud_speech: true,
             learn_words: true,
         }

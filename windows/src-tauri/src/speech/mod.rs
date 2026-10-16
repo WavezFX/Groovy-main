@@ -10,6 +10,8 @@
 pub mod audio;
 pub mod check;
 pub mod cloud;
+mod kokoro_files;
+pub mod tts;
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -263,54 +265,70 @@ pub fn download(app: AppHandle) {
 async fn download_all(app: &AppHandle) -> Result<(), String> {
     let total = PARAKEET.total_size() + DIARIZER.total_size();
     let mut done: u64 = 0;
-    let client = reqwest::Client::builder()
+    let client = download_client()?;
+    let mut last_emit = Instant::now();
+    for set in [&PARAKEET, &DIARIZER] {
+        fetch_set(&client, set, &mut done, &mut |got| {
+            if last_emit.elapsed() > Duration::from_millis(250) {
+                last_emit = Instant::now();
+                downloads().lock().unwrap().fraction = got as f64 / total as f64;
+                emit_status(app);
+            }
+        })
+        .await?;
+    }
+    Ok(())
+}
+
+fn download_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
         .read_timeout(Duration::from_secs(60))
         .user_agent(concat!("Groovy/", env!("CARGO_PKG_VERSION")))
         .build()
-        .map_err(|e| e.to_string())?;
-    let mut last_emit = Instant::now();
-    for set in [&PARAKEET, &DIARIZER] {
-        let dir = set.dir();
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        for file in set.files {
-            let path = dir.join(file.name);
-            if std::fs::metadata(&path).map(|m| m.len() == file.size).unwrap_or(false) {
-                done += file.size;
-                continue;
-            }
-            let part = dir.join(format!("{}.part", file.name));
-            let mut response = client.get(file.url).send().await.map_err(|e| e.to_string())?;
-            if !response.status().is_success() {
-                return Err(format!("{} — HTTP {}", file.name, response.status().as_u16()));
-            }
-            let mut out = std::fs::File::create(&part).map_err(|e| e.to_string())?;
-            let mut hash = ring::digest::Context::new(&ring::digest::SHA256);
-            let mut got: u64 = 0;
-            while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-                out.write_all(&chunk).map_err(|e| e.to_string())?;
-                hash.update(&chunk);
-                got += chunk.len() as u64;
-                if got > file.size {
-                    break;
-                }
-                if last_emit.elapsed() > Duration::from_millis(250) {
-                    last_emit = Instant::now();
-                    downloads().lock().unwrap().fraction = (done + got) as f64 / total as f64;
-                    emit_status(app);
-                }
-            }
-            out.flush().map_err(|e| e.to_string())?;
-            drop(out);
-            let digest = hash.finish();
-            let hex: String = digest.as_ref().iter().map(|b| format!("{b:02x}")).collect();
-            if got != file.size || hex != file.sha256 {
-                let _ = std::fs::remove_file(&part);
-                return Err(format!("{}: the file that came in is not the expected one", file.name));
-            }
-            std::fs::rename(&part, &path).map_err(|e| e.to_string())?;
-            done += file.size;
+        .map_err(|e| e.to_string())
+}
+
+/// Downloads a set's missing files, each checked against its size and
+/// SHA-256 before it takes its name. `done` counts bytes across sets.
+async fn fetch_set(client: &reqwest::Client, set: &ModelSet, done: &mut u64, progress: &mut (dyn FnMut(u64) + Send)) -> Result<(), String> {
+    let dir = set.dir();
+    for file in set.files {
+        let path = dir.join(file.name);
+        if std::fs::metadata(&path).map(|m| m.len() == file.size).unwrap_or(false) {
+            *done += file.size;
+            continue;
         }
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        let part = path.with_file_name(format!("{}.part", path.file_name().unwrap_or_default().to_string_lossy()));
+        let mut response = client.get(file.url).send().await.map_err(|e| e.to_string())?;
+        if !response.status().is_success() {
+            return Err(format!("{} — HTTP {}", file.name, response.status().as_u16()));
+        }
+        let mut out = std::fs::File::create(&part).map_err(|e| e.to_string())?;
+        let mut hash = ring::digest::Context::new(&ring::digest::SHA256);
+        let mut got: u64 = 0;
+        while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+            out.write_all(&chunk).map_err(|e| e.to_string())?;
+            hash.update(&chunk);
+            got += chunk.len() as u64;
+            if got > file.size {
+                break;
+            }
+            progress(*done + got);
+        }
+        out.flush().map_err(|e| e.to_string())?;
+        drop(out);
+        let digest = hash.finish();
+        let hex: String = digest.as_ref().iter().map(|b| format!("{b:02x}")).collect();
+        if got != file.size || hex != file.sha256 {
+            let _ = std::fs::remove_file(&part);
+            return Err(format!("{}: the file that came in is not the expected one", file.name));
+        }
+        std::fs::rename(&part, &path).map_err(|e| e.to_string())?;
+        *done += file.size;
     }
     Ok(())
 }

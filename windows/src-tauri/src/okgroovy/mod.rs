@@ -366,8 +366,9 @@ struct Say {
     id: u64,
     text: String,
     lang: Option<&'static str>,
-    /// ElevenLabs' MP3, base64.
+    /// Groovy's voice (Fish Audio's MP3, Kokoro's WAV) or ElevenLabs' MP3, base64.
     audio: Option<String>,
+    mime: Option<&'static str>,
     gender: String,
 }
 
@@ -383,14 +384,71 @@ fn speak(app: &AppHandle, text: &str) {
         std::thread::sleep(Duration::from_millis(1500));
         return;
     }
-    let audio = if output == "elevenlabs" { elevenlabs(text, &gender).map(|mp3| base64(&mp3)) } else { None };
+    // Groovy's voice (Fish Audio, then Kokoro) sentence by sentence: the
+    // next sentence is made while this one plays, so the first words come
+    // quickly (round 3B item 8c). Without either, the whole answer goes as
+    // before: ElevenLabs or the system voice in the island.
+    let sentences = split_sentences(text);
+    let (tx, rx) = mpsc::channel::<(String, Option<crate::speech::tts::Audio>)>();
+    let app2 = app.clone();
+    let first = crate::speech::tts::synthesize(app, &sentences[0]);
+    if first.is_none() {
+        let audio = if output == "elevenlabs" { elevenlabs(text, &gender).map(|mp3| base64(&mp3)) } else { None };
+        say_one(app, text, audio, Some("audio/mpeg"), &gender);
+        return;
+    }
+    let rest: Vec<String> = sentences[1..].to_vec();
+    let _ = tx.send((sentences[0].clone(), first));
+    std::thread::spawn(move || {
+        for s in rest {
+            let audio = crate::speech::tts::synthesize(&app2, &s);
+            if tx.send((s, audio)).is_err() {
+                return;
+            }
+        }
+    });
+    for (sentence, audio) in rx {
+        let (data, mime) = match audio {
+            Some(a) => (Some(base64(&a.bytes)), Some(a.mime)),
+            None => (None, None),
+        };
+        say_one(app, &sentence, data, mime, &gender);
+    }
+}
+
+/// Sends one piece to the island and waits until it has been said.
+fn say_one(app: &AppHandle, text: &str, audio: Option<String>, mime: Option<&'static str>, gender: &str) {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let (tx, rx) = mpsc::channel();
     pending().lock().unwrap().insert(id, tx);
-    let _ = app.emit_to(crate::island::WINDOW_LABEL, "voice-say", Say { id, text: text.into(), lang: wake::speech_lang(text), audio, gender });
+    let _ = app.emit_to(crate::island::WINDOW_LABEL, "voice-say", Say { id, text: text.into(), lang: wake::speech_lang(text), audio, mime, gender: gender.into() });
     let words = crate::flow::text::word_count(text) as u64;
     let _ = rx.recv_timeout(Duration::from_millis(4000 + words * 600));
     pending().lock().unwrap().remove(&id);
+}
+
+/// An answer cut after each sentence (never empty).
+pub fn split_sentences(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let chars: Vec<char> = text.chars().collect();
+    for (i, &c) in chars.iter().enumerate() {
+        cur.push(c);
+        let end = matches!(c, '.' | '!' | '?' | '。' | '！' | '？');
+        let next_space = chars.get(i + 1).is_none_or(|n| n.is_whitespace());
+        // "9.05" or "v1.0" are not the end of a sentence.
+        if end && next_space && cur.trim().chars().count() > 1 {
+            out.push(cur.trim().to_string());
+            cur.clear();
+        }
+    }
+    if !cur.trim().is_empty() {
+        out.push(cur.trim().to_string());
+    }
+    if out.is_empty() {
+        out.push(text.trim().to_string());
+    }
+    out
 }
 
 /// The island says it has finished speaking (`id`), or the island answers a question.
@@ -479,7 +537,7 @@ pub fn pick_voice(voices: &[Value], gender: &str) -> Option<String> {
     v["voice_id"].as_str().map(String::from)
 }
 
-fn base64(bytes: &[u8]) -> String {
+pub(crate) fn base64(bytes: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
@@ -653,6 +711,13 @@ fn find_app(wanted: &str) -> Option<(String, Box<dyn FnOnce()>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn answers_are_spoken_sentence_by_sentence() {
+        assert_eq!(split_sentences("It's 9.05 now. Shall I set a timer? Done!"), vec!["It's 9.05 now.", "Shall I set a timer?", "Done!"]);
+        assert_eq!(split_sentences("No full stop"), vec!["No full stop"]);
+        assert_eq!(split_sentences(""), vec![""]);
+    }
 
     #[test]
     fn base64_matches_the_standard() {

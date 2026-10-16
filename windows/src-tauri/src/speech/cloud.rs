@@ -80,6 +80,11 @@ pub fn available() -> Vec<Service> {
 
 /// 16 kHz mono samples as a 16-bit PCM WAV file.
 pub fn wav(samples: &[f32]) -> Vec<u8> {
+    wav_at(samples, 16_000)
+}
+
+/// Mono samples at `rate` as a 16-bit PCM WAV file.
+pub fn wav_at(samples: &[f32], rate: u32) -> Vec<u8> {
     let data_len = (samples.len() * 2) as u32;
     let mut out = Vec::with_capacity(44 + data_len as usize);
     out.extend_from_slice(b"RIFF");
@@ -88,8 +93,8 @@ pub fn wav(samples: &[f32]) -> Vec<u8> {
     out.extend_from_slice(&16u32.to_le_bytes());
     out.extend_from_slice(&1u16.to_le_bytes());
     out.extend_from_slice(&1u16.to_le_bytes());
-    out.extend_from_slice(&16_000u32.to_le_bytes());
-    out.extend_from_slice(&32_000u32.to_le_bytes());
+    out.extend_from_slice(&rate.to_le_bytes());
+    out.extend_from_slice(&(rate * 2).to_le_bytes());
     out.extend_from_slice(&2u16.to_le_bytes());
     out.extend_from_slice(&16u16.to_le_bytes());
     out.extend_from_slice(b"data");
