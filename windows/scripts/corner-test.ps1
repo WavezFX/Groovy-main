@@ -39,6 +39,23 @@ public static class CornerWin {
   [DllImport("user32.dll")] public static extern int GetWindowRgn(IntPtr hwnd, IntPtr rgn);
   [DllImport("gdi32.dll")] public static extern int GetRgnBox(IntPtr rgn, out RECT r);
   [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr o);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int cmd);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr hwnd, StringBuilder s, int n);
+  /// Minimises every other visible window (the runner's console sat behind
+  /// the island and filled its corners), leaving the desktop and taskbar.
+  public static int MinimizeOthers(uint pid) {
+    int n = 0;
+    EnumWindows((h, l) => {
+      uint p; GetWindowThreadProcessId(h, out p);
+      if (p == pid || !IsWindowVisible(h)) return true;
+      var cls = new StringBuilder(256); GetClassName(h, cls, 256);
+      var c = cls.ToString();
+      if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" || c == "Shell_SecondaryTrayWnd") return true;
+      if (ShowWindow(h, 6)) n++;
+      return true;
+    }, IntPtr.Zero);
+    return n;
+  }
   public static IntPtr Island = IntPtr.Zero;
   /// The island window's region, as "kind l,t,r,b" (kind 0: none, 1: empty, 2: a rectangle, 3: complex).
   public static string RegionOf(IntPtr hwnd) {
@@ -80,9 +97,15 @@ $failed = 0
 foreach ($view in $Views) {
   Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 1
+  [CornerWin]::MinimizeOthers(0) | Out-Null
   $env:GROOVY_SMOKE_VIEW = $view
   $proc = Start-Process -FilePath $Exe -PassThru
   Start-Sleep -Seconds $WaitSeconds
+  # Only the desktop may be behind the island: whatever else is open (the
+  # runner's console) would fill the corners and hide the magenta.
+  $hidden = [CornerWin]::MinimizeOthers([uint32]$proc.Id)
+  Start-Sleep -Seconds 1
+  Write-Host "  ${view}: minimised $hidden other window(s)"
   $rects = [CornerWin]::Windows([uint32]$proc.Id)
   if ($rects.Count -eq 0) {
     Write-Host "  [FAIL] ${view}: no island window on screen"
