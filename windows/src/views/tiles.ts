@@ -5,7 +5,7 @@
 
 import { Bridge } from "../core/bridge";
 import type { IslandViewName } from "../core/layout";
-import { pillDefinition } from "../core/pills";
+import { isAgentTask, pillDefinition } from "../core/pills";
 import { Spotify } from "../core/spotify";
 import { State } from "../core/state";
 import { currentTiles, type Tile } from "../core/tiles";
@@ -134,7 +134,13 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         color: "#E07950",
         title: t("Agents"),
         sub: busy ? t("{n} at work", { n: busy }) : t("Claude Code, Codex…"),
-        open: () => setView("overview"),
+        open: () => {
+          // The busiest agent first: the one asking, then the one working.
+          const agents = State.tasks.filter(isAgentTask);
+          const pick = agents.find((x) => x.pillBadge === "approval") ?? agents.find((x) => x.state !== "idle") ?? agents[0];
+          if (pick) State.focusId = pick.id;
+          setView("overview");
+        },
       };
     }
     case "reminders":

@@ -8,7 +8,8 @@ import { h, svg, clear, dot } from "./dom";
 import { ICONS } from "./icons";
 import { State, type AgentTask } from "../core/state";
 import { Bridge } from "../core/bridge";
-import { isComingSoon, pillDefinition } from "../core/pills";
+import { KEY_PAGES, isComingSoon, pillDefinition } from "../core/pills";
+import { showError } from "./toast";
 import { refreshHookPills } from "../island/integrations";
 import { readActivity, readPulse, readStats } from "../core/github";
 import { githubDetail, githubPulseCard } from "./github";
@@ -139,6 +140,16 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
         onclick: () => void (hookPill ? refreshHookPills() : Bridge.refreshIntegration(task.id)),
       }),
     );
+  } else if (!configured && def?.connect.kind === "key") {
+    // Missing its key: the field is right here, with where to get one (round 3 §8 D).
+    return h(
+      "div",
+      { class: "int-card" },
+      header(task.color, task.name, t(def.subtitle)),
+      h("div", { class: "int-status" }, dot(status.color, 5), h("span", { text: status.label })),
+      keyForm(task.id, task.name, def.connect.key),
+      actions,
+    );
   } else if (!configured) {
     actions.append(
       h("button", { class: "link-btn", style: "color:#8e939c", text: t("Settings…"), onclick: openSettings }),
@@ -156,6 +167,35 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
     h("div", { class: "int-status" }, dot(status.color, 5), h("span", { text: status.label })),
     actions,
   );
+}
+
+/** The key field, Save, and "Get a key ↗": one tap from "Key not configured". */
+function keyForm(id: string, name: string, key: string): HTMLElement {
+  const input = h("input", { type: "password", class: "int-key-input", placeholder: t("{name} key", { name }), autocomplete: "off", spellcheck: "false" }) as HTMLInputElement;
+  const save = h("button", { class: "int-key-save", text: t("Save") }) as HTMLButtonElement;
+  const submit = () => {
+    const value = input.value.trim();
+    if (!value) return input.focus();
+    save.disabled = true;
+    void Bridge.secretSet(key, value).then(
+      () => {
+        input.value = "";
+        void Bridge.refreshIntegration(id).catch(showError);
+      },
+      (e) => {
+        save.disabled = false;
+        showError(e);
+      },
+    );
+  };
+  save.addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+  const row = h("div", { class: "int-key" }, input, save);
+  const page = KEY_PAGES[id];
+  if (page) row.append(h("button", { class: "link-btn int-key-get", text: t("Get a key ↗"), onclick: () => void Bridge.openUrl(page) }));
+  return row;
 }
 
 // ── Vercel ────────────────────────────────────────────────────────────────────

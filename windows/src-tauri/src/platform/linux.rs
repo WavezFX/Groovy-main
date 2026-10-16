@@ -520,6 +520,12 @@ fn start_pointer_watch() {
 /// multi-monitor Hyprland or Sway desktop the island wandered from one screen
 /// to the other every time it was remapped. A no-op for a regular window, which
 /// `set_position` already places.
+pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
+    let _ = win.set_resizable(true);
+    let _ = win.set_size(tauri::PhysicalSize::new(w, h));
+    let _ = win.set_position(tauri::PhysicalPosition::new(x, y));
+}
+
 pub fn pin_to_monitor(win: &WebviewWindow, x: i32, y: i32) {
     if !LAYER_SURFACE.load(Ordering::Relaxed) {
         return;

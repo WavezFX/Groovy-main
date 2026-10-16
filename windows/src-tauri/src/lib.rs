@@ -205,6 +205,12 @@ fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width:
     }
 }
 
+/// The island page asks for the window to be the island's size (round 3 §8 B).
+#[tauri::command]
+fn fit_island(app: AppHandle, width: f64, height: f64) {
+    island::fit(&app, width, height);
+}
+
 #[tauri::command]
 fn focus_window(app: AppHandle, focused: bool) {
     let Some(win) = island::window(&app) else { return };
@@ -1000,6 +1006,7 @@ pub fn run() {
             set_system_languages,
             set_collapsed,
             set_island_rect,
+            fit_island,
             glass::island_glass,
             focus_window,
             reposition,

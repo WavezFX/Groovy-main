@@ -7,12 +7,11 @@ import { ICONS } from "./icons";
 import { Ticker } from "./ticker";
 import { State, type AgentTask } from "../core/state";
 import { washRGBA, type IslandViewName, type Wash } from "../core/layout";
-import { createMiniBot, pruneMiniBots } from "../mochi/minibots";
 import { buildPrompt } from "./chat";
 import { buildChoose, buildUpload, buildUploading } from "./upload";
 import { renderIntegrationCard, type IntegrationCardHooks } from "./integrations";
 import { highlightRow, listRows, openRow } from "./github";
-import { pillDefinition, sessionSubtitle } from "../core/pills";
+import { isAgentTask, pillDefinition, sessionSubtitle } from "../core/pills";
 import {
   PlanCard, buildPlanPill, claudePillVisible, codexPillVisible, planCardOpen, refreshCodexPlanUsage,
 } from "./usage";
@@ -21,7 +20,7 @@ import { lastTextStep } from "../core/diff";
 import { Bridge } from "../core/bridge";
 import { buildRecap } from "./recap";
 import { buildWardrobe } from "./wardrobe";
-import { buildSpotifyCard, buildSpotifyPill, type SpotifyPillHost } from "./spotify";
+import { buildSpotifyCard } from "./spotify";
 import { SPOTIFY_ID } from "../core/spotify";
 import type { Accessory, Outfit } from "../mochi/wardrobe";
 import type { Slot } from "../mochi/appearance";
@@ -226,23 +225,24 @@ function buildOverview(actions: ViewActions): ViewHost {
     { class: "icon-btn jump", title: tl("Open"), onclick: () => actions.openTarget() },
     svg(ICONS.arrowUpRight, 8),
   );
-  const left = card(null, leftBody, jump);
-  const pills = h("div", { class: "pills" });
-  const right = card(null, pills);
-  // Opened from a plan pill in the header: stands in for the left card.
+  // Opened from a plan pill in the header: stands in for the tile's content.
   const plan = new PlanCard();
   let planTimer: number | null = null;
-  // Spotify's card and pill are kept and updated in place: the progress bar
-  // runs on, and a slider being dragged must not be rebuilt under the pointer.
+  // Spotify's card is kept and updated in place: the progress bar runs on,
+  // and a slider being dragged must not be rebuilt under the pointer.
   const spotifyCard = buildSpotifyCard();
-  let spotifyPill: SpotifyPillHost | null = null;
 
-  const el = h("div", { class: "view overview" },
-    h("div", { class: "left" }, left),
-    h("div", { class: "right" }, right),
+  // A tile's detail card (round 3 §8 A): ← back to Home, then what the tile
+  // knows and can do, in one glass card. Groovy and the old pill grid are gone.
+  const back = h("button", { class: "detail-back", title: tl("Back"), "aria-label": tl("Back"), onclick: () => { actions.blip(); actions.setView("home"); } },
+    svg(ICONS.chevronLeft, 9, { stroke: 2.4 }), h("span", { text: tl("Home") }));
+  // With an agent open, its fellow agents sit beside ← Home: one tap switches.
+  const chips = h("div", { class: "detail-chips" });
+  let chipKey = "";
+  const el = h("div", { class: "view overview detail-view" },
+    h("div", { class: "detail-card" }, h("div", { class: "detail-top" }, back, chips, jump), leftBody),
   );
 
-  let pillIds = "";
   let detailOpen = false;
   let lastFocus: string | null = null;
   let mode: "ticker" | "card" | "plan" | "diff" | "spotify" | null = null;
@@ -419,6 +419,19 @@ function buildOverview(actions: ViewActions): ViewHost {
 
       jump.style.display = detailOpen || mode === "plan" || mode === "diff" ? "none" : "";
 
+      const agents = task && isAgentTask(task) ? State.tasks.filter(isAgentTask) : [];
+      const key = agents.length > 1 ? agents.map((a) => `${a.id}:${a.color}:${a.state}:${a.id === task?.id}`).join("|") : "";
+      if (key !== chipKey) {
+        chipKey = key;
+        clear(chips);
+        if (key) {
+          for (const a of agents) {
+            chips.append(h("button", { class: a.id === task?.id ? "detail-chip on" : "detail-chip", onclick: () => actions.setFocus(a.id) },
+              dot(a.color, 6), h("span", { text: a.id === "integration_claude" ? pillDefinition(a.id)!.name : a.name })));
+          }
+        }
+      }
+
       // Ctrl+↓ Ctrl+↑ walk the open GitHub list (cardItemCount / cardSelection).
       const rows = mode === "card" ? listRows(leftBody) : [];
       State.cardItemCount = rows.length;
@@ -426,23 +439,6 @@ function buildOverview(actions: ViewActions): ViewHost {
       highlightRow(rows, State.cardSelection, State.cardSelection !== shownSelection);
       shownSelection = State.cardSelection;
 
-      const others = State.otherTasks.slice(0, 4);
-      const pillKey = others.map((t) => `${t.id}:${t.color}:${t.pillBadge ?? ""}`).join("|");
-      if (pillKey !== pillIds) {
-        pillIds = pillKey;
-        clear(pills);
-        spotifyPill = null;
-        for (const t of others) {
-          if (t.id === SPOTIFY_ID) {
-            spotifyPill = buildSpotifyPill(t, () => actions.setFocus(t.id));
-            pills.append(spotifyPill.el);
-          } else {
-            pills.append(buildPill(t, actions));
-          }
-        }
-        pruneMiniBots();
-      }
-      spotifyPill?.sync();
     },
   };
 }
@@ -455,52 +451,7 @@ export function hasSessionTicker(task: AgentTask): boolean {
   // A pill made for an agent's session (Gemini CLI, Codex… not declared) only
   // exists while that session does: it keeps the ticker from the first event.
   if (task.source === "agent" && !task.isIntegration) return true;
-  const category = pillDefinition(task.id)?.category;
-  const isSession = category === "workspace" || category === "agent" ||
-    (category == null && task.id.startsWith("agent_"));
-  return isSession && (task.state !== "idle" || task.steps.length > 0);
-}
-
-function buildPill(task: AgentTask, actions: ViewActions): HTMLElement {
-  const label = task.id === "integration_claude" ? pillDefinition(task.id)!.name : task.name;
-  const canvas = createMiniBot(task, 24);
-  const pill = h(
-    "div",
-    { class: "pill", onclick: () => actions.setFocus(task.id) },
-    canvas,
-    h("span", { class: "lbl", text: label }),
-  );
-  pill.style.borderColor = `${task.color}24`;
-  pill.addEventListener("mouseenter", () => {
-    pill.style.background = `${task.color}2e`;
-    pill.style.borderColor = `${task.color}8c`;
-    pill.style.boxShadow = `0 2px 10px ${task.color}59`;
-    (pill.querySelector(".lbl") as HTMLElement).style.color = lighten(task.color, 0.3);
-  });
-  pill.addEventListener("mouseleave", () => {
-    pill.style.background = "";
-    pill.style.borderColor = `${task.color}24`;
-    pill.style.boxShadow = "";
-    (pill.querySelector(".lbl") as HTMLElement).style.color = "";
-  });
-
-  if (task.pillBadge) {
-    const colors = { approval: "#F5A524", finished: "#22C55E", error: "#F4505E" } as const;
-    const icons = { approval: ICONS.bang, finished: ICONS.check, error: ICONS.xmark } as const;
-    const inner = h("i", { style: `background:${colors[task.pillBadge]}` }, svg(icons[task.pillBadge], 6, { stroke: task.pillBadge === "finished" ? 3 : 0 }));
-    const badge = h("div", { class: "pill-badge" }, inner);
-    badge.style.boxShadow = `0 0 4px ${colors[task.pillBadge]}99`;
-    pill.append(badge);
-  }
-  return pill;
-}
-
-function lighten(hex: string, amount: number): string {
-  const v = parseInt(hex.replace("#", ""), 16);
-  const c = [(v >> 16) & 255, (v >> 8) & 255, v & 255].map((x) =>
-    Math.min(255, Math.round(x + amount * 255)),
-  );
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
+  return isAgentTask(task) && (task.state !== "idle" || task.steps.length > 0);
 }
 
 // ── Empty ─────────────────────────────────────────────────────────────────────

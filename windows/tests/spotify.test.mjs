@@ -13,7 +13,7 @@ import {
 } from "../src/core/spotify.ts";
 import { BotEngine, danceTransform, stepDanceLevel } from "../src/mochi/engine.ts";
 import { registerSpotifyHandlers } from "../src/island/spotify.ts";
-import { buildSpotifyCard, buildSpotifyPill } from "../src/views/spotify.ts";
+import { buildSpotifyCard } from "../src/views/spotify.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
 import { lookup, setLanguage } from "../src/i18n/i18n.ts";
 
@@ -285,20 +285,3 @@ test("the playing card: title, artist · album, times, and the controls", () => 
   assert.ok(card.el.textContent.includes("Advertisement"));
 });
 
-test("the pill shows play/pause and next on hover, only with a track", () => {
-  const task = spotifyTask();
-  const pill = buildSpotifyPill(task, () => {});
-  pill.el.fire("mouseenter");
-  assert.ok(!pill.el.classList.contains("controls"), "nothing loaded: no controls");
-  Spotify.state = playing();
-  pill.sync();
-  assert.ok(pill.el.classList.contains("controls"));
-  const [playBtn] = pill.el.querySelector("np-pill-controls").children;
-  assert.equal(playBtn.title, "Pause");
-  const before = sent("spotify_control").length;
-  playBtn.fire("click");
-  assert.deepEqual(sent("spotify_control").slice(before), [{ action: "playPause", value: null }]);
-  assert.equal(Spotify.state.playing, false);
-  pill.el.fire("mouseleave");
-  assert.ok(!pill.el.classList.contains("controls"));
-});

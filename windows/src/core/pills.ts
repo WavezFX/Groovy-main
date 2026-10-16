@@ -251,3 +251,10 @@ export function orderPills<T extends { id: string }>(tasks: T[], mainPill: strin
     .sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i)
     .map(({ t }) => t);
 }
+
+/** An agent or workspace tool (Claude Code, Codex…), as opposed to a service. */
+export function isAgentTask(task: { id: string; source?: string; isIntegration?: boolean }): boolean {
+  if (task.source === "agent" && !task.isIntegration) return true;
+  const category = pillDefinition(task.id)?.category;
+  return category === "workspace" || category === "agent" || (category == null && task.id.startsWith("agent_"));
+}

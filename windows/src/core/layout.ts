@@ -75,7 +75,8 @@ export const WAKE_STRIP_W = 240;
 export const WAKE_STRIP_H = 6;
 
 export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
-  overview: { height: 160, botX: 68, botY: null, botDiameter: 58, agentMode: "pills" },
+  // A tile's detail card (round 3 §8 A): one glass card, no Groovy, no pill grid.
+  overview: { height: 204, botX: 0, botY: null, botDiameter: 0, agentMode: "none" },
   empty: { height: 160, botX: 70, botY: null, botDiameter: 62, agentMode: "none" },
   approval: { height: 160, botX: 62, botY: null, botDiameter: 56, agentMode: "column" },
   question: { height: 160, botX: 62, botY: null, botDiameter: 56, agentMode: "column" },
@@ -157,6 +158,8 @@ export function botPosition(
       return { cx: 40, cy: 16, diameter: 20, opacity: 1 };
     case "expanded": {
       const layout = VIEW_LAYOUTS[view];
+      // A view without Groovy: he fades where the compact island has him.
+      if (layout.botDiameter === 0) return { cx: 40, cy: 16, diameter: 20, opacity: 0 };
       if (view === "uploading") {
         return {
           cx: 36 + uploadProgress * 526,

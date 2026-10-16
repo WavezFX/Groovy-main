@@ -34,8 +34,8 @@ use ::windows::Win32::UI::Shell::{
 use ::windows::Win32::UI::WindowsAndMessaging::{
     EnumChildWindows, EnumWindows, GetClassNameW, GetCursorPos, GetWindow, GetWindowLongPtrW,
     GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, SetForegroundWindow,
-    SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, GW_OWNER, SW_RESTORE, SW_SHOWNORMAL, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW,
+    SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_EXSTYLE, GW_OWNER, SWP_NOACTIVATE, SWP_NOOWNERZORDER,
+    SWP_NOZORDER, SW_RESTORE, SW_SHOWNORMAL, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
 };
 
 use super::LocalTime;
@@ -393,6 +393,15 @@ pub fn set_pointer_watch(_active: bool) {}
 
 /// `set_position` already places a Win32 window on the right display.
 pub fn pin_to_monitor(_win: &WebviewWindow, _x: i32, _y: i32) {}
+
+/// Moves and sizes the window in one step (physical pixels), so the island,
+/// anchored at the top centre, never shows a frame at the wrong place.
+pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
+    let Some(hwnd) = hwnd_of(win) else { return };
+    unsafe {
+        let _ = SetWindowPos(hwnd, None, x, y, w as i32, h as i32, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+    }
+}
 
 // ── Session windows ("Open terminal") ─────────────────────────────────────────
 //

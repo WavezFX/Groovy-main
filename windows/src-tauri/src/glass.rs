@@ -4,7 +4,9 @@
 // no CPU or memory. The window is the fixed 720×320 panel, so a window region
 // clips it to the island's shape (square top, rounded bottom corners) and no
 // frosted rectangle shows around it; the region follows the island as it
-// opens and closes (set_island_rect).
+// opens and closes (set_island_rect). The window itself is sized to the
+// island too (island::fit), so even where Windows draws the glass over the
+// whole window there is no rectangle around the island.
 //
 // Solid (the black island) when the user chose it, when Windows' own
 // "Transparency effects" switch is off, or while battery saver is on: the
@@ -44,6 +46,11 @@ pub fn region(shape: (f64, f64, f64, f64, f64), scale: f64) -> Option<(i32, i32,
     Some((left, (y * scale).round() as i32 - 2 * radius, right + 1, bottom + 1, 2 * radius))
 }
 
+/// The left edge of an island `w` wide centred in a window `window_w` wide.
+pub fn centred_left(window_w: f64, w: f64) -> f64 {
+    ((window_w - w) / 2.0).max(0.0)
+}
+
 pub fn is_on() -> bool {
     ON.load(Ordering::Relaxed)
 }
@@ -77,10 +84,27 @@ pub fn shape(app: &AppHandle, x: f64, y: f64, w: f64, h: f64, radius: f64) {
     }
 }
 
+/// The window was resized: the glass is centred on it again.
+pub fn refit(app: &AppHandle) {
+    if !is_on() {
+        return;
+    }
+    if let Some(win) = app.get_webview_window(WINDOW_LABEL) {
+        reshape(&win);
+    }
+}
+
 fn reshape(win: &tauri::WebviewWindow) {
     if is_on() {
         let scale = win.scale_factor().unwrap_or(1.0);
-        os::set_region(win, region(*SHAPE.lock().unwrap(), scale));
+        let mut shape = *SHAPE.lock().unwrap();
+        // The island sits at the top centre of the window, whose size follows
+        // it (island::fit): centre it on the window as it is now, not as the
+        // page last measured it.
+        if let Ok(size) = win.inner_size() {
+            shape.0 = centred_left(size.width as f64 / scale, shape.2);
+        }
+        os::set_region(win, region(shape, scale));
     } else {
         os::clear_region(win);
     }
@@ -236,6 +260,14 @@ mod tests {
         assert_eq!(region((268.0, 0.0, 184.0, 0.0, 14.0), 1.0), None);
         assert_eq!(region((0.0, 0.0, 0.0, 30.0, 14.0), 1.0), None);
         assert_eq!(region((0.0, 0.0, 100.0, 30.0, 14.0), f64::NAN), None);
+    }
+
+    #[test]
+    fn the_island_is_centred_on_the_window_it_is_in() {
+        assert_eq!(centred_left(720.0, 640.0), 40.0);
+        assert_eq!(centred_left(640.0, 640.0), 0.0);
+        // A window not grown yet never puts the island left of its edge.
+        assert_eq!(centred_left(184.0, 640.0), 0.0);
     }
 
     #[test]

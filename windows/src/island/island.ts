@@ -827,8 +827,22 @@ export class Island {
     return { w, h, r };
   }
 
+  /** The window's size as last asked (island::fit). */
+  private fitted = { w: 0, h: 0 };
+
+  /** Sizes the window to `w`×`h`: the island and nothing around it (round 3 §8 B). */
+  private fitWindow(w: number, h: number) {
+    w = Math.ceil(w);
+    h = Math.ceil(h);
+    if (w === this.fitted.w && h === this.fitted.h) return;
+    this.fitted = { w, h };
+    void Bridge.fitIsland(w, h);
+  }
+
   private animateGeometry(shrinking: boolean) {
     const { w, h, r } = this.targetSize();
+    // Grown first to whichever is larger, now or after; shrunk when it settles (frame).
+    this.fitWindow(Math.max(w, this.width.value), Math.max(h, this.height.value));
     if (shrinking) {
       this.width.curveTowards(w);
       this.height.curveTowards(h);
@@ -1239,6 +1253,7 @@ export class Island {
         !this.botCx.settled || !this.botCy.settled || !this.botSize.settled ||
         greetingActive || this.engine.busy || UploadSeq.isActive || viewAnimating;
 
+    if (!settling) this.fitWindow(this.width.value, this.height.value);
     if (busy) {
       requestAnimationFrame(this.frame);
     } else {
@@ -1262,7 +1277,7 @@ export class Island {
     const visible = p.opacity > 0 && !greetingActive && !this.uploadActive && !away;
     this.botCanvas.style.opacity = visible ? "1" : "0";
 
-    if (State.mode === "expanded" && State.view !== "uploading" && !greetingActive && !this.uploadActive && !away) {
+    if (visible && State.mode === "expanded" && State.view !== "uploading") {
       const d = p.diameter;
       const color = botGlowColor(State.effectiveState);
       this.botGlow.style.display = "block";

@@ -392,19 +392,121 @@ body {
 
 /* ── Overview ───────────────────────────────────────────────────────────── */
 
-.overview {
-  display: flex;
-  gap: 10px;
+/* A tile's detail card (round 3 §8 A): ← Home, then the tile's own content. */
+.detail-view {
   height: 100%;
 }
-
-.overview > .left {
-  flex: 0 0 322px;
-  width: 322px;
+.detail-card {
+  position: relative;
+  height: 100%;
+  border-radius: 15px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-
-.overview > .right {
+.detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 8px 0 8px;
+  flex: 0 0 auto;
+}
+.detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px 0 7px;
+  border-radius: 11px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-2, #c9ccd2);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.detail-back:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.detail-top .jump {
+  position: static;
+}
+.detail-chips {
   flex: 1 1 auto;
+  display: flex;
+  gap: 4px;
+  margin: 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.detail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 11px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.detail-chip:hover,
+.detail-chip.on {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.detail-card > .left-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  overflow: auto;
+}
+.detail-card .int-card,
+.detail-card .card-body,
+.detail-card .np-card {
+  padding-left: 14px;
+}
+.int-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.int-key-input {
+  flex: 0 1 260px;
+  min-width: 0;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+}
+.int-key-save {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 0;
+  background: #fff;
+  color: #111;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.int-key-save:disabled {
+  opacity: 0.5;
 }
 
 .card-body {
@@ -3321,6 +3423,7 @@ body.glass #island {
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18), inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(255, 255, 255, 0.12);
 }
 body.glass .home-card,
+body.glass .detail-card,
 body.glass .card,
 body.glass .notify-card {
   background: rgba(255, 255, 255, 0.1);

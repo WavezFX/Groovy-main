@@ -282,6 +282,17 @@ mod display_tests {
     }
 
     #[test]
+    fn the_window_is_the_size_the_island_asked_for_within_the_panel() {
+        assert_eq!(fitted_size(None), (PANEL_W, PANEL_H));
+        assert_eq!(fitted_size(Some((184.4, 32.0))), (185.0, 32.0));
+        assert_eq!(fitted_size(Some((900.0, 500.0))), (PANEL_W, PANEL_H));
+        assert_eq!(fitted_size(Some((0.0, -3.0))), (1.0, 1.0));
+        assert_eq!(fitted_size(Some((f64::NAN, 30.0))), (PANEL_W, PANEL_H));
+        // A smaller window stays under the middle of where the panel would be.
+        assert_eq!(island_left(1920, 720, 185, 0.5), 600 + (720 - 185) / 2);
+    }
+
+    #[test]
     fn preferences_saved_before_still_match() {
         let lap = d("eDP-1", 0, 0, 1920, 1200);
         let ext = d("HDMI-1", 1920, 0, 1920, 1080);
@@ -370,26 +381,68 @@ pub fn island_left(screen_w: i32, panel_w: i32, window_w: i32, fraction: f64) ->
     (panel_left + (panel_w - window_w) / 2).clamp(0, (screen_w - window_w).max(0))
 }
 
-/// Places and sizes the window. `collapsed` picks the wake strip instead of the panel.
-pub fn apply_geometry(app: &AppHandle, pref: &str, collapsed: bool) {
-    let Some(win) = window(app) else { return };
-    let Some(m) = target_monitor(app, pref) else { return };
+/// The size the island page asked the window to be (logical px): the island
+/// itself, so nothing but the island is ever on screen or in the way of a
+/// click (round 3 §8 B). None until the page has said: the whole panel.
+static FIT: Mutex<Option<(f64, f64)>> = Mutex::new(None);
 
+/// The window's logical size when it is not the wake strip: what the page
+/// asked for, within the panel.
+pub fn fitted_size(fit: Option<(f64, f64)>) -> (f64, f64) {
+    match fit {
+        Some((w, h)) if w.is_finite() && h.is_finite() => (w.ceil().clamp(1.0, PANEL_W), h.ceil().clamp(1.0, PANEL_H)),
+        _ => (PANEL_W, PANEL_H),
+    }
+}
+
+/// Where the window goes and how big it is, in physical pixels.
+fn bounds(app: &AppHandle, m: &Monitor, collapsed: bool) -> (i32, i32, u32, u32) {
     let scale = m.scale_factor();
     let mp = *m.position();
     let ms = *m.size();
-
-    let (lw, lh) = if collapsed { (STRIP_W, STRIP_H) } else { (PANEL_W, PANEL_H) };
+    let (lw, lh) = if collapsed { (STRIP_W, STRIP_H) } else { fitted_size(*FIT.lock().unwrap()) };
     let pw = (lw * scale).round().max(1.0) as u32;
     let ph = (lh * scale).round().max(1.0) as u32;
-    // Along the top edge where the user dragged it (centre by default); the
-    // wake strip sits under the middle of where the panel would be.
+    // Along the top edge where the user dragged it (centre by default); a
+    // smaller window sits under the middle of where the panel would be.
     let fraction = app
         .try_state::<crate::Shared>()
         .map(|s| s.settings.lock().unwrap().island_x)
         .unwrap_or(0.5);
     let x = mp.x + island_left(ms.width as i32, (PANEL_W * scale).round() as i32, pw as i32, fraction);
-    let y = mp.y;
+    (x, mp.y, pw, ph)
+}
+
+/// The page asks for the window to be the island's size: grown before the
+/// island grows, shrunk after it has shrunk. Moved and sized in one step.
+pub fn fit(app: &AppHandle, width: f64, height: f64) {
+    let size = fitted_size(Some((width, height)));
+    {
+        let mut fit = FIT.lock().unwrap();
+        if *fit == Some(size) {
+            return;
+        }
+        *fit = Some(size);
+    }
+    let Some(shared) = app.try_state::<crate::Shared>() else { return };
+    if shared.gate.collapsed.load(Ordering::Relaxed) {
+        return;
+    }
+    let pref = shared.settings.lock().unwrap().screen.clone();
+    let (Some(win), Some(m)) = (window(app), target_monitor(app, &pref)) else { return };
+    let (x, y, w, h) = bounds(app, &m, false);
+    platform::set_bounds(&win, x, y, w, h);
+    crate::glass::refit(app);
+}
+
+/// Places and sizes the window. `collapsed` picks the wake strip instead of the island.
+pub fn apply_geometry(app: &AppHandle, pref: &str, collapsed: bool) {
+    let Some(win) = window(app) else { return };
+    let Some(m) = target_monitor(app, pref) else { return };
+
+    let scale = m.scale_factor();
+    let ms = *m.size();
+    let (x, y, pw, ph) = bounds(app, &m, collapsed);
 
     // GTK never sizes a non-resizable window below its natural size (200 px
     // here), so on Linux the 6 px wake strip would stay a 200 px block. tao
