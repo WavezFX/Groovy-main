@@ -126,7 +126,8 @@ Pills: {pills}",
 }
 
 impl Brain {
-    pub fn respond(&mut self, app: &AppHandle, transcript: &str) -> Option<Reply> {
+    /// The answer, or the AI's error when it did nothing (no AI, a limit, offline…).
+    pub fn respond(&mut self, app: &AppHandle, transcript: &str) -> Result<Reply, String> {
         if self.last.elapsed() > FORGET_AFTER {
             self.messages.clear();
         }
@@ -154,7 +155,7 @@ impl Brain {
                     if self.messages.last().is_some_and(|m| m["content"].is_string()) {
                         self.messages.pop();
                     }
-                    return acted.then(|| Reply { text: String::new(), acted });
+                    return if acted { Ok(Reply { text: String::new(), acted }) } else { Err(err) };
                 }
             };
             let content = turn["content"].as_array().cloned().unwrap_or_default();
@@ -181,7 +182,7 @@ impl Brain {
             spoken.clear();
         }
         self.repair();
-        Some(Reply { text: spoken_text(&spoken), acted })
+        Ok(Reply { text: spoken_text(&spoken), acted })
     }
 
     /// Keeps the last exchanges, never cutting between a tool call and its result.

@@ -26,7 +26,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 9. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
-- [ ] 1. "OK Groovy" is never silent; basic commands work without AI
+- [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [ ] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
 - [ ] 3. Live voice chat, like ChatGPT Voice
 - [ ] 4. DuckDuckGo browser

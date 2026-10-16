@@ -163,6 +163,26 @@ fn current_order(s: &Settings) -> Vec<Who> {
     v
 }
 
+/// Who answers first right now, by name: "Gemini", "Claude", "Local"…
+pub fn active_name() -> Option<&'static str> {
+    let app = app().ok()?;
+    current_order(&settings(app)).first().map(|w| match w {
+        Who::Local => "Local",
+        Who::Claude => "Claude",
+        Who::Cloud("google") => "Gemini",
+        Who::Cloud("openai") => "OpenAI",
+        Who::Cloud(_) => "OpenRouter",
+        Who::Cli("codex") => "Codex",
+        Who::Cli(_) => "Claude Code",
+    })
+}
+
+/// An error that says a free tier or plan ran out, or too many requests.
+pub fn is_limit(err: &str) -> bool {
+    let e = err.to_ascii_lowercase();
+    ["429", "rate limit", "rate_limit", "quota", "usage limit", "resource_exhausted", "too many requests", "limit reached"].iter().any(|w| e.contains(w))
+}
+
 /// Whether there is someone to answer at all.
 pub fn available() -> bool {
     let Ok(app) = app() else { return false };
@@ -492,6 +512,14 @@ pub fn from_openai(v: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_limit_is_told_apart_from_other_failures() {
+        assert!(is_limit("HTTP 429: Resource has been exhausted (e.g. check quota)."));
+        assert!(is_limit("Claude usage limit reached"));
+        assert!(!is_limit("invalid x-api-key"));
+        assert!(!is_limit("connection refused"));
+    }
 
     #[test]
     fn web_search_is_dropped_for_local_models() {

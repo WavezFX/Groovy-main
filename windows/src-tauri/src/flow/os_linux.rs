@@ -177,6 +177,11 @@ pub fn wait_modifiers_released() {
 
 /// Ctrl+V (Ctrl+Shift+V for a terminal) in the app in front: through XTest on
 /// X11, through the RemoteDesktop portal on Wayland.
+/// The media and volume keys are Windows' here.
+pub fn send_keys(_keys: &[u16]) -> Result<(), String> {
+    Err("not on this system".into())
+}
+
 pub fn send_paste(shift: bool) -> Result<(), String> {
     if is_wayland() {
         return super::wayland::send_paste(shift);

@@ -12,6 +12,7 @@
 // It stops listening while you dictate, while a call is recorded and while it
 // speaks itself.
 
+pub mod basic;
 pub mod brain;
 pub mod wake;
 
@@ -53,14 +54,54 @@ fn pending() -> &'static Mutex<HashMap<u64, mpsc::Sender<String>>> {
 }
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
-/// Whether « OK Groovy » can run: the voice model and a Claude key.
+/// Whether « OK Groovy » can listen: the speech model. An AI is not needed
+/// to listen: the basic commands work without one, and Groovy says when a
+/// question needs one (FIXES_ROUND4 item 1).
 pub fn requirements_met() -> bool {
-    speech::is_ready() && crate::brain_ai::available()
+    speech::is_ready()
+}
+
+/// The microphone « OK Groovy » listens to, and why it couldn't open it.
+static MIC: Mutex<(String, Option<String>)> = Mutex::new((String::new(), None));
+/// "Test OK Groovy": each step is reported until then.
+static TEST_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+/// The missing speech model was told once this run.
+static TOLD_NO_SPEECH: AtomicBool = AtomicBool::new(false);
+
+/// One step of "Test OK Groovy": "wake", "words", "answer", "spoken".
+fn test_step(app: &AppHandle, step: &str, ok: bool, detail: &str) {
+    let mut until = TEST_UNTIL.lock().unwrap();
+    if until.is_none_or(|t| Instant::now() > t) {
+        *until = None;
+        return;
+    }
+    if step == "spoken" || !ok {
+        *until = None;
+    }
+    let _ = app.emit("okgroovy-test", json!({ "step": step, "ok": ok, "detail": detail }));
+}
+
+/// Says it and shows it in the island, with a button when there is one.
+fn tell(app: &AppHandle, heard: &str, text: String, action: Option<(String, &str)>) {
+    show(app, Some(VoiceView { phase: "speaking".into(), heard: heard.into(), answer: text.clone() }));
+    live::announce(app, "error", "#FFB020", text.clone(), action, 12);
+    speak(app, &text);
 }
 
 /// Starts or stops listening to follow the preference.
 pub fn sync(app: &AppHandle) {
     let wanted = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.voice);
+    // On, but it can't hear anything yet: say so, with the download.
+    if wanted && !speech::is_ready() && !TOLD_NO_SPEECH.swap(true, Ordering::Relaxed) {
+        live::announce(
+            app,
+            "download",
+            "#FFB020",
+            crate::i18n::t("« OK Groovy » is on, but Groovy can't hear it yet: download the speech model."),
+            Some((crate::i18n::t("Download"), "openSpeechSetup")),
+            15,
+        );
+    }
     let mut running = RUNNING.lock().unwrap();
     match (wanted && requirements_met(), running.is_some()) {
         (true, false) => {
@@ -114,14 +155,25 @@ enum Mode {
 
 fn run(app: AppHandle, stop: Arc<AtomicBool>) {
     let mic = crate::flow::get(&app).map(|f| f.store.lock().unwrap().prefs.mic.clone()).unwrap_or_default();
+    let mic_name = if mic.is_empty() {
+        audio::input_devices().into_iter().find(|d| d.default).map(|d| d.name).unwrap_or_else(|| crate::i18n::t("the default microphone"))
+    } else {
+        mic.clone()
+    };
     let (tx, rx) = mpsc::channel::<Vec<f32>>();
     let capture = audio::Capture::start(audio::Source::Mic(if mic.is_empty() { None } else { Some(mic) }), move |s| {
         let _ = tx.send(s.to_vec());
     });
     let mut capture = match capture {
-        Ok(c) => c,
+        Ok(c) => {
+            *MIC.lock().unwrap() = (mic_name, None);
+            c
+        }
         Err(err) => {
             crate::log::line(format!("voice: microphone: {err}"));
+            let text = crate::i18n::tf("« OK Groovy » can't hear you: the microphone “{mic}” didn't open.", &[("mic", &mic_name)]);
+            *MIC.lock().unwrap() = (mic_name, Some(err));
+            tell(&app, "", text, Some((crate::i18n::t("Choose a microphone"), "openVoice")));
             *RUNNING.lock().unwrap() = None;
             return;
         }
@@ -168,6 +220,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                 Mode::Wake => match wake::after_wake(&heard) {
                     Some(rest) => {
                         crate::log::line("voice: « OK Groovy » heard");
+                        test_step(&app, "wake", true, "");
                         hide_at = None;
                         if crate::flow::text::word_count(&rest) >= 2 {
                             Some(rest)
@@ -190,21 +243,47 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             let Some(question) = question else { continue };
             mode = Mode::Wake;
             vad.hangover = 25;
+            test_step(&app, "words", true, &question);
             show(&app, Some(VoiceView { phase: "thinking".into(), heard: question.clone(), answer: String::new() }));
-            let reply = brain.respond(&app, &question);
-            let answer = reply.as_ref().map(|r| r.text.clone()).unwrap_or_default();
-            if answer.is_empty() {
-                let done = reply.is_some_and(|r| r.acted);
-                show(&app, Some(VoiceView {
-                    phase: "speaking".into(),
-                    heard: question,
-                    answer: if done { "✓".into() } else { crate::i18n::t("Groovy couldn't answer: check the local model in Groovy → Models, or your Claude key.") },
-                }));
+            // Music, volume, the time, timers, opening things: no AI needed.
+            let answer = if let Some(b) = basic::parse(&question) {
+                crate::log::line("voice: answered without AI");
+                basic::run(&app, &b)
+            } else if !crate::brain_ai::available() {
+                let text = crate::i18n::t("I heard you, but I need an AI to answer that. Add a free Gemini key in Settings.");
+                test_step(&app, "answer", false, &text);
+                tell(&app, &question, text, Some((crate::i18n::t("Set up"), "openAssistant")));
+                hide_at = Some(Instant::now() + Duration::from_secs(8));
+                continue;
+            } else {
+                match brain.respond(&app, &question) {
+                    Ok(r) if r.text.is_empty() && r.acted => "✓".to_string(),
+                    Ok(r) if r.text.is_empty() => crate::i18n::t("I have no answer to that."),
+                    Ok(r) => r.text,
+                    Err(err) => {
+                        let name = crate::brain_ai::active_name().unwrap_or("AI");
+                        let text = if crate::brain_ai::is_limit(&err) {
+                            crate::i18n::tf("{name} has reached its limit for now. Try again later, or add another AI in Settings.", &[("name", name)])
+                        } else {
+                            crate::i18n::tf("I couldn't reach {name}: {error}", &[("name", name), ("error", err.trim())])
+                        };
+                        test_step(&app, "answer", false, &text);
+                        tell(&app, &question, text, Some((crate::i18n::t("Settings"), "openAssistant")));
+                        hide_at = Some(Instant::now() + Duration::from_secs(8));
+                        continue;
+                    }
+                }
+            };
+            test_step(&app, "answer", true, &answer);
+            if answer == "✓" {
+                show(&app, Some(VoiceView { phase: "speaking".into(), heard: question, answer }));
+                test_step(&app, "spoken", true, "");
                 hide_at = Some(Instant::now() + Duration::from_secs(5));
                 continue;
             }
             show(&app, Some(VoiceView { phase: "speaking".into(), heard: question.clone(), answer: answer.clone() }));
             speak(&app, &answer);
+            test_step(&app, "spoken", true, "");
             vad.reset();
             // Drop what the microphone heard of Groovy's own voice.
             while rx.try_recv().is_ok() {}
@@ -219,6 +298,64 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
     }
     capture.stop();
     show(&app, None);
+}
+
+// ── Status and the test (Control Centre → OK Groovy, quick settings) ──────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OkStatus {
+    /// Switched on in Settings.
+    pub on: bool,
+    pub listening: bool,
+    pub speech: bool,
+    /// The microphone it listens to (or would), and why it didn't open.
+    pub mic: String,
+    pub mic_error: Option<String>,
+    /// The AI that answers first, if any.
+    pub ai: Option<String>,
+}
+
+#[tauri::command]
+pub fn okgroovy_status(app: AppHandle) -> OkStatus {
+    let (prefs_on, mic_pref) = crate::flow::get(&app)
+        .map(|f| {
+            let s = f.store.lock().unwrap();
+            (s.prefs.voice, s.prefs.mic.clone())
+        })
+        .unwrap_or_default();
+    let (mut mic, mic_error) = MIC.lock().unwrap().clone();
+    if mic.is_empty() {
+        mic = if mic_pref.is_empty() {
+            audio::input_devices().into_iter().find(|d| d.default).map(|d| d.name).unwrap_or_default()
+        } else {
+            mic_pref
+        };
+    }
+    OkStatus {
+        on: prefs_on,
+        listening: is_listening(),
+        speech: speech::is_ready(),
+        mic,
+        mic_error,
+        ai: crate::brain_ai::active_name().map(str::to_string),
+    }
+}
+
+/// "Test OK Groovy": the next « OK Groovy » reports each step for 30 seconds.
+#[tauri::command]
+pub fn okgroovy_test() -> Result<(), String> {
+    if !is_listening() {
+        return Err(if !speech::is_ready() {
+            crate::i18n::t("Download the speech model first.")
+        } else if MIC.lock().unwrap().1.is_some() {
+            crate::i18n::t("The microphone didn't open: choose another one.")
+        } else {
+            crate::i18n::t("Turn on « OK Groovy » first.")
+        });
+    }
+    *TEST_UNTIL.lock().unwrap() = Some(Instant::now() + Duration::from_secs(30));
+    Ok(())
 }
 
 // ── Speaking ──────────────────────────────────────────────────────────────────

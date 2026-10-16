@@ -463,6 +463,18 @@ pub async fn spotify_control(app: AppHandle, action: String, value: Option<f64>)
     }
 }
 
+/// Whether Spotify plays now; None when Groovy doesn't follow it.
+pub fn playing() -> Option<bool> {
+    #[cfg(windows)]
+    {
+        win::playing()
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
 /// "Open Spotify": brings it forward, or starts it. Without Spotify, its
 /// download page. True when Spotify was reached or started.
 #[tauri::command]
@@ -1881,6 +1893,12 @@ mod win {
         read_and_emit(app, generation, session.as_ref());
         let s = SHARED.lock().unwrap();
         (s.active && s.generation == generation).then(|| s.state.clone())
+    }
+
+    /// Whether Spotify plays now, when Groovy follows it.
+    pub fn playing() -> Option<bool> {
+        let s = SHARED.lock().unwrap();
+        (s.active && s.state.running).then_some(s.state.playing)
     }
 
     pub fn control(app: &AppHandle, action: &str, value: Option<f64>) -> bool {

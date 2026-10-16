@@ -6,7 +6,7 @@ import { showError } from "../views/toast";
 
 const QUIET = new Set([
   "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
-  "live_state", "live_notices", "notes_state", "notes_markdown",
+  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status",
 ]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -200,6 +200,22 @@ export interface VoiceView {
 
 export type VoiceOutput = "system" | "elevenlabs" | "off";
 
+export interface OkStatus {
+  on: boolean;
+  listening: boolean;
+  speech: boolean;
+  mic: string;
+  micError: string | null;
+  ai: string | null;
+}
+
+/** One step of "Test OK Groovy": "wake", "words", "answer", "spoken". */
+export interface OkTestStep {
+  step: "wake" | "words" | "answer" | "spoken";
+  ok: boolean;
+  detail: string;
+}
+
 export const FlowBridge = {
   status: () => call<FlowStatus>("flow_status"),
   /** The cloud services dictation would try now, in order (empty: this computer only). */
@@ -237,6 +253,10 @@ export const FlowBridge = {
   liveNotices: () => call<Notice[]>("live_notices"),
   liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
   /** The island has said what « OK Groovy » answered. */
+  /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
+  okStatus: () => call<OkStatus>("okgroovy_status"),
+  /** Reports each step of the next « OK Groovy » ("okgroovy-test" events); throws why it can't. */
+  okTest: () => callOrThrow<void>("okgroovy_test"),
   voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),
   /** speech-dispatcher or espeak-ng, where the webview has no voice. */
   sayNative: (text: string, lang: string | null) => call<boolean>("voice_say_native", { text, lang }),

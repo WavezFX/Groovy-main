@@ -118,7 +118,8 @@ export function buildLiveBar(host: LiveBarHost) {
     tick(now: number): boolean {
       if (!view) return false;
       const time = started === null ? "" : liveClock(now - started);
-      text.textContent = t(view.label, { 0: time }).trim();
+      text.textContent = t(view.label, { 0: time, 1: view.words ?? "" }).trim();
+      text.title = view.words ?? "";
       clock.textContent = time;
       recLabel.textContent = t("Recording call · {0}", { 0: time });
       if (!bars.hidden) {

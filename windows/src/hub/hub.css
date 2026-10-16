@@ -1107,3 +1107,27 @@ body.hub-window.closing #hub {
     opacity: 1;
   }
 }
+
+/* « OK Groovy » checks and its test (round 4 item 1). */
+.ok-checks,
+.ok-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  font-size: 13px;
+}
+.ok-check {
+  display: flex;
+  gap: 8px;
+}
+.ok-check.ok > :first-child,
+.ok-step.ok {
+  color: var(--hub-green);
+}
+.ok-check.bad > :first-child,
+.ok-step.bad {
+  color: #ff8a7a;
+}

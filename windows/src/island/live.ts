@@ -165,6 +165,8 @@ export interface LiveView {
   timed: boolean;
   /** What Stop does: a live_action, or the island call's toggle; null: no Stop. */
   stop: "finish" | "stopNote" | "endCall" | null;
+  /** « OK Groovy »'s words: what it heard, then its answer ({1} in the label). */
+  words?: string;
 }
 
 /**
@@ -178,7 +180,12 @@ export function liveView(s: LiveState, voiceCall: boolean): LiveView | null {
   if (s.phase === "thinking") return { kind: "dictating", tone: "green", label: N_("Writing it down…"), timed: false, stop: null };
   if (voiceCall) return { kind: "call", tone: "green", label: N_("Talking with Groovy {0}"), timed: true, stop: "endCall" };
   if (s.voice) {
-    const label = s.voice.phase === "thinking" ? N_("Thinking…") : s.voice.phase === "speaking" ? N_("Speaking…") : N_("Listening…");
+    // Listening → heard "…" → thinking → the answer, in the island (round 4 item 1).
+    const { phase, heard, answer } = s.voice;
+    if (phase === "speaking" && answer) return { kind: "voice", tone: "green", label: "{1}", timed: false, stop: null, words: answer };
+    if (phase === "thinking") return { kind: "voice", tone: "green", label: heard ? N_("Thinking about “{1}”…") : N_("Thinking…"), timed: false, stop: null, words: heard };
+    if (phase === "listening" && heard) return { kind: "voice", tone: "green", label: N_("Heard “{1}”"), timed: false, stop: null, words: heard };
+    const label = phase === "speaking" ? N_("Speaking…") : N_("Listening…");
     return { kind: "voice", tone: "green", label, timed: false, stop: null };
   }
   switch (s.phase) {

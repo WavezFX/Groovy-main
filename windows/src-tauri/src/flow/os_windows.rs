@@ -220,6 +220,17 @@ fn key_input(vk: u16, up: bool) -> INPUT {
     }
 }
 
+/// Presses and lets go of each key in turn: the media and volume keys.
+pub fn send_keys(keys: &[u16]) -> Result<(), String> {
+    let inputs: Vec<INPUT> = keys.iter().flat_map(|&k| [key_input(k, false), key_input(k, true)]).collect();
+    let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+    if sent as usize == inputs.len() {
+        Ok(())
+    } else {
+        Err("Windows refused the keystrokes".into())
+    }
+}
+
 /// Ctrl+V in the app in front. Ctrl+Shift+V for a terminal that wants it.
 pub fn send_paste(shift: bool) -> Result<(), String> {
     let mut inputs = vec![key_input(VK_CONTROL, false)];

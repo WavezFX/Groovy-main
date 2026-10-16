@@ -1367,6 +1367,8 @@ pub fn run() {
             notes::notes_markdown,
             notes::notes_export,
             okgroovy::voice_done,
+            okgroovy::okgroovy_status,
+            okgroovy::okgroovy_test,
             skills::manage::skills_status,
             skills::manage::skills_take_confirm,
             skills::manage::skills_install_node,

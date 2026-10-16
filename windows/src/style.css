@@ -3542,6 +3542,9 @@ body.glass .home-cell.music {
 }
 .live-text {
   font-variant-numeric: tabular-nums;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .live-wave,
 .live-back,

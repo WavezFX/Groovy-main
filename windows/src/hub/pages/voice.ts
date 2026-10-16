@@ -4,8 +4,8 @@
 import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
-import { Bridge } from "../../core/bridge";
-import type { VoiceOutput } from "../../core/flow";
+import { Bridge, onEvent } from "../../core/bridge";
+import { FlowBridge, type OkTestStep, type VoiceOutput } from "../../core/flow";
 import type { HubContext } from "../shell";
 import { button, card, divider, label, row, segmented, toggle } from "../ui";
 import { modelsControl } from "./flowsettings";
@@ -41,6 +41,51 @@ function elevenKey(): HTMLElement {
   return box;
 }
 
+/** ✓/✗ for the microphone, the speech model and the AI, and "Test OK Groovy" (round 4 item 1). */
+function checkCard(): HTMLElement {
+  const list = h("div", { class: "ok-checks" });
+  const mark = (ok: boolean, text: string) => h("div", { class: ok ? "ok-check ok" : "ok-check bad" }, h("span", { text: ok ? "✓" : "✗" }), h("span", { text }));
+  const draw = async () => {
+    const s = await FlowBridge.okStatus();
+    clear(list);
+    if (!s) return;
+    list.append(
+      mark(s.on, s.on ? (s.listening ? t("« OK Groovy » is on and listening") : t("« OK Groovy » is on, not listening yet")) : t("« OK Groovy » is off")),
+      mark(!s.micError && !!s.mic, s.micError ? t("Microphone “{mic}” didn't open: {error}", { mic: s.mic, error: s.micError }) : t("Listening to “{mic}”", { mic: s.mic || t("the default microphone") })),
+      mark(s.speech, s.speech ? t("Speech model ready") : t("Speech model not downloaded")),
+      mark(!!s.ai, s.ai ? t("AI: {name}", { name: s.ai }) : t("No AI: music, volume, the time, timers and opening apps still work")),
+    );
+  };
+  const steps = h("ol", { class: "ok-steps" });
+  const STEPS: [OkTestStep["step"], string][] = [
+    ["wake", t("Heard « OK Groovy »")],
+    ["words", t("Understood the words")],
+    ["answer", t("Got an answer")],
+    ["spoken", t("Said it out loud")],
+  ];
+  const test = button(t("Test OK Groovy"), () => {
+    clear(steps);
+    for (const [id, text] of STEPS) steps.append(h("li", { class: "ok-step", "data-step": id, text: `… ${text}` }));
+    hint.textContent = t("Say « OK Groovy, what time is it? »");
+    FlowBridge.okTest().catch((err: unknown) => {
+      clear(steps);
+      hint.textContent = String(err);
+    });
+  }, "primary", true);
+  const hint = h("div", { class: "hub-note" });
+  void onEvent<OkTestStep>("okgroovy-test", (step) => {
+    const li = steps.querySelector<HTMLElement>(`[data-step="${step.step}"]`);
+    const text = STEPS.find(([id]) => id === step.step)?.[1] ?? step.step;
+    if (li) {
+      li.textContent = `${step.ok ? "✓" : "✗"} ${text}${step.detail ? `: ${step.detail}` : ""}`;
+      li.className = step.ok ? "ok-step ok" : "ok-step bad";
+    }
+    if (step.step === "spoken" || !step.ok) void draw();
+  });
+  void draw();
+  return card(list, divider(), row(t("Test OK Groovy"), t("Shows each step of the next « OK Groovy »."), test), steps, hint);
+}
+
 export async function voicePage(page: HTMLElement, ctx: HubContext) {
   const status = await ctx.refresh();
   const prefs = status.prefs;
@@ -57,12 +102,12 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
     divider(),
     row(t("Parakeet, on your computer"), t("Hears « OK Groovy » here, without the internet."), modelsControl(ctx, () => ctx.navigate("voice"))),
   );
-  if (prefs.voice && !status.aiReady) {
-    main.append(h("div", { class: "hub-warn", text: t("Groovy needs an AI to answer: download a local model in Groovy → Models, or add a Claude key in Groovy → Chat providers.") }));
-  } else if (prefs.voice && !ready) {
+  if (prefs.voice && !ready) {
     main.append(h("div", { class: "hub-warn", text: t("Download the voice model so Groovy can hear you.") }));
   }
   page.append(main);
+  page.append(label(t("Check")));
+  page.append(checkCard());
 
   page.append(label(t("Answers")));
   const outputs: [VoiceOutput, string][] = [["system", t("System voice")], ["elevenlabs", "ElevenLabs"], ["off", t("Text only")]];

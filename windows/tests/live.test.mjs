@@ -76,3 +76,14 @@ test("the clock counts from when it began, the recording's from Rust's start", (
   const rec = { ...idle, noteStartedAt: 42 };
   assert.equal(clocks.start(liveView(rec, false), rec, 9000), 42);
 });
+
+test("the island shows what OK Groovy heard, then its answer (round 4 item 1)", () => {
+  const heard = liveView({ ...idle, voice: { phase: "listening", heard: "play", answer: "" } }, false);
+  assert.equal(heard.label, "Heard “{1}”");
+  assert.equal(heard.words, "play");
+  const thinking = liveView({ ...idle, voice: { phase: "thinking", heard: "what time is it", answer: "" } }, false);
+  assert.equal(thinking.words, "what time is it");
+  const answer = liveView({ ...idle, voice: { phase: "speaking", heard: "what time is it", answer: "It's 9:05." } }, false);
+  assert.equal(answer.label, "{1}");
+  assert.equal(answer.words, "It's 9:05.");
+});
