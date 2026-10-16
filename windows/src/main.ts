@@ -21,6 +21,7 @@ import { SPOTIFY_ID, Spotify } from "./core/spotify";
 import { Recap } from "./recap/recap";
 import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
 import { glassAlpha, glassStrength, type GlassLook } from "./core/glass";
+import { frameStats, frameTour, frameVerdict, type TourStep } from "./core/frametest";
 
 /** Shows the language Settings asks for ("" = the system's, when Groovy has it). */
 function applyLanguage() {
@@ -209,7 +210,8 @@ async function main() {
   await onEvent<null>("recap-check", checkRecap);
 
   island.launch();
-  if (boot?.smokeView) holdForSmokeTest(island, boot.smokeView);
+  if (boot?.smokeView === "frames") void frameTest(island);
+  else if (boot?.smokeView) holdForSmokeTest(island, boot.smokeView);
 
   // In a plain browser there is no wake strip behind the cursor: make the whole
   // page wake the island so the visuals can be checked with `npm run dev`.
@@ -224,6 +226,44 @@ async function main() {
  * CI's smoke test (scripts/smoke-test.ps1) photographs the island's corners in
  * the F and E layouts: hold it open on one, with a pretend track for E.
  */
+/**
+ * CI's frame-time test (round 3B item 8b): F → E → the detail card → quick
+ * settings → the wardrobe → F, each held 1.2 s, every frame timed; then the
+ * island folds away so CI can read the idle CPU, and the frames go to Rust.
+ */
+async function frameTest(island: Island) {
+  const track = { id: "spotify:track:frames", title: "Frame test", artist: "Groovy", album: "", duration: 200, artUrl: null };
+  const music = (playing: boolean) => {
+    Spotify.state = playing
+      ? { ...Spotify.state, running: true, installed: true, playing: true, track, position: 10, positionAt: Date.now() }
+      : { ...Spotify.state, playing: false };
+    State.notify();
+  };
+  await new Promise((r) => setTimeout(r, 4000));
+  island.setPinned(true);
+  const steps: TourStep[] = [
+    { name: "F", run: () => island.alert("home") },
+    { name: "E", run: () => music(true) },
+    { name: "detail card", run: () => island.setView("overview") },
+    { name: "quick settings", run: () => island.setView("settings") },
+    { name: "wardrobe", run: () => island.setView("wardrobe") },
+    { name: "back to F", run: () => { music(false); island.setView("home"); } },
+  ];
+  const perStep = await frameTour(steps, 1200);
+  const all = Object.values(perStep).flat();
+  const stats = frameStats(all);
+  const report = {
+    stats,
+    verdict: frameVerdict(stats),
+    steps: Object.fromEntries(Object.entries(perStep).map(([k, v]) => [k, frameStats(v)])),
+    deltas: perStep,
+    refresh: Math.round(1000 / (stats.p95 || 16.7)),
+  };
+  island.setPinned(false);
+  island.collapse();
+  await Bridge.frameReport(report);
+}
+
 function holdForSmokeTest(island: Island, view: "home" | "player") {
   const track = { id: "spotify:track:smoke", title: "Smoke test", artist: "Groovy", album: "", duration: 200, artUrl: null };
   window.setTimeout(() => {

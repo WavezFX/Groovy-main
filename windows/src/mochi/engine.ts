@@ -943,20 +943,7 @@ export class BotEngine {
       x.fill(body);
       return;
     } else {
-      const sk = this.style;
-      const g = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
-      g.addColorStop(0, rgba(sk.bodyTop));
-      g.addColorStop(1, rgba(sk.bodyBottom));
-      x.fillStyle = g;
-      x.save();
-      x.shadowColor = sk.rimGlow;
-      // A wide soft halo, then a tighter bright one.
-      x.shadowBlur = R * 0.6 * (1 - this.morph);
-      x.fill(body);
-      x.shadowBlur = R * 0.18 * (1 - this.morph);
-      x.fill(body);
-      x.restore();
-      x.fill(body);
+      if (!this.drawCachedBody(x, body, R, rx, ry)) this.fillBody(x, body, R, rx, ry);
     }
     x.save();
 
@@ -982,6 +969,63 @@ export class BotEngine {
     x.fillStyle = hl;
     x.fill(body);
     x.restore();
+  }
+
+  /** The body's gradient fill with its two glows (the costly part: two shadow blurs). */
+  private fillBody(x: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
+    const sk = this.style;
+    const g = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
+    g.addColorStop(0, rgba(sk.bodyTop));
+    g.addColorStop(1, rgba(sk.bodyBottom));
+    x.fillStyle = g;
+    x.save();
+    x.shadowColor = sk.rimGlow;
+    // A wide soft halo, then a tighter bright one.
+    x.shadowBlur = R * 0.6 * (1 - this.morph);
+    x.fill(body);
+    x.shadowBlur = R * 0.18 * (1 - this.morph);
+    x.fill(body);
+    x.restore();
+    x.fill(body);
+  }
+
+  /** The key of the body last drawn live, and the cached picture of a body that held still. */
+  private bodyKey = "";
+  private bodyCache: { key: string; canvas: OffscreenCanvas; left: number; top: number; scale: number } | null = null;
+
+  /**
+   * Round 3B item 8b: the glowing body is drawn once into a bitmap and reused
+   * while its shape, size, colours and scale stay the same (breathing and
+   * bouncing move it by transform, which the bitmap follows). A body that is
+   * changing shape is drawn live, and cached again once it holds still for
+   * two frames. False when it must be drawn live.
+   */
+  private drawCachedBody(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number): boolean {
+    if (typeof OffscreenCanvas === "undefined" || typeof x.getTransform !== "function") return false;
+    const m = x.getTransform();
+    // Bitmaps a quarter step apart: breathing doesn't re-cache every frame.
+    const scale = Math.max(0.25, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
+    const sk = this.style;
+    const key = `${rx.toFixed(2)}|${ry.toFixed(2)}|${R.toFixed(2)}|${this.morph.toFixed(3)}|${this.shape.exp}|${this.shape.taper}|${scale}|${String(sk.bodyTop)}|${String(sk.bodyBottom)}|${sk.rimGlow}`;
+    if (this.bodyCache?.key !== key) {
+      if (this.bodyKey !== key) {
+        this.bodyKey = key;
+        return false;
+      }
+      // Shadow blur is in device pixels: in drawing units it grows as the scale shrinks.
+      const pad = (R * 0.6 * 2) / Math.min(1, scale) + 4;
+      const halfW = Math.max(rx * (1 + Math.max(0, this.shape.taper)), R) + pad;
+      const halfH = Math.max(ry, R) + pad;
+      const canvas = new OffscreenCanvas(Math.ceil(halfW * 2 * scale), Math.ceil(halfH * 2 * scale));
+      const c = canvas.getContext("2d");
+      if (!c) return false;
+      c.setTransform(scale, 0, 0, scale, halfW * scale, halfH * scale);
+      this.fillBody(c, body, R, rx, ry);
+      this.bodyCache = { key, canvas, left: -halfW, top: -halfH, scale };
+    }
+    const b = this.bodyCache!;
+    x.drawImage(b.canvas, b.left, b.top, b.canvas.width / b.scale, b.canvas.height / b.scale);
+    return true;
   }
 
   private drawEyes(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {

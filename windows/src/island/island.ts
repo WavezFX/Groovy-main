@@ -46,6 +46,8 @@ const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
 const BOT_SIDE = 24;
 /** One frame in ten (10 fps) for his looping animation in the small island. */
 const SLOW_FRAME_MS = 100;
+/** The glow around Groovy is drawn this big once, then scaled by transform. */
+const GLOW_BOX = 100;
 /** A look try-on ends by itself after this, should its mouseleave be lost. */
 const LOOK_PREVIEW_MS = 4000;
 /** Same margin as the Rust hit test (src-tauri/src/island.rs). */
@@ -913,6 +915,11 @@ export class Island {
 
   private animateGeometry() {
     const { w, h, r } = this.targetSize();
+    // The content is laid out once, at the size the island is heading for,
+    // and the island's edge reveals or hides it as it moves: nothing inside
+    // is laid out again on every frame (round 3B item 8b).
+    this.contentEl.style.width = `${w}px`;
+    this.contentEl.style.height = `${h}px`;
     // Grown first to whichever is larger, now or after; shrunk when it settles (frame).
     this.fitWindow(Math.max(w, this.width.value), Math.max(h, this.height.value));
     // One ease-out curve each way (round 3B item 2): no overshoot past the
@@ -945,9 +952,33 @@ export class Island {
     const p = this.pushedRect;
     if (Math.abs(p.x - rect.x) > 0.5 || Math.abs(p.w - rect.w) > 0.5 || Math.abs(p.h - rect.h) > 0.5 || Math.abs(p.r - rect.r) > 0.5) {
       this.pushedRect = rect;
-      // The glass (Windows' Acrylic) is clipped to this shape too (glass.rs).
-      void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h, rect.r);
+      this.pushRegion(rect);
     }
+  }
+
+  private glowBackground = "";
+
+  /** The region asked for while the last one is still on its way. */
+  private queuedRect: { x: number; y: number; w: number; h: number; r: number } | null = null;
+  private regionInFlight = false;
+
+  /**
+   * The window region (and the glass) follow the island's shape: from this one
+   * place, at most one request in flight and only the newest one waiting, so
+   * an animation never queues up native work behind its frames (round 3B item 8b).
+   */
+  private pushRegion(rect: { x: number; y: number; w: number; h: number; r: number }) {
+    if (this.regionInFlight) {
+      this.queuedRect = rect;
+      return;
+    }
+    this.regionInFlight = true;
+    void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h, rect.r).finally(() => {
+      this.regionInFlight = false;
+      const next = this.queuedRect;
+      this.queuedRect = null;
+      if (next) this.pushRegion(next);
+    });
   }
 
   /** Island rect in window coordinates (origin top-left of the 720×320 window). */
@@ -1363,12 +1394,16 @@ export class Island {
     if (visible && State.mode === "expanded" && State.view !== "uploading") {
       const d = p.diameter;
       const color = botGlowColor(State.effectiveState);
+      // A fixed-size glow, moved and scaled by transform only: no layout and
+      // no blur filter redrawn on every frame (round 3B item 8b).
+      const scale = (d * 2.2) / GLOW_BOX;
       this.botGlow.style.display = "block";
-      this.botGlow.style.width = `${d * 2.2}px`;
-      this.botGlow.style.height = `${d * 2.2}px`;
-      this.botGlow.style.left = `${this.botCx.value - d * 1.1}px`;
-      this.botGlow.style.top = `${this.botCy.value - d * 1.1}px`;
-      this.botGlow.style.background = `radial-gradient(circle, ${color} 0%, transparent 62%)`;
+      this.botGlow.style.transform = `translate(${(this.botCx.value - d * 1.1).toFixed(1)}px, ${(this.botCy.value - d * 1.1).toFixed(1)}px) scale(${scale.toFixed(3)})`;
+      const background = `radial-gradient(circle, ${color} 0%, transparent 62%)`;
+      if (this.glowBackground !== background) {
+        this.glowBackground = background;
+        this.botGlow.style.background = background;
+      }
       this.botGlow.style.opacity = String(botGlowOpacity(State.effectiveState));
     } else {
       this.botGlow.style.display = "none";

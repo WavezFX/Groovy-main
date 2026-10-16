@@ -151,6 +151,18 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
+        shell: pwsh
+        run: ./scripts/frame-test.ps1 -Exe release/groovy.exe -Trace frame-trace.json
+
+      - name: Upload the frame trace
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frame-trace
+          path: windows/frame-trace.json
+          if-no-files-found: ignore
+
       - name: Install with the NSIS installer and smoke test it offline
         shell: pwsh
         run: |

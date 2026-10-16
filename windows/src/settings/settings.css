@@ -118,8 +118,8 @@ body.settings-window {
   top: 0;
   z-index: 2;
   padding: 16px 24px 12px;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(14px);
+  /* Nearly opaque instead of a backdrop-filter, which blurs on every scroll frame (round 3B item 8b). */
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
   border-bottom: 1px solid var(--hairline);
 }
 .cc-nav {

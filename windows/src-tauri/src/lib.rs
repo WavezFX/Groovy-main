@@ -95,8 +95,21 @@ fn smoke_view(value: Option<&str>) -> Option<&'static str> {
     match value? {
         "home" => Some("home"),
         "player" => Some("player"),
+        "frames" => Some("frames"),
         _ => None,
     }
+}
+
+/// CI's frame-time test (round 3B item 8b): the island's frame times, written
+/// to frame-test.json for the workflow. Only while that test runs.
+#[tauri::command]
+fn frame_report(report: serde_json::Value) -> Result<(), String> {
+    if smoke_view(std::env::var("GROOVY_SMOKE_VIEW").ok().as_deref()) != Some("frames") {
+        return Err("not in the frame test".into());
+    }
+    log::line(format!("frame test: {}", report["stats"]));
+    let path = platform::local_dir().join("frame-test.json");
+    std::fs::write(&path, serde_json::to_vec_pretty(&report).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1368,6 +1381,7 @@ pub fn run() {
             notes::notes_export,
             okgroovy::voice_done,
             okgroovy::okgroovy_status,
+            frame_report,
             okgroovy::okgroovy_test,
             skills::manage::skills_status,
             skills::manage::skills_take_confirm,
@@ -1537,6 +1551,7 @@ mod tests {
     fn the_smoke_test_can_only_ask_for_the_two_layouts() {
         assert_eq!(super::smoke_view(Some("home")), Some("home"));
         assert_eq!(super::smoke_view(Some("player")), Some("player"));
+        assert_eq!(super::smoke_view(Some("frames")), Some("frames"));
         for other in [None, Some(""), Some("settings"), Some("HOME")] {
             assert_eq!(super::smoke_view(other), None);
         }

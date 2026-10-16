@@ -215,7 +215,7 @@ export interface BootInfo {
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
   /** CI's smoke test: hold the island open on Home (F) or the player (E). */
-  smokeView?: "home" | "player" | null;
+  smokeView?: "home" | "player" | "frames" | null;
 }
 
 /** Ollama on this computer (ollama.rs). */
@@ -403,6 +403,8 @@ export const Bridge = {
    * Pushes the island shape in window coordinates. Rust flips click-through from
    * its own cursor poll, so the flag is never a frame behind a click.
    */
+  /** CI's frame-time test: the frames go to frame-test.json for the workflow. */
+  frameReport: (report: unknown) => call<void>("frame_report", { report }),
   setIslandRect: (x: number, y: number, width: number, height: number, radius: number) =>
     call<void>("set_island_rect", { x, y, width, height, radius }),
   /** The growth clock's record only (mochi/growth.ts); Rust keeps the furthest. */
