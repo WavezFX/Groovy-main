@@ -151,6 +151,44 @@ Today there are six separate looks (`src/mochi/skins.ts`: night, ember, frost, g
   - **Also check every file in `windows/sounds/`:** `LICENSE-ASSETS.md` reserves Coucou's sounds, so replace any that came from Coucou with original or properly licensed ones before any public release, and list where each comes from in `windows/sounds/SOURCES.md`.
 - Tests: the stage shown matches the saved stage, the first-launch vs returning choice, skipping, and reduced motion.
 
+## 8. Owner's feedback on items 1–5 (16 Oct, 12:50, tested on Windows)
+**Do these first, before item 6:**
+- **0. CI is red:** build #44 (item 5, commit 77d40b4) fails at **Rust tests**. The logs are in that run's `test-logs` artifact (`rust-tests.txt`). Fix it and get "Windows" green again before going on.
+- **A. Clicking a tile still opens Coucou's old island.**
+  - Clicking GitHub, Vercel or any other tile switches the island back to the old Coucou layout:
+    - a big character card ("GitHub Integration · Key not configured · Open GitHub · Settings…");
+    - the old 2×2 pill grid (Claude Code, Resend, n8n, Vercel).
+  - The Home tab brings the new layout back.
+  - **Remove that old integration view completely.** A tile click should instead:
+    - open a small **glass detail card** in the new style, inside the same island: the tile's live info, its actions (Open GitHub, Open Vercel…) and, if a key is missing, the key field with a "where to get it" link;
+    - have a ← back button to Home.
+  - Nothing from the old layout may appear anywhere, on any tab or state.
+- **B. A rectangle around the island.** There's a visible blank or dark rectangular area around and below the glass island. **Required:**
+  - only the rounded island is visible;
+  - everything else in the window is fully transparent **and click-through**;
+  - size the window to the island, or use a window region or input pass-through for the rest;
+  - the Acrylic or glass effect must follow the rounded shape, never the full window rectangle.
+  
+  Check it collapsed, expanded, with the player, with a tile detail card, and with quick settings open.
+- **C. Six looks are still showing.** Item 6 isn't done yet. When it is, the wardrobe must show only **Night, Ember and Frost**; Grove, Blaze and Tide are their grown stages.
+- **D. Tiles that need a key** ("Key not configured") should say what to do in one tap. Use the detail card from A.
+
+## 9. Performance budget: under 300 MB in total
+The owner's PC has about 8 GB RAM. The CI smoke test (`scripts/smoke-test.ps1`) currently measures:
+- groovy.exe at about 40 MB;
+- **10 WebView2 child processes at about 680 MB in total.**
+
+**Target:** Groovy's total working set (groovy.exe plus every WebView2 process plus llama-server/sherpa if running) **below 300 MB at idle with the island open**. Idle CPU should be about 0% when nothing is animating.
+- **Create windows only when they're opened, and destroy them** (don't hide them) when closed: Control Centre, Coding Studio, Wardrobe, chat window. Only the island, and the companion if it's on, stay alive.
+- **All windows share one WebView2 environment and user-data folder,** so they share one browser process.
+- **Tell WebView2 to save memory:**
+  - set `MemoryUsageTargetLevel = Low` (ICoreWebView2_19) on windows that are hidden or idle;
+  - reduce renderer and GPU memory with WebView2 browser arguments where safe;
+  - test that the glass and animations still work.
+- **Stop all animation loops** (canvas `requestAnimationFrame`, timers) while the island is collapsed or hidden. Use one shared animation loop, not one per component.
+- **Free the intro animation, models and caches** after use. Local AI and speech models load only when needed and unload when idle (rounds 1 and 2).
+- **CI:** make the smoke test print the total, and **fail the build if the idle total goes over 300 MB.** Report the before and after numbers in STATUS.md.
+
 ## Done means
 - One island, glass by default, with a Solid option and a measured cost.
 - The F layout normally, which turns into E while music plays and back about 5 s after it stops. The Spotify tile's ⏮ ▶ ⏭ work.
@@ -159,4 +197,5 @@ Today there are six separate looks (`src/mochi/skins.ts`: night, ember, frost, g
 - The wardrobe has independent Head, Face and Neck slots.
 - The three looks grow over 5 stages.
 - The Seed intro replaces the old greeting, with no Coucou sounds left.
+- No old Coucou island view anywhere, no rectangle around the island, and Groovy under 300 MB at idle (CI checks it).
 - STATUS.md is updated with what was tested on Windows and how.
