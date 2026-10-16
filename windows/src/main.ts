@@ -140,9 +140,14 @@ async function main() {
 
   // Glass (Windows' Acrylic behind the island) or solid: Rust decides from the
   // setting, Windows' transparency switch and battery saver (glass.rs).
-  const setGlass = (on: boolean) => document.body.classList.toggle("glass", on);
-  setGlass((await Bridge.islandGlass()) ?? false);
-  await onEvent<boolean>("island-glass", setGlass);
+  // "blur": Windows blurs behind it; "css": the page's own glass, no blur
+  // (round 3B item 1: never a grey square around it).
+  const setGlass = (look: string) => {
+    document.body.classList.toggle("glass", look === "blur" || look === "css");
+    document.body.classList.toggle("glass-css", look === "css");
+  };
+  setGlass((await Bridge.islandGlass()) ?? "solid");
+  await onEvent<string>("island-glass", setGlass);
 
   // Settings → Reload sounds: read the sounds folder again, and let them hear it.
   await onEvent<null>("sounds-changed", () => {
@@ -188,6 +193,7 @@ async function main() {
   await onEvent<null>("recap-check", checkRecap);
 
   island.launch();
+  if (boot?.smokeView) holdForSmokeTest(island, boot.smokeView);
 
   // In a plain browser there is no wake strip behind the cursor: make the whole
   // page wake the island so the visuals can be checked with `npm run dev`.
@@ -196,6 +202,25 @@ async function main() {
     // For checking the views in a browser (`npm run dev`): open any of them.
     (window as unknown as { groovy: unknown }).groovy = { island, State, Spotify };
   }
+}
+
+/**
+ * CI's smoke test (scripts/smoke-test.ps1) photographs the island's corners in
+ * the F and E layouts: hold it open on one, with a pretend track for E.
+ */
+function holdForSmokeTest(island: Island, view: "home" | "player") {
+  const track = { id: "spotify:track:smoke", title: "Smoke test", artist: "Groovy", album: "", duration: 200, artUrl: null };
+  window.setTimeout(() => {
+    island.setPinned(true);
+    // Held there: a notice (the AI choice, on a fresh install) doesn't move it.
+    window.setInterval(() => {
+      if (view === "player" && !(Spotify.state.playing && Spotify.state.track?.id === track.id)) {
+        Spotify.state = { ...Spotify.state, running: true, installed: true, playing: true, track, position: 10, positionAt: Date.now() };
+        State.notify();
+      }
+      if (State.mode !== "expanded" || State.view !== "home") island.alert("home");
+    }, 500);
+  }, 4000);
 }
 
 void main();

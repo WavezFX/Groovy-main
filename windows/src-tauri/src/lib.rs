@@ -85,6 +85,18 @@ pub struct BootInfo {
     /// False where the OS has no global cursor (Wayland): the page then reports
     /// the cursor from its own mouse events.
     cursor_poll: bool,
+    /// CI's smoke test (GROOVY_SMOKE_VIEW): hold the island open on "home"
+    /// (F) or "player" (E) so its corners can be checked on screen.
+    smoke_view: Option<&'static str>,
+}
+
+/// The view the smoke test asked for, if it is one it may ask for.
+fn smoke_view(value: Option<&str>) -> Option<&'static str> {
+    match value? {
+        "home" => Some("home"),
+        "player" => Some("player"),
+        _ => None,
+    }
 }
 
 #[tauri::command]
@@ -104,6 +116,7 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         hook_path: settings::hook_exe_path().to_string_lossy().to_string(),
         cursor_poll: platform::CURSOR_POLL,
+        smoke_view: smoke_view(std::env::var("GROOVY_SMOKE_VIEW").ok().as_deref()),
     }
 }
 
@@ -1404,6 +1417,15 @@ mod tests {
             let built = src.matches("WebviewWindowBuilder::new(").count();
             let with_args = src.matches(".additional_browser_args(").count();
             assert_eq!(built, with_args, "{file}: a window without the shared arguments");
+        }
+    }
+
+    #[test]
+    fn the_smoke_test_can_only_ask_for_the_two_layouts() {
+        assert_eq!(super::smoke_view(Some("home")), Some("home"));
+        assert_eq!(super::smoke_view(Some("player")), Some("player"));
+        for other in [None, Some(""), Some("settings"), Some("HOME")] {
+            assert_eq!(super::smoke_view(other), None);
         }
     }
 

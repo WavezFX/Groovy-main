@@ -1,18 +1,23 @@
-// The glass island (FIXES_ROUND3 item 2c). Windows draws the frosted glass
-// itself: Acrylic on Windows 11, the plain blur on Windows 10, behind a
-// transparent webview. Groovy only tells it once, so the glass costs next to
-// no CPU or memory. The window is the fixed 720×320 panel, so a window region
-// clips it to the island's shape (square top, rounded bottom corners) and no
-// frosted rectangle shows around it; the region follows the island as it
-// opens and closes (set_island_rect). The window itself is sized to the
-// island too (island::fit), so even where Windows draws the glass over the
-// whole window there is no rectangle around the island.
+// The glass island (FIXES_ROUND3 item 2c, round 3B item 1).
+//
+// Windows blurs what is behind the island with the legacy "accent" blur
+// (SetWindowCompositionAttribute, ACCENT_ENABLE_ACRYLICBLURBEHIND on Windows
+// 11, the plain blur on Windows 10), behind a transparent webview. Unlike the
+// DWM system backdrop (Tauri's Effect::Acrylic, DWMWA_SYSTEMBACKDROP_TYPE),
+// which fills the whole window rectangle whatever the region (the owner's
+// "grey square"), the accent blur stays inside the window region.
+//
+// The region (square top, rounded bottom corners, the CSS radius at the
+// monitor's scale) is set in every style, Solid included, and again on every
+// size change (set_island_rect, island::fit), so nothing outside the island is
+// ever drawn. Where the accent can't be set, the page draws a CSS glass (a
+// darker tint, no blur) on the transparent window: "css".
 //
 // Solid (the black island) when the user chose it, when Windows' own
 // "Transparency effects" switch is off, or while battery saver is on: the
 // watcher looks again every 30 seconds.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -20,7 +25,32 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::island::WINDOW_LABEL;
 
-static ON: AtomicBool = AtomicBool::new(false);
+/// What the island looks like: the black island, Windows' blur, or the page's own glass.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Look {
+    Solid = 0,
+    Blur = 1,
+    Css = 2,
+}
+
+impl Look {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Look::Solid => "solid",
+            Look::Blur => "blur",
+            Look::Css => "css",
+        }
+    }
+    fn from_u8(v: u8) -> Look {
+        match v {
+            1 => Look::Blur,
+            2 => Look::Css,
+            _ => Look::Solid,
+        }
+    }
+}
+
+static LOOK: AtomicU8 = AtomicU8::new(0);
 /// The island's last shape: window-logical x, y, width, height and the
 /// bottom corners' radius.
 static SHAPE: Mutex<(f64, f64, f64, f64, f64)> = Mutex::new((0.0, 0.0, 0.0, 0.0, 0.0));
@@ -28,6 +58,15 @@ static SHAPE: Mutex<(f64, f64, f64, f64, f64)> = Mutex::new((0.0, 0.0, 0.0, 0.0,
 /// Glass is drawn when it is chosen and Windows allows it right now.
 pub fn wanted(style: &str, transparency: bool, battery_saver: bool) -> bool {
     style != "solid" && transparency && !battery_saver
+}
+
+/// The look for a wanted glass and whether Windows took the accent blur.
+pub fn decide(glass: bool, accent_set: bool) -> Look {
+    match (glass, accent_set) {
+        (false, _) => Look::Solid,
+        (true, true) => Look::Blur,
+        (true, false) => Look::Css,
+    }
 }
 
 /// The window region, in physical pixels: the island's rectangle with its
@@ -51,63 +90,68 @@ pub fn centred_left(window_w: f64, w: f64) -> f64 {
     ((window_w - w) / 2.0).max(0.0)
 }
 
-pub fn is_on() -> bool {
-    ON.load(Ordering::Relaxed)
+pub fn look() -> Look {
+    Look::from_u8(LOOK.load(Ordering::Relaxed))
 }
 
-/// Turns the glass on or off as the settings and Windows say, and tells the
-/// island page (which then draws a light tint instead of black).
+/// Turns the blur on or off as the settings and Windows say, and tells the
+/// island page (which then draws a light tint, or its own glass, instead of black).
 pub fn apply(app: &AppHandle) {
     let style = app
         .try_state::<crate::Shared>()
         .map(|s| s.settings.lock().unwrap().island_style.clone())
         .unwrap_or_else(|| "glass".into());
-    let on = cfg!(windows) && wanted(&style, os::transparency_on(), os::battery_saver_on());
-    if ON.swap(on, Ordering::Relaxed) == on {
-        return;
-    }
+    let glass = cfg!(windows) && wanted(&style, os::transparency_on(), os::battery_saver_on());
     let Some(win) = app.get_webview_window(WINDOW_LABEL) else { return };
-    os::set_effect(&win, on);
+    let before = look();
+    let now = match (glass, before) {
+        // Already blurred (or on the page's glass): nothing to ask Windows again.
+        (true, Look::Blur | Look::Css) => before,
+        (true, Look::Solid) => decide(true, os::set_accent(&win, true)),
+        (false, _) => {
+            if before == Look::Blur {
+                os::set_accent(&win, false);
+            }
+            Look::Solid
+        }
+    };
+    LOOK.store(now as u8, Ordering::Relaxed);
     reshape(&win);
-    crate::log::line(format!("island style: {}", if on { "glass" } else { "solid" }));
-    let _ = app.emit_to(WINDOW_LABEL, "island-glass", on);
+    if now != before {
+        crate::log::line(format!("island style: {}", now.as_str()));
+        let _ = app.emit_to(WINDOW_LABEL, "island-glass", now.as_str());
+    }
 }
 
-/// The island moved or changed size: the glass follows it.
+/// The island moved or changed size: the region follows it, in this same call.
 pub fn shape(app: &AppHandle, x: f64, y: f64, w: f64, h: f64, radius: f64) {
     *SHAPE.lock().unwrap() = (x, y, w, h, radius);
-    if !is_on() {
-        return;
-    }
     if let Some(win) = app.get_webview_window(WINDOW_LABEL) {
         reshape(&win);
     }
 }
 
-/// The window was resized: the glass is centred on it again.
+/// The window was resized: the region is centred on it again.
 pub fn refit(app: &AppHandle) {
-    if !is_on() {
-        return;
-    }
     if let Some(win) = app.get_webview_window(WINDOW_LABEL) {
         reshape(&win);
     }
 }
 
 fn reshape(win: &tauri::WebviewWindow) {
-    if is_on() {
-        let scale = win.scale_factor().unwrap_or(1.0);
-        let mut shape = *SHAPE.lock().unwrap();
-        // The island sits at the top centre of the window, whose size follows
-        // it (island::fit): centre it on the window as it is now, not as the
-        // page last measured it.
-        if let Ok(size) = win.inner_size() {
-            shape.0 = centred_left(size.width as f64 / scale, shape.2);
-        }
-        os::set_region(win, region(shape, scale));
-    } else {
-        os::clear_region(win);
+    let scale = win.scale_factor().unwrap_or(1.0);
+    let mut shape = *SHAPE.lock().unwrap();
+    if shape.2 < 1.0 {
+        // Nothing measured yet: leave the window as it is.
+        return;
     }
+    // The island sits at the top centre of the window, whose size follows
+    // it (island::fit): centre it on the window as it is now, not as the
+    // page last measured it.
+    if let Ok(size) = win.inner_size() {
+        shape.0 = centred_left(size.width as f64 / scale, shape.2);
+    }
+    os::set_region(win, region(shape, scale));
 }
 
 /// Looks again every 30 seconds: transparency switched off, battery saver on.
@@ -122,18 +166,19 @@ pub fn spawn_watch(app: AppHandle) {
     });
 }
 
+/// "solid", "blur" or "css" (the page's own glass).
 #[tauri::command]
-pub fn island_glass() -> bool {
-    is_on()
+pub fn island_glass() -> &'static str {
+    look().as_str()
 }
 
 #[cfg(windows)]
 mod os {
-    use tauri::window::{Effect, EffectsBuilder};
     use tauri::WebviewWindow;
-    use windows::core::w;
+    use windows::core::{s, w, BOOL};
     use windows::Win32::Foundation::HWND;
     use windows::Win32::Graphics::Gdi::{CreateRectRgn, CreateRoundRectRgn, DeleteObject, SetWindowRgn, HGDIOBJ};
+    use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
     use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
     use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RRF_RT_REG_SZ};
 
@@ -181,15 +226,50 @@ mod os {
         text.trim().parse::<u32>().is_ok_and(|b| b >= 22000)
     }
 
-    pub fn set_effect(win: &WebviewWindow, on: bool) {
-        if on {
-            let effect = if windows_11() { Effect::Acrylic } else { Effect::Blur };
-            // The page adds the dark tint (rgba(18,20,24,0.42)) that keeps white
-            // text readable over bright wallpapers.
-            let effects = EffectsBuilder::new().effect(effect).build();
-            let _ = win.set_effects(effects);
-        } else {
-            let _ = win.set_effects(None);
+    #[repr(C)]
+    struct AccentPolicy {
+        state: u32,
+        flags: u32,
+        /// AABBGGRR: the tint the blur is mixed with.
+        gradient: u32,
+        animation: u32,
+    }
+
+    #[repr(C)]
+    struct CompositionData {
+        attribute: u32,
+        data: *mut core::ffi::c_void,
+        size: usize,
+    }
+
+    const WCA_ACCENT_POLICY: u32 = 19;
+    const ACCENT_DISABLED: u32 = 0;
+    const ACCENT_ENABLE_BLURBEHIND: u32 = 3;
+    const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
+    /// The page's own tint (rgba(18,20,24,…)) does the rest: a light one here.
+    const TINT: u32 = 0x22_18_14_12;
+
+    type SetWca = unsafe extern "system" fn(HWND, *mut CompositionData) -> BOOL;
+
+    /// The accent blur on or off. False when Windows didn't take it (then the page draws its own glass).
+    pub fn set_accent(win: &WebviewWindow, on: bool) -> bool {
+        let Some(hwnd) = hwnd(win) else { return false };
+        unsafe {
+            let Ok(user32) = GetModuleHandleW(w!("user32.dll")) else { return false };
+            let Some(proc) = GetProcAddress(user32, s!("SetWindowCompositionAttribute")) else { return false };
+            let set: SetWca = std::mem::transmute(proc);
+            let state = match (on, windows_11()) {
+                (false, _) => ACCENT_DISABLED,
+                (true, true) => ACCENT_ENABLE_ACRYLICBLURBEHIND,
+                (true, false) => ACCENT_ENABLE_BLURBEHIND,
+            };
+            let mut policy = AccentPolicy { state, flags: 2, gradient: TINT, animation: 0 };
+            let mut data = CompositionData {
+                attribute: WCA_ACCENT_POLICY,
+                data: &mut policy as *mut AccentPolicy as *mut _,
+                size: std::mem::size_of::<AccentPolicy>(),
+            };
+            set(hwnd, &mut data).as_bool()
         }
     }
 
@@ -209,13 +289,6 @@ mod os {
             }
         }
     }
-
-    pub fn clear_region(win: &WebviewWindow) {
-        let Some(hwnd) = hwnd(win) else { return };
-        unsafe {
-            SetWindowRgn(hwnd, None, true);
-        }
-    }
 }
 
 #[cfg(not(windows))]
@@ -227,9 +300,10 @@ mod os {
     pub fn battery_saver_on() -> bool {
         false
     }
-    pub fn set_effect(_win: &WebviewWindow, _on: bool) {}
+    pub fn set_accent(_win: &WebviewWindow, _on: bool) -> bool {
+        false
+    }
     pub fn set_region(_win: &WebviewWindow, _region: Option<(i32, i32, i32, i32, i32)>) {}
-    pub fn clear_region(_win: &WebviewWindow) {}
 }
 
 #[cfg(test)]
@@ -253,6 +327,26 @@ mod tests {
         assert_eq!(r, (60, -66, 1021, 301, 66));
         // Top corners: the round rectangle starts a whole radius above the window.
         assert!(r.1 + r.4 / 2 <= 0);
+    }
+
+    #[test]
+    fn the_blur_if_windows_takes_it_else_the_pages_own_glass() {
+        assert_eq!(decide(false, false), Look::Solid);
+        assert_eq!(decide(false, true), Look::Solid);
+        assert_eq!(decide(true, true), Look::Blur);
+        assert_eq!(decide(true, false), Look::Css);
+        assert_eq!(Look::Css.as_str(), "css");
+    }
+
+    #[test]
+    fn no_system_backdrop_is_ever_asked_for() {
+        // Effect::Acrylic/Mica are the DWM system backdrop: it fills the whole
+        // window rectangle, whatever the region (round 3B item 1).
+        let src = include_str!("glass.rs");
+        let code = src.split("#[cfg(test)]").next().unwrap();
+        for banned in ["Effect::Acrylic", "Effect::Mica", "set_effects(", "DWMWA_SYSTEMBACKDROP_TYPE"] {
+            assert!(!code.lines().any(|l| l.contains(banned) && !l.trim_start().starts_with("//")), "{banned}");
+        }
     }
 
     #[test]

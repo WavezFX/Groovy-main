@@ -138,6 +138,19 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
+      - name: Nothing but the island is drawn (corner pixels, F and E)
+        shell: pwsh
+        run: ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir corner-shots
+
+      - name: Upload the corner screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: island-corners
+          path: windows/corner-shots/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Install with the NSIS installer and smoke test it offline
         shell: pwsh
         run: |

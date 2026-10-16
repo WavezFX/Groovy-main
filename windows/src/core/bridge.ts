@@ -214,6 +214,8 @@ export interface BootInfo {
   hookPath: string;
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
+  /** CI's smoke test: hold the island open on Home (F) or the player (E). */
+  smokeView?: "home" | "player" | null;
 }
 
 /** Ollama on this computer (ollama.rs). */
@@ -408,7 +410,7 @@ export const Bridge = {
   /** The window is sized to the island (round 3 §8 B): grown before it grows, shrunk after. */
   fitIsland: (width: number, height: number) => call<void>("fit_island", { width, height }),
   /** The island is glass now (Windows' Acrylic behind it), or solid. */
-  islandGlass: () => call<boolean>("island_glass"),
+  islandGlass: () => call<string>("island_glass"),
 
   /** Give the window keyboard focus (chat field) and take it away again. */
   focusWindow: (focused: boolean) => call<void>("focus_window", { focused }),
