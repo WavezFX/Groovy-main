@@ -160,6 +160,14 @@ pub struct Settings {
     /// (the default), "5m" or "keep": how long an unused speech model or
     /// the local AI stays loaded.
     pub unload_after: String,
+    /// Talk to Groovy (round 4 item 3): "off" (the default), "openai" or
+    /// "gemini": a real-time voice model instead of speech → AI → voice.
+    pub instant_voice: String,
+    /// Talk to Groovy: a short summary of each conversation goes to chat history.
+    pub call_summary: bool,
+    /// Barge-in is on by default since round 4 item 3; turned on once for
+    /// installs that had the old default (off).
+    pub barge_in_default: bool,
     /// How far Groovy's look has grown: active seconds, the stage reached and
     /// the stage shown (round 3 item 6). The page owns its shape
     /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
@@ -233,7 +241,7 @@ impl Default for Settings {
             voice_tts: String::new(),
             voice_language: String::new(),
             voice_mic: String::new(),
-            voice_interrupt: false,
+            voice_interrupt: true,
             break_water: 45,
             keep_visible: true,
             break_stretch: 60,
@@ -258,6 +266,9 @@ impl Default for Settings {
             island_style: "glass".into(),
             glass_strength: "balanced".into(),
             unload_after: "2m".into(),
+            instant_voice: "off".into(),
+            call_summary: true,
+            barge_in_default: true,
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
             integrations_restored: false,
@@ -659,6 +670,9 @@ mod tests {
   "glassStrength": "frosted",
   "listeningView": "strip",
   "unloadAfter": "5m",
+  "instantVoice": "openai",
+  "callSummary": false,
+  "bargeInDefault": true,
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true
 }"##;
@@ -1286,6 +1300,9 @@ mod tests {
                 "glassStrength",
                 "listeningView",
                 "unloadAfter",
+                "instantVoice",
+                "callSummary",
+                "bargeInDefault",
                 "growth",
                 "integrationsRestored",
             ]

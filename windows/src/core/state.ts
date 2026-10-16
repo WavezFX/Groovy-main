@@ -263,6 +263,11 @@ export interface Settings {
   listeningView: "badge" | "strip";
   /** Round 3B item 10: how long an unused speech model or the local AI stays loaded. */
   unloadAfter: "30s" | "2m" | "5m" | "keep";
+  /** Round 4 item 3: a real-time voice model for Talk to Groovy, when chosen and keyed. */
+  instantVoice: "off" | "openai" | "gemini";
+  /** Round 4 item 3: a short summary of each conversation goes to chat history. */
+  callSummary: boolean;
+  bargeInDefault: boolean;
   /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
   growth: unknown;
 }
@@ -303,7 +308,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceTts: "",
   voiceLanguage: "",
   voiceMic: "",
-  voiceInterrupt: false,
+  voiceInterrupt: true,
   breakWater: 45,
   keepVisible: true,
   breakStretch: 60,
@@ -318,6 +323,9 @@ export const DEFAULT_SETTINGS: Settings = {
   glassStrength: "balanced",
   listeningView: "badge",
   unloadAfter: "2m",
+  instantVoice: "off",
+  callSummary: true,
+  bargeInDefault: true,
   growth: {},
 };
 

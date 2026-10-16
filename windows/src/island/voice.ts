@@ -21,10 +21,11 @@ import { startLiveKit, type LiveKitSession } from "../voice/livekit";
 import { speak, stopSpeaking } from "../voice/speak";
 import { SentenceSpeaker } from "../voice/sentences";
 import { brainName, type CallFix } from "../voice/stages";
+import { startInstant, type InstantSession } from "../voice/instant";
 import { t } from "../i18n/i18n";
 
-/** In a call, how long he waits for you to start speaking before hanging up. */
-const CALL_TURN_WAIT = 12;
+/** In a conversation, how long he waits for you to start speaking before hanging up (round 4 item 3). */
+const CALL_TURN_WAIT = 30;
 
 export interface VoiceHostActions {
   /** Opens the island on the chat. */
@@ -54,12 +55,21 @@ export class VoiceHost {
 
   private engine: BotEngine;
   private actions: VoiceHostActions;
+  /** Where this conversation starts in the chat, for its summary. */
+  private callStart = 0;
+  private turnId = 0;
+  /** Instant voice (a real-time model) has this conversation. */
+  private instant: InstantSession | null = null;
+  private instantHeardAt = 0;
+  private instantWatch: number | null = null;
 
   constructor(engine: BotEngine, actions: VoiceHostActions) {
     this.engine = engine;
     this.actions = actions;
     this.controller = new VoiceController(
       async (pcm, purpose) => {
+        // The words so far while you speak (round 4 item 3): best effort, never an error.
+        if (purpose === "partial") return (await Bridge.voiceTranscribe(toInt16(pcm), false).catch(() => "")) ?? "";
         try {
           const text = await Bridge.voiceTranscribe(toInt16(pcm), purpose === "wake");
           if (purpose === "command") this.transcribeError = null;
@@ -77,8 +87,17 @@ export class VoiceHost {
         onCommand: (text) => this.command(text),
         onCancel: () => this.cancelled(),
         onPhase: (p) => this.phase(p),
+        onPartial: (text) => {
+          if (!State.voiceCall) return;
+          State.voiceCaption = `“${text}”`;
+          State.notify();
+        },
       },
     );
+    // "OK Groovy, let's talk" (okgroovy/mod.rs).
+    void onEvent("voice-call-start", () => {
+      if (!State.voiceCall) void this.startCall();
+    });
     CallControl.toggle = () => {
       if (State.voiceCall || this.live) this.endCall();
       else void this.startCall();
@@ -196,6 +215,14 @@ export class VoiceHost {
 
   private toggleMute() {
     if (!State.voiceCall) return;
+    if (this.instant) {
+      const muting = State.callState !== "muted";
+      this.instant.mute(muting);
+      this.call(muting ? "mute" : "unmute");
+      MicLevel.set(0);
+      State.notify();
+      return;
+    }
     if (State.callState === "muted") {
       this.call("unmute");
       this.listenForTurn();
@@ -246,6 +273,7 @@ export class VoiceHost {
   private close() {
     this.live?.hangUp();
     this.live = null;
+    if (State.voiceCall) this.callEnded();
     stopSpeaking();
     this.controller.stop();
     this.mic?.stop();
@@ -287,8 +315,11 @@ export class VoiceHost {
     State.callHeard = null;
     State.callBrain = brainName(State.settings);
     this.call("start");
+    this.callBegan();
     log(`call started (brain ${State.callBrain}, speech ${State.settings.voiceSpeak ? "on" : "off"})`);
     State.notify(); // opens the microphone through sync()
+    // Instant voice when chosen and keyed; the usual pipeline if it can't start.
+    if (await this.startInstantCall()) return;
     if (!(await this.open())) {
       // The call bar stays, saying why and how to fix it.
       this.actions.openChat();
@@ -303,6 +334,7 @@ export class VoiceHost {
   private endCall() {
     this.live?.hangUp();
     const was = State.voiceCall;
+    if (was) this.callEnded();
     State.voiceCall = false;
     State.voiceListening = false;
     State.voiceSpeaking = false;
@@ -321,6 +353,7 @@ export class VoiceHost {
   }
 
   private listenForTurn() {
+    State.voiceCaption = null;
     State.callReason = null;
     State.callFix = null;
     State.voiceListening = true;
@@ -340,9 +373,10 @@ export class VoiceHost {
     }
     Sound.play("peek");
     this.engine.triggerEmote("surprised", 0.9);
-    if (State.settings.voiceCall) {
+    if (State.settings.voiceCall && !State.voiceCall) {
       State.voiceCall = true;
       this.call("start");
+      this.callBegan();
     }
     State.voiceListening = true;
     this.actions.openChat();
@@ -368,11 +402,30 @@ export class VoiceHost {
     if (!State.voiceCall && !State.voiceListening && State.settings.voiceCall) {
       State.voiceCall = true;
       this.call("start");
+      this.callBegan();
     }
     if (State.voiceCall) this.call("heard");
     State.voiceListening = false;
+    State.voiceCaption = null;
     // Not listening while he thinks and answers: he'd hear himself.
     this.controller.pause();
+    void this.answer(text);
+  }
+
+  /** Music, volume, timers, opening things: done at once without the AI; the rest goes to the chat. */
+  private async answer(text: string) {
+    const basic = await Bridge.voiceBasic(text);
+    if (basic) {
+      State.callHeard = text;
+      State.chatHistory.push({ id: -++this.turnId, role: "user", content: text }, { id: -++this.turnId, role: "assistant", content: basic });
+      this.askedAt = performance.now();
+      log("answered without AI");
+      this.speaker = State.settings.voiceSpeak ? this.newSpeaker() : null;
+      this.actions.openChat();
+      State.notify();
+      void this.say(basic);
+      return;
+    }
     this.awaiting = State.chatHistory.length;
     State.callHeard = text;
     State.callBrain = brainName(State.settings);
@@ -476,6 +529,93 @@ export class VoiceHost {
       this.controller.resume();
       State.notify();
     }
+  }
+
+  // ── Talk to Groovy: the conversation's start and end (round 4 item 3) ──────
+
+  private callBegan() {
+    this.callStart = State.chatHistory.length;
+    this.controller.partials = true;
+    void Bridge.voiceCallActive(true);
+  }
+
+  /** Hung up: « OK Groovy » listens again, and a short summary goes to chat history. */
+  private callEnded() {
+    this.controller.partials = false;
+    // Cleared first, so its own end doesn't hang up a second time.
+    const instant = this.instant;
+    this.instant = null;
+    instant?.hangUp();
+    if (this.instantWatch !== null) window.clearInterval(this.instantWatch);
+    this.instantWatch = null;
+    State.voiceCaption = null;
+    void Bridge.voiceCallActive(false);
+    // Basic commands and Instant voice put their turns in the chat too.
+    const all = State.chatHistory.slice(this.callStart).map((m) => [m.role, m.content] as [string, string]);
+    if (State.settings.callSummary !== false && all.some(([who]) => who === "assistant")) {
+      void Bridge.callSummary(all).catch((e) => log(`summary not saved: ${String(e)}`));
+    }
+  }
+
+  /** Instant voice, when chosen and its key is there. False: the usual pipeline runs. */
+  private async startInstantCall(): Promise<boolean> {
+    const wanted = State.settings.instantVoice;
+    if (wanted !== "openai" && wanted !== "gemini") return false;
+    const options = (await Bridge.instantVoiceOptions()) ?? [];
+    if (!options.includes(wanted)) {
+      log(`instant voice (${wanted}) has no key: the usual voice`);
+      return false;
+    }
+    this.controller.pause();
+    State.voiceCaption = t("Connecting…");
+    State.notify();
+    this.instantHeardAt = performance.now();
+    try {
+      this.instant = await startInstant(wanted, {
+        onCaption: (who, text) => {
+          this.instantHeardAt = performance.now();
+          State.voiceCaption = who === "you" ? `“${text}”` : text;
+          State.notify();
+        },
+        onSpeaking: (speaking) => {
+          this.instantHeardAt = performance.now();
+          State.voiceSpeaking = speaking;
+          State.voiceListening = !speaking;
+          this.call(speaking ? "answered" : "spoke");
+          State.notify();
+        },
+        onTurn: (who, text) => {
+          State.chatHistory.push({ id: -++this.turnId, role: who, content: text });
+          State.notify();
+        },
+        onEnd: (error) => {
+          if (!this.instant) return;
+          this.instant = null;
+          if (error && State.voiceCall) {
+            // It failed mid-way: the usual voice carries on.
+            log(`instant voice failed: ${error}`);
+            this.listenForTurn();
+          } else if (State.voiceCall) this.endCall();
+        },
+      });
+    } catch (e) {
+      this.instant = null;
+      log(`instant voice could not start: ${String(e)}`);
+      State.voiceCaption = null;
+      return false;
+    }
+    log(`instant voice (${wanted}) started`);
+    Sound.play("open");
+    this.engine.triggerEmote("happy", 1.2);
+    State.voiceListening = true;
+    State.voiceCaption = t("Listening…");
+    this.actions.openChat();
+    // About 30 s with nobody talking ends it, as in the usual voice.
+    this.instantWatch = window.setInterval(() => {
+      if (this.instant && performance.now() - this.instantHeardAt > CALL_TURN_WAIT * 1000) this.endCall();
+    }, 5000);
+    State.notify();
+    return true;
   }
 
   // ── LiveKit ───────────────────────────────────────────────────────────────

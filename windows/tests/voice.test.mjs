@@ -177,3 +177,40 @@ test("in a call he listens for the next turn without the wake word, and gives up
   feed(c, "quiet", 2);
   assert.deepEqual(log, ["command:what's the weather", "cancel"]);
 });
+
+test("in a conversation the words so far show while you speak (round 4 item 3)", async () => {
+  const partial = [];
+  const heard = [];
+  const c = new VoiceController(
+    async (pcm, purpose) => {
+      heard.push(purpose);
+      return purpose === "partial" ? `words ${heard.length}` : "the whole sentence";
+    },
+    { onWake() {}, onCommand: (t) => partial.push(`command:${t}`), onCancel() {}, onPartial: (t) => partial.push(t) },
+  );
+  c.start();
+  c.partials = true;
+  feed(c, "quiet", 1);
+  c.listen(30);
+  // Each slice of speech gives the transcription a moment to answer.
+  for (let i = 0; i < 6; i++) {
+    feed(c, "speech", 0.5);
+    await tick();
+  }
+  feed(c, "quiet", 2);
+  await tick();
+  await tick();
+  assert.ok(heard.filter((p) => p === "partial").length >= 2, `${heard}`);
+  assert.ok(partial.some((p) => p.startsWith("words")));
+  assert.equal(partial.at(-1), "command:the whole sentence");
+});
+
+test("without a conversation, no partial transcriptions are made", async () => {
+  const { c, heard } = controller(["", "turn it up"]);
+  feed(c, "quiet", 1);
+  c.listen(12);
+  feed(c, "speech", 3);
+  feed(c, "quiet", 2);
+  await tick();
+  assert.ok(heard.every(([p]) => p !== "partial"));
+});

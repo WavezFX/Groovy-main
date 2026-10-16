@@ -21,7 +21,7 @@ export const SAMPLE_RATE = 16000;
 export type VoicePhase = "off" | "wake" | "command" | "transcribing" | "paused";
 
 /** Turns speech into text. `wake` asks for a quick pass, only to spot the name. */
-export type Transcriber = (pcm: Float32Array, purpose: "wake" | "command") => Promise<string>;
+export type Transcriber = (pcm: Float32Array, purpose: "wake" | "command" | "partial") => Promise<string>;
 
 export interface VoiceCallbacks {
   /** "Groovy" heard on its own: he is listening for the command. */
@@ -31,7 +31,12 @@ export interface VoiceCallbacks {
   /** Listening ended without a command (silence, "never mind"). */
   onCancel(): void;
   onPhase?(phase: VoicePhase): void;
+  /** The words so far, while you are still speaking (Talk to Groovy, round 4 item 3). */
+  onPartial?(text: string): void;
 }
+
+/** While you speak in a conversation, the words so far are shown this often, seconds. */
+export const PARTIAL_EVERY = 1.0;
 
 /** Seconds of audio kept from just before speech starts, so the first word isn't clipped. */
 const PRE_ROLL = 0.35;
@@ -58,6 +63,10 @@ export class VoiceController {
   private commandStarted = false;
   /** How long this command window waits for speech to start. */
   private commandWait = COMMAND_WAIT;
+  /** Live words while a command is spoken (only in a conversation: it costs a transcription a second). */
+  partials = false;
+  private partialAt = 0;
+  private partialBusy = false;
   /** Bumped on every reset so a late transcription can't act on a stale state. */
   private epoch = 0;
 
@@ -132,6 +141,7 @@ export class VoiceController {
       }
       this.segment.push(frame);
       this.segmentSamples += frame.length;
+      if (this.phase === "command" && this.partials && ev !== "end") this.maybePartial();
       if (this.phase === "command" && this.segmentSamples / SAMPLE_RATE > COMMAND_MAX) {
         this.vad.reset();
         this.finishSegment();
@@ -146,6 +156,20 @@ export class VoiceController {
     this.preRoll.push(frame);
     const keep = Math.ceil((PRE_ROLL * SAMPLE_RATE) / frame.length);
     while (this.preRoll.length > keep) this.preRoll.shift();
+  }
+
+  /** The words so far, one transcription at a time, at most every PARTIAL_EVERY seconds of speech. */
+  private maybePartial() {
+    if (this.partialBusy || this.segmentSamples - this.partialAt < PARTIAL_EVERY * SAMPLE_RATE) return;
+    this.partialAt = this.segmentSamples;
+    this.partialBusy = true;
+    const epoch = this.epoch;
+    void this.transcribe(concat(this.segment), "partial")
+      .then((text) => {
+        if (epoch === this.epoch && this.phase === "command" && text.trim()) this.cb.onPartial?.(text.trim());
+      })
+      .catch(() => {})
+      .finally(() => (this.partialBusy = false));
   }
 
   private finishSegment() {
@@ -241,6 +265,7 @@ export class VoiceController {
   private clearSegment() {
     this.segment = [];
     this.segmentSamples = 0;
+    this.partialAt = 0;
   }
 
   private setPhase(p: VoicePhase) {

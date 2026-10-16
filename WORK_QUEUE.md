@@ -29,7 +29,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
-- [ ] 3. Live voice chat, like ChatGPT Voice
+- [x] 3. Live voice chat, like ChatGPT Voice
 - [ ] 4. DuckDuckGo browser
 - [ ] 5. More PC control, behind permissions
 - [ ] 6. Replace every Coucou sound. **Round 3 item 7 already generates sounds in code:** check that no Coucou sound file or sound copied from Coucou is left, and finish whatever is missing.

@@ -220,8 +220,8 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             }
             _ => {}
         }
-        // Dictation and calls have the microphone: Groovy doesn't listen meanwhile.
-        if live::dictating(&app) || crate::notes::is_recording(&app) {
+        // Dictation, recordings and conversations have the microphone: Groovy doesn't listen meanwhile.
+        if live::dictating(&app) || crate::notes::is_recording(&app) || crate::calls::active() {
             vad.reset();
             continue;
         }
@@ -278,6 +278,13 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             vad.hangover = 25;
             test_step(&app, "words", true, &question);
             show(&app, Some(VoiceView { phase: "thinking".into(), heard: question.clone(), answer: String::new() }));
+            // "OK Groovy, let's talk": a conversation in the island (round 4 item 3).
+            if crate::calls::is_talk(&question) {
+                crate::log::line("voice: starting a conversation");
+                show(&app, None);
+                let _ = app.emit_to(crate::island::WINDOW_LABEL, "voice-call-start", ());
+                continue;
+            }
             // Music, volume, the time, timers, opening things: no AI needed.
             let answer = if let Some(b) = basic::parse(&question) {
                 crate::log::line("voice: answered without AI");

@@ -228,8 +228,30 @@ export function voiceSection(
   const micRow = h("div", { class: "row" }, h("label", { text: t("Microphone") }), mic);
   const interruptRow = h("div", { class: "row" },
     h("label", { text: t("Let me interrupt him") }),
-    toggle(settings.voiceInterrupt ?? false, (v) => { settings.voiceInterrupt = v; save(); }),
+    toggle(settings.voiceInterrupt ?? true, (v) => { settings.voiceInterrupt = v; save(); }),
     h("span", { class: "hint", text: t("Speak over him and he stops to listen. Use headphones, or he may hear himself.") }),
+  );
+
+  // Talk to Groovy (round 4 item 3): a real-time voice model, offered when its key is there.
+  const instant = h("select", {}) as HTMLSelectElement;
+  for (const [value, label] of [["off", t("Off: Groovy's own voice")], ["openai", "OpenAI Realtime"], ["gemini", "Gemini Live"]] as const) {
+    instant.append(h("option", { value, text: label }));
+  }
+  instant.value = settings.instantVoice ?? "off";
+  instant.addEventListener("change", () => {
+    settings.instantVoice = instant.value as typeof settings.instantVoice;
+    save();
+  });
+  void Bridge.instantVoiceOptions().then((have) => {
+    for (const o of Array.from(instant.options)) {
+      if (o.value !== "off") o.disabled = !(have ?? []).includes(o.value as "openai" | "gemini");
+    }
+  });
+  const instantRow = h("div", { class: "row" }, h("label", { text: t("Instant voice") }), instant);
+  const instantHint = h("div", { class: "hint", text: t("With an OpenAI or Gemini key, a real-time voice model answers in a conversation: faster and more natural. If it can't connect, Groovy's own voice takes over.") });
+  const summaryRow = h("div", { class: "row" },
+    h("label", { text: t("Save a summary of each conversation") }),
+    toggle(settings.callSummary !== false, (v) => { settings.callSummary = v; save(); }),
   );
 
   const modelRow = h("div", { class: "row" }, h("label", { text: t("Speech model") }), model, download, remove, bar);
@@ -337,6 +359,9 @@ export function voiceSection(
     recognitionHint,
     speakRows,
     interruptRow,
+    instantRow,
+    instantHint,
+    summaryRow,
     micRow,
     modelRow,
     languageRow,

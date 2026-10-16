@@ -670,6 +670,13 @@ export const Bridge = {
 
   // ── Voice (voice.rs, livekit.rs) ──────────────────────────────────────────
   /** 16 kHz mono 16-bit samples to text; `wake` asks for the quick pass. */
+  // Talk to Groovy (round 4 item 3, calls.rs).
+  voiceCallActive: (on: boolean) => call<void>("voice_call_active", { on }),
+  voiceBasic: (text: string) => call<string | null>("voice_basic", { text }),
+  callSummary: (turns: [string, string][]) => callOrThrow<void>("call_summary", { turns }),
+  instantVoiceOptions: () => call<("openai" | "gemini")[]>("instant_voice_options"),
+  instantOpenaiAnswer: (offer: string) => callOrThrow<string>("instant_openai_answer", { offer }),
+  instantGeminiToken: () => callOrThrow<{ token: string; setup: unknown }>("instant_gemini_token"),
   voiceTranscribe: (samples: number[], wake: boolean) =>
     callOrThrow<string>("voice_transcribe", { samples, wake }),
   voiceStatus: () => call<VoiceStatus>("voice_status"),

@@ -17,6 +17,7 @@ mod github;
 mod hooks;
 mod i18n;
 mod idle;
+mod calls;
 mod worktest;
 mod identity;
 mod integrations;
@@ -1169,6 +1170,15 @@ pub fn run() {
             log::line(format!("could not save settings: {e}"));
         }
     }
+    // Round 4 item 3: talking over Groovy stops him, by default. Installs that
+    // had the old default (off) get it once.
+    if !first_run && !loaded.barge_in_default {
+        loaded.voice_interrupt = true;
+        loaded.barge_in_default = true;
+        if let Err(e) = settings::save(&loaded) {
+            log::line(format!("could not save settings: {e}"));
+        }
+    }
     if let Err(e) = db::init() {
         log::line(format!("local database unavailable: {e}"));
     }
@@ -1419,6 +1429,12 @@ pub fn run() {
             okgroovy::voice_done,
             okgroovy::okgroovy_status,
             quick_status,
+            calls::voice_call_active,
+            calls::voice_basic,
+            calls::call_summary,
+            calls::instant_voice_options,
+            calls::instant_openai_answer,
+            calls::instant_gemini_token,
             frame_report,
             speech::tts::tts_audio,
             speech::tts::tts_status,

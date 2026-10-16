@@ -14734,6 +14734,105 @@
    "pt-BR": "Groovy fala com a voz do próprio Windows.",
    "ru": "Groovy говорит встроенным голосом Windows.",
    "id": "Groovy berbicara dengan suara bawaan Windows."
+  },
+  "Off: Groovy's own voice": {
+   "zh-Hans": "关：Groovy 自己的声音",
+   "hi": "बंद: Groovy की अपनी आवाज़",
+   "es": "Desactivado: la voz propia de Groovy",
+   "ar": "إيقاف: صوت Groovy الخاص",
+   "fr": "Désactivé : la voix de Groovy",
+   "bn": "বন্ধ: Groovy-র নিজের কণ্ঠ",
+   "pt-BR": "Desligado: a voz do próprio Groovy",
+   "ru": "Выкл.: собственный голос Groovy",
+   "id": "Nonaktif: suara Groovy sendiri"
+  },
+  "Instant voice": {
+   "zh-Hans": "即时语音",
+   "hi": "इंस्टेंट वॉइस",
+   "es": "Voz instantánea",
+   "ar": "الصوت الفوري",
+   "fr": "Voix instantanée",
+   "bn": "ইনস্ট্যান্ট ভয়েস",
+   "pt-BR": "Voz instantânea",
+   "ru": "Мгновенный голос",
+   "id": "Suara instan"
+  },
+  "With an OpenAI or Gemini key, a real-time voice model answers in a conversation: faster and more natural. If it can't connect, Groovy's own voice takes over.": {
+   "zh-Hans": "有 OpenAI 或 Gemini 密钥时，对话由实时语音模型回答：更快、更自然。连不上时，由 Groovy 自己的声音接手。",
+   "hi": "OpenAI या Gemini कुंजी हो तो बातचीत में रियल-टाइम वॉइस मॉडल जवाब देता है: तेज़ और ज़्यादा स्वाभाविक। जुड़ न पाए तो Groovy की अपनी आवाज़ संभाल लेती है।",
+   "es": "Con una clave de OpenAI o Gemini, un modelo de voz en tiempo real responde en la conversación: más rápido y natural. Si no conecta, sigue la voz propia de Groovy.",
+   "ar": "مع مفتاح OpenAI أو Gemini، يجيب نموذج صوتي فوري في المحادثة: أسرع وأكثر طبيعية. إن تعذّر الاتصال، يتولى صوت Groovy الخاص.",
+   "fr": "Avec une clé OpenAI ou Gemini, un modèle vocal en temps réel répond dans la conversation : plus rapide et plus naturel. S’il ne se connecte pas, la voix de Groovy prend le relais.",
+   "bn": "OpenAI বা Gemini কী থাকলে কথোপকথনে রিয়েল-টাইম ভয়েস মডেল উত্তর দেয়: দ্রুত আর আরও স্বাভাবিক। সংযোগ না হলে Groovy-র নিজের কণ্ঠ দায়িত্ব নেয়।",
+   "pt-BR": "Com uma chave da OpenAI ou do Gemini, um modelo de voz em tempo real responde na conversa: mais rápido e natural. Se não conectar, a voz do próprio Groovy assume.",
+   "ru": "С ключом OpenAI или Gemini в разговоре отвечает голосовая модель реального времени: быстрее и естественнее. Если подключиться не удаётся, продолжает собственный голос Groovy.",
+   "id": "Dengan kunci OpenAI atau Gemini, model suara real-time menjawab dalam percakapan: lebih cepat dan alami. Jika tidak tersambung, suara Groovy sendiri mengambil alih."
+  },
+  "Save a summary of each conversation": {
+   "zh-Hans": "保存每次对话的摘要",
+   "hi": "हर बातचीत का सारांश सहेजें",
+   "es": "Guardar un resumen de cada conversación",
+   "ar": "حفظ ملخص لكل محادثة",
+   "fr": "Enregistrer un résumé de chaque conversation",
+   "bn": "প্রতিটি কথোপকথনের সারাংশ সংরক্ষণ করুন",
+   "pt-BR": "Salvar um resumo de cada conversa",
+   "ru": "Сохранять краткое содержание каждого разговора",
+   "id": "Simpan ringkasan setiap percakapan"
+  },
+  "Voice conversation": {
+   "zh-Hans": "语音对话",
+   "hi": "आवाज़ से बातचीत",
+   "es": "Conversación de voz",
+   "ar": "محادثة صوتية",
+   "fr": "Conversation vocale",
+   "bn": "কণ্ঠে কথোপকথন",
+   "pt-BR": "Conversa por voz",
+   "ru": "Голосовой разговор",
+   "id": "Percakapan suara"
+  },
+  "Add an OpenAI key in Settings to use Instant voice.": {
+   "zh-Hans": "在设置中添加 OpenAI 密钥即可使用即时语音。",
+   "hi": "इंस्टेंट वॉइस के लिए सेटिंग्स में OpenAI कुंजी जोड़ें।",
+   "es": "Añade una clave de OpenAI en Ajustes para usar la voz instantánea.",
+   "ar": "أضف مفتاح OpenAI في الإعدادات لاستخدام الصوت الفوري.",
+   "fr": "Ajoutez une clé OpenAI dans les réglages pour utiliser la voix instantanée.",
+   "bn": "ইনস্ট্যান্ট ভয়েসের জন্য সেটিংসে OpenAI কী যোগ করুন।",
+   "pt-BR": "Adicione uma chave da OpenAI nas configurações para usar a voz instantânea.",
+   "ru": "Добавьте ключ OpenAI в настройках, чтобы пользоваться мгновенным голосом.",
+   "id": "Tambahkan kunci OpenAI di Pengaturan untuk memakai suara instan."
+  },
+  "OpenAI could not be reached.": {
+   "zh-Hans": "无法连接 OpenAI。",
+   "hi": "OpenAI तक नहीं पहुँच सके।",
+   "es": "No se pudo contactar con OpenAI.",
+   "ar": "تعذّر الوصول إلى OpenAI.",
+   "fr": "OpenAI est injoignable.",
+   "bn": "OpenAI-তে পৌঁছানো গেল না।",
+   "pt-BR": "Não foi possível acessar a OpenAI.",
+   "ru": "Не удалось связаться с OpenAI.",
+   "id": "OpenAI tidak dapat dihubungi."
+  },
+  "Add a Gemini key in Settings to use Instant voice.": {
+   "zh-Hans": "在设置中添加 Gemini 密钥即可使用即时语音。",
+   "hi": "इंस्टेंट वॉइस के लिए सेटिंग्स में Gemini कुंजी जोड़ें।",
+   "es": "Añade una clave de Gemini en Ajustes para usar la voz instantánea.",
+   "ar": "أضف مفتاح Gemini في الإعدادات لاستخدام الصوت الفوري.",
+   "fr": "Ajoutez une clé Gemini dans les réglages pour utiliser la voix instantanée.",
+   "bn": "ইনস্ট্যান্ট ভয়েসের জন্য সেটিংসে Gemini কী যোগ করুন।",
+   "pt-BR": "Adicione uma chave do Gemini nas configurações para usar a voz instantânea.",
+   "ru": "Добавьте ключ Gemini в настройках, чтобы пользоваться мгновенным голосом.",
+   "id": "Tambahkan kunci Gemini di Pengaturan untuk memakai suara instan."
+  },
+  "Gemini could not be reached.": {
+   "zh-Hans": "无法连接 Gemini。",
+   "hi": "Gemini तक नहीं पहुँच सके।",
+   "es": "No se pudo contactar con Gemini.",
+   "ar": "تعذّر الوصول إلى Gemini.",
+   "fr": "Gemini est injoignable.",
+   "bn": "Gemini-তে পৌঁছানো গেল না।",
+   "pt-BR": "Não foi possível acessar o Gemini.",
+   "ru": "Не удалось связаться с Gemini.",
+   "id": "Gemini tidak dapat dihubungi."
   }
  }
 }
