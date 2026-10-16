@@ -1013,6 +1013,17 @@ pub fn run() {
     if first_run {
         loaded.assistant.performance_profile = models::recommended_profile(models::memory_info().total).to_string();
     }
+    // Round 3B item 7: My island's presets and mail apps used to switch every
+    // integration off. Once, any service whose key is still stored is back on.
+    if !first_run && !loaded.integrations_restored {
+        let back = settings::restore_integrations(&mut loaded, secrets::present);
+        if !back.is_empty() {
+            log::line(format!("integrations turned back on: {}", back.join(", ")));
+        }
+        if let Err(e) = settings::save(&loaded) {
+            log::line(format!("could not save settings: {e}"));
+        }
+    }
     if let Err(e) = db::init() {
         log::line(format!("local database unavailable: {e}"));
     }

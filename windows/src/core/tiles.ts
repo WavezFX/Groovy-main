@@ -170,6 +170,16 @@ export function withServices(t: IslandTiles, active: readonly string[], mainPill
   return same ? t : { ...t, tiles };
 }
 
+/**
+ * The services on after a change of tiles: those with a tile, in tile order,
+ * then the ones that were on — all but the one whose tile was removed.
+ */
+export function keptServices(fromTiles: readonly string[], wereOn: readonly string[], removed?: string): string[] {
+  const out = [...fromTiles];
+  for (const id of wereOn) if (id !== removed && !out.includes(id)) out.push(id);
+  return out.filter((id) => id !== removed);
+}
+
 /** The services the tiles turn on, in tile order, without the main tool. */
 export function servicesOf(t: IslandTiles, mainPill: string): string[] {
   const ids: string[] = [];

@@ -107,6 +107,11 @@ function serviceLine(id: string): { text: string; good: boolean } {
         if (typeof total === "number") return { text: t("{n} sent", { n: total }), good: false };
         break;
       }
+      case "integration_neon": {
+        const total = data(id).total;
+        if (typeof total === "number") return { text: t("{n} projects", { n: total }), good: total > 0 };
+        break;
+      }
       case "integration_notion": {
         const n = list(id, "pages").length;
         if (n) return { text: t("{n} pages", { n }), good: false };

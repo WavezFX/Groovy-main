@@ -52,6 +52,7 @@ function arr(id: string, key: string): Record<string, unknown>[] {
 
 const OPEN_URLS: Record<string, string> = {
   integration_resend: "https://resend.com/emails",
+  integration_neon: "https://console.neon.tech/app/projects",
   integration_vercel: "https://vercel.com/dashboard",
   integration_github: "https://github.com",
   integration_stripe: "https://dashboard.stripe.com/payments",

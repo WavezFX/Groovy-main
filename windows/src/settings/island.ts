@@ -9,7 +9,7 @@ import { Bridge } from "../core/bridge";
 import { KEY_PAGES, availablePills, pillDefinition, sanitizeDeclared } from "../core/pills";
 import type { Settings } from "../core/state";
 import {
-  MAX_TILES, addTile, applyPreset, currentTiles, moveTile, removeTile, resizeTile, servicesOf, tile, tileService, withServices,
+  MAX_TILES, addTile, applyPreset, currentTiles, moveTile, removeTile, resizeTile, keptServices, servicesOf, tile, tileService, withServices,
   type IslandPreset, type IslandTiles, type Tile, type TileKind,
 } from "../core/tiles";
 import { h, clear } from "../views/dom";
@@ -48,11 +48,13 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
 
   /** Keys already stored, to say which service still needs one. */
   const keys: Record<string, boolean> = {};
-  const commit = (next: IslandTiles) => {
-    // One list: the service tiles are the services turned on.
-    const main = sanitizeDeclared(settings).mainPill;
-    settings.activeIntegrations = servicesOf(next, main);
-    settings.islandTiles = withServices(next, settings.activeIntegrations, main);
+  const commit = (next: IslandTiles, removed?: string) => {
+    // One list: the service tiles are the services turned on. Only removing a
+    // service's own tile turns it off: a preset or the mail apps never do
+    // (round 3B item 7: they used to switch every integration off).
+    const declared = sanitizeDeclared(settings);
+    settings.activeIntegrations = keptServices(servicesOf(next, declared.mainPill), declared.activeIntegrations, removed);
+    settings.islandTiles = withServices(next, settings.activeIntegrations, declared.mainPill);
     save();
     draw();
   };
@@ -90,7 +92,7 @@ export function islandSection(settings: Settings, save: () => void): HTMLElement
       const down = h("button", { text: "↓", title: t("Move down"), "aria-label": t("Move down") }) as HTMLButtonElement;
       down.addEventListener("click", () => commit(moveTile(cur, x.id, i + 1)));
       const remove = h("button", { class: "danger", text: t("Remove") }) as HTMLButtonElement;
-      remove.addEventListener("click", () => commit(removeTile(cur, x.id)));
+      remove.addEventListener("click", () => commit(removeTile(cur, x.id), tileService(x) ?? undefined));
       // The main tool (Coding agents) is always on: its tile stays.
       remove.hidden = tileService(x) === declared.mainPill;
       row.append(

@@ -128,6 +128,9 @@ export const PILL_CATALOG: readonly PillDefinition[] = [
     subtitle: N_("Integration"), source: "n8n", support: "yes", connect: key("calcom-api-key") },
   { id: "integration_stripe", name: "Stripe", color: "#0570DE", category: "service",
     subtitle: N_("Integration"), source: "n8n", support: "yes", connect: key("stripe-api-key") },
+  // Round 3B item 7: Neon (Postgres) — its projects, Windows and Linux only.
+  { id: "integration_neon", name: "Neon", color: "#00E599", category: "service",
+    subtitle: N_("Integration"), source: "n8n", support: "yes", connect: key("neon-api-key") },
   { id: "integration_music", name: "Apple Music", color: "#FA2D48", category: "service",
     subtitle: N_("Integration"), source: "n8n", support: "no", connect: none },
   // Spotify through MPRIS on Linux and the system media controls on Windows
@@ -226,6 +229,7 @@ export const KEY_PAGES: Record<string, string> = {
   integration_resend: "https://resend.com/api-keys",
   integration_notion: "https://www.notion.so/profile/integrations",
   integration_calcom: "https://app.cal.com/settings/developer/api-keys",
+  integration_neon: "https://console.neon.tech/app/settings/api-keys",
 };
 
 /**

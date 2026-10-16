@@ -13788,6 +13788,17 @@
    "pt-BR": "{0} salva",
    "ru": "{0} сохранён",
    "id": "{0} tersimpan"
+  },
+  "{n} projects": {
+   "zh-Hans": "{n} 个项目",
+   "hi": "{n} प्रोजेक्ट",
+   "es": "{n} proyectos",
+   "ar": "{n} مشاريع",
+   "fr": "{n} projets",
+   "bn": "{n}টি প্রজেক্ট",
+   "pt-BR": "{n} projetos",
+   "ru": "Проектов: {n}",
+   "id": "{n} proyek"
   }
  }
 }

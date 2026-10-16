@@ -157,6 +157,8 @@ pub struct Settings {
     /// the stage shown (round 3 item 6). The page owns its shape
     /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
     pub growth: Value,
+    /// The integrations a key is stored for were turned back on once (round 3B item 7).
+    pub integrations_restored: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -249,6 +251,7 @@ impl Default for Settings {
             island_style: "glass".into(),
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
+            integrations_restored: false,
         }
     }
 }
@@ -297,6 +300,33 @@ fn note(message: String) {
     crate::log::line(message);
     #[cfg(test)]
     eprintln!("{message}");
+}
+
+/// Every service and the key it needs (pills.ts): a stored key means it was in use.
+pub const INTEGRATION_KEYS: [(&str, &str); 8] = [
+    ("integration_stripe", "stripe-api-key"),
+    ("integration_github", "github-token"),
+    ("integration_vercel", "vercel-token"),
+    ("integration_n8n", "n8n-api-key"),
+    ("integration_resend", "resend-api-key"),
+    ("integration_notion", "notion-api-key"),
+    ("integration_calcom", "calcom-api-key"),
+    ("integration_neon", "neon-api-key"),
+];
+
+/// Turns back on every service whose key is stored but which is off (the
+/// presets and mail apps of My island used to switch them all off), marks it
+/// done, and says which came back. Nothing already on is touched.
+pub fn restore_integrations(settings: &mut Settings, has_key: impl Fn(&str) -> bool) -> Vec<String> {
+    let mut back = Vec::new();
+    for (id, key) in INTEGRATION_KEYS {
+        if has_key(key) && !settings.active_integrations.iter().any(|a| a == id) {
+            settings.active_integrations.push(id.to_string());
+            back.push(id.to_string());
+        }
+    }
+    settings.integrations_restored = true;
+    back
 }
 
 /// Of the look already saved and the one a window sends, the newer choice:
@@ -618,7 +648,8 @@ mod tests {
   "closeOnLeaveOffered": true,
   "islandStyle": "solid",
   "listeningView": "strip",
-  "growth": { "activeSeconds": 90000, "reached": 1, "shown": null }
+  "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
+  "integrationsRestored": true
 }"##;
 
     fn custom() -> Value {
@@ -726,6 +757,31 @@ mod tests {
         let mut expected = custom();
         expected["model"] = json!(crate::claude::DEFAULT_MODEL);
         assert_eq!(loaded, expected);
+    }
+
+    #[test]
+    fn integrations_switched_off_by_my_island_come_back_once() {
+        // A file from before round 3: GitHub and Vercel on.
+        let before: Settings = serde_json::from_value(json!({ "activeIntegrations": ["integration_github", "integration_vercel"] })).unwrap();
+        // The same user after a preset switched them off; their keys are still stored.
+        let mut after: Settings = serde_json::from_value(json!({ "activeIntegrations": [], "islandTiles": { "preset": "minimal", "tiles": [] } })).unwrap();
+        let keys = |k: &str| k == "github-token" || k == "vercel-token";
+        let mut kept = before.clone();
+        assert!(restore_integrations(&mut kept, keys).is_empty(), "nothing on is touched");
+        assert_eq!(kept.active_integrations, before.active_integrations);
+        let back = restore_integrations(&mut after, keys);
+        assert_eq!(back, vec!["integration_github", "integration_vercel"]);
+        assert_eq!(after.active_integrations, back);
+        assert!(after.integrations_restored);
+        // Without a key nothing is invented.
+        let mut none: Settings = serde_json::from_value(json!({ "activeIntegrations": [] })).unwrap();
+        assert!(restore_integrations(&mut none, |_| false).is_empty());
+        // Every service the island offers is in the list.
+        let pills = include_str!("../../src/core/pills.ts");
+        for (id, key) in INTEGRATION_KEYS {
+            assert!(pills.contains(&format!("id: \"{id}\"")), "{id}");
+            assert!(crate::secrets::KNOWN_KEYS.contains(&key), "{key}");
+        }
     }
 
     #[test]
@@ -1217,6 +1273,7 @@ mod tests {
                 "islandStyle",
                 "listeningView",
                 "growth",
+                "integrationsRestored",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

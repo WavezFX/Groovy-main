@@ -20,6 +20,7 @@ pub const KNOWN_KEYS: &[&str] = &[
     "resend-api-key",
     "notion-api-key",
     "calcom-api-key",
+    "neon-api-key",
     "livekit-api-key",
     "livekit-api-secret",
     // « OK Groovy »'s answers in an ElevenLabs voice (optional; the system voice is the default).

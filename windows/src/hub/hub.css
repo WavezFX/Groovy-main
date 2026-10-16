@@ -17,7 +17,31 @@
   --hub-red: #ff453a;
 }
 
+/* The Control Centre is always dark: the settings sections inside it take the
+   dark values even when Windows is in Light mode (round 3B item 7: in Light
+   mode they turned white under the hub's white text, and the integrations
+   looked gone). */
 body.hub-window {
+  color-scheme: dark;
+  --ink: var(--hub-text);
+  --dim: #9398a1;
+  --dim-2: #6b7079;
+  --bg: #0b0c0e;
+  --card: var(--hub-card);
+  --hairline: var(--hub-line);
+  --green: #22c55e;
+  --fill: rgba(255, 255, 255, 0.09);
+  --fill-hover: rgba(255, 255, 255, 0.15);
+  --field: rgba(255, 255, 255, 0.07);
+  --focus: rgba(255, 255, 255, 0.28);
+  --primary-hover: #fff;
+  --menu: #1a1c20;
+  --code: #08090b;
+  --ok-ink: #86efac;
+  --err-ink: #ff8d97;
+  --err-bg: rgba(244, 80, 94, 0.16);
+  --warn-ink: #fbc06a;
+  --track: rgba(255, 255, 255, 0.2);
   background: #000;
   color: var(--hub-text);
   font: 400 13px/1.45 var(--font);

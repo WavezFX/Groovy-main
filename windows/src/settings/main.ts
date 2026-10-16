@@ -807,6 +807,8 @@ const INTEGRATIONS: IntegrationDef[] = [
     fields: [{ key: "notion-api-key", label: N_("Integration token"), placeholder: "ntn_…", secret: true }] },
   { id: "integration_calcom", name: "Cal.com", color: "#C9956A",
     fields: [{ key: "calcom-api-key", label: N_("API key"), placeholder: "cal_…", secret: true }] },
+  { id: "integration_neon", name: "Neon", color: "#00E599",
+    fields: [{ key: "neon-api-key", label: N_("API key"), placeholder: "napi_…", secret: true }] },
   // Nothing to enter: Spotify is read over D-Bus (Linux only, see core/pills.ts).
   { id: "integration_spotify", name: "Spotify", color: "#1DB954", fields: [] },
 ];

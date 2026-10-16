@@ -1,6 +1,7 @@
 // "My island" (FIXES_ROUND1 item 4): the tile list is untrusted JSON, presets,
 // editing, and which notifications count as mail.
 import assert from "node:assert/strict";
+import { keptServices } from "../src/core/tiles.ts";
 import { test } from "node:test";
 import {
   DEFAULT_TILES, MAX_TILES, addTile, applyPreset, isMailNotification, moveTile, parseTiles, removeTile, resizeTile, tile, tilesHome,
@@ -93,4 +94,17 @@ test("no small limit on tiles any more", () => {
   let t = { preset: "custom", tiles: [], mailApps: [] };
   for (let i = 0; i < 20; i++) t = addTile(t, tile("site", `https://example.com/${i}`)) ?? t;
   assert.equal(t.tiles.length, 20);
+});
+
+// Round 3B item 7: a preset or the mail apps used to switch every integration off.
+test("only removing a service's tile turns it off: a preset or the mail apps never do", () => {
+  const on = ["integration_github", "integration_vercel"];
+  // A preset whose tiles have no services keeps the ones that were on.
+  assert.deepEqual(keptServices([], on), on);
+  // Tile order wins for the services with a tile; the others follow.
+  assert.deepEqual(keptServices(["integration_vercel"], on), ["integration_vercel", "integration_github"]);
+  // Removing GitHub's tile turns GitHub off, nothing else.
+  assert.deepEqual(keptServices(["integration_vercel"], on, "integration_github"), ["integration_vercel"]);
+  // A new service tile turns it on.
+  assert.deepEqual(keptServices(["integration_neon"], on), ["integration_neon", ...on]);
 });

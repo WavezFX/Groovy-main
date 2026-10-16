@@ -71,6 +71,7 @@ pub fn start(app: AppHandle) {
     spawn(app.clone(), "integration_github", 7, 300, poll_github);
     spawn_github_loops(app.clone());
     spawn(app.clone(), "integration_calcom", 8, 300, poll_calcom);
+    spawn(app.clone(), "integration_neon", 9, 300, poll_neon);
     spawn(app, "integration_notion", 9, 300, poll_notion);
 }
 
@@ -120,6 +121,7 @@ pub async fn poll_once(app: AppHandle, id: &str) {
         "integration_resend" => poll_resend(app).await,
         "integration_notion" => poll_notion(app).await,
         "integration_calcom" => poll_calcom(app).await,
+        "integration_neon" => poll_neon(app).await,
         _ => {}
     }
 }
@@ -634,6 +636,47 @@ async fn poll_vercel(app: AppHandle) {
         error: None,
         event,
     });
+}
+
+// ── Neon ──────────────────────────────────────────────────────────────────────
+
+/// Neon's projects: how many, and the last few by name and region.
+pub fn neon_summary(json: &Value) -> Value {
+    let projects = json.get("projects").and_then(Value::as_array).cloned().unwrap_or_default();
+    let list: Vec<Value> = projects
+        .iter()
+        .take(5)
+        .filter_map(|p| {
+            Some(json!({
+                "name": p.get("name")?.as_str()?,
+                "region": p.get("region_id").and_then(Value::as_str).unwrap_or(""),
+                "updatedAt": p.get("updated_at").and_then(Value::as_str).unwrap_or(""),
+            }))
+        })
+        .collect();
+    json!({ "projects": list, "total": projects.len() })
+}
+
+async fn poll_neon(app: AppHandle) {
+    let Some(key) = secrets::get("neon-api-key") else { return };
+    let response = client()
+        .get("https://console.neon.tech/api/v2/projects?limit=100")
+        .header("Authorization", format!("Bearer {key}"))
+        .header("Accept", "application/json")
+        .send()
+        .await;
+    let Ok(response) = response else { return };
+    if !response.status().is_success() {
+        emit(&app, IntegrationUpdate {
+            id: "integration_neon",
+            data: json!({}),
+            error: Some(status_error(response.status().as_u16(), &crate::i18n::t("Key lacks access"))),
+            event: None,
+        });
+        return;
+    }
+    let json: Value = response.json().await.unwrap_or(json!({}));
+    emit(&app, IntegrationUpdate { id: "integration_neon", data: neon_summary(&json), error: None, event: None });
 }
 
 // ── Resend ────────────────────────────────────────────────────────────────────
