@@ -160,11 +160,10 @@ pub struct ApprovalIn {
     pub command: String,
 }
 
-/// The values the island stores for Groovy's wardrobe ("auto" follows the seasons on the phone's own calendar).
-/// Same raw values as the Mac and the PC; anything else is not sent.
-pub const OUTFIT_CHOICES: [&str; 13] = [
-    "auto", "none", "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
-    "bow", "scarf", "witchHat", "pumpkin", "santaHat", "bunnyEars",
+/// The values the island stores for what Groovy wears: nothing, or one accessory.
+pub const OUTFIT_CHOICES: [&str; 11] = [
+    "none", "partyHat", "beanie", "crown", "witchHat", "santaHat", "bunnyEars", "bow",
+    "sunglasses", "roundGlasses", "scarf",
 ];
 
 fn clean_services(cards: Vec<ServiceIn>) -> Vec<ServiceIn> {
@@ -766,7 +765,7 @@ impl Hub {
         }
     }
 
-    /// What Groovy wears on the computer ("auto" or an outfit, see [`OUTFIT_CHOICES`]); anything else is ignored.
+    /// What Groovy wears on the computer ("none" or an accessory, see [`OUTFIT_CHOICES`]); anything else is ignored.
     /// Only phones that have `prefs` hear of it, and a new one at once.
     pub fn publish_outfit(&self, outfit: &str) {
         let Some(choice) = OUTFIT_CHOICES.iter().find(|c| **c == outfit) else { return };
@@ -1670,7 +1669,7 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(16);
         hub.subscribe_with(tx, 1_000, Caps { prefs: true, ..Caps::default() });
         drain(&mut rx);
-        for bad in ["", "topHat", "Beanie", "beanie ", "../../etc", "auto\nauto"] {
+        for bad in ["", "topHat", "Beanie", "beanie ", "../../etc", "auto", "pumpkin"] {
             hub.publish_outfit(bad);
         }
         assert!(drain(&mut rx).is_empty());
@@ -1683,8 +1682,8 @@ mod tests {
     #[test]
     fn the_outfit_list_is_the_one_of_the_island() {
         let ts = include_str!("../../../src/mochi/wardrobe.ts");
-        let body = ts.split("export const OUTFIT_SELECTIONS = [").nth(1).unwrap().split("] as const").next().unwrap();
-        let ids: Vec<&str> = body.split('"').skip(1).step_by(2).collect();
+        let body = ts.split("export const ACCESSORIES = [").nth(1).unwrap().split("] as const").next().unwrap();
+        let ids: Vec<&str> = std::iter::once("none").chain(body.split('"').skip(1).step_by(2)).collect();
         assert_eq!(ids, OUTFIT_CHOICES.to_vec());
     }
     // ── file changes (cap `diffs`) ──────────────────────────────────────────────────

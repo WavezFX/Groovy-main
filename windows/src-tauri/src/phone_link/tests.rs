@@ -1373,8 +1373,8 @@ mod prefs_tests {
             assert_eq!(c.expect("sessions").await["type"], "sessions");
             let prefs = c.expect("prefs").await;
             assert_eq!(prefs["outfit"], "witchHat");
-            rig.hub.publish_outfit("auto");
-            assert_eq!(c.expect("prefs").await["outfit"], "auto");
+            rig.hub.publish_outfit("beanie");
+            assert_eq!(c.expect("prefs").await["outfit"], "beanie");
         });
     }
 
