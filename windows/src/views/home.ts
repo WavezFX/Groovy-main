@@ -263,6 +263,7 @@ export function buildHome(actions: ViewActions): ViewHost {
   let holdTimer: number | null = null;
   let progressAt = 0;
   let lastGrid = "";
+  let lastLayout = "";
   let lastPlayer = "";
 
   function drawPlayer() {
@@ -304,6 +305,15 @@ export function buildHome(actions: ViewActions): ViewHost {
     const key = `${playing}|${page}/${pageCount}|${faces.join("|")}`;
     if (key === lastGrid) return;
     lastGrid = key;
+    // The tiles themselves changed (not just their text): they grow in (round 3B item 8).
+    const layout = `${playing}|${page}|${pages[page].map((c) => (c === ADD ? "+" : c.id)).join(",")}`;
+    if (layout !== lastLayout) {
+      lastLayout = layout;
+      grid.classList.remove("entering");
+      void grid.offsetWidth;
+      grid.classList.add("entering");
+      window.setTimeout(() => grid.classList.remove("entering"), 500);
+    }
     clear(grid);
     for (const c of pages[page]) grid.append(cell(c, actions.setView));
     clear(dots);

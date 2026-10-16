@@ -2,6 +2,12 @@
    Every colour below is copied from the Swift views. */
 
 :root {
+  /* The one motion system (src/core/motion.ts). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-island: 280ms;
+  --motion-unfold: 290ms;
+  --motion-page: 220ms;
+  --motion-small: 180ms;
   color-scheme: dark;
 
   /* After the Latin fonts: the scripts of the other interface languages —
@@ -266,20 +272,32 @@ body {
   min-height: 0;
 }
 
+/* Round 3B item 8: every view unfolds downward out of the island's top edge
+   (clip-path and a small drop) and folds back up into it. Same timings
+   everywhere (--motion-*, src/core/motion.ts); a short fade with reduced motion. */
 .view {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: scale(0.97);
+  transform: translateY(-8px) scale(0.985);
+  transform-origin: 50% 0;
+  clip-path: inset(0 0 100% 0 round 14px);
   pointer-events: none;
-  transition: opacity 0.16s ease-in;
+  transition:
+    opacity var(--motion-small) var(--ease-out),
+    transform var(--motion-unfold) var(--ease-out),
+    clip-path var(--motion-unfold) var(--ease-out);
 }
 
 .view.on {
   opacity: 1;
-  transform: scale(1);
+  transform: none;
+  clip-path: inset(0 0 0 0 round 0);
   pointer-events: auto;
-  transition: opacity 0.3s ease-out 0.16s, transform 0.3s cubic-bezier(0.3, 1.2, 0.4, 1) 0.16s;
+  transition:
+    opacity var(--motion-unfold) var(--ease-out) 60ms,
+    transform var(--motion-unfold) var(--ease-out) 60ms,
+    clip-path var(--motion-unfold) var(--ease-out) 60ms;
 }
 
 /* A view that is not on is only transparent, not gone: an infinite animation
@@ -3635,4 +3653,61 @@ body.glass .home-cell.music {
 }
 body.live-on .plan-pills {
   display: none;
+}
+
+/* Windows' "Animation effects" off: everything becomes a short fade. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-island: 120ms;
+    --motion-unfold: 120ms;
+    --motion-page: 120ms;
+    --motion-small: 120ms;
+  }
+  .view,
+  .view.on {
+    transform: none;
+    clip-path: none;
+  }
+  .home-grid.entering .home-cell,
+  .notify-card,
+  .wardrobe-item.on,
+  .studio-item.on {
+    animation: none !important;
+  }
+}
+
+/* Tiles and cards appear out of the island rather than popping in. */
+@keyframes grow-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Only when the tiles themselves change (added, removed, another page), not
+   on every refresh of their text. */
+.home-grid.entering .home-cell,
+.detail-chip,
+.notify-card {
+  animation: grow-in var(--motion-unfold) var(--ease-out) both;
+}
+.home-grid.entering .home-cell:nth-child(2) { animation-delay: 20ms; }
+.home-grid.entering .home-cell:nth-child(3) { animation-delay: 40ms; }
+.home-grid.entering .home-cell:nth-child(4) { animation-delay: 60ms; }
+.home-grid.entering .home-cell:nth-child(5) { animation-delay: 80ms; }
+.home-grid.entering .home-cell:nth-child(6) { animation-delay: 100ms; }
+.home-grid.entering .home-cell:nth-child(7) { animation-delay: 120ms; }
+.home-grid.entering .home-cell:nth-child(8) { animation-delay: 140ms; }
+
+/* Choosing a look or an item: a small bounce. */
+@keyframes chosen {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.wardrobe-item.on {
+  animation: chosen var(--motion-unfold) var(--ease-out);
 }

@@ -878,13 +878,109 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
             .resizable(true)
             .center()
             .focused(true)
+            // Shown where the island is, then grown to its place (grow_out_of_island).
+            .visible(false)
             .build();
         match built {
-            Ok(_) => log::line("control centre opened"),
+            Ok(win) => {
+                log::line("control centre opened");
+                grow_out_of_island(&app, &win);
+                let closing = win.clone();
+                let app2 = app.clone();
+                win.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        // Folds back into the island, then goes (round 3B item 8).
+                        if CLOSING.swap(true, Ordering::SeqCst) {
+                            return;
+                        }
+                        api.prevent_close();
+                        let win = closing.clone();
+                        let app = app2.clone();
+                        let _ = std::thread::Builder::new().name("groovy-hub-close".into()).spawn(move || {
+                            let _ = win.emit("hub-closing", ());
+                            if let (Some(from), Some(to)) = (window_rect(&win), island_spot(&app)) {
+                                animate_window(&win, from, to, 200);
+                            }
+                            let _ = win.destroy();
+                            CLOSING.store(false, Ordering::SeqCst);
+                        });
+                    }
+                });
+            }
             Err(err) => log::line(format!("settings window failed: {err}")),
         }
         OPENING.store(false, Ordering::SeqCst);
     });
+}
+
+static CLOSING: AtomicBool = AtomicBool::new(false);
+
+/// A window's outer rectangle, physical pixels.
+fn window_rect(win: &tauri::WebviewWindow) -> Option<(f64, f64, f64, f64)> {
+    let p = win.outer_position().ok()?;
+    let s = win.outer_size().ok()?;
+    Some((p.x as f64, p.y as f64, s.width as f64, s.height as f64))
+}
+
+/// A small rectangle where the island is, physical pixels: where a window
+/// grows out of and folds back into.
+fn island_spot(app: &AppHandle) -> Option<(f64, f64, f64, f64)> {
+    let (x, y, w, _) = window_rect(&island::window(app)?)?;
+    let (sw, sh) = (w.min(360.0).max(200.0), 160.0);
+    Some((x + (w - sw) / 2.0, y, sw, sh))
+}
+
+/// Windows' Settings → Accessibility → "Animation effects" is on.
+#[cfg(windows)]
+fn animation_effects_on() -> bool {
+    use windows::core::BOOL;
+    use windows::Win32::UI::WindowsAndMessaging::{SystemParametersInfoW, SPI_GETCLIENTAREAANIMATION, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS};
+    let mut on = BOOL(1);
+    let ok = unsafe { SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, Some(&mut on as *mut BOOL as *mut _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)) };
+    ok.is_err() || on.as_bool()
+}
+#[cfg(not(windows))]
+fn animation_effects_on() -> bool {
+    true
+}
+
+/// Moves and sizes a window from one rectangle to another over `ms`, eased
+/// out (the shared motion: src/core/motion.ts). With Windows' animation
+/// effects off it goes straight there; the page only fades.
+fn animate_window(win: &tauri::WebviewWindow, from: (f64, f64, f64, f64), to: (f64, f64, f64, f64), ms: u64) {
+    const STEP: u64 = 16;
+    let ms = if animation_effects_on() { ms } else { 0 };
+    let steps = (ms / STEP).max(1);
+    for i in 1..=steps {
+        let k = 1.0 - (1.0 - i as f64 / steps as f64).powi(3);
+        let lerp = |a: f64, b: f64| a + (b - a) * k;
+        platform::set_bounds(
+            win,
+            lerp(from.0, to.0).round() as i32,
+            lerp(from.1, to.1).round() as i32,
+            lerp(from.2, to.2).round().max(1.0) as u32,
+            lerp(from.3, to.3).round().max(1.0) as u32,
+        );
+        std::thread::sleep(std::time::Duration::from_millis(STEP));
+    }
+}
+
+/// The Control Centre opens out of the island: it starts small where the
+/// island is and grows to its place while its page fades in (round 3B item 8).
+fn grow_out_of_island(app: &AppHandle, win: &tauri::WebviewWindow) {
+    let Some(to) = window_rect(win) else {
+        let _ = win.show();
+        return;
+    };
+    let Some(from) = island_spot(app) else {
+        let _ = win.show();
+        let _ = win.set_focus();
+        return;
+    };
+    platform::set_bounds(win, from.0 as i32, from.1 as i32, from.2 as u32, from.3 as u32);
+    let _ = win.show();
+    let _ = win.set_focus();
+    animate_window(win, from, to, 300);
 }
 
 /// The Control Centre window (every setting, Flow dictation, the Notetaker…),

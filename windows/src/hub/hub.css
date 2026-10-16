@@ -1004,3 +1004,106 @@ button.hub-icon svg {
   border: 1px solid rgba(127, 127, 127, 0.35);
   border-bottom-width: 3px;
 }
+
+/* ── Motion (round 3B item 8; timings from src/core/motion.ts) ───────────── */
+body.hub-window {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-page: 220ms;
+  --motion-small: 180ms;
+}
+@keyframes hub-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hub-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* A section slides and fades in; its cards and rows follow, one after another. */
+.hub-page {
+  animation: hub-page-in var(--motion-page) var(--ease-out) both;
+}
+.hub-page > section,
+.hub-page > .hub-card,
+.hub-page #settings-root > section {
+  animation: hub-row-in var(--motion-page) var(--ease-out) both;
+}
+.hub-page > :nth-child(2) { animation-delay: 30ms; }
+.hub-page > :nth-child(3) { animation-delay: 60ms; }
+.hub-page > :nth-child(4) { animation-delay: 90ms; }
+.hub-page > :nth-child(5) { animation-delay: 120ms; }
+/* Switches and checkboxes move rather than snap. */
+.switch,
+.switch::after,
+.hub-toggle,
+.hub-toggle::after,
+input[type="checkbox"] {
+  transition:
+    background-color var(--motion-small) var(--ease-out),
+    transform var(--motion-small) var(--ease-out),
+    left var(--motion-small) var(--ease-out);
+}
+/* The window itself unfolds from the top, as it grows out of the island. */
+@keyframes hub-open {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+body.hub-window #hub {
+  transform-origin: 50% 0;
+  animation: hub-open 320ms var(--ease-out) both;
+}
+body.hub-window.closing #hub {
+  transition:
+    opacity 200ms ease-in,
+    transform 200ms ease-in;
+  opacity: 0;
+  transform: scale(0.96) translateY(-12px);
+}
+@keyframes chosen {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.studio-item.on {
+  animation: chosen 290ms var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  body.hub-window {
+    --motion-page: 120ms;
+    --motion-small: 120ms;
+  }
+  .hub-page,
+  .hub-page > *,
+  .hub-page #settings-root > section,
+  body.hub-window #hub,
+  .studio-item.on {
+    animation-name: fade-only !important;
+    transform: none !important;
+  }
+}
+@keyframes fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

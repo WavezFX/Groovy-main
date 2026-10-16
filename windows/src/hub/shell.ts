@@ -203,6 +203,8 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
   drawStatus();
   await show(current);
 
+  // Closing: the page folds up while the window shrinks back into the island.
+  void onEvent<null>("hub-closing", () => document.body.classList.add("closing"));
   void onEvent<string>("hub-page", (page) => {
     const id = (page === "settings" ? "flowsettings" : page) as PageId;
     if (ALL.some((p) => p.id === id)) void show(id);

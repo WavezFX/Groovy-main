@@ -20,7 +20,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1b. The island must be see-through (translucent). **Added after the owner's test: do this next.**
 - [x] 6. Dictation: names and model numbers
 - [x] 7. GitHub and the other integrations vanished from Settings
-- [ ] 8. Animate everything
+- [x] 8. Animate everything
 - [ ] 9. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
