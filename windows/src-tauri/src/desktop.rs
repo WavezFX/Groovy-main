@@ -448,6 +448,7 @@ fn show(app: &AppHandle, d: &Desktop, at: (f64, f64)) {
     place(app, d, at);
     d.inner.lock().unwrap().shown = true;
     if let Some(win) = window(app) {
+        crate::webview_memory::set_low(&win, false);
         if !PARK {
             let _ = win.show();
         }
@@ -471,6 +472,10 @@ fn hide(app: &AppHandle, d: &Desktop) {
         place(app, d, PARKED);
     } else if let Some(win) = window(app) {
         let _ = win.hide();
+    }
+    // Back in the island: his window keeps as little memory as it can.
+    if let Some(win) = window(app) {
+        crate::webview_memory::set_low(&win, true);
     }
     let _ = app.emit_to(LABEL, "desktop-visible", false);
 }

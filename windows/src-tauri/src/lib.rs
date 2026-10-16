@@ -53,9 +53,10 @@ mod tray;
 mod voice;
 #[cfg(windows)]
 mod webview_drop;
+mod webview_memory;
 
 use std::process::Command;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
@@ -195,6 +196,10 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     island::refresh_click_through(&app, &shared.gate);
     shared.gate.set_active(!collapsed);
     platform::set_pointer_watch(!collapsed);
+    // Folded away: its webview keeps as little memory as it can until it opens.
+    if let Some(win) = island::window(&app) {
+        webview_memory::set_low(&win, collapsed);
+    }
 }
 
 /// The front end pushes the island shape; Rust decides click-through from it.
@@ -807,49 +812,63 @@ fn shortcuts_suspend(app: AppHandle, shared: State<Shared>, suspended: bool) {
 /// fixed by whichever webview is created first. Every window must therefore ask
 /// for the *same* arguments as the island (see `additionalBrowserArgs` in
 /// tauri.conf.json) — a mismatch makes the second window come up blank, with no
-/// error anywhere.
-pub(crate) const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required";
+/// error anywhere. No spare renderer is kept warm for a window that may never
+/// open (SpareRendererForSitePerProcess): one process less (round 3 §9).
+pub(crate) const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,SpareRendererForSitePerProcess --autoplay-policy=no-user-gesture-required";
 
-/// In a dev build the pages are served by Vite, so the second window needs the
+/// A page of the app (`settings.html`, `studio.html`…), with an optional query.
+/// In a dev build the pages are served by Vite, so a second window needs the
 /// absolute dev URL; a bundled build resolves it inside the app bundle.
-fn settings_page_url(app: &AppHandle) -> WebviewUrl {
+pub(crate) fn page_url(app: &AppHandle, page: &str, query: Option<&str>) -> WebviewUrl {
     #[cfg(dev)]
     if let Some(mut base) = app.config().build.dev_url.clone() {
-        base.set_path("/settings.html");
+        base.set_path(&format!("/{page}"));
+        base.set_query(query);
         return WebviewUrl::External(base);
     }
     let _ = app;
-    WebviewUrl::App("settings.html".into())
+    WebviewUrl::App(match query {
+        Some(q) => format!("{page}?{q}").into(),
+        None => page.into(),
+    })
 }
 
-/// The settings window is created hidden at launch and only ever shown and
-/// hidden afterwards. A WebView2 window created later — on the main thread or
-/// not — silently comes up blank in this app, so the window that works is the
-/// one that exists before the island's webview does.
-fn create_settings_window(app: &AppHandle) {
-    let url = settings_page_url(app);
-    match WebviewWindowBuilder::new(app, "settings", url)
-        .additional_browser_args(BROWSER_ARGS)
-        .title(i18n::t("Settings — Groovy"))
-        .inner_size(920.0, 740.0)
-        .min_inner_size(460.0, 480.0)
-        .resizable(true)
-        .visible(false)
-        .center()
-        .build()
-    {
-        Ok(win) => {
-            // Closing it must only hide it, or it could never be reopened.
-            let hidden = win.clone();
-            win.on_window_event(move |event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                    let _ = hidden.hide();
-                }
-            });
-        }
-        Err(err) => log::line(format!("settings window failed: {err}")),
+/// Only a known section id goes into the Control Centre's address.
+fn hub_query(page: Option<&str>) -> Option<String> {
+    let page = page?;
+    (!page.is_empty() && page.len() <= 32 && page.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+        .then(|| format!("page={page}"))
+}
+
+/// The Control Centre exists only while it is open (round 3 §9: memory): made
+/// when asked for, destroyed when closed. Built from its own thread: a WebView2
+/// window built inside a synchronous command, on the thread the command blocks,
+/// never finishes loading (it came up blank); from another thread Tauri hands
+/// the work to the event loop. It shares the island's browser arguments, so
+/// all windows share one WebView2 browser (see BROWSER_ARGS).
+fn create_hub_window(app: &AppHandle, page: Option<&str>) {
+    static OPENING: AtomicBool = AtomicBool::new(false);
+    if OPENING.swap(true, Ordering::SeqCst) {
+        return;
     }
+    let app = app.clone();
+    let url = page_url(&app, "settings.html", hub_query(page).as_deref());
+    let _ = std::thread::Builder::new().name("groovy-hub-window".into()).spawn(move || {
+        let built = WebviewWindowBuilder::new(&app, HUB_LABEL, url)
+            .additional_browser_args(BROWSER_ARGS)
+            .title(i18n::t("Settings — Groovy"))
+            .inner_size(920.0, 740.0)
+            .min_inner_size(460.0, 480.0)
+            .resizable(true)
+            .center()
+            .focused(true)
+            .build();
+        match built {
+            Ok(_) => log::line("control centre opened"),
+            Err(err) => log::line(format!("settings window failed: {err}")),
+        }
+        OPENING.store(false, Ordering::SeqCst);
+    });
 }
 
 /// The Control Centre window (every setting, Flow dictation, the Notetaker…),
@@ -865,7 +884,7 @@ pub fn show_settings_window(app: &AppHandle) {
 /// "assistant"…: the id of one of its sections).
 pub fn show_hub(app: &AppHandle, page: Option<&str>) {
     let Some(win) = app.get_webview_window(HUB_LABEL) else {
-        log::line("settings window missing");
+        create_hub_window(app, page);
         return;
     };
     let _ = win.unminimize();
@@ -1225,6 +1244,7 @@ pub fn run() {
             notes::notes_export,
             okgroovy::voice_done,
             skills::manage::skills_status,
+            skills::manage::skills_take_confirm,
             skills::manage::skills_install_node,
             skills::manage::skills_projects,
             skills::manage::skills_pick_project,
@@ -1273,9 +1293,8 @@ pub fn run() {
             let handle = app.handle().clone();
             app.manage(phone_link::PhoneLink::new(handle.clone()));
             tray::build(&handle)?;
-            // Before the island: see create_settings_window.
-            create_settings_window(&handle);
-            // Same rule for Groovy's desktop window.
+            // Groovy's desktop window, when he is out on the desktop. The
+            // Control Centre and the Studio are made only when opened.
             desktop::setup(&handle);
 
             if let Some(win) = island::window(&handle) {
@@ -1375,6 +1394,28 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::diff_file;
+
+    #[test]
+    fn every_window_asks_webview2_for_the_islands_arguments() {
+        // A window with other arguments comes up blank (see BROWSER_ARGS).
+        let conf: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        assert_eq!(conf["app"]["windows"][0]["additionalBrowserArgs"], super::BROWSER_ARGS);
+        for (file, src) in [("studio.rs", include_str!("studio.rs")), ("desktop.rs", include_str!("desktop.rs")), ("lib.rs", include_str!("lib.rs"))] {
+            let built = src.matches("WebviewWindowBuilder::new(").count();
+            let with_args = src.matches(".additional_browser_args(").count();
+            assert_eq!(built, with_args, "{file}: a window without the shared arguments");
+        }
+    }
+
+    #[test]
+    fn the_control_centre_opens_only_on_a_plain_page_name() {
+        assert_eq!(super::hub_query(Some("skills")).as_deref(), Some("page=skills"));
+        assert_eq!(super::hub_query(Some("flow-settings")).as_deref(), Some("page=flow-settings"));
+        assert_eq!(super::hub_query(None), None);
+        for bad in ["", "a b", "x&y=1", "../x", "é", &"a".repeat(40)] {
+            assert_eq!(super::hub_query(Some(bad)), None, "{bad}");
+        }
+    }
 
     #[test]
     fn only_an_existing_file_by_its_full_path_reaches_the_editor() {

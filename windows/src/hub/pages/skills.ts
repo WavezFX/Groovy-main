@@ -317,7 +317,8 @@ export async function skillsPage(page: HTMLElement, ctx: HubContext) {
   }
 
   // « OK Groovy » asked to install or remove: show it here to confirm.
-  const off = await onEvent<VoiceConfirm>("skills-confirm", (c) => {
+  const confirm = (c: VoiceConfirm | null) => {
+    if (!c) return;
     if (c.project && c.project !== project) {
       project = c.project;
       drawPicker();
@@ -326,7 +327,10 @@ export async function skillsPage(page: HTMLElement, ctx: HubContext) {
     if (c.action === "remove") confirmRemove(c.skill);
     else if (c.source) void showPreview(c.source, c.skill);
     else say(t("Search for {0} below, then review it to install.", { 0: c.skill }));
-  });
+  };
+  const off = await onEvent<null>("skills-confirm", () => void SkillsBridge.takeConfirm().then(confirm));
+  // Asked while this page was not up yet (the window was opening).
+  void SkillsBridge.takeConfirm().then(confirm);
   const offChanged = await onEvent<string>("skills-changed", (p) => {
     if (p === project && !detail.childElementCount) void load(false);
   });

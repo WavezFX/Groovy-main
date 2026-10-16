@@ -138,6 +138,8 @@ export function risks(p: Pick<Preview, "frontmatter" | "scripts">): { tools: str
 
 export const SkillsBridge = {
   status: () => callOrThrow<SkillsStatus>("skills_status"),
+  /** What « OK Groovy » asked to install or remove, once (skills/manage.rs). */
+  takeConfirm: () => callOrThrow<VoiceConfirm | null>("skills_take_confirm").catch(() => null),
   installNode: () => callOrThrow<string>("skills_install_node"),
   projects: () => callOrThrow<string[]>("skills_projects"),
   pickProject: () => callOrThrow<string | null>("skills_pick_project"),

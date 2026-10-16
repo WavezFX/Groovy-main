@@ -9,7 +9,10 @@
 #     writes when a webview has loaded the interface and called it,
 #   - settings were initialised (settings.json in %APPDATA%\Groovy),
 #   - the local database exists (groovy.db in %LOCALAPPDATA%\Groovy),
-#   - no crash.log was written.
+#   - no crash.log was written,
+#   - once idle with the island open, Groovy's whole working set — groovy.exe
+#     and every process under it (WebView2, llama-server, speech) — is under
+#     -BudgetMB (300 MB, FIXES_ROUND3 §9).
 # -Offline blocks all outbound traffic for that executable with a Windows
 # Firewall rule first (needs an elevated shell, which CI runners have), so the
 # run proves Groovy starts with no network at all.
@@ -18,7 +21,9 @@ param(
   [Parameter(Mandatory = $true)][string]$Exe,
   [switch]$Offline,
   [string]$Label = "groovy",
-  [int]$TimeoutSeconds = 60
+  [int]$TimeoutSeconds = 60,
+  [int]$BudgetMB = 300,
+  [int]$IdleSeconds = 20
 )
 
 $ErrorActionPreference = "Stop"
@@ -60,13 +65,12 @@ try {
       break
     }
   }
-  # Give it a few more seconds alive after boot: a crash right after the
-  # interface loads must fail the test too.
-  if ($booted) { Start-Sleep -Seconds 5 }
+  # Alive after boot, and idle: the intro over, the island open on its Home
+  # view and settled. A crash right after the interface loads fails here too.
+  if ($booted) { Start-Sleep -Seconds $IdleSeconds }
 
-  # Benchmarks (reported, not judged: shared CI runners vary too much for a
-  # hard budget): time to the interface, and memory once idle — Groovy itself
-  # and the WebView2 processes it started.
+  # Time to the interface (reported), and memory once idle (judged against
+  # -BudgetMB): groovy.exe and every process below it, however deep.
   $metrics = [ordered]@{}
   if ($booted) {
     $metrics["time to interface (s, 2 s polling)"] = [math]::Round($bootSeconds, 1)
@@ -74,15 +78,31 @@ try {
       $proc.Refresh()
       $metrics["groovy.exe working set (MB)"] = [math]::Round($proc.WorkingSet64 / 1MB, 1)
       $metrics["groovy.exe private memory (MB)"] = [math]::Round($proc.PrivateMemorySize64 / 1MB, 1)
-      $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
-      $webviews = @()
-      foreach ($c in $children) {
-        $webviews += Get-CimInstance Win32_Process -Filter "ParentProcessId = $($c.ProcessId)" -ErrorAction SilentlyContinue
-        $webviews += $c
+      $all = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue
+      $tree = @()
+      $frontier = @($proc.Id)
+      while ($frontier.Count -gt 0) {
+        $next = @($all | Where-Object { $frontier -contains $_.ParentProcessId -and $_.ProcessId -ne $proc.Id })
+        $tree += $next
+        $frontier = @($next | ForEach-Object { $_.ProcessId })
       }
-      $ws = ($webviews | Measure-Object -Property WorkingSetSize -Sum).Sum
-      $metrics["child processes (WebView2…)"] = $webviews.Count
+      $ws = ($tree | Measure-Object -Property WorkingSetSize -Sum).Sum
+      $metrics["child processes (WebView2…)"] = $tree.Count
       $metrics["child processes working set (MB)"] = [math]::Round($ws / 1MB, 1)
+      foreach ($group in ($tree | Group-Object Name)) {
+        $sum = ($group.Group | Measure-Object -Property WorkingSetSize -Sum).Sum
+        $metrics["  $($group.Name) x$($group.Count) (MB)"] = [math]::Round($sum / 1MB, 1)
+      }
+      $total = [math]::Round(($proc.WorkingSet64 + $ws) / 1MB, 1)
+      $metrics["TOTAL working set (MB, budget $BudgetMB)"] = $total
+      # Task Manager's "Memory" column (private working set), for comparison.
+      $ids = @($proc.Id) + @($tree | ForEach-Object { $_.ProcessId })
+      $perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -ErrorAction SilentlyContinue | Where-Object { $ids -contains [int]$_.IDProcess }
+      if ($perf) {
+        $private = ($perf | Measure-Object -Property WorkingSetPrivate -Sum).Sum
+        $metrics["total private working set (MB, Task Manager)"] = [math]::Round($private / 1MB, 1)
+      }
+      $results["idle total under $BudgetMB MB (was $total)"] = $total -lt $BudgetMB
     }
   }
 

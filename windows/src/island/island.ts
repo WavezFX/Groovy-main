@@ -42,6 +42,8 @@ const BOT_OVERHANG = 40;
 const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
 /** Extra canvas on each side of Groovy, for the witch hat's brim and the Santa hat's tip. */
 const BOT_SIDE = 24;
+/** One frame in ten (10 fps) for his looping animation in the small island. */
+const SLOW_FRAME_MS = 100;
 /** Same margin as the Rust hit test (src-tauri/src/island.rs). */
 const HIT_MARGIN = 14;
 
@@ -149,6 +151,7 @@ export class Island {
     this.wireFsm();
     this.wireInput();
     this.engine.onDizzy = () => this.handleDizzy();
+    this.engine.onWake = () => this.ensureRunning();
     State.subscribe(() => {
       this.dirty = true;
       this.ensureRunning();
@@ -1301,15 +1304,23 @@ export class Island {
     // spends most of its life in. Geometry still has to finish retracting.
     const settling =
       this.width.animating || this.height.animating || this.radius.animating;
-    const busy = State.mode === "hidden"
-      ? settling
-      : settling ||
-        !this.botCx.settled || !this.botCy.settled || !this.botSize.settled ||
-        greetingActive || this.engine.busy || UploadSeq.isActive || viewAnimating;
+    const moving = settling ||
+      !this.botCx.settled || !this.botCy.settled || !this.botSize.settled ||
+      greetingActive || this.engine.moving || UploadSeq.isActive || viewAnimating;
+    // Folded into the small island (round 3 §9: idle CPU ~0): his looping
+    // animation runs at a tenth of the frames while he works, and not at all
+    // while he just rests; open, it runs at full rate.
+    const pace = State.mode === "hidden" ? (settling ? "full" : "stop")
+      : moving ? "full"
+      : !this.engine.ambient ? "stop"
+      : State.mode === "expanded" ? "full"
+      : State.effectiveState !== "idle" ? "slow" : "stop";
 
     if (!settling) this.fitWindow(this.width.value, this.height.value);
-    if (busy) {
+    if (pace === "full") {
       requestAnimationFrame(this.frame);
+    } else if (pace === "slow") {
+      window.setTimeout(() => requestAnimationFrame(this.frame), SLOW_FRAME_MS);
     } else {
       this.running = false;
       Sound.idle();

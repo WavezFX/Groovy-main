@@ -303,6 +303,8 @@ export class BotEngine {
 
   /** Fired when three slaps land inside 1.7 s (→ dizzy + confused view). */
   onDizzy: (() => void) | null = null;
+  /** Something started moving: whoever draws him should be running (island.ts). */
+  onWake: (() => void) | null = null;
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -515,6 +517,7 @@ export class BotEngine {
   }
 
   emit(type: Particle["type"], count: number) {
+    this.onWake?.();
     for (let i = 0; i < count; i++) {
       const isZ = type === "z";
       this.particles.push({
@@ -582,11 +585,19 @@ export class BotEngine {
 
   /** True while anything is still moving — lets the island stop its RAF loop. */
   get busy(): boolean {
+    return this.ambient || this.moving;
+  }
+
+  /** A looping state animation (breathing, bouncing at work, z's…): it never ends by itself. */
+  get ambient(): boolean {
+    return this.cfg.bounces || this.cfg.scans || this.cfg.breathes || this.cfg.zz || this.cfg.sweat || this.isMini;
+  }
+
+  /** Something on its way somewhere: a tween, particles, a turn, a squash… */
+  get moving(): boolean {
     return (
       this.tweens.size > 0 ||
       this.particles.length > 0 ||
-      this.cfg.bounces || this.cfg.scans || this.cfg.breathes || this.cfg.zz || this.cfg.sweat ||
-      this.isMini ||
       this.isDancing || this.dancingLevel > 0.001 ||
       Math.abs(this.tgYaw - this.yaw) > 0.002 ||
       Math.abs(this.tgPitch - this.pitch) > 0.002 ||
@@ -609,6 +620,7 @@ export class BotEngine {
       prop, keys, index: 0, from: this[prop], startMs: performance.now(), onComplete,
     });
     this.locks.add(prop);
+    this.onWake?.();
   }
 
   // ── Update ──────────────────────────────────────────────────────────────────

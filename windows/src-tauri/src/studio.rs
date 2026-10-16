@@ -770,18 +770,29 @@ pub fn show(app: &AppHandle) {
         let _ = win.set_focus();
         return;
     }
-    let url = tauri::WebviewUrl::App("studio.html".into());
-    match tauri::WebviewWindowBuilder::new(app, "studio", url)
-        .title(crate::i18n::t("Coding Studio — Groovy"))
-        .inner_size(1200.0, 800.0)
-        .min_inner_size(720.0, 480.0)
-        .resizable(true)
-        .center()
-        .build()
-    {
-        Ok(_) => log::line("studio window opened"),
-        Err(e) => log::line(format!("studio window failed: {e}")),
+    // Made when opened, destroyed when closed, from its own thread and with
+    // the island's browser arguments (see lib.rs create_hub_window).
+    static OPENING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if OPENING.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
     }
+    let app = app.clone();
+    let url = crate::page_url(&app, "studio.html", None);
+    let _ = std::thread::Builder::new().name("groovy-studio-window".into()).spawn(move || {
+        match tauri::WebviewWindowBuilder::new(&app, "studio", url)
+            .additional_browser_args(crate::BROWSER_ARGS)
+            .title(crate::i18n::t("Coding Studio — Groovy"))
+            .inner_size(1200.0, 800.0)
+            .min_inner_size(720.0, 480.0)
+            .resizable(true)
+            .center()
+            .build()
+        {
+            Ok(_) => log::line("studio window opened"),
+            Err(e) => log::line(format!("studio window failed: {e}")),
+        }
+        OPENING.store(false, std::sync::atomic::Ordering::SeqCst);
+    });
 }
 
 #[cfg(test)]

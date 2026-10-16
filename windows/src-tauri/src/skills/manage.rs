@@ -788,19 +788,38 @@ pub fn voice_tool(app: &AppHandle, input: &serde_json::Value) -> (String, bool) 
             if !cli::valid_skill(skill) {
                 return ("Which skill? Ask for its exact name.".into(), false);
             }
-            crate::show_hub(app, Some("skills"));
-            let _ = app.emit_to(crate::HUB_LABEL, "skills-confirm", serde_json::json!({
+            // Kept until the Skills page takes it: the Control Centre may
+            // still be opening, or on another page.
+            *PENDING_CONFIRM.lock().unwrap() = Some(serde_json::json!({
                 "action": action, "skill": skill, "source": input["source"].as_str().unwrap_or(""), "project": project,
             }));
+            crate::show_hub(app, Some("skills"));
+            let _ = app.emit_to(crate::HUB_LABEL, "skills-confirm", ());
             ("The Groovy window is open on it: nothing changes until the user confirms there.".into(), true)
         }
         _ => (format!("unknown skills action {action}"), false),
     }
 }
 
+/// What « OK Groovy » asked to install or remove, until the Skills page shows it.
+static PENDING_CONFIRM: std::sync::Mutex<Option<serde_json::Value>> = std::sync::Mutex::new(None);
+
+/// The Skills page takes what waits for the user's confirmation (once).
+#[tauri::command]
+pub fn skills_take_confirm() -> Option<serde_json::Value> {
+    PENDING_CONFIRM.lock().unwrap().take()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_voice_request_waits_for_the_page_and_is_taken_once() {
+        *PENDING_CONFIRM.lock().unwrap() = Some(serde_json::json!({ "action": "remove", "skill": "pdf" }));
+        assert_eq!(skills_take_confirm().unwrap()["skill"], "pdf");
+        assert!(skills_take_confirm().is_none());
+    }
 
     #[test]
     fn github_sources() {

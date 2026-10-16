@@ -104,7 +104,10 @@ const DEFAULT_STATUS: FlowStatus = {
 
 export async function startHub(root: HTMLElement, opts: HubOptions) {
   document.body.classList.add("hub-window");
-  let current: PageId = "assistant";
+  // Opened on a page (lib.rs show_hub: settings.html?page=…), else the first one.
+  const asked = new URLSearchParams(location.search).get("page");
+  const askedId = (asked === "settings" ? "flowsettings" : asked) as PageId | null;
+  let current: PageId = askedId && ALL.some((p) => p.id === askedId) ? askedId : "assistant";
   let status: FlowStatus = (await FlowBridge.status()) ?? DEFAULT_STATUS;
   const items = new Map<PageId, HTMLElement>();
   const statusLine = h("div", { class: "hub-status" });
