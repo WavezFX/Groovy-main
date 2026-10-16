@@ -60,19 +60,6 @@ pub fn node_path() -> Option<PathBuf> {
     which("node")
 }
 
-/// npm's `npx-cli.js` next to `node`, so npx runs through node.exe directly
-/// (a `.cmd` would go through cmd.exe and its quoting rules).
-fn npx_cli(node: &Path) -> Option<PathBuf> {
-    let dir = node.parent()?;
-    [
-        dir.join("node_modules/npm/bin/npx-cli.js"),
-        dir.join("../lib/node_modules/npm/bin/npx-cli.js"),
-        dir.join("../node_modules/npm/bin/npx-cli.js"),
-    ]
-    .into_iter()
-    .find(|p| p.is_file())
-}
-
 /// `node --version`, None when Node is not installed.
 pub fn node_version() -> Option<String> {
     let node = node_path()?;
@@ -302,31 +289,74 @@ pub fn env(github_token: Option<String>) -> Vec<(&'static str, String)> {
     e
 }
 
-/// Runs `skills@1.7.2 <args>` in `cwd` and waits (up to 4 min). Blocking: call
-/// it from a blocking task.
-pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
-    let node = node_path().ok_or("Node.js is not installed.")?;
-    let version = node_version().and_then(|v| parse_node_version(&v)).ok_or("Node.js does not answer.")?;
-    if !node_new_enough(version) {
-        return Err(format!("Node.js {}.{} or newer is needed (found {}.{}).", NODE_MIN.0, NODE_MIN.1, version.0, version.1));
+/// Where Groovy keeps its own copy of the pinned CLI.
+fn cli_dir() -> PathBuf {
+    crate::settings::local_dir().join("skills-cli").join(CLI_VERSION)
+}
+
+fn cli_entry_in(dir: &Path) -> PathBuf {
+    dir.join("node_modules").join("skills").join("bin").join("cli.mjs")
+}
+
+/// npm's `npm-cli.js` next to `node`, so npm runs through node.exe directly
+/// (a `.cmd` would go through cmd.exe and its quoting rules).
+fn npm_cli(node: &Path) -> Option<PathBuf> {
+    let dir = node.parent()?;
+    [
+        dir.join("node_modules/npm/bin/npm-cli.js"),
+        dir.join("../lib/node_modules/npm/bin/npm-cli.js"),
+        dir.join("../node_modules/npm/bin/npm-cli.js"),
+    ]
+    .into_iter()
+    .find(|p| p.is_file())
+}
+
+/// The CLI's own script, installed once into Groovy's folder (pinned version,
+/// no install scripts). It is then run with node directly: `npx` would start
+/// it through cmd.exe on Windows, which couldn't find it ("'skills' is not
+/// recognized…") and is a shell all the same.
+fn cli_entry(node: &Path) -> Result<PathBuf, String> {
+    let dir = cli_dir();
+    let entry = cli_entry_in(&dir);
+    if entry.is_file() {
+        return Ok(entry);
     }
-    let mut cmd = match npx_cli(&node) {
-        Some(npx) => {
-            let mut c = Command::new(&node);
-            c.arg(npx);
-            c
-        }
-        None if !cfg!(windows) => Command::new(which("npx").ok_or("npx was not found next to Node.js.")?),
-        None => return Err("npx was not found next to Node.js.".into()),
-    };
-    cmd.arg("-y").arg(format!("skills@{CLI_VERSION}")).args(args);
-    cmd.current_dir(cwd);
+    crate::platform::ensure_private_dir(&dir).map_err(|e| e.to_string())?;
+    let npm = npm_cli(node).ok_or("npm was not found next to Node.js.")?;
+    let mut cmd = Command::new(node);
+    cmd.arg(npm).args(install_args(&dir)).current_dir(&dir);
+    crate::log::line(format!("skills: installing skills@{CLI_VERSION}"));
+    let (ok, stdout, stderr) = exec(cmd)?;
+    if !ok || !entry.is_file() {
+        let msg = last_message(&stderr);
+        let msg = if msg.is_empty() { last_message(&strip_ansi(&stdout)) } else { msg };
+        return Err(format!("The skills CLI could not be installed: {msg}"));
+    }
+    Ok(entry)
+}
+
+fn install_args(dir: &Path) -> Vec<String> {
+    vec![
+        "install".into(),
+        "--prefix".into(),
+        dir.to_string_lossy().to_string(),
+        format!("skills@{CLI_VERSION}"),
+        "--ignore-scripts".into(),
+        "--no-audit".into(),
+        "--no-fund".into(),
+        "--no-package-lock".into(),
+        "--omit=dev".into(),
+    ]
+}
+
+/// Runs a prepared node command with the fixed environment, its output kept,
+/// and the timeout. Blocking.
+fn exec(mut cmd: Command) -> Result<(bool, String, String), String> {
     for (k, v) in env(crate::secrets::get("github-token")) {
         cmd.env(k, v);
     }
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     hide_window(&mut cmd);
-    crate::log::line(format!("skills: {}", args.first().map(String::as_str).unwrap_or("")));
     let mut child = cmd.spawn().map_err(|e| format!("Could not start the skills CLI: {e}"))?;
     crate::platform::contain(&child);
     let mut out_pipe = child.stdout.take().unwrap();
@@ -355,7 +385,23 @@ pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
     };
     let stdout = out_reader.join().unwrap_or_default();
     let stderr = strip_ansi(&err_reader.join().unwrap_or_default());
-    if !status.success() && json_array(&stdout).is_none() {
+    Ok((status.success(), stdout, stderr))
+}
+
+/// Runs `skills@1.7.2 <args>` in `cwd` and waits (up to 4 min). Blocking: call
+/// it from a blocking task.
+pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
+    let node = node_path().ok_or("Node.js is not installed.")?;
+    let version = node_version().and_then(|v| parse_node_version(&v)).ok_or("Node.js does not answer.")?;
+    if !node_new_enough(version) {
+        return Err(format!("Node.js {}.{} or newer is needed (found {}.{}).", NODE_MIN.0, NODE_MIN.1, version.0, version.1));
+    }
+    let entry = cli_entry(&node)?;
+    let mut cmd = Command::new(&node);
+    cmd.arg(entry).args(args).current_dir(cwd);
+    crate::log::line(format!("skills: {}", args.first().map(String::as_str).unwrap_or("")));
+    let (ok, stdout, stderr) = exec(cmd)?;
+    if !ok && json_array(&stdout).is_none() {
         let msg = last_message(&stderr);
         let msg = if msg.is_empty() { last_message(&strip_ansi(&stdout)) } else { msg };
         return Err(format!("The skills CLI failed: {msg}"));
@@ -366,6 +412,17 @@ pub fn run(cwd: &Path, args: &[String]) -> Result<Output, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_cli_is_installed_pinned_without_scripts_then_run_by_node() {
+        let dir = Path::new("/x/skills-cli/1.7.2");
+        let a = install_args(dir);
+        assert_eq!(a[0], "install");
+        assert!(a.contains(&"skills@1.7.2".to_string()));
+        assert!(a.contains(&"--ignore-scripts".to_string()));
+        assert!(cli_entry_in(dir).ends_with("node_modules/skills/bin/cli.mjs"));
+        assert!(cli_dir().ends_with(Path::new("skills-cli").join(CLI_VERSION)));
+    }
 
     #[test]
     fn a_wrapped_shell_message_arrives_whole() {
