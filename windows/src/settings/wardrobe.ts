@@ -1,4 +1,5 @@
-// Settings → Wardrobe Studio: Groovy's look, outfit, layered accessories and
+// Settings → Wardrobe Studio: Groovy's look, his Head, Face and Neck items
+// (each slot on its own, with its own None — FIXES_ROUND3 item 5) and
 // colours, with a live preview, search, favourites, presets, randomise,
 // reset and wardrobe packs (docs/WARDROBE_PACKS.md). Every change is saved at
 // once, so the real Groovy on the island and the desktop follows it live.
@@ -8,10 +9,10 @@ import type { Settings } from "../core/state";
 import { clear, h } from "../views/dom";
 import { BotEngine } from "../mochi/engine";
 import { drawWardrobeIcon } from "../mochi/outfits";
-import { OUTFIT_KEYS, OUTFIT_SELECTIONS, parseOutfit, resolveOutfit, seasonalOutfit, WARDROBE_STRINGS, type Outfit, type OutfitSelection } from "../mochi/wardrobe";
+import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
 import { SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
 import {
-  DEFAULT_APPEARANCE, SLOT_OF, combine, layersOn, parseWardrobe, wear, randomLook, readPack, writePack,
+  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
 } from "../mochi/appearance";
 import { N_, t } from "../i18n/i18n";
@@ -21,7 +22,6 @@ const SLOT_LABELS: Record<Slot, string> = {
   head: N_("Head"),
   face: N_("Face"),
   neck: N_("Neck"),
-  costume: N_("Costume"),
 };
 
 const COLOR_FIELDS: [keyof Pick<Appearance, "body" | "body2" | "glow" | "eyes">, string, string][] = [
@@ -63,8 +63,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   let last = performance.now();
   let raf = 0;
   const dressPreview = () => {
-    const outfit = resolveOutfit(parseOutfit(settings.mochiOutfit), new Date());
-    const worn = combine(outfit, prefs.appearance.layers);
+    const worn = wornOf(prefs.appearance.layers);
     engine.setSkin(parseSkin(settings.groovyLook), true);
     engine.setOutfit(worn[0] ?? "none", true);
     engine.layers = worn.slice(1);
@@ -99,8 +98,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
 
   // ── Looks ──
   const looks = h("div", { class: "studio-grid" });
-  // ── Outfit (one), then accessories by slot ──
-  const outfits = h("div", { class: "studio-grid" });
+  // ── Head, Face, Neck ──
   const slots = h("div", { class: "stack" });
   const colours = h("div", { class: "stack" });
   const presets = h("div", { class: "stack" });
@@ -120,7 +118,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const matches = (id: string, label: string) =>
     (!favouritesOnly || prefs.favourites.includes(id)) && (!query || folded(t(label)).includes(query) || folded(id).includes(query));
 
-  const iconCanvas = (sel: OutfitSelection, size = 30) => {
+  const iconCanvas = (sel: Outfit, size = 30) => {
     const c = h("canvas") as HTMLCanvasElement;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     c.width = size * dpr;
@@ -130,7 +128,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     const ctx = c.getContext("2d");
     if (ctx) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawWardrobeIcon(ctx, size, sel, seasonalOutfit(new Date()), WARDROBE_STRINGS.autoBadge);
+      drawWardrobeIcon(ctx, size, sel);
     }
     return c;
   };
@@ -163,56 +161,37 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     }
   }
 
-  function drawOutfits() {
-    clear(outfits);
-    const current = parseOutfit(settings.mochiOutfit);
-    for (const sel of OUTFIT_SELECTIONS) {
-      if (!matches(sel, OUTFIT_KEYS[sel])) continue;
-      const b = h("button", { class: sel === current ? "studio-item on" : "studio-item", title: t(OUTFIT_KEYS[sel]), "aria-pressed": sel === current }, iconCanvas(sel), h("span", { text: t(OUTFIT_KEYS[sel]) }), sel === "auto" || sel === "none" ? null : star(sel)) as HTMLButtonElement;
-      b.addEventListener("click", () => {
-        settings.mochiOutfit = sel;
-        // Accessories that no longer fit with the new outfit are dropped.
-        const main = resolveOutfit(sel, new Date());
-        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: layersOn(main, prefs.appearance.layers) } };
-        commit();
-      });
-      outfits.append(b);
-    }
-  }
-
   function drawSlots() {
     clear(slots);
-    const main = resolveOutfit(parseOutfit(settings.mochiOutfit), new Date());
-    const worn = combine(main, prefs.appearance.layers);
-    for (const slot of ["head", "face", "neck"] as Slot[]) {
+    const worn = wornOf(prefs.appearance.layers);
+    for (const slot of SLOTS) {
       const row = h("div", { class: "studio-grid" });
-      const items = (Object.keys(SLOT_OF) as Exclude<Outfit, "none">[]).filter((o) => SLOT_OF[o] === slot && matches(o, OUTFIT_KEYS[o]));
+      const items = ACCESSORIES.filter((o) => SLOT_OF[o] === slot && matches(o, OUTFIT_KEYS[o]));
       if (items.length === 0) continue;
+      // This slot's None: empties it, the others stay.
+      const empty = !worn.some((w) => w !== "none" && SLOT_OF[w] === slot);
+      const none = h("button", { class: empty ? "studio-item on" : "studio-item", title: `${t(SLOT_LABELS[slot])} · ${t("None")}`, "aria-pressed": empty }, iconCanvas("none"), h("span", { text: t("None") })) as HTMLButtonElement;
+      none.addEventListener("click", () => {
+        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: clearSlot(prefs.appearance.layers, slot) } };
+        commit();
+      });
+      row.append(none);
       for (const item of items) {
         const on = worn.includes(item);
-        const fromOutfit = on && item === main;
-        const taken = !on && worn.some((w) => SLOT_OF[w as Exclude<Outfit, "none">] === slot || SLOT_OF[w as Exclude<Outfit, "none">] === "costume");
         const b = h("button", {
           class: on ? "studio-item on" : "studio-item",
-          title: fromOutfit ? t("Part of the outfit: click to keep it as your own") : taken ? t("Click to wear it instead") : t(OUTFIT_KEYS[item]),
+          title: t(OUTFIT_KEYS[item]),
           "aria-pressed": on,
-        }, iconCanvas(item), h("span", { text: t(OUTFIT_KEYS[item]) })) as HTMLButtonElement;
+        }, iconCanvas(item), h("span", { text: t(OUTFIT_KEYS[item]) }), star(item)) as HTMLButtonElement;
         b.addEventListener("click", () => {
-          const next = wear(parseOutfit(settings.mochiOutfit), prefs.appearance.layers, item, new Date());
-          settings.mochiOutfit = next.selection;
+          const next = wear(prefs.appearance.layers, item);
           prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
           commit();
-          const name = t(OUTFIT_KEYS[item]);
-          if (next.did === "kept") say(t("{item} is now yours: the outfit is set to None.", { item: name }));
-          else if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: name }));
-          else if (next.did === "costumeOff") say(t("The costume is off to wear {item}.", { item: name }));
+          if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: t(OUTFIT_KEYS[item]) }));
         });
         row.append(b);
       }
       slots.append(h("div", { class: "subhead", text: t(SLOT_LABELS[slot]) }), row);
-    }
-    if (worn[0] && SLOT_OF[worn[0] as Exclude<Outfit, "none">] === "costume") {
-      slots.append(h("div", { class: "hint", text: t("A costume is worn on its own: click an accessory to wear it instead.") }));
     }
   }
 
@@ -238,7 +217,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     saveBtn.addEventListener("click", () => {
       const n = name.value.trim();
       if (!n) return;
-      const preset = { name: n, look: parseSkin(settings.groovyLook), outfit: parseOutfit(settings.mochiOutfit), appearance: prefs.appearance };
+      const preset = { name: n, look: parseSkin(settings.groovyLook), outfit: "none", appearance: prefs.appearance };
       prefs = { ...prefs, presets: [...prefs.presets.filter((p) => p.name !== n), preset] };
       commit();
       say(t("Saved “{name}”.", { name: n }));
@@ -249,7 +228,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       const wear = h("button", { text: t("Wear") }) as HTMLButtonElement;
       wear.addEventListener("click", () => {
         settings.groovyLook = p.look;
-        settings.mochiOutfit = p.outfit;
         prefs = { ...prefs, appearance: p.appearance };
         commit();
       });
@@ -258,7 +236,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         prefs = { ...prefs, presets: prefs.presets.filter((x) => x !== p) };
         commit();
       });
-      presets.append(h("div", { class: "pill-row full" }, h("div", { class: "name" }, h("div", { text: p.name }), h("div", { class: "hint", text: `${t(SKIN_KEYS[p.look])} · ${t(OUTFIT_KEYS[p.outfit as OutfitSelection] ?? OUTFIT_KEYS.none)}` })), wear, del));
+      presets.append(h("div", { class: "pill-row full" }, h("div", { class: "name" }, h("div", { text: p.name }), h("div", { class: "hint", text: [t(SKIN_KEYS[p.look]), ...wornOf(p.appearance.layers).map((o) => t(OUTFIT_KEYS[o]))].join(" · ") })), wear, del));
     }
     // Packs: import a .json file, or export the presets to one.
     const file = h("input", { type: "file", accept: ".json,application/json", style: "display:none" }) as HTMLInputElement;
@@ -292,7 +270,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
 
   function drawAll() {
     drawLooks();
-    drawOutfits();
     drawSlots();
     drawColours();
     drawPresets();
@@ -303,7 +280,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   search.addEventListener("input", () => {
     query = folded(search.value.trim());
     drawLooks();
-    drawOutfits();
     drawSlots();
   });
   const favToggle = h("button", { text: t("Favourites only"), "aria-pressed": false }) as HTMLButtonElement;
@@ -312,14 +288,17 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     favToggle.classList.toggle("primary", favouritesOnly);
     favToggle.setAttribute("aria-pressed", String(favouritesOnly));
     drawLooks();
-    drawOutfits();
     drawSlots();
+  });
+  const removeAll = h("button", { text: t("Remove all") }) as HTMLButtonElement;
+  removeAll.addEventListener("click", () => {
+    prefs = { ...prefs, appearance: { ...prefs.appearance, layers: [] } };
+    commit();
   });
   const random = h("button", { text: t("Surprise me") });
   random.addEventListener("click", () => {
     const r = randomLook();
     settings.groovyLook = r.look;
-    settings.mochiOutfit = r.outfit;
     prefs = { ...prefs, appearance: r.appearance };
     commit();
     engine.triggerEmote("happy", 1.2);
@@ -327,7 +306,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const reset = h("button", { class: "danger", text: t("Reset to default") }) as HTMLButtonElement;
   confirmClick(reset, t("Click again: presets are kept"), () => {
     settings.groovyLook = "night";
-    settings.mochiOutfit = "auto";
     prefs = { ...prefs, appearance: DEFAULT_APPEARANCE };
     commit();
   });
@@ -348,9 +326,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         h("div", { class: "row" }, search, favToggle),
         h("div", { class: "subhead", text: t("Look") }),
         looks,
-        h("div", { class: "subhead", text: t("Outfit") }),
-        outfits,
-        h("div", { class: "subhead", text: t("Accessories") }),
+        h("div", { class: "row" }, h("div", { class: "subhead", style: "flex:1", text: t("Wardrobe") }), removeAll),
         slots,
         h("div", { class: "subhead", text: t("Colours") }),
         colours,

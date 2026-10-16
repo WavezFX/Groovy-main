@@ -17,9 +17,8 @@ import { SPOTIFY_ID, islandDances } from "../core/spotify";
 import { BotEngine, hexToRGB } from "../mochi/engine";
 import { Greeting } from "../mochi/greeting";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
-import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
-import { combine, currentWardrobe } from "../mochi/appearance";
+import { clearSlot, currentWardrobe, tryOn, wear } from "../mochi/appearance";
 import { VoiceHost } from "./voice";
 import { Notices, liveBusy } from "./live";
 import { buildLiveBar } from "../views/livebar";
@@ -97,7 +96,6 @@ export class Island {
   });
   private greeting = new Greeting();
   private greetingShown = false;
-  private seasons = new SeasonCache();
 
   private running = false;
   private lastFrame = 0;
@@ -386,9 +384,14 @@ export class Island {
       },
       openSettingsWindow: () => void Bridge.openSettingsWindow(),
       blip: () => Sound.play("blip"),
-      chooseOutfit: (selection) => {
-        if (parseOutfit(State.settings.mochiOutfit) === selection) return;
-        State.settings.mochiOutfit = selection;
+      dress: (change) => {
+        // Head, face and neck each on their own (round 3): only that slot changes.
+        const prefs = currentWardrobe(State.settings.wardrobe);
+        const layers = change === "all" || change === "head" || change === "face" || change === "neck"
+          ? clearSlot(prefs.appearance.layers, change)
+          : wear(prefs.appearance.layers, change).layers;
+        State.settings.wardrobe = { ...prefs, appearance: { ...prefs.appearance, layers } };
+        State.wardrobePreview = null;
         void Bridge.saveSettings(State.settings);
         Sound.play("pop");
         this.engine.triggerEmote("proud");
@@ -1319,9 +1322,9 @@ export class Island {
     const inWardrobe = State.mode === "expanded" && State.view === "wardrobe";
     const mainFocused = State.focusId == null || State.focusId === State.mainPillId;
     const showOutfit = mainFocused || State.mode !== "expanded" || inWardrobe;
-    const outfit = State.wardrobePreview ?? this.seasons.get(parseOutfit(State.settings.mochiOutfit));
+    // Head, face and neck, with the item under the pointer tried on in its slot.
     const appearance = State.appearancePreview ?? currentWardrobe(State.settings.wardrobe).appearance;
-    const worn = combine(outfit, appearance.layers);
+    const worn = tryOn(appearance.layers, State.wardrobePreview);
     this.engine.setOutfit(showOutfit ? (worn[0] ?? "none") : "none", !inWardrobe);
     this.engine.layers = showOutfit ? worn.slice(1) : [];
     this.engine.appearance = appearance;

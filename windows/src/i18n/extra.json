@@ -155,39 +155,6 @@
    "ru": "Прикрепить активное окно к чату",
    "id": "Lampirkan jendela depan ke obrolan"
   },
-  "Auto (seasons)": {
-   "zh-Hans": "自动（随季节）",
-   "hi": "ऑटो (मौसम के अनुसार)",
-   "es": "Auto (estaciones)",
-   "ar": "تلقائي (حسب المواسم)",
-   "fr": "Auto (saisons)",
-   "bn": "অটো (ঋতু অনুযায়ী)",
-   "pt-BR": "Auto (estações)",
-   "ru": "Авто (по сезону)",
-   "id": "Otomatis (musim)"
-  },
-  "Auto · follows the seasons (now: {outfit})": {
-   "zh-Hans": "自动 · 随季节变化（当前：{outfit}）",
-   "hi": "ऑटो · मौसम के साथ बदलता है (अभी: {outfit})",
-   "es": "Auto · sigue las estaciones (ahora: {outfit})",
-   "ar": "تلقائي · يتبع المواسم (الآن: {outfit})",
-   "fr": "Auto · suit les saisons (en ce moment : {outfit})",
-   "bn": "অটো · ঋতু অনুযায়ী বদলায় (এখন: {outfit})",
-   "pt-BR": "Auto · acompanha as estações (agora: {outfit})",
-   "ru": "Авто · по сезону (сейчас: {outfit})",
-   "id": "Otomatis · mengikuti musim (sekarang: {outfit})"
-  },
-  "Auto · {outfit}": {
-   "zh-Hans": "自动 · {outfit}",
-   "hi": "ऑटो · {outfit}",
-   "es": "Auto · {outfit}",
-   "ar": "تلقائي · {outfit}",
-   "fr": "Auto · {outfit}",
-   "bn": "অটো · {outfit}",
-   "pt-BR": "Auto · {outfit}",
-   "ru": "Авто · {outfit}",
-   "id": "Otomatis · {outfit}"
-  },
   "Auto-close": {
    "zh-Hans": "自动关闭",
    "hi": "अपने आप बंद",
@@ -1672,17 +1639,6 @@
    "pt-BR": "Aba anterior",
    "ru": "Предыдущая вкладка",
    "id": "Tab sebelumnya"
-  },
-  "Pumpkin": {
-   "zh-Hans": "南瓜",
-   "hi": "कद्दू",
-   "es": "Calabaza",
-   "ar": "يقطينة",
-   "fr": "Citrouille",
-   "bn": "কুমড়া",
-   "pt-BR": "Abóbora",
-   "ru": "Тыква",
-   "id": "Labu"
   },
   "Questions": {
    "zh-Hans": "问题",
@@ -6320,17 +6276,6 @@
    "ru": "Шея",
    "id": "Leher"
   },
-  "Costume": {
-   "zh-Hans": "装扮",
-   "hi": "पोशाक",
-   "es": "Disfraz",
-   "ar": "زيّ",
-   "fr": "Costume",
-   "bn": "পোশাক",
-   "pt-BR": "Fantasia",
-   "ru": "Костюм",
-   "id": "Kostum"
-  },
   "Body": {
    "zh-Hans": "身体",
    "hi": "शरीर",
@@ -6605,28 +6550,6 @@
    "pt-BR": "Clique nele para dar oi.",
    "ru": "Нажмите на него, чтобы поздороваться.",
    "id": "Klik dia untuk menyapa."
-  },
-  "Outfit": {
-   "zh-Hans": "服装",
-   "hi": "पोशाक",
-   "es": "Atuendo",
-   "ar": "الزيّ",
-   "fr": "Tenue",
-   "bn": "পোশাক",
-   "pt-BR": "Roupa",
-   "ru": "Наряд",
-   "id": "Busana"
-  },
-  "Accessories": {
-   "zh-Hans": "配饰",
-   "hi": "एक्सेसरी",
-   "es": "Accesorios",
-   "ar": "الإكسسوارات",
-   "fr": "Accessoires",
-   "bn": "এক্সেসরি",
-   "pt-BR": "Acessórios",
-   "ru": "Аксессуары",
-   "id": "Aksesori"
   },
   "Colours": {
    "zh-Hans": "颜色",
@@ -11006,39 +10929,6 @@
    "ru": "слишком большой для показа",
    "id": "terlalu besar untuk ditampilkan"
   },
-  "Part of the outfit: click to keep it as your own": {
-   "zh-Hans": "属于当前服装：点击即可作为你自己的配饰保留",
-   "hi": "पोशाक का हिस्सा: इसे अपना बनाने के लिए क्लिक करें",
-   "es": "Parte del atuendo: haz clic para quedártelo como tuyo",
-   "ar": "جزء من الزي: انقر لتحتفظ به كإكسسوار خاص بك",
-   "fr": "Fait partie de la tenue : clique pour le garder comme le tien",
-   "bn": "পোশাকের অংশ: নিজের করে রাখতে ক্লিক করুন",
-   "pt-BR": "Parte da roupa: clique para ficar com ele como seu",
-   "ru": "Часть наряда: нажмите, чтобы оставить как свой",
-   "id": "Bagian dari pakaian: klik untuk menjadikannya milikmu"
-  },
-  "Click to wear it instead": {
-   "zh-Hans": "点击改戴这个",
-   "hi": "इसके बजाय इसे पहनने के लिए क्लिक करें",
-   "es": "Haz clic para ponértelo en su lugar",
-   "ar": "انقر لارتدائه بدلًا منه",
-   "fr": "Clique pour le porter à la place",
-   "bn": "এর বদলে এটি পরতে ক্লিক করুন",
-   "pt-BR": "Clique para usar este no lugar",
-   "ru": "Нажмите, чтобы надеть вместо этого",
-   "id": "Klik untuk memakainya sebagai gantinya"
-  },
-  "{item} is now yours: the outfit is set to None.": {
-   "zh-Hans": "{item} 现在是你的了：服装已设为“无”。",
-   "hi": "{item} अब आपका है: पोशाक “कोई नहीं” पर सेट है।",
-   "es": "{item} ahora es tuyo: el atuendo queda en Ninguno.",
-   "ar": "{item} أصبح لك الآن: تم ضبط الزي على «لا شيء».",
-   "fr": "{item} est à toi maintenant : la tenue passe sur Aucune.",
-   "bn": "{item} এখন আপনার: পোশাক “কিছু না”-তে সেট করা হয়েছে।",
-   "pt-BR": "{item} agora é seu: a roupa ficou em Nenhuma.",
-   "ru": "{item} теперь ваш: наряд установлен на «Нет».",
-   "id": "{item} sekarang milikmu: pakaian diatur ke Tidak ada."
-  },
   "{item} replaces what was worn there.": {
    "zh-Hans": "{item} 替换了原来戴的。",
    "hi": "{item} ने वहाँ पहनी चीज़ की जगह ले ली।",
@@ -11049,28 +10939,6 @@
    "pt-BR": "{item} substitui o que estava ali.",
    "ru": "{item} заменяет то, что было надето.",
    "id": "{item} menggantikan yang dipakai di sana."
-  },
-  "The costume is off to wear {item}.": {
-   "zh-Hans": "已脱下戏服，改戴 {item}。",
-   "hi": "{item} पहनने के लिए पोशाक उतार दी गई।",
-   "es": "Fuera el disfraz para ponerte {item}.",
-   "ar": "خُلع الزي التنكري لارتداء {item}.",
-   "fr": "Le costume est retiré pour porter {item}.",
-   "bn": "{item} পরার জন্য কস্টিউম খোলা হয়েছে।",
-   "pt-BR": "A fantasia saiu para usar {item}.",
-   "ru": "Костюм снят, чтобы надеть {item}.",
-   "id": "Kostum dilepas untuk memakai {item}."
-  },
-  "A costume is worn on its own: click an accessory to wear it instead.": {
-   "zh-Hans": "戏服只能单独穿：点击一个配饰即可改戴它。",
-   "hi": "पोशाक अकेले पहनी जाती है: इसके बजाय कोई एक्सेसरी पहनने के लिए उस पर क्लिक करें।",
-   "es": "Un disfraz se lleva solo: haz clic en un accesorio para llevarlo en su lugar.",
-   "ar": "يُرتدى الزي التنكري وحده: انقر على إكسسوار لارتدائه بدلًا منه.",
-   "fr": "Un costume se porte seul : clique sur un accessoire pour le porter à la place.",
-   "bn": "কস্টিউম একাই পরা হয়: এর বদলে কোনো অ্যাকসেসরি পরতে সেটিতে ক্লিক করুন।",
-   "pt-BR": "Uma fantasia é usada sozinha: clique em um acessório para usá-lo no lugar.",
-   "ru": "Костюм носится сам по себе: нажмите на аксессуар, чтобы надеть его вместо.",
-   "id": "Kostum dipakai sendiri: klik aksesori untuk memakainya sebagai gantinya."
   },
   "Something went wrong.": {
    "zh-Hans": "出了点问题。",
@@ -13689,6 +13557,17 @@
    "pt-BR": "O {name} precisa da chave para mostrar algo: cole aqui.",
    "ru": "Чтобы что-то показать, {name} нужен ключ: вставьте его сюда.",
    "id": "{name} perlu kuncinya untuk menampilkan apa pun: tempel di sini."
+  },
+  "Remove all": {
+   "zh-Hans": "全部移除",
+   "hi": "सब हटाएँ",
+   "es": "Quitar todo",
+   "ar": "إزالة الكل",
+   "fr": "Tout retirer",
+   "bn": "সব সরান",
+   "pt-BR": "Remover tudo",
+   "ru": "Снять всё",
+   "id": "Lepas semua"
   }
  }
 }

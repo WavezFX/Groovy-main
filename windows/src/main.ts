@@ -8,6 +8,7 @@ import { Mail, wantsMail, type MailNote } from "./views/tiles";
 import { currentTiles, isMailNotification } from "./core/tiles";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
+import { migrateSettingsOutfit } from "./mochi/appearance";
 import { registerHookHandlers } from "./island/hooks";
 import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
@@ -48,6 +49,8 @@ async function main() {
   const boot = await Bridge.boot();
   if (boot) {
     State.settings = { ...State.settings, ...boot.settings };
+    // Round 3: the old single outfit becomes a Head/Face/Neck layer, once.
+    if (migrateSettingsOutfit(State.settings)) void Bridge.saveSettings(State.settings);
   }
   // A language change redraws the island in place: the texts given as tl(…)
   // relabel themselves (views/dom.ts) and the views redraw the rest on this

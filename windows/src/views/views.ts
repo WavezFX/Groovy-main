@@ -23,7 +23,8 @@ import { buildRecap } from "./recap";
 import { buildWardrobe } from "./wardrobe";
 import { buildSpotifyCard, buildSpotifyPill, type SpotifyPillHost } from "./spotify";
 import { SPOTIFY_ID } from "../core/spotify";
-import type { Outfit, OutfitSelection } from "../mochi/wardrobe";
+import type { Accessory, Outfit } from "../mochi/wardrobe";
+import type { Slot } from "../mochi/appearance";
 import type { Skin } from "../mochi/skins";
 import { language, t, tl, type Msg } from "../i18n/i18n";
 import type { ViewCommand } from "../island/shortcuts";
@@ -63,8 +64,8 @@ export interface ViewActions {
   setAutoClose(seconds: number): void;
   openSettingsWindow(): void;
   blip(): void;
-  /** Wardrobe click: keeps the outfit ("auto" and "none" included). */
-  chooseOutfit(selection: OutfitSelection): void;
+  /** Wardrobe click: wears an item in its slot (or takes it off), or empties a slot / everything. */
+  dress(change: Accessory | Slot | "all"): void;
   /** Wardrobe hover: shows an outfit on Groovy without keeping it; null ends it. */
   previewOutfit(outfit: Outfit | null): void;
   /** Wardrobe click on a look: keeps it. */

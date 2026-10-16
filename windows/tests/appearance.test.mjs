@@ -1,33 +1,66 @@
-// Groovy's colours, layered accessories, presets and wardrobe packs
-// (src/mochi/appearance.ts).
+// Groovy's colours, his Head/Face/Neck items, presets and wardrobe packs
+// (src/mochi/appearance.ts, FIXES_ROUND3 item 5).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DEFAULT_APPEARANCE, SLOT_OF, combine, currentWardrobe, fits, parseWardrobe, randomLook, readPack,
-  styleWith, writePack,
+  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, currentWardrobe, inSlot, migrateOutfit, migrateSettingsOutfit,
+  parseWardrobe, randomLook, readPack, styleWith, tryOn, wear, worn, writePack,
 } from "../src/mochi/appearance.ts";
 import { SKIN_STYLES } from "../src/mochi/skins.ts";
-import { OUTFIT_SELECTIONS } from "../src/mochi/wardrobe.ts";
+import { ACCESSORIES } from "../src/mochi/wardrobe.ts";
 
-test("every outfit has a slot", () => {
-  for (const o of OUTFIT_SELECTIONS) {
-    if (o === "auto" || o === "none") continue;
-    assert.ok(SLOT_OF[o], o);
-  }
+test("every item has one of three slots: head, face, neck", () => {
+  assert.deepEqual([...SLOTS], ["head", "face", "neck"]);
+  for (const o of ACCESSORIES) assert.ok(SLOTS.includes(SLOT_OF[o]), o);
+  assert.ok(!ACCESSORIES.includes("pumpkin"), "the costume is gone");
 });
 
-test("one item per slot, the outfit first, a costume alone", () => {
-  assert.deepEqual(combine("beanie", ["sunglasses", "scarf"]), ["beanie", "sunglasses", "scarf"]);
-  // A second hat is not worn on top of the first.
-  assert.deepEqual(combine("beanie", ["crown", "roundGlasses"]), ["beanie", "roundGlasses"]);
-  assert.deepEqual(combine("none", ["sunglasses", "roundGlasses"]), ["sunglasses"]);
-  assert.deepEqual(combine("pumpkin", ["sunglasses"]), ["pumpkin"]);
-  assert.deepEqual(combine("beanie", ["pumpkin"]), ["beanie"], "no costume over an outfit");
-  assert.deepEqual(combine("none", ["nonsense", "crown", "crown"]), ["crown"]);
-  assert.ok(fits(["beanie"], "scarf"));
-  assert.ok(!fits(["beanie"], "crown"));
-  assert.ok(!fits(["pumpkin"], "scarf"));
+test("one item per slot, head first, the first one named wins", () => {
+  assert.deepEqual(worn(["scarf", "sunglasses", "beanie", "crown", "nope"]), ["beanie", "sunglasses", "scarf"]);
+  assert.deepEqual(worn([]), []);
+});
+
+test("choosing an item replaces only its own slot", () => {
+  // Beanie + sunglasses, then a crown: the sunglasses stay.
+  let layers = wear([], "beanie").layers;
+  layers = wear(layers, "sunglasses").layers;
+  assert.deepEqual(layers, ["beanie", "sunglasses"]);
+  const crown = wear(layers, "crown");
+  assert.deepEqual(crown.layers, ["crown", "sunglasses"]);
+  assert.equal(crown.did, "replaced");
+  // Clicking what is worn takes it off.
+  assert.deepEqual(wear(crown.layers, "crown"), { layers: ["sunglasses"], did: "removed" });
+});
+
+test("each slot's None empties that slot only; Remove all empties everything", () => {
+  const layers = ["beanie", "sunglasses", "scarf"];
+  assert.deepEqual(clearSlot(layers, "face"), ["beanie", "scarf"]);
+  assert.deepEqual(clearSlot(layers, "head"), ["sunglasses", "scarf"]);
+  assert.deepEqual(clearSlot(layers, "all"), []);
+  assert.equal(inSlot(layers, "neck"), "scarf");
+  assert.equal(inSlot(["beanie"], "face"), null);
+});
+
+test("hovering tries an item on in its slot, the rest as worn", () => {
+  assert.deepEqual(tryOn(["beanie", "sunglasses"], "roundGlasses"), ["beanie", "roundGlasses"]);
+  assert.deepEqual(tryOn(["beanie"], null), ["beanie"]);
+  assert.deepEqual(tryOn(["beanie"], "none"), ["beanie"]);
+});
+
+test("a saved outfit becomes a layer in its slot; Auto and the pumpkin become nothing", () => {
+  assert.deepEqual(migrateOutfit("witchHat", ["sunglasses"]), ["witchHat", "sunglasses"]);
+  // The outfit was worn first: it wins its slot over a layer there.
+  assert.deepEqual(migrateOutfit("beanie", ["crown", "scarf"]), ["beanie", "scarf"]);
+  assert.deepEqual(migrateOutfit("auto", ["scarf"]), ["scarf"]);
+  assert.deepEqual(migrateOutfit("pumpkin", []), []);
+  assert.deepEqual(migrateOutfit("topHat", ["bow"]), ["bow"]);
+  const settings = { mochiOutfit: "santaHat", wardrobe: { appearance: { layers: ["roundGlasses"] }, favourites: ["crown"] } };
+  assert.equal(migrateSettingsOutfit(settings), true);
+  assert.equal(settings.mochiOutfit, "none");
+  assert.deepEqual(settings.wardrobe.appearance.layers, ["santaHat", "roundGlasses"]);
+  assert.deepEqual(settings.wardrobe.favourites, ["crown"], "favourites are kept");
+  assert.equal(migrateSettingsOutfit(settings), false, "once only");
 });
 
 test("colours override the look, empty ones keep it", () => {
@@ -54,6 +87,9 @@ test("stored wardrobe settings are cleaned on every read", () => {
   assert.equal(w.presets.length, 1);
   assert.equal(w.presets[0].name, "Party");
   assert.equal(w.presets[0].look, "ember");
+  // A preset's outfit is now a layer of its own.
+  assert.equal(w.presets[0].outfit, "none");
+  assert.deepEqual(w.presets[0].appearance.layers, ["partyHat"]);
   assert.deepEqual(w.favourites, ["crown", "night"]);
   assert.deepEqual(parseWardrobe(null).appearance, DEFAULT_APPEARANCE);
   assert.deepEqual(parseWardrobe(5).presets, []);
@@ -63,10 +99,13 @@ test("stored wardrobe settings are cleaned on every read", () => {
 });
 
 test("packs round-trip, and anything else is refused with a reason", () => {
-  const presets = [{ name: "Cosy", look: "frost", outfit: "beanie", appearance: { ...DEFAULT_APPEARANCE, layers: ["scarf"] } }];
+  const presets = [{ name: "Cosy", look: "frost", outfit: "none", appearance: { ...DEFAULT_APPEARANCE, layers: ["beanie", "scarf"] } }];
   const back = readPack(writePack("Mine", presets));
   assert.deepEqual(back.presets, presets);
   assert.deepEqual(back.problems, []);
+  // An older pack's outfit joins the layers.
+  const old = readPack(JSON.stringify({ groovyWardrobePack: 1, presets: [{ name: "Old", look: "night", outfit: "beanie", appearance: { layers: ["scarf"] } }] }));
+  assert.deepEqual(old.presets[0].appearance.layers, ["beanie", "scarf"]);
   assert.equal(readPack("{not json").problems[0].msg, "The file is not valid JSON.");
   assert.match(readPack('{"presets": []}').problems[0].msg, /not a Groovy wardrobe pack/);
   assert.match(readPack("x".repeat(1024 * 1024 + 1)).problems[0].msg, /1 MB/);
@@ -84,59 +123,6 @@ test("a random look is always one that can be worn", () => {
   for (let i = 0; i < 200; i++) {
     const r = randomLook(rand);
     assert.ok(SKIN_STYLES[r.look]);
-    assert.deepEqual(combine(r.outfit, r.appearance.layers), [r.outfit, ...r.appearance.layers].filter((o) => o !== "none"));
+    assert.deepEqual(worn(r.appearance.layers), r.appearance.layers);
   }
-});
-
-// ── Wardrobe Studio clicks are never refused (FIXES_ROUND1 item 1) ───────────
-import { layersOn, wear } from "../src/mochi/appearance.ts";
-
-const OCTOBER = new Date(2026, 9, 15);
-const DECEMBER = new Date(2026, 11, 10);
-const MAY = new Date(2026, 4, 12);
-
-test("October on Auto: another hat replaces the witch hat", () => {
-  const w = wear("auto", [], "crown", OCTOBER);
-  assert.equal(w.selection, "none");
-  assert.deepEqual(w.layers, ["crown"]);
-  assert.equal(w.did, "replaced");
-});
-
-test("October on Auto: clicking the witch hat keeps it as the user's own", () => {
-  const w = wear("auto", ["sunglasses"], "witchHat", OCTOBER);
-  assert.equal(w.selection, "none");
-  assert.deepEqual(w.layers, ["witchHat", "sunglasses"]);
-  assert.equal(w.did, "kept");
-  // Clicked again, it comes off like any layer.
-  const off = wear(w.selection, w.layers, "witchHat", OCTOBER);
-  assert.deepEqual(off.layers, ["sunglasses"]);
-  assert.equal(off.did, "removed");
-});
-
-test("December on Auto: the Santa hat gives way, other slots stay with the outfit", () => {
-  const glasses = wear("auto", [], "roundGlasses", DECEMBER);
-  assert.equal(glasses.selection, "auto");
-  assert.deepEqual(glasses.layers, ["roundGlasses"]);
-  assert.equal(glasses.did, "added");
-  const beanie = wear(glasses.selection, glasses.layers, "beanie", DECEMBER);
-  assert.equal(beanie.selection, "none");
-  assert.deepEqual(beanie.layers, ["roundGlasses", "beanie"]);
-});
-
-test("a costume makes way for an accessory", () => {
-  const w = wear("pumpkin", [], "scarf", MAY);
-  assert.equal(w.selection, "none");
-  assert.deepEqual(w.layers, ["scarf"]);
-  assert.equal(w.did, "costumeOff");
-});
-
-test("an item in a taken layer slot replaces the layer", () => {
-  const w = wear("none", ["sunglasses", "scarf"], "roundGlasses", MAY);
-  assert.deepEqual(w.layers, ["scarf", "roundGlasses"]);
-  assert.equal(w.did, "replaced");
-});
-
-test("with no outfit, every layer counts (the first one is not dropped)", () => {
-  assert.deepEqual(layersOn("none", ["beanie", "scarf"]), ["beanie", "scarf"]);
-  assert.deepEqual(layersOn("beanie", ["crown", "scarf"]), ["scarf"]);
 });

@@ -12,8 +12,7 @@
 // flips to a top-down view.
 
 import { Ease } from "../core/anim";
-import type { Outfit, OutfitSelection } from "./wardrobe";
-import { SCRIPT_FONTS } from "../core/fonts";
+import type { Outfit } from "./wardrobe";
 
 const EXP = 2.7;
 const VIEW_TILT = -0.3;
@@ -811,72 +810,6 @@ function scarf(ctx: Ctx, H: Head) {
   ctx.fill();
 }
 
-// ── Pumpkin (the body colours come from the engine) ───────────────────────────
-
-export const PUMPKIN_BODY: readonly [string, string] = ["#FFA94D", "#E8590C"];
-
-function pumpkin(ctx: Ctx, H: Head, body: Path2D, simple: boolean) {
-  if (!simple) {
-    ctx.save();
-    ctx.clip(body);
-    ctx.lineCap = "round";
-    for (const lon of [-1.15, -0.55, 0.0, 0.55, 1.15]) {
-      const pts: P3[] = [];
-      for (let i = 0; i <= 30; i++) {
-        const q = proj(H, surf(-0.98 + (1.96 * i) / 30, lon, 1));
-        if (q.z > 0) pts.push(q);
-      }
-      if (pts.length < 2) continue;
-      const zz = pts[Math.floor(pts.length / 2)].z;
-      polyline(ctx, pts);
-      ctx.strokeStyle = `rgba(150,50,0,${0.22 * zz})`;
-      ctx.lineWidth = H.R * 0.12;
-      ctx.stroke();
-      polyline(ctx, pts.map((q) => ({ x: q.x + H.R * 0.07, y: q.y })));
-      ctx.strokeStyle = `rgba(255,220,170,${0.18 * zz})`;
-      ctx.lineWidth = H.R * 0.04;
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-  const t = proj(H, [0.02, 1.0, 0]);
-  // stem
-  ctx.beginPath();
-  ctx.moveTo(t.x - H.R * 0.09, t.y + H.R * 0.04);
-  ctx.quadraticCurveTo(t.x - H.R * 0.08, t.y - H.R * 0.22, t.x + H.R * 0.08, t.y - H.R * 0.3);
-  ctx.lineTo(t.x + H.R * 0.13, t.y - H.R * 0.22);
-  ctx.quadraticCurveTo(t.x + H.R * 0.04, t.y - H.R * 0.15, t.x + H.R * 0.08, t.y + H.R * 0.04);
-  ctx.closePath();
-  ctx.fillStyle = lin(ctx, t.x - H.R * 0.1, 0, t.x + H.R * 0.1, 0, [[0, "#65A30D"], [1, "#3F6212"]]);
-  ctx.fill();
-  // leaf
-  ctx.save();
-  ctx.translate(t.x - H.R * 0.06, t.y - H.R * 0.02);
-  ctx.rotate(-0.5);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(-H.R * 0.18, -H.R * 0.2, -H.R * 0.38, -H.R * 0.02);
-  ctx.quadraticCurveTo(-H.R * 0.18, H.R * 0.1, 0, 0);
-  ctx.fillStyle = lin(ctx, 0, -H.R * 0.15, -H.R * 0.3, 0, [[0, "#84CC16"], [1, "#4D7C0F"]]);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(-H.R * 0.02, -H.R * 0.01);
-  ctx.quadraticCurveTo(-H.R * 0.18, -H.R * 0.08, -H.R * 0.32, -H.R * 0.03);
-  ctx.strokeStyle = "rgba(30,60,0,0.4)";
-  ctx.lineWidth = H.R * 0.02;
-  ctx.lineCap = "round";
-  ctx.stroke();
-  ctx.restore();
-  if (simple) return;
-  // curly tendril
-  ctx.beginPath();
-  ctx.moveTo(t.x + H.R * 0.1, t.y - H.R * 0.12);
-  ctx.bezierCurveTo(t.x + H.R * 0.3, t.y - H.R * 0.25, t.x + H.R * 0.35, t.y - H.R * 0.02, t.x + H.R * 0.22, t.y - H.R * 0.06);
-  ctx.strokeStyle = "#4D7C0F";
-  ctx.lineWidth = H.R * 0.03;
-  ctx.lineCap = "round";
-  ctx.stroke();
-}
 
 // ── Bow (anchored in 3D, turns with the head) ─────────────────────────────────
 
@@ -975,8 +908,8 @@ function withLayer(ctx: Ctx, alpha: number, fn: (c: Ctx) => void) {
   ctx.restore();
 }
 
-/** Glasses, bow, scarf and pumpkin are on the face: behind the head once it has turned away. */
-const ON_FACE: ReadonlySet<Outfit> = new Set(["sunglasses", "roundGlasses", "bow", "scarf", "pumpkin"]);
+/** Glasses, bow and scarf are on the face: behind the head once it has turned away. */
+const ON_FACE: ReadonlySet<Outfit> = new Set<Outfit>(["sunglasses", "roundGlasses", "bow", "scarf"]);
 const HATS: ReadonlySet<Outfit> = new Set(["beanie", "santaHat", "partyHat", "crown", "witchHat"]);
 
 export interface OutfitState {
@@ -990,12 +923,11 @@ function faceTurnedAway(H: Head): boolean {
   return proj(H, [0, 0, 1]).z < 0;
 }
 
-function drawFace(ctx: Ctx, outfit: Outfit, H: Head, body: Path2D, simple: boolean) {
+function drawFace(ctx: Ctx, outfit: Outfit, H: Head, body: Path2D) {
   switch (outfit) {
     case "sunglasses": sunglasses(ctx, H, body); break;
     case "roundGlasses": roundGlasses(ctx, H, body); break;
     case "scarf": scarf(ctx, H); break;
-    case "pumpkin": pumpkin(ctx, H, body, simple); break;
     case "bow": bow(ctx, H); break;
     default: break;
   }
@@ -1018,7 +950,7 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
   const body = bodyOutline(H.rx, H.ry);
 
   if (ON_FACE.has(outfit)) {
-    if (faceTurnedAway(H)) withLayer(ctx, alpha, (l) => drawFace(l, outfit, H, body, simple));
+    if (faceTurnedAway(H)) withLayer(ctx, alpha, (l) => drawFace(l, outfit, H, body));
     return;
   }
   const posP = Ease.back(st.presence);
@@ -1065,7 +997,7 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
       case "partyHat": partyHat(l, H, simple); break;
       case "crown": crownFront(l, H, body, simple); break;
       case "witchHat": witchHatFront(l, H, body); break;
-      default: drawFace(l, outfit, H, body, simple);
+      default: drawFace(l, outfit, H, body);
     }
   });
   ctx.restore();
@@ -1086,7 +1018,7 @@ function iconMochi(ctx: Ctx, size: number, outfit: Outfit) {
   ctx.translate(cx, cy);
   drawOutfitBehind(ctx, outfit, H, st);
   const body = bodyOutline(H.rx, H.ry);
-  const [top, bottom] = outfit === "pumpkin" ? PUMPKIN_BODY : ["rgb(237,237,239)", "rgb(196,197,202)"];
+  const [top, bottom] = ["rgb(237,237,239)", "rgb(196,197,202)"];
   ctx.fillStyle = lin(ctx, H.rx * 0.7, -H.ry * 0.85, -H.rx * 0.8, H.ry * 0.9, [[0, top], [1, bottom]]);
   ctx.fill(body);
   ctx.fillStyle = rad(ctx, 0, 0, R * 0.15, R * 1.25, [[0, "rgba(0,0,0,0)"], [0.6, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0.2)"]]);
@@ -1111,11 +1043,8 @@ function iconMochi(ctx: Ctx, size: number, outfit: Outfit) {
   ctx.restore();
 }
 
-/**
- * One wardrobe button's picture — drawOutfitIcon on macOS. "auto" shows the
- * season's outfit with an AUTO tag, "none" a crossed-out circle.
- */
-export function drawWardrobeIcon(ctx: Ctx, size: number, selection: OutfitSelection, seasonal: Outfit, autoLabel: string) {
+/** One wardrobe button's picture — drawOutfitIcon on macOS; "none" is a crossed-out circle. */
+export function drawWardrobeIcon(ctx: Ctx, size: number, selection: Outfit) {
   ctx.clearRect(0, 0, size, size);
   if (selection === "none") {
     const r = 6.5;
@@ -1132,27 +1061,5 @@ export function drawWardrobeIcon(ctx: Ctx, size: number, selection: OutfitSelect
     ctx.restore();
     return;
   }
-  iconMochi(ctx, size, selection === "auto" ? seasonal : selection);
-  if (selection !== "auto") return;
-  const R = 10;
-  const by = size / 2 + R * 0.62 + R * 0.88 * 0.72;
-  const bw = 14;
-  const bh = 6.5;
-  ctx.save();
-  ctx.translate(size / 2, by);
-  roundRect(ctx, -bw / 2, -bh / 2, bw, bh, bh / 2);
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fill();
-  ctx.fillStyle = "#FFFFFF";
-  // A longer translation of "AUTO" gets a smaller font rather than overflowing the badge.
-  let fontPx = 4.2;
-  ctx.font = `600 ${fontPx}px system-ui, "Segoe UI", ${SCRIPT_FONTS}, sans-serif`;
-  while (ctx.measureText(autoLabel).width > bw - 2 && fontPx > 2.6) {
-    fontPx -= 0.2;
-    ctx.font = `600 ${fontPx}px system-ui, "Segoe UI", ${SCRIPT_FONTS}, sans-serif`;
-  }
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(autoLabel, 0, 0.2);
-  ctx.restore();
+  iconMochi(ctx, size, selection);
 }

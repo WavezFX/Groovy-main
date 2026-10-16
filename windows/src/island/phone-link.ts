@@ -10,7 +10,7 @@ import { Bridge, onEvent, type PhoneLinkPlan, type PhoneLinkUsage, type PhoneLin
 import { fileName, parseDiffStep, type FileDiff } from "../core/diff";
 import type { PlanUsage, CodexPlanUsage } from "../core/plan";
 import { State } from "../core/state";
-import { parseOutfit } from "../mochi/wardrobe";
+import { currentWardrobe, worn } from "../mochi/appearance";
 import { dropPendingCard } from "./hooks";
 import { serviceCards } from "./phone-services";
 import type { Island } from "./island";
@@ -168,7 +168,8 @@ export function registerPhoneLink(island: Island): () => void {
   };
 
   const publishOutfit = () => {
-    const outfit = parseOutfit(State.settings.mochiOutfit);
+    // The phone wears one item: the head's, else the face's, else the neck's.
+    const outfit = worn(currentWardrobe(State.settings.wardrobe).appearance.layers)[0] ?? "none";
     if (outfit === lastOutfit) return;
     lastOutfit = outfit;
     void Bridge.phoneLinkPublishPrefs(outfit);

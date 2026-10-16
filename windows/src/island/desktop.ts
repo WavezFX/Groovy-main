@@ -3,7 +3,7 @@
 // to show, and handles the drag out of the island. The window itself lives in
 // src-tauri/src/desktop.rs and draws him in src/desktop/main.ts.
 
-import { combine, currentWardrobe } from "../mochi/appearance";
+import { currentWardrobe, tryOn } from "../mochi/appearance";
 import { Bridge, emitToWindow, onEvent, type DesktopMode } from "../core/bridge";
 import type { BotEmoteName } from "../core/layout";
 import { Sound } from "../core/sound";
@@ -12,7 +12,6 @@ import { desktopDances } from "../core/spotify";
 import {
   DESKTOP_EVENTS, DesktopMochiController, alertActive, type DesktopSnapshot,
 } from "../mochi/desktop-logic";
-import { SeasonCache, parseOutfit } from "../mochi/wardrobe";
 import { parseSkin } from "../mochi/skins";
 
 /** Label of the desktop Groovy's window (desktop.rs LABEL). */
@@ -35,7 +34,6 @@ export class DesktopLink {
   /** The pointer is dragging Groovy out of the island. */
   carrying = false;
 
-  private seasons = new SeasonCache();
   private pushed = "";
   private pendingCarry: { x: number; y: number } | null = null;
   private carryFrame = false;
@@ -168,9 +166,9 @@ export class DesktopLink {
 
   /** What he wears: the outfit, the accessories that fit with it, and his colours. */
   private dressed(): Pick<DesktopSnapshot, "outfit" | "layers" | "appearance"> {
-    const outfit = State.wardrobePreview ?? this.seasons.get(parseOutfit(State.settings.mochiOutfit));
+    // Head, face and neck, with the item under the pointer tried on in its slot.
     const appearance = State.appearancePreview ?? currentWardrobe(State.settings.wardrobe).appearance;
-    const worn = combine(outfit, appearance.layers);
+    const worn = tryOn(appearance.layers, State.wardrobePreview);
     return { outfit: worn[0] ?? "none", layers: worn.slice(1), appearance };
   }
 

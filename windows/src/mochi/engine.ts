@@ -7,7 +7,7 @@
 import { Ease, lerp, type EaseFn } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
-import { PUMPKIN_BODY, drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
+import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
 import { DEFAULT_SKIN, SKIN_STYLES, drawAlmondEye, drawSkinBody, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
@@ -910,19 +910,12 @@ export class BotEngine {
     return p;
   }
 
-  /** How much of the pumpkin's orange shows on the body (it comes and goes with the outfit). */
-  private get pumpkinAlpha(): number {
-    if (this.isMini || this.outfit !== "pumpkin") return 0;
-    return Math.min(1, this.outfitPresence * 2.5) * (1 - this.morph);
-  }
-
   private drawBody(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
-    const pumpkin = this.pumpkinAlpha;
     if (this.bodyColor) {
       // Mini bots: flat solid fill — no gradient, no reflection, no highlight
       x.fillStyle = rgba(this.bodyColor, 1);
       x.fill(body);
-      if (pumpkin <= 0.001) return;
+      return;
     } else {
       const sk = this.style;
       const g = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
@@ -940,16 +933,6 @@ export class BotEngine {
       x.fill(body);
     }
     x.save();
-    if (pumpkin > 0.001) {
-      const pg = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
-      pg.addColorStop(0, PUMPKIN_BODY[0]);
-      pg.addColorStop(1, PUMPKIN_BODY[1]);
-      x.globalAlpha = pumpkin;
-      x.fillStyle = pg;
-      x.fill(body);
-      // A flat-coloured body only gets the shading while it is a pumpkin.
-      x.globalAlpha = this.bodyColor ? pumpkin : 1;
-    }
 
     const effectiveTint = this.tint * (1 - this.morph);
     if (effectiveTint > 0.01) {

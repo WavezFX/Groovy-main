@@ -2342,6 +2342,43 @@ input[type="range"]::-webkit-slider-thumb {
   height: 44px;
 }
 
+/* Head, Face, Neck: one row each, its None first (round 3 item 5). */
+.wardrobe-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 18px;
+}
+.wardrobe-slots > :first-child {
+  flex: 1 0 100%;
+}
+.wardrobe-slot {
+  align-items: center;
+}
+.wardrobe-slot-name {
+  width: 38px;
+  font: 400 10.5px var(--font);
+  color: var(--dim-2);
+}
+.wardrobe-item canvas {
+  width: 26px;
+  height: 26px;
+}
+.wardrobe-clear {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--dim-2);
+  font: 400 11px var(--font);
+  cursor: pointer;
+}
+.wardrobe-clear:hover:not(:disabled) {
+  color: var(--ink);
+}
+.wardrobe-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .wardrobe-look canvas {
   width: 40px;
   height: 40px;

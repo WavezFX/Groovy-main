@@ -281,9 +281,10 @@ test("the outfit is published when the link comes up and whenever the wardrobe c
   tick(250);
   const p = () => sent("phone_link_publish_prefs");
   assert.equal(p().length, 1);
-  assert.equal(p()[0].outfit, "auto", "the default of the wardrobe");
+  assert.equal(p()[0].outfit, "none", "new installs wear nothing");
 
-  State.settings.mochiOutfit = "beanie";
+  // Round 3: what he wears is the wardrobe's layers; the phone gets the first (head, face, neck).
+  State.settings.wardrobe = { appearance: { layers: ["scarf", "beanie"] } };
   State.notify();
   tick(250);
   assert.equal(p().length, 2);
@@ -293,10 +294,10 @@ test("the outfit is published when the link comes up and whenever the wardrobe c
   tick(250);
   assert.equal(p().length, 2, "unchanged: not sent again");
 
-  State.settings.mochiOutfit = "topHat"; // a value no build knows: the wardrobe reads it as auto
+  State.settings.wardrobe = { appearance: { layers: ["topHat"] } }; // a value no build knows: nothing
   State.notify();
   tick(250);
-  assert.equal(p().at(-1).outfit, "auto");
+  assert.equal(p().at(-1).outfit, "none");
 });
 
 test("a session lists the files it changed by name and counts, never a path", async () => {

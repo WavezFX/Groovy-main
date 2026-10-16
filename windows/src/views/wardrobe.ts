@@ -1,25 +1,39 @@
-// Wardrobe view — port of WardrobeView (IslandViewContent.swift). Opened with a
-// right-click on Groovy or from the tray menu. Resting the pointer on a button
-// tries the outfit on Groovy; a click keeps it.
+// Wardrobe view — opened with a right-click on Groovy or from the tray menu.
+// His looks, then Head, Face and Neck (FIXES_ROUND3 item 5): each slot on its
+// own, with its own None, and Remove all. Resting the pointer on an item tries
+// it on in its slot; a click wears it (or takes it off). Nothing is greyed out.
 
 import { h } from "./dom";
 import { State } from "../core/state";
 import { drawWardrobeIcon } from "../mochi/outfits";
-import {
-  OUTFIT_KEYS, OUTFIT_SELECTIONS, WARDROBE_STRINGS, parseOutfit, resolveOutfit, seasonalOutfit,
-  wardrobeHeader, type Outfit, type OutfitSelection,
-} from "../mochi/wardrobe";
+import { ACCESSORIES, OUTFIT_KEYS, type Accessory } from "../mochi/wardrobe";
+import { SLOTS, SLOT_OF, currentWardrobe, worn, type Slot } from "../mochi/appearance";
 import type { ViewActions, ViewHost } from "./views";
 import { BotEngine } from "../mochi/engine";
 import { SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
-import { language, tl } from "../i18n/i18n";
+import { N_, tl } from "../i18n/i18n";
 
-const ICON = 28;
+const ICON = 26;
+
+export const SLOT_TITLES: Record<Slot, string> = { head: N_("Head"), face: N_("Face"), neck: N_("Neck") };
+
+function icon(item: Accessory | "none"): HTMLCanvasElement {
+  const canvas = h("canvas") as HTMLCanvasElement;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(ICON * dpr);
+  canvas.height = Math.round(ICON * dpr);
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawWardrobeIcon(ctx, ICON, item);
+  }
+  return canvas;
+}
 
 export function buildWardrobe(actions: ViewActions): ViewHost {
-  const note = h("span", { class: "wardrobe-note" });
-  const grid = h("div", { class: "wardrobe-grid" });
   const looks = h("div", { class: "wardrobe-grid wardrobe-looks" });
+  const rows = h("div", { class: "wardrobe-slots" });
+  const removeAll = h("button", { class: "wardrobe-clear", text: tl("Remove all"), onclick: () => actions.dress("all") });
   const el = h(
     "div",
     { class: "view wardrobe" },
@@ -31,42 +45,29 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
         { class: "stack wardrobe-stack" },
         h("div", { class: "wardrobe-head" }, h("span", { class: "wardrobe-title", text: tl("Look") })),
         looks,
-        h("div", { class: "wardrobe-head" }, h("span", { class: "wardrobe-title", text: tl("Wardrobe") }), note),
-        grid,
+        h("div", { class: "wardrobe-head" }, h("span", { class: "wardrobe-title", text: tl("Wardrobe") }), removeAll),
+        rows,
       ),
     ),
   );
 
-  let hovered: OutfitSelection | null = null;
-  let drawnSeason: Outfit | null = null;
-  let drawnLanguage = language();
-  const items = new Map<OutfitSelection, { button: HTMLButtonElement; canvas: HTMLCanvasElement }>();
-
-  const updateNote = () => {
-    note.textContent = wardrobeHeader(hovered, parseOutfit(State.settings.mochiOutfit), new Date());
-  };
-
-  for (const sel of OUTFIT_SELECTIONS) {
-    const canvas = h("canvas");
-    const button = h(
-      "button",
-      { class: "wardrobe-item", title: tl(OUTFIT_KEYS[sel]), "aria-label": tl(OUTFIT_KEYS[sel]) },
-      canvas,
-    );
-    button.addEventListener("mouseenter", () => {
-      hovered = sel;
-      actions.previewOutfit(resolveOutfit(sel, new Date()));
-      updateNote();
-    });
-    button.addEventListener("mouseleave", () => {
-      if (hovered !== sel) return;
-      hovered = null;
-      actions.previewOutfit(null);
-      updateNote();
-    });
-    button.addEventListener("click", () => actions.chooseOutfit(sel));
-    items.set(sel, { button, canvas });
-    grid.append(button);
+  const items = new Map<Accessory, HTMLButtonElement>();
+  const nones = new Map<Slot, HTMLButtonElement>();
+  for (const slot of SLOTS) {
+    const row = h("div", { class: "wardrobe-grid wardrobe-slot" }, h("span", { class: "wardrobe-slot-name", text: tl(SLOT_TITLES[slot]) }));
+    const none = h("button", { class: "wardrobe-item", title: tl("None"), "aria-label": tl("None") }, icon("none")) as HTMLButtonElement;
+    none.addEventListener("click", () => actions.dress(slot));
+    nones.set(slot, none);
+    row.append(none);
+    for (const item of ACCESSORIES.filter((a) => SLOT_OF[a] === slot)) {
+      const button = h("button", { class: "wardrobe-item", title: tl(OUTFIT_KEYS[item]), "aria-label": tl(OUTFIT_KEYS[item]) }, icon(item)) as HTMLButtonElement;
+      button.addEventListener("mouseenter", () => actions.previewOutfit(item));
+      button.addEventListener("mouseleave", () => actions.previewOutfit(null));
+      button.addEventListener("click", () => actions.dress(item));
+      items.set(item, button);
+      row.append(button);
+    }
+    rows.append(row);
   }
 
   // Looks: a small still portrait of each, drawn once. Hover tries it on, click keeps it.
@@ -103,37 +104,16 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
     }
   };
 
-  /** Icons are drawn once; only "auto" changes, with the season and its badge's language. */
-  const drawIcons = () => {
-    const season = seasonalOutfit(new Date());
-    if (season === drawnSeason && drawnLanguage === language()) return;
-    const first = drawnSeason == null;
-    drawnSeason = season;
-    drawnLanguage = language();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    for (const [sel, { canvas }] of items) {
-      if (!first && sel !== "auto") continue;
-      canvas.width = Math.round(ICON * dpr);
-      canvas.height = Math.round(ICON * dpr);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawWardrobeIcon(ctx, ICON, sel, season, WARDROBE_STRINGS.autoBadge);
-    }
-  };
-
   return {
     el,
     sync() {
-      drawIcons();
       drawLooks();
       const look = parseSkin(State.settings.groovyLook);
       for (const [l, button] of lookItems) button.classList.toggle("on", l === look);
-      // The island drops the preview when the view closes: so does the hover.
-      if (State.wardrobePreview == null) hovered = null;
-      const current = parseOutfit(State.settings.mochiOutfit);
-      for (const [sel, { button }] of items) button.classList.toggle("on", sel === current);
-      updateNote();
+      const on = worn(currentWardrobe(State.settings.wardrobe).appearance.layers);
+      for (const [item, button] of items) button.classList.toggle("on", on.includes(item));
+      for (const [slot, button] of nones) button.classList.toggle("on", !on.some((o) => o !== "none" && SLOT_OF[o] === slot));
+      removeAll.disabled = on.length === 0;
     },
   };
 }

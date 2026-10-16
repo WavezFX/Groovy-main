@@ -1,9 +1,9 @@
-// Groovy's own colours and layered accessories, on top of his look (skins.ts)
-// and his outfit (wardrobe.ts). Pure logic, shared by the island, the desktop
-// window and the Wardrobe Studio in Settings.
+// Groovy's own colours and accessories, on top of his look (skins.ts). Pure
+// logic, shared by the island, the desktop window and the Wardrobe Studio.
 //
-// Accessories are layered by slot — head, face, neck — with one item per slot;
-// a costume (the pumpkin) is worn alone. Colours override the look's body
+// Accessories sit in three independent slots — Head, Face, Neck — one item
+// each (FIXES_ROUND3 item 5): choosing one replaces only what is in its slot,
+// and each slot can be emptied on its own. Colours override the look's body
 // gradient, glow and eyes; an empty colour keeps the look's own.
 //
 // Presets and wardrobe packs are plain JSON naming built-in items and colours
@@ -12,12 +12,14 @@
 
 import type { SkinStyle, Skin } from "./skins";
 import { SKINS } from "./skins";
-import { OUTFIT_SELECTIONS, resolveOutfit, type Outfit, type OutfitSelection } from "./wardrobe";
+import { ACCESSORIES, isAccessory, parseOutfit, type Accessory, type Outfit } from "./wardrobe";
 import { N_ } from "../i18n/i18n";
 
-export type Slot = "head" | "face" | "neck" | "costume";
+export type Slot = "head" | "face" | "neck";
 
-export const SLOT_OF: Record<Exclude<Outfit, "none">, Slot> = {
+export const SLOTS: readonly Slot[] = ["head", "face", "neck"];
+
+export const SLOT_OF: Record<Accessory, Slot> = {
   partyHat: "head",
   beanie: "head",
   crown: "head",
@@ -28,7 +30,6 @@ export const SLOT_OF: Record<Exclude<Outfit, "none">, Slot> = {
   sunglasses: "face",
   roundGlasses: "face",
   scarf: "neck",
-  pumpkin: "costume",
 };
 
 export interface Appearance {
@@ -37,7 +38,7 @@ export interface Appearance {
   body2: string;
   glow: string;
   eyes: string;
-  /** Accessories worn with the outfit, at most one per slot. */
+  /** What he wears, at most one per slot, head first. */
   layers: Outfit[];
 }
 
@@ -46,7 +47,7 @@ export const DEFAULT_APPEARANCE: Appearance = { body: "", body2: "", glow: "", e
 export interface WardrobePreset {
   name: string;
   look: Skin;
-  /** An outfit id, "none" or "auto". */
+  /** Kept for packs made before round 3: always "none" once read (its item is a layer). */
   outfit: string;
   appearance: Appearance;
 }
@@ -110,67 +111,77 @@ export function styleWith(base: SkinStyle, a: Appearance | null | undefined): Sk
   return s;
 }
 
-/**
- * What is actually worn: the outfit first, then each layer whose slot is still
- * free. A costume is worn alone, and nothing is worn twice.
- */
-export function combine(main: Outfit, layers: readonly string[]): Outfit[] {
-  const worn: Outfit[] = [];
-  const taken = new Set<Slot>();
-  const add = (o: string) => {
-    if (o === "none" || !(o in SLOT_OF)) return;
-    const slot = SLOT_OF[o as Exclude<Outfit, "none">];
-    if (taken.has("costume") || taken.has(slot)) return;
-    if (slot === "costume" && worn.length > 0) return;
-    worn.push(o as Outfit);
-    taken.add(slot);
-  };
-  add(main);
-  for (const l of layers) add(l);
-  return worn;
+/** What is worn: one item per slot (the first one named wins), head, face, neck. */
+export function combine(_unused: Outfit, layers: readonly string[]): Outfit[] {
+  const bySlot = new Map<Slot, Accessory>();
+  for (const l of layers) {
+    if (!isAccessory(l)) continue;
+    if (!bySlot.has(SLOT_OF[l])) bySlot.set(SLOT_OF[l], l);
+  }
+  return SLOTS.flatMap((slot) => (bySlot.has(slot) ? [bySlot.get(slot)!] : []));
 }
 
-/** The layers worn on top of `main` (all of them when there is no outfit). */
-export function layersOn(main: Outfit, layers: readonly string[]): Outfit[] {
-  const worn = combine(main, layers);
-  return main === "none" ? worn : worn.slice(1);
+/** What is worn, from the stored layers. */
+export function worn(layers: readonly string[]): Outfit[] {
+  return combine("none", layers);
+}
+
+/** The item in `slot`, if any. */
+export function inSlot(layers: readonly string[], slot: Slot): Accessory | null {
+  return (worn(layers).find((o) => isAccessory(o) && SLOT_OF[o] === slot) as Accessory | undefined) ?? null;
 }
 
 export interface Worn {
-  selection: OutfitSelection;
   layers: Outfit[];
   /** What the click did, for a one-line hint. */
-  did: "added" | "removed" | "replaced" | "kept" | "costumeOff";
+  did: "added" | "removed" | "replaced";
 }
 
 /**
- * A click on an accessory in the Wardrobe Studio. Never refused: an item in
- * a taken slot replaces what is there; the item the outfit (or Auto's season)
- * wears becomes the user's own layer, the outfit going to "none"; a costume
- * makes way for the accessory.
+ * A click on an accessory. Never refused, never greyed out: it replaces
+ * what is in its slot and leaves the other slots as they are; clicking what
+ * is already worn takes it off.
  */
-export function wear(selection: OutfitSelection, layers: readonly string[], item: Exclude<Outfit, "none">, date: Date): Worn {
-  const main = resolveOutfit(selection, date);
-  const own = layersOn(main, layers);
-  const worn = combine(main, layers);
-  if (worn.includes(item)) {
-    if (item === main) return { selection: "none", layers: combine("none", [item, ...own]), did: "kept" };
-    return { selection, layers: own.filter((l) => l !== item), did: "removed" };
-  }
+export function wear(layers: readonly string[], item: Accessory): Worn {
+  const now = worn(layers);
+  if (now.includes(item)) return { layers: now.filter((o) => o !== item), did: "removed" };
   const slot = SLOT_OF[item];
-  const mainSlot = main === "none" ? null : SLOT_OF[main];
-  const dropMain = mainSlot === "costume" || mainSlot === slot;
-  const rest = own.filter((l) => SLOT_OF[l as Exclude<Outfit, "none">] !== slot);
-  const nextSelection: OutfitSelection = dropMain ? "none" : selection;
-  const nextMain: Outfit = dropMain ? "none" : main;
-  const did = mainSlot === "costume" ? "costumeOff" : dropMain || rest.length < own.length ? "replaced" : "added";
-  return { selection: nextSelection, layers: layersOn(nextMain, [...rest, item]), did };
+  const replaced = now.some((o) => isAccessory(o) && SLOT_OF[o] === slot);
+  return { layers: worn([item, ...now.filter((o) => isAccessory(o) && SLOT_OF[o] !== slot)]), did: replaced ? "replaced" : "added" };
 }
 
-/** Whether `item` could be added on top of what is worn now. */
-export function fits(worn: readonly Outfit[], item: Outfit): boolean {
-  if (item === "none") return false;
-  return combine(worn[0] ?? "none", [...worn.slice(1), item]).includes(item);
+/** A slot's None: empties that slot only ("all": Remove all). */
+export function clearSlot(layers: readonly string[], slot: Slot | "all"): Outfit[] {
+  if (slot === "all") return [];
+  return worn(layers).filter((o) => isAccessory(o) && SLOT_OF[o] !== slot);
+}
+
+/** What the wardrobe shows while the pointer rests on an item: it tried on in its slot. */
+export function tryOn(layers: readonly string[], item: Outfit | null): Outfit[] {
+  if (!item || item === "none") return worn(layers);
+  return worn([item, ...worn(layers).filter((o) => isAccessory(o) && SLOT_OF[o] !== SLOT_OF[item])]);
+}
+
+/**
+ * The single outfit of earlier versions → a layer in its slot (it wins over
+ * what was layered there, as it was worn first); "auto", the pumpkin and
+ * unknown values become nothing.
+ */
+export function migrateOutfit(outfit: unknown, layers: readonly string[]): Outfit[] {
+  const item = parseOutfit(outfit);
+  return item === "none" ? worn(layers) : wear(worn(layers).filter((o) => o !== item), item).layers;
+}
+
+/**
+ * Settings from before round 3: the outfit moves into its slot, once, and
+ * `mochiOutfit` becomes "none". True when something changed (to save).
+ */
+export function migrateSettingsOutfit(settings: { mochiOutfit: string; wardrobe: unknown }): boolean {
+  if (settings.mochiOutfit === "none") return false;
+  const prefs = parseWardrobe(settings.wardrobe);
+  settings.wardrobe = { ...prefs, appearance: { ...prefs.appearance, layers: migrateOutfit(settings.mochiOutfit, prefs.appearance.layers) } };
+  settings.mochiOutfit = "none";
+  return true;
 }
 
 // ── Validation: settings, presets and imported packs are untrusted JSON ──────
@@ -192,7 +203,7 @@ function cleanName(v: unknown): string {
   return typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, MAX_NAME) : "";
 }
 
-const OUTFIT_SET: ReadonlySet<string> = new Set(OUTFIT_SELECTIONS);
+const ITEM_SET: ReadonlySet<string> = new Set(ACCESSORIES);
 
 export function cleanPreset(raw: unknown): WardrobePreset | null {
   if (!raw || typeof raw !== "object") return null;
@@ -200,15 +211,16 @@ export function cleanPreset(raw: unknown): WardrobePreset | null {
   const name = cleanName(o.name);
   if (!name) return null;
   const look = (SKINS as readonly string[]).includes(String(o.look)) ? (o.look as Skin) : "night";
-  const outfit = OUTFIT_SET.has(String(o.outfit)) ? String(o.outfit) : "none";
-  return { name, look, outfit, appearance: cleanAppearance(o.appearance) };
+  const appearance = cleanAppearance(o.appearance);
+  // A preset's outfit (before round 3) becomes a layer in its slot.
+  return { name, look, outfit: "none", appearance: { ...appearance, layers: migrateOutfit(o.outfit, appearance.layers) } };
 }
 
 export function parseWardrobe(raw: unknown): WardrobePrefs {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const presets = Array.isArray(o.presets) ? o.presets.map(cleanPreset).filter((p): p is WardrobePreset => p !== null) : [];
   const favourites = Array.isArray(o.favourites)
-    ? [...new Set(o.favourites.filter((f): f is string => typeof f === "string" && (OUTFIT_SET.has(f) || (SKINS as readonly string[]).includes(f))))]
+    ? [...new Set(o.favourites.filter((f): f is string => typeof f === "string" && (ITEM_SET.has(f) || (SKINS as readonly string[]).includes(f))))]
     : [];
   return { appearance: cleanAppearance(o.appearance), presets: presets.slice(0, MAX_PRESETS), favourites };
 }
@@ -271,22 +283,19 @@ export function currentWardrobe(raw: unknown): WardrobePrefs {
 
 const PALETTE = ["#22c55e", "#3b82f6", "#f97316", "#ec4899", "#a855f7", "#eab308", "#14b8a6", "#ef4444", "#f5f5f5"];
 
-/** A random look, outfit, accessories and colours; `rand` returns 0…1. */
-export function randomLook(rand: () => number = Math.random): { look: Skin; outfit: Outfit; appearance: Appearance } {
+/** A random look, accessories and colours; `rand` returns 0…1. */
+export function randomLook(rand: () => number = Math.random): { look: Skin; appearance: Appearance } {
   const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length) % list.length];
-  const items = (Object.keys(SLOT_OF) as Exclude<Outfit, "none">[]).filter((o) => SLOT_OF[o] !== "costume");
-  const outfit = rand() < 0.15 ? "none" : pick(items);
-  const extra = [pick(items), pick(items)];
+  const items = rand() < 0.15 ? [] : [pick(ACCESSORIES), pick(ACCESSORIES), pick(ACCESSORIES)];
   const tinted = rand() < 0.5;
   return {
     look: pick(SKINS),
-    outfit,
     appearance: {
       body: "",
       body2: "",
       glow: tinted ? pick(PALETTE) : "",
       eyes: tinted ? pick(PALETTE) : "",
-      layers: combine(outfit, extra).slice(1),
+      layers: worn(items),
     },
   };
 }

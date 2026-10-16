@@ -19,6 +19,7 @@ import {
   sanitizeDeclared, toggleDeclared, type PillDefinition,
 } from "../core/pills";
 import { currentTiles, withServices } from "../core/tiles";
+import { migrateSettingsOutfit } from "../mochi/appearance";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
 import { FLOW_PAGE_RENDERERS } from "../hub/pages";
@@ -1408,6 +1409,8 @@ async function render() {
 
   // A main pill this build can run, and no pill declared twice.
   settings = { ...settings, ...sanitizeDeclared(settings) };
+  // Round 3: an old single outfit becomes a Head/Face/Neck layer (as the island does).
+  migrateSettingsOutfit(settings);
   const connected: Record<string, boolean> = { ...((await Bridge.agentHooksStatus()) ?? {}) };
   for (const def of availablePills()) {
     if (def.connect.kind === "key") {

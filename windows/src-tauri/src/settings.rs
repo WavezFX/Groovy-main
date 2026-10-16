@@ -202,7 +202,8 @@ impl Default for Settings {
             lmstudio_url: String::new(),
             custom_url: String::new(),
             shortcuts: Default::default(),
-            mochi_outfit: "auto".into(),
+            // Round 3: no outfit any more, only Head/Face/Neck layers (the wardrobe).
+            mochi_outfit: "none".into(),
             groovy_look: "night".into(),
             voice_enabled: false,
             voice_engine: "local".into(),
@@ -687,9 +688,9 @@ mod tests {
     }
 
     #[test]
-    fn a_file_from_before_the_wardrobe_dresses_mochi_for_the_seasons() {
+    fn a_file_from_before_the_wardrobe_wears_nothing() {
         let loaded = parse(&custom_with("mochiOutfit", None)).unwrap();
-        assert_eq!(loaded.mochi_outfit, "auto");
+        assert_eq!(loaded.mochi_outfit, "none");
         assert_eq!(loaded.model, "some-model");
         assert!(!loaded.sound_enabled);
     }
