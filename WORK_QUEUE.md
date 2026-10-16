@@ -41,7 +41,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. Live voice chat, like ChatGPT Voice
 - [x] 4. DuckDuckGo browser
 - [x] 5. More PC control, behind permissions
-- [ ] 6. Replace every Coucou sound. **Round 3 item 7 already generates sounds in code:** check that no Coucou sound file or sound copied from Coucou is left, and finish whatever is missing.
+- [x] 6. Replace every Coucou sound. **Round 3 item 7 already generates sounds in code:** check that no Coucou sound file or sound copied from Coucou is left, and finish whatever is missing.
 
 ## 3. Fixes round 5: `FIXES_ROUND5.md` (Groovy's own wardrobe)
 - [ ] 1. Growth art from the canvas. **There's no stage picker:** round 3B item 5 removed it.

@@ -67,3 +67,12 @@ A file named after one of these (`finish.wav`, `approval.mp3`, `greet.m4a`…)
 in the sounds folder replaces that sound after **Settings → General → Reload
 sounds** (`%APPDATA%\Groovy\sounds` on Windows, `~/.config/groovy/sounds` on
 Linux).
+
+## Checked again (round 4 item 6)
+
+`tests/sounds.test.mjs` keeps it that way: every sound event has a recipe and
+renders in wood (Night), warm (Ember) and glass (Frost); the flavours differ;
+and no audio file is in the repository (only the speech tests' own
+recordings, made with Kokoro, in `src-tauri/tests/audio`) or in the
+installer's resources. Users can still drop their own files in the sounds
+folder (Control Centre → General → Open sounds folder) to replace any sound.
