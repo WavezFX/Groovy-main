@@ -34,6 +34,8 @@ export interface SpotifyState {
   repeat: boolean;
   /** 0…100. */
   volume: number;
+  /** The app playing: "Spotify", or on Windows any player ("Chrome", "Media Player"…). */
+  source?: string;
 }
 
 export const IDLE_SPOTIFY: SpotifyState = {

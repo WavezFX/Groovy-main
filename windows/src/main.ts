@@ -15,7 +15,7 @@ import { registerShortcutHandlers } from "./island/shortcuts";
 import { registerVoiceHandlers } from "./island/okgroovy";
 import { registerLiveHandlers } from "./island/live";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
-import { SPOTIFY_ID } from "./core/spotify";
+import { SPOTIFY_ID, Spotify } from "./core/spotify";
 import { Recap } from "./recap/recap";
 import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
 
@@ -123,6 +123,12 @@ async function main() {
     }
   });
 
+  // Glass (Windows' Acrylic behind the island) or solid: Rust decides from the
+  // setting, Windows' transparency switch and battery saver (glass.rs).
+  const setGlass = (on: boolean) => document.body.classList.toggle("glass", on);
+  setGlass((await Bridge.islandGlass()) ?? false);
+  await onEvent<boolean>("island-glass", setGlass);
+
   // Settings → Reload sounds: read the sounds folder again, and let them hear it.
   await onEvent<null>("sounds-changed", () => {
     void Sound.reload().then(() => Sound.play("pop"));
@@ -171,6 +177,8 @@ async function main() {
   // page wake the island so the visuals can be checked with `npm run dev`.
   if (!IS_TAURI) {
     document.addEventListener("click", () => Sound.resume(), { once: true });
+    // For checking the views in a browser (`npm run dev`): open any of them.
+    (window as unknown as { groovy: unknown }).groovy = { island, State, Spotify };
   }
 }
 

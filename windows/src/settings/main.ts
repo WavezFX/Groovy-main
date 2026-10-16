@@ -1364,6 +1364,26 @@ async function main() {
   });
 }
 
+/** Appearance: the island's glass (Windows' own Acrylic) or the black island. */
+function appearanceSection(): HTMLElement {
+  const style = h("select", {}) as HTMLSelectElement;
+  for (const [value, label] of [["glass", t("Glass")], ["solid", t("Solid")]] as const) {
+    style.append(h("option", { value, text: label }));
+  }
+  style.value = settings.islandStyle === "solid" ? "solid" : "glass";
+  style.addEventListener("change", () => {
+    settings.islandStyle = style.value === "solid" ? "solid" : "glass";
+    void save();
+  });
+  return h(
+    "section",
+    {},
+    h("h2", {}, h("span", { text: t("Appearance") })),
+    h("div", { class: "row" }, h("label", { text: t("Island style") }), style),
+    h("div", { class: "hint", text: t("Glass lets your wallpaper show through, drawn by Windows itself. Groovy uses Solid on its own while Windows' transparency effects are off or battery saver is on.") }),
+  );
+}
+
 /** Reads what the sections show and draws them all. */
 async function render() {
   const status = (await Bridge.hooksStatus()) ?? {
@@ -1422,7 +1442,7 @@ async function render() {
     pills: () => [activePillsSection(connected), integrationsSection(present)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],
-    general: () => [setupAgainSection(), generalSection(), shortcutsSection(shortcutReport)],
+    general: () => [setupAgainSection(), appearanceSection(), generalSection(), shortcutsSection(shortcutReport)],
     permissions: () => [permissionsSection()],
     system: () => [systemSection()],
   };

@@ -1,7 +1,7 @@
-// "My island" on the island (FIXES_ROUND1 item 4): the tiles the user chose in
-// Control Centre → My island — their apps, websites and folders, services,
-// mail, music, agents, reminders and the PC's state — and the pop-up for a new
-// mail read from Windows' notifications. Groovy sits at the left as on every view.
+// "My island" tiles (FIXES_ROUND1 item 4): what each tile the user chose shows
+// and opens — their apps, websites and folders, services, mail, music, agents,
+// reminders and the PC's state — drawn in the home view's grid (views/home.ts),
+// and the pop-up for Groovy's messages and a new mail.
 
 import { Bridge } from "../core/bridge";
 import type { IslandViewName } from "../core/layout";
@@ -11,7 +11,7 @@ import { State } from "../core/state";
 import { currentTiles, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
 import { showError } from "./toast";
-import { h, clear } from "./dom";
+import { h } from "./dom";
 import { icon } from "../hub/ui";
 import { Notices, noticeIcon } from "../island/live";
 import type { ViewHost } from "./views";
@@ -36,10 +36,11 @@ export const Mail = {
 
 let system: { cpu: number; mem: number } | null = null;
 let systemAt = 0;
-let nextReminder: string | null = null;
+let nextReminder: { text: string; dueAt: number } | null = null;
 let remindersAt = 0;
 
-function refreshSlowData(onChange: () => void) {
+/** The PC's load and the next reminder, read at most every 30 s and 60 s. */
+export function refreshSlowData(onChange: () => void) {
   const now = Date.now();
   if (now - systemAt > 30_000) {
     systemAt = now;
@@ -53,7 +54,7 @@ function refreshSlowData(onChange: () => void) {
     remindersAt = now;
     void Bridge.taskList(false).then((list) => {
       const next = list.filter((x) => !x.done && x.dueAt).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0))[0];
-      nextReminder = next ? next.text : null;
+      nextReminder = next?.dueAt ? { text: next.text, dueAt: next.dueAt * 1000 } : null;
       onChange();
     }, () => {});
   }
@@ -63,7 +64,12 @@ function initial(label: string): string {
   return (label.trim()[0] ?? "?").toUpperCase();
 }
 
-interface TileFace {
+/** The next reminder with a time, as last read. */
+export function upcomingReminder(): { text: string; dueAt: number } | null {
+  return nextReminder;
+}
+
+export interface TileFace {
   icon: string;
   color: string;
   title: string;
@@ -71,7 +77,7 @@ interface TileFace {
   open: () => void;
 }
 
-function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace {
+export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace {
   const label = tile.label || tile.target.split(/[\\/]/).pop()?.replace(/\.(lnk|exe|url)$/i, "") || "";
   switch (tile.kind) {
     case "app":
@@ -136,7 +142,7 @@ function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace {
         icon: "⏰",
         color: "#F7B32B",
         title: t("Reminders"),
-        sub: nextReminder ?? t("Nothing due"),
+        sub: nextReminder?.text ?? t("Nothing due"),
         open: () => void Bridge.openSettingsWindow("reminders"),
       };
     case "system":
@@ -148,42 +154,6 @@ function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace {
         open: () => void Bridge.openSettingsWindow("system"),
       };
   }
-}
-
-export function buildTiles(setView: (v: IslandViewName) => void): ViewHost {
-  const grid = h("div", { class: "tiles-grid" });
-  const empty = h("div", { class: "tiles-empty" },
-    h("div", { text: t("Your island is empty.") }),
-    h("button", { class: "tile-add", text: t("Choose tiles"), onclick: () => void Bridge.openSettingsWindow("island") }),
-  );
-  const el = h("div", { class: "view tiles-view" }, grid, empty);
-  let last = "";
-  const draw = () => {
-    const tiles = currentTiles(State.settings).tiles;
-    const faces = tiles.map((tile) => ({ tile, f: face(tile, setView) }));
-    const key = JSON.stringify(faces.map(({ tile, f }) => [tile.id, tile.size, f.title, f.sub]));
-    if (key === last) return;
-    last = key;
-    clear(grid);
-    empty.style.display = tiles.length ? "none" : "";
-    for (const { tile, f } of faces) {
-      const b = h("button", { class: `tile ${tile.size}`, title: `${f.title} — ${f.sub}`, onclick: f.open },
-        h("span", { class: "tile-icon", style: `background:${f.color}`, text: f.icon }),
-        h("span", { class: "tile-text" }, h("b", { text: f.title }), h("span", { text: f.sub })),
-      );
-      grid.append(b);
-    }
-  };
-  return {
-    el,
-    sync() {
-      refreshSlowData(() => {
-        last = "";
-        if (State.view === "tiles") draw();
-      });
-      draw();
-    },
-  };
 }
 
 /**
@@ -200,8 +170,7 @@ export function buildNotify(setView: (v: IslandViewName) => void, collapse: () =
   const dismiss = h("button", { text: t("Dismiss") });
   const after = () => {
     if (Notices.current || Mail.notes.length) setView("notify");
-    else if (currentTiles(State.settings).preset !== "developer") setView("tiles");
-    else collapse();
+    else setView("home");
   };
   open.addEventListener("click", () => {
     const notice = Notices.current;

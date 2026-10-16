@@ -16,7 +16,7 @@ export type IslandViewName =
   | "uploading"
   | "choose"
   | "mail"
-  | "tiles"
+  | "home"
   | "notify"
   | "prompt"
   | "searching"
@@ -95,8 +95,9 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   // to the shared image.
   recap: { height: 184, botX: 62, botY: null, botDiameter: 58, agentMode: "column" },
   wardrobe: { height: 248, botX: 68, botY: null, botDiameter: 58, agentMode: "none" },
-  // "My island": up to three rows of tiles beside Groovy.
-  tiles: { height: 210, botX: 56, botY: null, botDiameter: 50, agentMode: "none" },
+  // The normal state (round 3, mockups MixF/MixE): "Up next" with Groovy in the
+  // left card, the tiles (or the player) in the right one. Cards 152 high.
+  home: { height: 204, botX: 55, botY: 120, botDiameter: 50, agentMode: "none" },
   notify: { height: 160, botX: 60, botY: null, botDiameter: 52, agentMode: "none" },
 };
 

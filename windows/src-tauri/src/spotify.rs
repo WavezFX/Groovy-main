@@ -123,6 +123,9 @@ pub struct PlayerState {
     pub repeat: bool,
     /// 0…100.
     pub volume: i32,
+    /// The app playing: "Spotify", or on Windows any other player the media
+    /// controls show ("Chrome", "Media Player"…). Empty when nothing plays.
+    pub source: String,
 }
 
 impl Default for PlayerState {
@@ -137,6 +140,7 @@ impl Default for PlayerState {
             shuffle: false,
             repeat: false,
             volume: 50,
+            source: String::new(),
         }
     }
 }
@@ -840,6 +844,7 @@ mod linux {
             }
             s.owner = owner.clone();
             s.state.running = owner.is_some();
+            s.state.source = if owner.is_some() { "Spotify".into() } else { String::new() };
             s.state.installed = owner.is_some() || installed();
             let now = now_ms();
             match props {
@@ -887,6 +892,7 @@ mod linux {
             if let Some((owner, props)) = read {
                 s.owner = owner.clone();
                 s.state.running = owner.is_some();
+            s.state.source = if owner.is_some() { "Spotify".into() } else { String::new() };
                 s.state.installed = owner.is_some() || installed();
                 let now = now_ms();
                 match props {
@@ -1356,6 +1362,50 @@ pub fn is_spotify_app(app_id: &str) -> bool {
     app_id.to_ascii_lowercase().contains("spotify")
 }
 
+/// The name shown for a media session's app: its AppUserModelID (a Store
+/// app's "Family_hash!App") or its exe ("chrome.exe").
+pub fn app_label(app_id: &str) -> String {
+    let lower = app_id.to_ascii_lowercase();
+    const KNOWN: [(&str, &str); 12] = [
+        ("spotify", "Spotify"),
+        ("chrome", "Chrome"),
+        ("msedge", "Edge"),
+        ("microsoftedge", "Edge"),
+        ("firefox", "Firefox"),
+        ("brave", "Brave"),
+        ("opera", "Opera"),
+        ("duckduckgo", "DuckDuckGo"),
+        ("zunemusic", "Media Player"),
+        ("zunevideo", "Films & TV"),
+        ("vlc", "VLC"),
+        ("applemusic", "Apple Music"),
+    ];
+    if let Some((_, name)) = KNOWN.iter().find(|(key, _)| lower.contains(key)) {
+        return (*name).to_string();
+    }
+    // "Publisher.App_hash!Entry" → "App"; "C:\…\foo.exe" → "Foo".
+    let stem = app_id.rsplit(['\\', '/']).next().unwrap_or(app_id);
+    let stem = stem.split('!').next().unwrap_or(stem).split('_').next().unwrap_or(stem);
+    let stem = stem.rsplit('.').find(|part| !part.eq_ignore_ascii_case("exe") && !part.is_empty()).unwrap_or(stem);
+    let mut chars = stem.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
+/// Which media session the island follows: Spotify while it plays, else any
+/// app that plays, else Spotify paused. `sessions` are (app id, playing).
+pub fn pick_session(sessions: &[(String, bool)]) -> Option<usize> {
+    let spotify = |i: &usize| is_spotify_app(&sessions[*i].0);
+    let playing = |i: &usize| sessions[*i].1;
+    let all = 0..sessions.len();
+    all.clone()
+        .find(|i| spotify(i) && playing(i))
+        .or_else(|| all.clone().find(playing))
+        .or_else(|| all.clone().find(spotify))
+}
+
 /// Windows durations and timeline positions: 100 ns ticks → seconds.
 pub fn ticks_to_secs(ticks: i64) -> f64 {
     ticks.max(0) as f64 / 10_000_000.0
@@ -1372,14 +1422,15 @@ pub fn windows_time_to_unix_ms(universal: i64) -> Option<f64> {
 /// nothing is loaded. Windows gives no Spotify URI, so the id is made from the
 /// tags; an ad comes with a title and nothing else, and gets an ad id so the
 /// page treats it as the Mac does.
-pub fn windows_track(title: &str, artist: &str, album: &str, duration: f64) -> Option<Track> {
+pub fn windows_track(title: &str, artist: &str, album: &str, duration: f64, spotify: bool) -> Option<Track> {
     let title = title.trim();
     if title.is_empty() {
         return None;
     }
     let artist = artist.trim();
     let album = album.trim();
-    let kind = if artist.is_empty() && album.is_empty() { "ad" } else { "track" };
+    // Only Spotify's ads come with a title and nothing else; a video in a browser does too.
+    let kind = if spotify && artist.is_empty() && album.is_empty() { "ad" } else { "track" };
     // FNV-1a: a short, stable id for the same tags.
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for byte in [artist, album, title].join("\u{1f}").bytes() {
@@ -1517,10 +1568,25 @@ mod win {
                 }))
                 .ok()
         };
+        // Another app started playing: Windows makes it the current session.
+        let current_token = {
+            let tx = tx.clone();
+            manager
+                .CurrentSessionChanged(&TypedEventHandler::new(move |_, _| {
+                    let _ = tx.send(Wake::Sessions);
+                    Ok(())
+                }))
+                .ok()
+        };
 
         let mut bound: Option<Bound> = None;
         let mut rebind = true;
         while current(generation) {
+            if !rebind {
+                // A pause may hand the island to another app that plays.
+                let picked = find_session(&manager).map(|s| app_id(&s));
+                rebind = picked != bound.as_ref().map(|b| app_id(&b.session));
+            }
             if rebind {
                 if let Some(b) = bound.take() {
                     b.unbind();
@@ -1554,6 +1620,9 @@ mod win {
         }
         if let Some(token) = sessions_token {
             let _ = manager.RemoveSessionsChanged(token);
+        }
+        if let Some(token) = current_token {
+            let _ = manager.RemoveCurrentSessionChanged(token);
         }
     }
 
@@ -1596,11 +1665,23 @@ mod win {
         })
     }
 
+    fn app_id(session: &Session) -> String {
+        session.SourceAppUserModelId().map(|id| id.to_string_lossy()).unwrap_or_default()
+    }
+
+    /// The session the island follows (pick_session): Spotify while it plays,
+    /// else any app that plays, else Spotify paused.
     fn find_session(manager: &Manager) -> Option<Session> {
-        let sessions = manager.GetSessions().ok()?;
-        (0..sessions.Size().ok()?)
-            .filter_map(|i| sessions.GetAt(i).ok())
-            .find(|s| s.SourceAppUserModelId().is_ok_and(|id| is_spotify_app(&id.to_string_lossy())))
+        let list = manager.GetSessions().ok()?;
+        let sessions: Vec<Session> = (0..list.Size().ok()?).filter_map(|i| list.GetAt(i).ok()).collect();
+        let described: Vec<(String, bool)> = sessions
+            .iter()
+            .map(|s| {
+                let playing = s.GetPlaybackInfo().and_then(|i| i.PlaybackStatus()).is_ok_and(|st| st == Status::Playing);
+                (app_id(s), playing)
+            })
+            .collect();
+        pick_session(&described).map(|i| sessions[i].clone())
     }
 
     // ── Reading ───────────────────────────────────────────────────────────────
@@ -1626,6 +1707,7 @@ mod win {
             &props.Artist()?.to_string_lossy(),
             &props.AlbumTitle()?.to_string_lossy(),
             duration,
+            is_spotify_app(&app_id(session)),
         );
         let info = session.GetPlaybackInfo()?;
         let snapshot = Snapshot {
@@ -1644,7 +1726,10 @@ mod win {
 
     fn read_and_emit(app: &AppHandle, generation: u64, session: Option<&Session>) {
         let read = session.and_then(|s| snapshot(s).ok());
-        let volume = read.as_ref().and_then(|_| spotify_volume());
+        let source = session.map(app_id).unwrap_or_default();
+        let spotify = is_spotify_app(&source);
+        // The volume slider is Spotify's own, in the Windows mixer.
+        let volume = read.as_ref().filter(|_| spotify).and_then(|_| spotify_volume());
         let now = now_ms();
         let (state, props) = {
             let mut s = SHARED.lock().unwrap();
@@ -1654,7 +1739,8 @@ mod win {
             let props = match read {
                 Some((snap, props)) => {
                     s.state.running = true;
-                    s.state.installed = true;
+                    s.state.installed = spotify || installed();
+                    s.state.source = app_label(&source);
                     s.state.track = snap.track;
                     s.state.playing = snap.playing;
                     // The position was true when Windows last updated it; while
@@ -1671,6 +1757,7 @@ mod win {
                 None => {
                     s.state.running = false;
                     s.state.installed = installed();
+                    s.state.source.clear();
                     s.state.clear(now);
                     None
                 }
@@ -2079,6 +2166,30 @@ mod tests {
     }
 
     #[test]
+    fn any_player_is_named_for_the_island() {
+        assert_eq!(app_label("Spotify.exe"), "Spotify");
+        assert_eq!(app_label("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"), "Spotify");
+        assert_eq!(app_label("chrome.exe"), "Chrome");
+        assert_eq!(app_label("MSEdge"), "Edge");
+        assert_eq!(app_label("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic"), "Media Player");
+        assert_eq!(app_label("DuckDuckGo.DesktopBrowser_ya2fgkz3nks94!App"), "DuckDuckGo");
+        assert_eq!(app_label("Contoso.Radio_abc!App"), "Radio");
+        assert_eq!(app_label("C:\\Apps\\winamp.exe"), "Winamp");
+        assert_eq!(app_label(""), "");
+    }
+
+    #[test]
+    fn the_island_follows_spotify_playing_then_any_player_then_spotify_paused() {
+        let s = |id: &str, playing: bool| (id.to_string(), playing);
+        assert_eq!(pick_session(&[s("chrome.exe", true), s("Spotify.exe", true)]), Some(1));
+        assert_eq!(pick_session(&[s("Spotify.exe", false), s("chrome.exe", true)]), Some(1));
+        assert_eq!(pick_session(&[s("chrome.exe", false), s("Spotify.exe", false)]), Some(1));
+        // A paused browser alone is not shown: nothing plays.
+        assert_eq!(pick_session(&[s("chrome.exe", false)]), None);
+        assert_eq!(pick_session(&[]), None);
+    }
+
+    #[test]
     fn windows_times_become_seconds_and_unix_ms() {
         assert_eq!(ticks_to_secs(2_150_000_000), 215.0);
         assert_eq!(ticks_to_secs(-5), 0.0);
@@ -2089,19 +2200,21 @@ mod tests {
 
     #[test]
     fn windows_tags_become_the_track() {
-        let t = windows_track("Song - Remastered 2011", "Artist feat. Someone", "Album", 215.0).unwrap();
+        let t = windows_track("Song - Remastered 2011", "Artist feat. Someone", "Album", 215.0, true).unwrap();
         assert_eq!(t.title, "Song");
         assert_eq!(t.artist, "Artist");
         assert_eq!(t.album, "Album");
         assert_eq!(t.duration, 215.0);
         assert!(t.id.starts_with("spotify:track:"));
         // The same tags give the same track, and the cover key follows it.
-        let again = windows_track("Song - Remastered 2011", "Artist feat. Someone", "Album", 215.0).unwrap();
+        let again = windows_track("Song - Remastered 2011", "Artist feat. Someone", "Album", 215.0, true).unwrap();
         assert_eq!(t.id, again.id);
         assert_eq!(t.art_url, again.art_url);
-        assert_ne!(t.id, windows_track("Other", "Artist", "Album", 1.0).unwrap().id);
+        assert_ne!(t.id, windows_track("Other", "Artist", "Album", 1.0, true).unwrap().id);
         // An ad is a title and nothing else.
-        assert!(windows_track("Spotify", "", "", 30.0).unwrap().id.starts_with("spotify:ad:"));
-        assert_eq!(windows_track("  ", "Artist", "Album", 1.0), None);
+        assert!(windows_track("Spotify", "", "", 30.0, true).unwrap().id.starts_with("spotify:ad:"));
+        // A video in a browser has a title alone too, and is no ad.
+        assert!(windows_track("Lo-fi beats", "", "", 30.0, false).unwrap().id.starts_with("spotify:track:"));
+        assert_eq!(windows_track("  ", "Artist", "Album", 1.0, true), None);
     }
 }

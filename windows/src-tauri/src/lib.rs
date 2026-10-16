@@ -12,6 +12,7 @@ mod db;
 mod desktop;
 mod files;
 mod flow;
+mod glass;
 mod github;
 mod hooks;
 mod i18n;
@@ -151,6 +152,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     // The voice model or language may be the dictation engine's too.
     flow::sync_engine(&app);
     spotify::sync(&app, &settings.active_integrations);
+    glass::apply(&app);
     if shortcuts_changed {
         shortcuts::apply(&app, &settings.shortcuts);
     }
@@ -194,8 +196,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
 
 /// The front end pushes the island shape; Rust decides click-through from it.
 #[tauri::command]
-fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width: f64, height: f64) {
+fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width: f64, height: f64, radius: Option<f64>) {
     shared.gate.set_rect(island::IslandRect { x, y, w: width, h: height });
+    glass::shape(&app, x, y, width, height, radius.unwrap_or(0.0));
     // Without the cursor poll the input region is the click-through: it follows the island.
     if !platform::CURSOR_POLL {
         island::refresh_click_through(&app, &shared.gate);
@@ -997,6 +1000,7 @@ pub fn run() {
             set_system_languages,
             set_collapsed,
             set_island_rect,
+            glass::island_glass,
             focus_window,
             reposition,
             list_monitors,
@@ -1324,6 +1328,7 @@ pub fn run() {
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
+            glass::spawn_watch(handle.clone());
             Ok(())
         })
         .build(tauri::generate_context!())

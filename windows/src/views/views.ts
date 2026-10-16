@@ -29,8 +29,8 @@ import { language, t, tl, type Msg } from "../i18n/i18n";
 import type { ViewCommand } from "../island/shortcuts";
 import { BREAKS, BreakControl, ReminderControl } from "../island/breaks";
 import { BRAIN_STRINGS, dismissBrain, setUpBrain } from "../island/brain";
-import { buildNotify, buildTiles } from "./tiles";
-import { currentTiles, tilesHome } from "../core/tiles";
+import { buildNotify } from "./tiles";
+import { buildHome } from "./home";
 import { settingsKeys, type Bindings } from "../core/shortcuts";
 import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
 
@@ -125,15 +125,15 @@ function stack(padLeft: number, padRight: number, ...children: Node[]): HTMLElem
 // ── Header ────────────────────────────────────────────────────────────────────
 
 export function buildHeader(actions: ViewActions): ViewHost {
-  // Home is the user's own tiles when they set some up, else the agents overview.
-  const tabHome = h("button", { class: "tab", title: tl("Overview"), onclick: () => go(tilesHome(currentTiles(State.settings)) ? "tiles" : "overview") }, svg(ICONS.house, 13));
+  // Home: "Up next" and the tiles (round 3); the agents are one of the tiles.
+  const tabHome = h("button", { class: "tab", title: tl("Home"), onclick: () => go("home") }, svg(ICONS.house, 13));
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
   const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
 
   // The gear opens the Control Centre; its small arrow (or a long press on it)
   // opens the quick settings inside the island (sound, volume, auto-close).
   const gearBtn = h("button", { class: "gear" }, svg(ICONS.gear, 15));
-  const quickBtn = h("button", { class: "quick", title: tl("Quick settings"), onclick: () => go(State.view === "settings" ? "overview" : "settings") }, svg(ICONS.chevronDown, 8, { stroke: 2.4 }));
+  const quickBtn = h("button", { class: "quick", title: tl("Quick settings"), onclick: () => go(State.view === "settings" ? "home" : "settings") }, svg(ICONS.chevronDown, 8, { stroke: 2.4 }));
   let pressTimer = 0;
   let longPressed = false;
   gearBtn.addEventListener("pointerdown", () => {
@@ -173,7 +173,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
     el,
     sync() {
       const v = State.view;
-      tabHome.classList.toggle("on", v === "overview" || v === "empty" || v === "tiles");
+      tabHome.classList.toggle("on", v === "home" || v === "overview" || v === "empty");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
       quickBtn.classList.toggle("on", v === "settings");
@@ -888,7 +888,7 @@ export function buildViews(
   map.set("choose", buildChoose(actions));
   map.set("recap", buildRecap(actions));
   map.set("wardrobe", buildWardrobe(actions));
-  map.set("tiles", buildTiles((v) => actions.setView(v)));
+  map.set("home", buildHome(actions));
   map.set("notify", buildNotify((v) => actions.setView(v), () => actions.collapse()));
   // Not in the Windows v1: sending a file by email, window attach + web result.
   map.set("mail", buildPlaceholder(tl("Sending by email isn't in this version."), ""));

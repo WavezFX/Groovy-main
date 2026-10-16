@@ -145,6 +145,9 @@ pub struct Settings {
     /// "Close when I leave" (the default since round 2) was offered once to a
     /// user who had another auto-close delay.
     pub close_on_leave_offered: bool,
+    /// Control Centre → Appearance → Island style: "glass" (Windows' own
+    /// Acrylic, the default) or "solid" (the black island).
+    pub island_style: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -232,6 +235,7 @@ impl Default for Settings {
             wardrobe: Value::Object(Map::new()),
             island_tiles: Value::Object(Map::new()),
             close_on_leave_offered: false,
+            island_style: "glass".into(),
         }
     }
 }
@@ -567,7 +571,8 @@ mod tests {
     "favourites": ["crown"]
   },
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
-  "closeOnLeaveOffered": true
+  "closeOnLeaveOffered": true,
+  "islandStyle": "solid"
 }"##;
 
     fn custom() -> Value {
@@ -633,6 +638,15 @@ mod tests {
         let old: Settings = serde_json::from_str(r#"{"autoCloseInterval": 15}"#).unwrap();
         assert_eq!(old.auto_close_interval, 15.0);
         assert!(!old.close_on_leave_offered);
+    }
+
+    #[test]
+    fn the_island_is_glass_unless_solid_was_chosen() {
+        assert_eq!(Settings::default().island_style, "glass");
+        let old: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(old.island_style, "glass");
+        let solid: Settings = serde_json::from_str(r#"{"islandStyle": "solid"}"#).unwrap();
+        assert_eq!(solid.island_style, "solid");
     }
 
     #[test]
@@ -1107,6 +1121,7 @@ mod tests {
                 "wardrobe",
                 "islandTiles",
                 "closeOnLeaveOffered",
+                "islandStyle",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

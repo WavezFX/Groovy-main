@@ -13,7 +13,6 @@ import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { DEFAULT_SKIN, type Skin } from "../mochi/skins";
 import { pillColor } from "./pill-colors";
-import { currentTiles, tilesHome } from "./tiles";
 import { Spotify, musicPlaying } from "./spotify";
 
 export type AgentSource = "claudeCode" | "n8n" | "agent";
@@ -252,6 +251,8 @@ export interface Settings {
   islandTiles: unknown;
   /** "When I leave" was offered once to a user with another auto-close delay. */
   closeOnLeaveOffered: boolean;
+  /** Control Centre → Appearance → Island style: "glass" (default) or "solid". */
+  islandStyle: "glass" | "solid";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -300,6 +301,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wardrobe: {},
   islandTiles: {},
   closeOnLeaveOffered: false,
+  islandStyle: "glass",
 };
 
 type Listener = () => void;
@@ -660,9 +662,8 @@ class AppState {
    */
   defaultView(): IslandViewName {
     if (this.pendingApproval) return this.pendingApproval.questions ? "question" : "approval";
-    // "My island": the user's tiles, unless an agent is at work right now.
-    if (tilesHome(currentTiles(this.settings)) && !this.tasks.some((x) => !x.isIntegration && x.state !== "idle")) return "tiles";
-    return this.tasks.length === 0 ? "empty" : "overview";
+    // The normal state (round 3): "Up next" and the tiles; the agents are one of them.
+    return "home";
   }
 }
 

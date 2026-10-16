@@ -824,9 +824,15 @@ async fn poll_calcom(app: AppHandle) {
                         .and_then(Value::as_str)
                         .or_else(|| b.get("description").and_then(Value::as_str))
                         .filter(|s| !s.is_empty());
+                    // The video link, for the island's "Up next" (only an https address).
+                    let link = ["meetingUrl", "location"]
+                        .iter()
+                        .filter_map(|k| b.get(*k).and_then(Value::as_str))
+                        .find(|u| u.starts_with("https://"));
                     Some(json!({
                         "id": b.get("id").map(|v| v.to_string()).unwrap_or_default(),
                         "title": b.get("title").and_then(Value::as_str).unwrap_or("Meeting"),
+                        "meetingUrl": link,
                         "start": start,
                         "status": b.get("status").and_then(Value::as_str).unwrap_or("accepted"),
                         "attendeeName": attendee.and_then(|a| a.get("name")).and_then(Value::as_str),

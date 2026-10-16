@@ -108,7 +108,7 @@ export class Island {
   private collapseTimer: number | null = null;
   private wasInIsland = false;
   /** Last shape handed to Rust for the click-through test. */
-  private pushedRect = { x: -1, y: -1, w: -1, h: -1 };
+  private pushedRect = { x: -1, y: -1, w: -1, h: -1, r: -1 };
 
   // Bot hover → love (IslandWindowController.botHoverIn)
   private botHovering = false;
@@ -804,11 +804,12 @@ export class Island {
     this.uploadCanvas.el.style.left = `${(w - EXPANDED_W) / 2}px`;
 
     const viewportW = window.innerWidth > 0 ? window.innerWidth : PANEL_W;
-    const rect = { x: (viewportW - w) / 2, y: 0, w, h: hh };
+    const rect = { x: (viewportW - w) / 2, y: 0, w, h: hh, r };
     const p = this.pushedRect;
-    if (Math.abs(p.x - rect.x) > 0.5 || Math.abs(p.w - rect.w) > 0.5 || Math.abs(p.h - rect.h) > 0.5) {
+    if (Math.abs(p.x - rect.x) > 0.5 || Math.abs(p.w - rect.w) > 0.5 || Math.abs(p.h - rect.h) > 0.5 || Math.abs(p.r - rect.r) > 0.5) {
       this.pushedRect = rect;
-      void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h);
+      // The glass (Windows' Acrylic) is clipped to this shape too (glass.rs).
+      void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h, rect.r);
     }
   }
 
