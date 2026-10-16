@@ -160,15 +160,60 @@ fn reshape(win: &tauri::WebviewWindow) {
     }
 }
 
-/// Looks again every 30 seconds: transparency switched off, battery saver on.
+/// How often the backdrop's brightness is looked at, at most (round 3B item 1b).
+const SAMPLE_EVERY: Duration = Duration::from_secs(60);
+
+/// How much a bright backdrop raises the glass tint, 0–1, in steps of 0.05:
+/// nothing up to a mid-bright backdrop, all of it on a white one.
+pub fn boost_for(luminance: f64) -> f64 {
+    if !luminance.is_finite() {
+        return 0.0;
+    }
+    let b = ((luminance - 0.6) / 0.35).clamp(0.0, 1.0);
+    (b * 20.0).round() / 20.0
+}
+
+/// The average brightness (0–1) of sampled pixels; None with nothing sampled.
+pub fn luminance(pixels: &[(u8, u8, u8)]) -> Option<f64> {
+    if pixels.is_empty() {
+        return None;
+    }
+    let sum: f64 = pixels.iter().map(|&(r, g, b)| 0.2126 * r as f64 + 0.7152 * g as f64 + 0.0722 * b as f64).sum();
+    Some(sum / pixels.len() as f64 / 255.0)
+}
+
+/// Looks again every 30 seconds: transparency switched off, battery saver
+/// on. While the island is glass, the backdrop's brightness is sampled once a
+/// minute, or as soon as the wallpaper changes, and the page raises its tint
+/// only as far as a bright backdrop needs (round 3B item 1b).
 pub fn spawn_watch(app: AppHandle) {
     apply(&app);
     if !cfg!(windows) {
         return;
     }
-    let _ = std::thread::Builder::new().name("groovy-glass".into()).spawn(move || loop {
-        std::thread::sleep(Duration::from_secs(30));
-        apply(&app);
+    let _ = std::thread::Builder::new().name("groovy-glass".into()).spawn(move || {
+        let mut sampled: Option<std::time::Instant> = None;
+        let mut wallpaper = String::new();
+        let mut boost = 0.0;
+        loop {
+            if look() != Look::Solid {
+                let now_wallpaper = os::wallpaper();
+                let due = sampled.is_none_or(|at| at.elapsed() >= SAMPLE_EVERY) || now_wallpaper != wallpaper;
+                if due {
+                    wallpaper = now_wallpaper;
+                    sampled = Some(std::time::Instant::now());
+                    let pixels = app.get_webview_window(WINDOW_LABEL).map(|w| os::backdrop(&w)).unwrap_or_default();
+                    let next = luminance(&pixels).map(boost_for).unwrap_or(boost);
+                    if (next - boost).abs() >= 0.05 {
+                        boost = next;
+                        crate::log::line(format!("glass tint boost: {boost:.2}"));
+                        let _ = app.emit_to(WINDOW_LABEL, "island-glass-boost", boost);
+                    }
+                }
+            }
+            std::thread::sleep(Duration::from_secs(30));
+            apply(&app);
+        }
     });
 }
 
@@ -182,8 +227,9 @@ pub fn island_glass() -> &'static str {
 mod os {
     use tauri::WebviewWindow;
     use windows::core::{s, w, BOOL};
-    use windows::Win32::Foundation::HWND;
-    use windows::Win32::Graphics::Gdi::{CreateRectRgn, CreateRoundRectRgn, DeleteObject, SetWindowRgn, HGDIOBJ};
+    use windows::Win32::Foundation::{HWND, RECT};
+    use windows::Win32::Graphics::Gdi::{CreateRectRgn, CreateRoundRectRgn, DeleteObject, GetDC, GetPixel, GetSysColor, ReleaseDC, SetWindowRgn, COLOR_DESKTOP, HGDIOBJ};
+    use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, SystemParametersInfoW, SPI_GETDESKWALLPAPER, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS};
     use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
     use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
     use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RRF_RT_REG_SZ};
@@ -252,8 +298,9 @@ mod os {
     const ACCENT_DISABLED: u32 = 0;
     const ACCENT_ENABLE_BLURBEHIND: u32 = 3;
     const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
-    /// The page's own tint (rgba(18,20,24,…)) does the rest: a light one here.
-    const TINT: u32 = 0x22_18_14_12;
+    /// The page's own tint (rgba(18,20,24,…), core/glass.ts) does the rest:
+    /// barely any here, so the blurred desktop shows through (round 3B item 1b).
+    const TINT: u32 = 0x10_18_14_12;
 
     type SetWca = unsafe extern "system" fn(HWND, *mut CompositionData) -> BOOL;
 
@@ -276,6 +323,45 @@ mod os {
                 size: std::mem::size_of::<AccentPolicy>(),
             };
             set(hwnd, &mut data).as_bool()
+        }
+    }
+
+    /// The wallpaper's file and the desktop colour: a change means sample again.
+    pub fn wallpaper() -> String {
+        let mut buf = [0u16; 520];
+        let ok = unsafe {
+            SystemParametersInfoW(SPI_GETDESKWALLPAPER, buf.len() as u32, Some(buf.as_mut_ptr() as *mut _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0))
+        }
+        .is_ok();
+        let end = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+        let path = if ok { String::from_utf16_lossy(&buf[..end]) } else { String::new() };
+        format!("{path}|{}", unsafe { GetSysColor(COLOR_DESKTOP) })
+    }
+
+    /// Pixels just around the island window: what shows through its glass.
+    /// Twelve GetPixel calls, once a minute at most.
+    pub fn backdrop(win: &WebviewWindow) -> Vec<(u8, u8, u8)> {
+        let Some(hwnd) = hwnd(win) else { return Vec::new() };
+        let mut r = RECT::default();
+        if unsafe { GetWindowRect(hwnd, &mut r) }.is_err() || r.right <= r.left {
+            return Vec::new();
+        }
+        let mut points: Vec<(i32, i32)> = (0..8).map(|i| (r.left + (r.right - r.left) * (2 * i + 1) / 16, r.bottom + 16)).collect();
+        let mid = r.top + (r.bottom - r.top) / 2;
+        points.extend([(r.left - 16, mid), (r.right + 16, mid), (r.left - 16, r.bottom), (r.right + 16, r.bottom)]);
+        unsafe {
+            let dc = GetDC(None);
+            if dc.is_invalid() {
+                return Vec::new();
+            }
+            let pixels = points
+                .into_iter()
+                .map(|(x, y)| GetPixel(dc, x, y).0)
+                .filter(|&c| c != 0xFFFF_FFFF)
+                .map(|c| ((c & 0xFF) as u8, ((c >> 8) & 0xFF) as u8, ((c >> 16) & 0xFF) as u8))
+                .collect();
+            ReleaseDC(None, dc);
+            pixels
         }
     }
 
@@ -310,11 +396,31 @@ mod os {
         false
     }
     pub fn set_region(_win: &WebviewWindow, _region: Option<(i32, i32, i32, i32, i32)>) {}
+    pub fn wallpaper() -> String {
+        String::new()
+    }
+    pub fn backdrop(_win: &WebviewWindow) -> Vec<(u8, u8, u8)> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_bright_backdrop_raises_the_tint() {
+        assert_eq!(boost_for(0.0), 0.0);
+        assert_eq!(boost_for(0.5), 0.0);
+        assert_eq!(boost_for(1.0), 1.0);
+        let mid = boost_for(0.78);
+        assert!(mid > 0.0 && mid < 1.0, "{mid}");
+        assert_eq!(boost_for(f64::NAN), 0.0);
+        assert_eq!(luminance(&[]), None);
+        assert!((luminance(&[(255, 255, 255)]).unwrap() - 1.0).abs() < 1e-9);
+        let magenta = luminance(&[(255, 0, 255)]).unwrap();
+        assert!(magenta < 0.3, "{magenta}");
+    }
 
     #[test]
     fn glass_needs_the_choice_windows_transparency_and_no_battery_saver() {

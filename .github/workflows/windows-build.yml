@@ -138,7 +138,7 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
-      - name: Nothing but the island is drawn (corner pixels, F and E)
+      - name: Nothing but the island is drawn, and it is see-through (F and E)
         shell: pwsh
         run: ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir corner-shots
 

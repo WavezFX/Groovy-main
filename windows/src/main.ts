@@ -20,6 +20,7 @@ import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { SPOTIFY_ID, Spotify } from "./core/spotify";
 import { Recap } from "./recap/recap";
 import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
+import { glassAlpha, glassStrength, type GlassLook } from "./core/glass";
 
 /** Shows the language Settings asks for ("" = the system's, when Groovy has it). */
 function applyLanguage() {
@@ -142,12 +143,26 @@ async function main() {
   // setting, Windows' transparency switch and battery saver (glass.rs).
   // "blur": Windows blurs behind it; "css": the page's own glass, no blur
   // (round 3B item 1: never a grey square around it).
+  // How see-through it is: the Glass strength setting, raised a little over a
+  // very bright backdrop (round 3B item 1b).
+  let glassLook: GlassLook = "solid";
+  let glassBoost = 0;
+  const paintGlass = () => {
+    const a = glassAlpha(glassLook, glassStrength(State.settings.glassStrength), glassBoost);
+    document.body.style.setProperty("--glass-a", String(a));
+  };
   const setGlass = (look: string) => {
-    document.body.classList.toggle("glass", look === "blur" || look === "css");
-    document.body.classList.toggle("glass-css", look === "css");
+    glassLook = look === "blur" || look === "css" ? look : "solid";
+    document.body.classList.toggle("glass", glassLook !== "solid");
+    document.body.classList.toggle("glass-css", glassLook === "css");
+    paintGlass();
   };
   setGlass((await Bridge.islandGlass()) ?? "solid");
   await onEvent<string>("island-glass", setGlass);
+  await onEvent<number>("island-glass-boost", (b) => {
+    glassBoost = b;
+    paintGlass();
+  });
 
   // Settings → Reload sounds: read the sounds folder again, and let them hear it.
   await onEvent<null>("sounds-changed", () => {
@@ -161,6 +176,7 @@ async function main() {
     State.settings = { ...State.settings, ...s, growth };
     applyLanguage();
     island.applySettings();
+    paintGlass();
     State.loadIntegrationTasks();
     // A new main tool comes to the front, as on macOS.
     if (State.mainPillId !== previousMain) State.setFocus(State.mainPillId);

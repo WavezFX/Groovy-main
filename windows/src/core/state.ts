@@ -1,6 +1,7 @@
 // App state — mirror of AppState.swift (the parts the island needs).
 
 import type { BotEmoteName, BotStateName, IslandMode, IslandViewName } from "./layout";
+import type { GlassStrength } from "./glass";
 import type { EyeShape } from "../mochi/engine";
 import {
   DEFAULT_MAIN_PILL, HOST_OS, availablePills, orderPills, pillDefinition, sanitizeDeclared,
@@ -256,6 +257,8 @@ export interface Settings {
   closeOnLeaveOffered: boolean;
   /** Control Centre → Appearance → Island style: "glass" (default) or "solid". */
   islandStyle: "glass" | "solid";
+  /** How much tint the glass island has (round 3B item 1b). */
+  glassStrength: GlassStrength;
   /** Settings → Voice → While listening, show: "badge" (default) or "strip". */
   listeningView: "badge" | "strip";
   /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
@@ -310,6 +313,7 @@ export const DEFAULT_SETTINGS: Settings = {
   islandTiles: {},
   closeOnLeaveOffered: false,
   islandStyle: "glass",
+  glassStrength: "balanced",
   listeningView: "badge",
   growth: {},
 };

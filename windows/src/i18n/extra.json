@@ -13799,6 +13799,39 @@
    "pt-BR": "{n} projetos",
    "ru": "Проектов: {n}",
    "id": "{n} proyek"
+  },
+  "Glass strength": {
+   "zh-Hans": "玻璃强度",
+   "hi": "ग्लास की तीव्रता",
+   "es": "Intensidad del cristal",
+   "ar": "قوة الزجاج",
+   "fr": "Intensité du verre",
+   "bn": "কাচের মাত্রা",
+   "pt-BR": "Intensidade do vidro",
+   "ru": "Плотность стекла",
+   "id": "Kekuatan kaca"
+  },
+  "Clear glass": {
+   "zh-Hans": "透明玻璃",
+   "hi": "पारदर्शी ग्लास",
+   "es": "Cristal transparente",
+   "ar": "زجاج شفاف",
+   "fr": "Verre clair",
+   "bn": "স্বচ্ছ কাচ",
+   "pt-BR": "Vidro transparente",
+   "ru": "Прозрачное стекло",
+   "id": "Kaca bening"
+  },
+  "Frosted glass": {
+   "zh-Hans": "磨砂玻璃",
+   "hi": "धुंधला ग्लास",
+   "es": "Cristal esmerilado",
+   "ar": "زجاج مصنفر",
+   "fr": "Verre dépoli",
+   "bn": "ঘষা কাচ",
+   "pt-BR": "Vidro fosco",
+   "ru": "Матовое стекло",
+   "id": "Kaca buram"
   }
  }
 }

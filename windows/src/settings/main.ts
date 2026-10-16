@@ -5,6 +5,7 @@
 
 import { installErrorReporting, showError } from "../views/toast";
 import { AUTO_CLOSE_CHOICES, nearestChoice } from "../core/autoclose";
+import { glassStrength } from "../core/glass";
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
@@ -1386,8 +1387,20 @@ function appearanceSection(): HTMLElement {
     style.append(h("option", { value, text: label }));
   }
   style.value = settings.islandStyle === "solid" ? "solid" : "glass";
+  // Glass strength (round 3B item 1b): how much tint; Solid stays opaque.
+  const strength = h("select", {}) as HTMLSelectElement;
+  for (const [value, label] of [["clear", t("Clear glass")], ["balanced", t("Balanced")], ["frosted", t("Frosted glass")]] as const) {
+    strength.append(h("option", { value, text: label }));
+  }
+  strength.value = glassStrength(settings.glassStrength);
+  strength.disabled = style.value === "solid";
+  strength.addEventListener("change", () => {
+    settings.glassStrength = glassStrength(strength.value);
+    void save();
+  });
   style.addEventListener("change", () => {
     settings.islandStyle = style.value === "solid" ? "solid" : "glass";
+    strength.disabled = style.value === "solid";
     void save();
   });
   return h(
@@ -1395,6 +1408,7 @@ function appearanceSection(): HTMLElement {
     {},
     h("h2", {}, h("span", { text: t("Appearance") })),
     h("div", { class: "row" }, h("label", { text: t("Island style") }), style),
+    h("div", { class: "row" }, h("label", { text: t("Glass strength") }), strength),
     h("div", { class: "hint", text: t("Glass lets your wallpaper show through, drawn by Windows itself. Groovy uses Solid on its own while Windows' transparency effects are off or battery saver is on.") }),
   );
 }

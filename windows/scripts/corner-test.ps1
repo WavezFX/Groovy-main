@@ -2,7 +2,8 @@
 # the "grey square"). Paints the desktop a bright solid colour, starts Groovy
 # held open on a layout (GROOVY_SMOKE_VIEW: "home" is F, "player" is E),
 # photographs its window, and fails if a bottom corner — outside the island's
-# rounded corners — is anything but the desktop colour.
+# rounded corners — is anything but the desktop colour, or if the desktop
+# doesn't show through the middle of the island (round 3B item 1b).
 #
 #   pwsh scripts/corner-test.ps1 -Exe release\groovy.exe
 
@@ -108,11 +109,29 @@ foreach ($view in $Views) {
     if (-not $ok) { $failed++ }
     Write-Host ("  [{0}] {1} {2} corner ({3},{4}) = rgb({5},{6},{7}) in a {8}x{9} window" -f $(if ($ok) { "PASS" } else { "FAIL" }), $view, $name, $p[0], $p[1], $c.R, $c.G, $c.B, $w, $h)
   }
+  # Round 3B item 1b: the island is see-through. Somewhere across its middle
+  # (between the tiles and words) the magenta desktop must show through,
+  # tinted darker by the glass: red and blue well above green, but not the
+  # untouched desktop colour.
+  $seen = $null
+  foreach ($y in @([int]($h / 2), ($h - 10))) {
+    for ($x = [int]($w * 0.1); $x -lt [int]($w * 0.9) -and -not $seen; $x += 2) {
+      $c = $bmp.GetPixel($x, $y)
+      if (($c.R - $c.G) -ge 60 -and ($c.B - $c.G) -ge 60 -and -not (Near $c $wall)) { $seen = @($x, $y, $c) }
+    }
+  }
+  if ($seen) {
+    Write-Host ("  [PASS] {0} middle ({1},{2}) = rgb({3},{4},{5}): the desktop shows through, tinted" -f $view, $seen[0], $seen[1], $seen[2].R, $seen[2].G, $seen[2].B)
+  } else {
+    $c = $bmp.GetPixel([int]($w / 2), [int]($h / 2))
+    Write-Host ("  [FAIL] {0} middle: no tinted magenta across the island (centre rgb({1},{2},{3})): it isn't see-through" -f $view, $c.R, $c.G, $c.B)
+    $failed++
+  }
   $bmp.Dispose()
 }
 Remove-Item Env:GROOVY_SMOKE_VIEW -ErrorAction SilentlyContinue
 $log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
-if (Test-Path $log) { Get-Content $log | Select-String "island style|glass|region" | ForEach-Object { Write-Host "  log: $_" } }
+if (Test-Path $log) { Get-Content $log | Select-String "island style|glass|region|tint" | ForEach-Object { Write-Host "  log: $_" } }
 Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 if ($env:GITHUB_STEP_SUMMARY) {

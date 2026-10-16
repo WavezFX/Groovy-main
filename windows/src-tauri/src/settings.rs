@@ -151,6 +151,9 @@ pub struct Settings {
     /// Control Centre → Appearance → Island style: "glass" (Windows' own
     /// Acrylic, the default) or "solid" (the black island).
     pub island_style: String,
+    /// Appearance → Glass strength (round 3B item 1b): "clear", "balanced"
+    /// (the default) or "frosted": how much tint the glass island has.
+    pub glass_strength: String,
     /// Settings → Voice → While listening, show: "badge" (default) or "strip".
     pub listening_view: String,
     /// How far Groovy's look has grown: active seconds, the stage reached and
@@ -249,6 +252,7 @@ impl Default for Settings {
             island_tiles: Value::Object(Map::new()),
             close_on_leave_offered: false,
             island_style: "glass".into(),
+            glass_strength: "balanced".into(),
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
             integrations_restored: false,
@@ -647,6 +651,7 @@ mod tests {
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
   "closeOnLeaveOffered": true,
   "islandStyle": "solid",
+  "glassStrength": "frosted",
   "listeningView": "strip",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true
@@ -724,6 +729,7 @@ mod tests {
         assert_eq!(old.island_style, "glass");
         let solid: Settings = serde_json::from_str(r#"{"islandStyle": "solid"}"#).unwrap();
         assert_eq!(solid.island_style, "solid");
+        assert_eq!(old.glass_strength, "balanced");
     }
 
     #[test]
@@ -1271,6 +1277,7 @@ mod tests {
                 "islandTiles",
                 "closeOnLeaveOffered",
                 "islandStyle",
+                "glassStrength",
                 "listeningView",
                 "growth",
                 "integrationsRestored",

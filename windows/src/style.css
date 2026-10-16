@@ -3434,17 +3434,25 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   }
 }
 
-/* ── Glass (round 3 item 2c): Windows draws the Acrylic behind; the page only
-   tints it so white text stays readable over a bright wallpaper. ── */
+/* ── Glass (round 3 item 2c, round 3B item 1b): see-through. Windows blurs
+   what is behind (or, without the blur, the page's own glass shows it
+   straight through); the page only adds a light tint (--glass-a, from
+   core/glass.ts: the Glass strength setting and the backdrop's brightness),
+   a thin light rim and a soft top highlight. Text keeps a subtle shadow
+   instead of a darker background. ── */
 body.glass #island {
-  background: rgba(18, 20, 24, 0.42);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18), inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 38%),
+    rgba(18, 20, 24, var(--glass-a, 0.34));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
-/* No blur from Windows on this build: the page's own glass, a darker tint
-   with a soft rim, on the fully transparent window (round 3B item 1). */
 body.glass-css #island {
-  background: rgba(22, 24, 30, 0.86);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.22), inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 38%),
+    rgba(22, 24, 30, var(--glass-a, 0.52));
 }
 body.glass .home-card,
 body.glass .detail-card,
