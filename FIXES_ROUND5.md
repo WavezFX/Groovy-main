@@ -21,7 +21,7 @@ Round 3 item 6 drew its own stage art. Replace it with the designs in `Main.dc.h
 - **Blaze:** spark, then flicker, flame, wrapping flame, and a full aura.
 - **Tide:** droplets, then the water fills ¼, ½ and ¾ (with seaweed), and finally a full sea with fish and a wave crest. The water is clipped to the body shape.
 
-Keep everything that works today: the clock, the `reached`, `shown` and `seen` fields, "Show stage", the intro greeting, and `merge_growth`.
+Keep everything that works today: the clock, the `reached` and `seen` fields, the intro greeting, and `merge_growth`. (Round 3B item 5 removed "Show stage" and `shown`; don't bring them back.)
 
 Animate cheaply. Leaves sway, the flame flickers and the water bobs, all with one shared phase driven by the existing engine tick. Animations pause when the island is hidden, as round 3 item 9 requires. Don't add new timers or new windows.
 
@@ -33,7 +33,7 @@ Animate cheaply. Leaves sway, the flame flickers and the water bobs, all with on
   - **Migration:** if it's missing, use `now − activeSeconds`.
   - `merge_growth` keeps the **earliest** `hatchedAt`.
 - Stage 6 is reached when `reached ≥ 5` **and** `now − hatchedAt ≥ 182 days`.
-- Set `MAX_STAGE = 6`. Update `stageOf`, the meter, `progressLine` ("Stage 5 of 6 · next in about 4 months"), the "Show stage" chips and the Rust validation, which currently caps the stage at 5.
+- Set `MAX_STAGE = 6`. Update `stageOf`, the meter, `progressLine` ("Stage 5 of 6 · next in about 4 months"), the read-only stage pictures from round 3B item 5, and the Rust validation, which currently caps the stage at 5.
 
 The art for each look is in `Stage6.dc.html`:
 
