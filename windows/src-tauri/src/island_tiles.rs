@@ -104,7 +104,7 @@ pub fn island_launch(kind: String, target: String) -> Result<(), String> {
             if !(target.starts_with("https://") || target.starts_with("http://")) || target.chars().any(char::is_whitespace) {
                 return Err("Only web addresses (https://…) open from a website tile.".into());
             }
-            crate::platform::open_url(&target);
+            crate::browser::open(&target)?;
         }
         "folder" => {
             if !Path::new(&target).is_dir() {

@@ -19,7 +19,7 @@ export type PageId =
 /** The pages drawn by settings/main.ts from Groovy's own sections. */
 export type GroovyPageId =
   | "assistant" | "island" | "wardrobe" | "models" | "memory" | "reminders" | "music" | "calls" | "chat"
-  | "agents" | "pills" | "phone" | "breaks" | "general" | "permissions" | "system";
+  | "agents" | "pills" | "phone" | "breaks" | "general" | "browser" | "permissions" | "system";
 
 interface PageDef {
   id: PageId;
@@ -56,6 +56,7 @@ export const GROOVY_PAGES: PageDef[] = [
   { id: "phone", icon: "phone", title: () => t("Android phone"), subtitle: () => t("Your agents and their approvals on your Android phone, over your Wi-Fi.") },
   { id: "breaks", icon: "clock", title: () => t("Breaks"), subtitle: () => t("Reminders to stand up and rest your eyes.") },
   { id: "general", icon: "gear", title: () => t("General"), subtitle: () => t("Language, sounds, shortcuts and how the island behaves.") },
+  { id: "browser", icon: "globe", title: () => t("Browser"), subtitle: () => t("The browser and search engine Groovy uses.") },
   { id: "permissions", icon: "shield", title: () => t("Permissions"), subtitle: () => t("What Groovy may do on this computer, and what he did.") },
   { id: "system", icon: "sliders", title: () => t("System"), subtitle: () => t("Performance, logs and diagnostics.") },
 ];

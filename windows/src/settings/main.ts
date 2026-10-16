@@ -1381,6 +1381,48 @@ async function main() {
 }
 
 /** Appearance: the island's glass (Windows' own Acrylic) or the black island. */
+// Round 4 item 4: the browser and search engine every "open" and "search" uses.
+function browserSection(): HTMLElement {
+  const browser = h("select", {}) as HTMLSelectElement;
+  const engine = h("select", {}) as HTMLSelectElement;
+  const found = h("div", { class: "hint" });
+  browser.append(h("option", { value: "default", text: t("Windows' default browser") }));
+  browser.value = settings.browser ?? "default";
+  engine.append(h("option", { value: "duckduckgo", text: "DuckDuckGo" }));
+  engine.value = settings.searchEngine ?? "duckduckgo";
+  void Bridge.browsers().then((info) => {
+    if (!info) return;
+    const defaultName = info.installed.find((b) => b.id === info.default)?.name;
+    browser.options[0].text = defaultName ? t("Windows' default ({name})", { name: defaultName }) : t("Windows' default browser");
+    for (const b of info.installed) browser.append(h("option", { value: b.id, text: b.name }));
+    browser.value = settings.browser ?? "default";
+    clear(engine);
+    for (const e of info.engines) engine.append(h("option", { value: e.id, text: e.name }));
+    engine.value = settings.searchEngine ?? "duckduckgo";
+    found.textContent = info.installed.length
+      ? t("Found on this PC: {names}.", { names: info.installed.map((b) => b.name).join(", ") })
+      : t("No other browser found on this PC.");
+  });
+  browser.addEventListener("change", () => {
+    settings.browser = browser.value;
+    void save();
+  });
+  engine.addEventListener("change", () => {
+    settings.searchEngine = engine.value;
+    void save();
+  });
+  return h(
+    "section",
+    {},
+    h("h2", { text: t("Browser") }),
+    h("div", { class: "row" }, h("label", { text: t("Groovy opens pages in") }), browser),
+    found,
+    h("div", { class: "row" }, h("label", { text: t("Search engine") }), engine),
+    h("div", { class: "hint", text: t("Groovy can open, search and navigate in DuckDuckGo. Filling in forms on websites works best in Chrome or Edge.") }),
+    h("div", { class: "hint", text: t("In the browser in front he can open a new tab, go back or forward, reload, switch tabs, read the page's title and address, and press a button or link by its name (Settings → Permissions asks first).") }),
+  );
+}
+
 function appearanceSection(): HTMLElement {
   const style = h("select", {}) as HTMLSelectElement;
   for (const [value, label] of [["glass", t("Glass")], ["solid", t("Solid")]] as const) {
@@ -1476,6 +1518,7 @@ async function render() {
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],
     general: () => [setupAgainSection(), appearanceSection(), generalSection(), shortcutsSection(shortcutReport)],
+    browser: () => [browserSection()],
     permissions: () => [permissionsSection()],
     system: () => [systemSection()],
   };

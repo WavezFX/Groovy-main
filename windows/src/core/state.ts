@@ -268,6 +268,10 @@ export interface Settings {
   /** Round 4 item 3: a short summary of each conversation goes to chat history. */
   callSummary: boolean;
   bargeInDefault: boolean;
+  /** Round 4 item 4: "default" (Windows' own) or a browser's id. */
+  browser: string;
+  /** Round 4 item 4: the search engine's id, DuckDuckGo by default. */
+  searchEngine: string;
   /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
   growth: unknown;
 }
@@ -326,6 +330,8 @@ export const DEFAULT_SETTINGS: Settings = {
   instantVoice: "off",
   callSummary: true,
   bargeInDefault: true,
+  browser: "default",
+  searchEngine: "duckduckgo",
   growth: {},
 };
 

@@ -17,6 +17,7 @@ mod github;
 mod hooks;
 mod i18n;
 mod idle;
+mod browser;
 mod calls;
 mod worktest;
 mod identity;
@@ -190,6 +191,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     spotify::sync(&app, &settings.active_integrations);
     glass::apply(&app);
     idle::set(&settings.unload_after);
+    browser::configure(&settings.browser, &settings.search_engine);
     if shortcuts_changed {
         shortcuts::apply(&app, &settings.shortcuts);
     }
@@ -295,8 +297,8 @@ fn open_url(url: String) -> Result<(), String> {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err(i18n::t("Only web addresses (https://…) open from here."));
     }
-    platform::open_url(&url);
-    Ok(())
+    // The browser chosen in Settings → Browser (round 4 item 4).
+    browser::open(&url).map(|_| ())
 }
 
 /// "Open terminal" opens the working folder in VS Code when `code` is on PATH,
@@ -1192,6 +1194,7 @@ pub fn run() {
     }
     i18n::set_picked(&loaded.language);
     idle::set(&loaded.unload_after);
+    browser::configure(&loaded.browser, &loaded.search_engine);
     let gate = Arc::new(PollGate::new());
 
     let mut builder = tauri::Builder::default()
@@ -1429,6 +1432,7 @@ pub fn run() {
             okgroovy::voice_done,
             okgroovy::okgroovy_status,
             quick_status,
+            browser::browsers,
             calls::voice_call_active,
             calls::voice_basic,
             calls::call_summary,

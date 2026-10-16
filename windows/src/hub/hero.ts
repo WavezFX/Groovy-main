@@ -363,6 +363,7 @@ export const THEMES: Record<string, Theme> = {
   breaks: { color: "#34D399", state: "sleeping" },
   general: { color: "#8E939C" },
   permissions: { color: "#EF4444" },
+  browser: { color: "#DE5833" },
   system: { color: "#8E939C" },
 };
 

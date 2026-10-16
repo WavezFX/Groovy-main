@@ -66,6 +66,20 @@ fn tools() -> Vec<Value> {
             "input_schema": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] }
         }),
         json!({
+            "name": "browser",
+            "description": "The user's browser (the one chosen in Groovy's settings) and search engine: open a web page, search the web, or act in the browser in front (new_tab, close_tab, back, forward, reload, next_tab, previous_tab, page = read the tab's title and address, press = press a visible button or link by its name).",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string", "enum": ["open", "search", "new_tab", "close_tab", "back", "forward", "reload", "next_tab", "previous_tab", "page", "press"] },
+                    "url": { "type": "string" },
+                    "query": { "type": "string" },
+                    "name": { "type": "string" }
+                },
+                "required": ["action"]
+            }
+        }),
+        json!({
             "name": "prepare_email",
             "description": "Open the user's mail app with an email filled in, for them to check and send (it is never sent automatically). The recipient must be an email address.",
             "input_schema": {

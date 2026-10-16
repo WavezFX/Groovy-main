@@ -670,6 +670,9 @@ export const Bridge = {
 
   // ── Voice (voice.rs, livekit.rs) ──────────────────────────────────────────
   /** 16 kHz mono 16-bit samples to text; `wake` asks for the quick pass. */
+  // Settings → Browser (round 4 item 4, browser.rs).
+  browsers: () =>
+    call<{ installed: { id: string; name: string }[]; default: string | null; engines: { id: string; name: string }[] }>("browsers"),
   // Talk to Groovy (round 4 item 3, calls.rs).
   voiceCallActive: (on: boolean) => call<void>("voice_call_active", { on }),
   voiceBasic: (text: string) => call<string | null>("voice_basic", { text }),

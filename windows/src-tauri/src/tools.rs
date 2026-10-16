@@ -63,6 +63,9 @@ pub struct ToolDef {
 
 pub const TOOLS: &[ToolDef] = &[
     ToolDef { id: "open_url", label: n_("Open websites"), description: n_("“Open youtube.com” — http and https only."), default: Perm::Allow },
+    ToolDef { id: "web_search", label: n_("Search the web"), description: n_("“Search for pizza near me” — in your browser, with your search engine."), default: Perm::Allow },
+    ToolDef { id: "browser", label: n_("Control the browser"), description: n_("“New tab”, “go back”, “what page is this?” — in the browser in front."), default: Perm::Allow },
+    ToolDef { id: "browser_click", label: n_("Press buttons on web pages"), description: n_("“Click Sign in” — a visible button or link, by its name."), default: Perm::Ask },
     ToolDef { id: "open_app", label: n_("Open apps"), description: n_("“Open Notepad” — apps from the Start menu only."), default: Perm::Ask },
     ToolDef { id: "open_folder", label: n_("Open folders"), description: n_("“Open my downloads” — your own folders only."), default: Perm::Allow },
     ToolDef { id: "search_files", label: n_("Search your files"), description: n_("“Find files named invoice” — by name, in your own folders."), default: Perm::Ask },
@@ -103,6 +106,8 @@ pub fn audit(conn: &Connection, tool: &str, args: &Value, outcome: &str) {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Call {
     OpenUrl(String),
+    WebSearch(String),
+    Browser(crate::browser::Action),
     OpenApp(String),
     OpenFolder(KnownFolder),
     SearchFiles(String),
@@ -135,6 +140,9 @@ impl Call {
     pub fn tool(&self) -> &'static str {
         match self {
             Call::OpenUrl(_) => "open_url",
+            Call::WebSearch(_) => "web_search",
+            Call::Browser(crate::browser::Action::Press(_)) => "browser_click",
+            Call::Browser(_) => "browser",
             Call::OpenApp(_) => "open_app",
             Call::OpenFolder(_) => "open_folder",
             Call::SearchFiles(_) => "search_files",
@@ -147,6 +155,8 @@ impl Call {
     fn args(&self) -> Value {
         match self {
             Call::OpenUrl(u) => json!({ "url": u }),
+            Call::WebSearch(q) => json!({ "query": q }),
+            Call::Browser(a) => json!({ "action": format!("{a:?}") }),
             Call::OpenApp(a) => json!({ "app": a }),
             Call::OpenFolder(f) => json!({ "folder": f }),
             Call::SearchFiles(q) => json!({ "query": q }),
@@ -160,6 +170,9 @@ impl Call {
     fn describe(&self) -> String {
         match self {
             Call::OpenUrl(u) => tf("Open {url} in your browser?", &[("url", u)]),
+            Call::WebSearch(q) => tf("Search the web for “{query}”?", &[("query", q)]),
+            Call::Browser(crate::browser::Action::Press(name)) => tf("Press “{name}” on the page in front?", &[("name", name)]),
+            Call::Browser(_) => t("Use the browser in front?"),
             Call::OpenApp(a) => tf("Open {app}?", &[("app", a)]),
             Call::OpenFolder(f) => tf("Open your {folder} folder?", &[("folder", &format!("{f:?}"))]),
             Call::SearchFiles(q) => tf("Search your folders for files named “{query}”?", &[("query", q)]),
@@ -372,6 +385,26 @@ pub fn parse(text: &str) -> Option<Call> {
             }
         }
     }
+    // The web: "search for X", "look up X", "google X" (round 4 item 4).
+    for prefix in ["search the web for ", "search the internet for ", "search online for ", "search for ", "look up ", "google ", "web search "] {
+        if let Some(q) = t.strip_prefix(prefix) {
+            let q = as_typed(&cased, t, q.trim()).trim_matches(|c| c == '"' || c == '“' || c == '”').trim();
+            if !q.is_empty() && q.len() <= 200 {
+                return Some(Call::WebSearch(q.to_string()));
+            }
+        }
+    }
+    // The browser in front: new tab, back, reload, "what page is this?", "click Sign in".
+    if let Some(action) = crate::browser::Action::parse(t) {
+        return Some(Call::Browser(match action {
+            // The button's name as typed.
+            crate::browser::Action::Press(name) => {
+                let i = t.rfind(&name).unwrap_or(0);
+                crate::browser::Action::Press(cased.get(i..i + name.len()).unwrap_or(&name).to_string())
+            }
+            other => other,
+        }));
+    }
     // Open: a website, a folder or an app.
     let what = t.strip_prefix("open ").or_else(|| t.strip_prefix("launch ")).or_else(|| t.strip_prefix("start ")).or_else(|| t.strip_prefix("go to "))?;
     let what = what.trim();
@@ -481,10 +514,9 @@ pub fn decide(id: u64, decision: &str) -> Result<String, String> {
 
 fn run(call: &Call) -> String {
     let result = match call {
-        Call::OpenUrl(url) => {
-            crate::platform::open_url(url);
-            Ok(tf("Opened {url}.", &[("url", url)]))
-        }
+        Call::OpenUrl(url) => crate::browser::open(url).map(|browser| tf("Opened {url} in {browser}.", &[("url", url), ("browser", &browser)])),
+        Call::WebSearch(q) => crate::browser::search(q),
+        Call::Browser(action) => crate::browser::act(action),
         Call::OpenFolder(f) => match folder_path(*f) {
             Some(p) if p.is_dir() => {
                 crate::platform::reveal_folder(&p.to_string_lossy());
@@ -810,6 +842,13 @@ mod tests {
 
     #[test]
     fn understands_open() {
+        assert_eq!(parse("Search for Best Pizza near me"), Some(Call::WebSearch("Best Pizza near me".into())));
+        assert_eq!(parse("hey groovy, look up the Eiffel Tower"), Some(Call::WebSearch("the Eiffel Tower".into())));
+        assert_eq!(parse("search my files for invoice"), Some(Call::SearchFiles("invoice".into())));
+        assert_eq!(parse("new tab"), Some(Call::Browser(crate::browser::Action::NewTab)));
+        assert_eq!(parse("Click the Sign In button"), Some(Call::Browser(crate::browser::Action::Press("Sign In".into()))));
+        assert_eq!(Call::Browser(crate::browser::Action::Press("x".into())).tool(), "browser_click");
+        assert_eq!(Call::Browser(crate::browser::Action::Back).tool(), "browser");
         assert_eq!(parse("open youtube.com"), Some(Call::OpenUrl("https://youtube.com".into())));
         assert_eq!(parse("Open https://github.com/WavezFX"), Some(Call::OpenUrl("https://github.com/WavezFX".into())));
         assert_eq!(parse("open my downloads"), Some(Call::OpenFolder(KnownFolder::Downloads)));

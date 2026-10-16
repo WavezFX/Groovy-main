@@ -168,6 +168,11 @@ pub struct Settings {
     /// Barge-in is on by default since round 4 item 3; turned on once for
     /// installs that had the old default (off).
     pub barge_in_default: bool,
+    /// Settings → Browser (round 4 item 4): "default" (Windows' own) or a
+    /// browser's id ("duckduckgo", "edge", "chrome"…).
+    pub browser: String,
+    /// Settings → Browser: the search engine, "duckduckgo" by default.
+    pub search_engine: String,
     /// How far Groovy's look has grown: active seconds, the stage reached and
     /// the stage shown (round 3 item 6). The page owns its shape
     /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
@@ -269,6 +274,8 @@ impl Default for Settings {
             instant_voice: "off".into(),
             call_summary: true,
             barge_in_default: true,
+            browser: "default".into(),
+            search_engine: "duckduckgo".into(),
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
             integrations_restored: false,
@@ -673,6 +680,8 @@ mod tests {
   "instantVoice": "openai",
   "callSummary": false,
   "bargeInDefault": true,
+  "browser": "duckduckgo",
+  "searchEngine": "google",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true
 }"##;
@@ -1303,6 +1312,8 @@ mod tests {
                 "instantVoice",
                 "callSummary",
                 "bargeInDefault",
+                "browser",
+                "searchEngine",
                 "growth",
                 "integrationsRestored",
             ]

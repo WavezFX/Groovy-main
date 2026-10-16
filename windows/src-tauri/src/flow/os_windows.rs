@@ -231,6 +231,45 @@ pub fn send_keys(keys: &[u16]) -> Result<(), String> {
     }
 }
 
+/// Holds the modifiers, presses the key, lets everything go: Ctrl+T, Alt+←…
+/// (the browser's shortcuts, round 4 item 4).
+pub fn send_chord(modifiers: &[u16], key: u16) -> Result<(), String> {
+    let mut inputs: Vec<INPUT> = modifiers.iter().map(|&m| key_input(m, false)).collect();
+    inputs.push(key_input(key, false));
+    inputs.push(key_input(key, true));
+    inputs.extend(modifiers.iter().rev().map(|&m| key_input(m, true)));
+    let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+    if sent as usize == inputs.len() {
+        Ok(())
+    } else {
+        Err("Windows refused the keystrokes".into())
+    }
+}
+
+/// Types text as Unicode characters into the app in front (an address bar).
+pub fn send_text(text: &str) -> Result<(), String> {
+    use windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_UNICODE;
+    let unit = |c: u16, up: bool| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: VIRTUAL_KEY(0),
+                wScan: c,
+                dwFlags: if up { KEYEVENTF_UNICODE | KEYEVENTF_KEYUP } else { KEYEVENTF_UNICODE },
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+    let inputs: Vec<INPUT> = text.encode_utf16().flat_map(|c| [unit(c, false), unit(c, true)]).collect();
+    let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+    if sent as usize == inputs.len() {
+        Ok(())
+    } else {
+        Err("Windows refused the keystrokes".into())
+    }
+}
+
 /// Ctrl+V in the app in front. Ctrl+Shift+V for a terminal that wants it.
 pub fn send_paste(shift: bool) -> Result<(), String> {
     let mut inputs = vec![key_input(VK_CONTROL, false)];

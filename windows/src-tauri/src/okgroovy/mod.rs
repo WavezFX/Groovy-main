@@ -616,6 +616,32 @@ pub fn run_tool(app: &AppHandle, name: &str, input: &Value) -> (String, bool) {
         "music" => music(app, input),
         "skills" => crate::skills::manage::voice_tool(app, input),
         "open_app" => open_app(input["name"].as_str().unwrap_or("")),
+        "browser" => {
+            use crate::browser::Action;
+            use crate::tools::Call;
+            let text = |k: &str| input[k].as_str().unwrap_or("").trim().to_string();
+            let call = match input["action"].as_str().unwrap_or("") {
+                "open" => {
+                    let url = text("url");
+                    Call::OpenUrl(if url.starts_with("http://") || url.starts_with("https://") { url } else { format!("https://{url}") })
+                }
+                "search" => Call::WebSearch(text("query")),
+                "new_tab" => Call::Browser(Action::NewTab),
+                "close_tab" => Call::Browser(Action::CloseTab),
+                "back" => Call::Browser(Action::Back),
+                "forward" => Call::Browser(Action::Forward),
+                "reload" => Call::Browser(Action::Reload),
+                "next_tab" => Call::Browser(Action::NextTab),
+                "previous_tab" => Call::Browser(Action::PreviousTab),
+                "page" => Call::Browser(Action::Page),
+                "press" => Call::Browser(Action::Press(text("name"))),
+                other => return (format!("unknown browser action {other}"), false),
+            };
+            match crate::tools::handle(call) {
+                (answer, None) => (answer, true),
+                (question, Some(_)) => (format!("Needs the user's permission first: {question}"), false),
+            }
+        }
         "prepare_email" => {
             let to = input["recipient"].as_str().unwrap_or("").trim().to_string();
             if !to.contains('@') {
