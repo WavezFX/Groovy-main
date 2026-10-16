@@ -14,6 +14,16 @@ Fix it so that nothing outside the island's rounded shape is ever drawn, in ever
 4. **If the accent blur can't be made clean on some build**, fall back automatically to a CSS glass look: a rounded, semi-transparent dark tint with a soft border, on a fully transparent window. A clean rounded island matters more than real blur. The Glass/Solid setting stays.
 5. **Test it in CI.** The smoke test sets a bright solid wallpaper colour, shows the island, takes a screenshot of its window rectangle (`CopyFromScreen`), and fails if any **corner** pixel isn't the wallpaper colour. Do this for the F layout and the E (music) layout.
 
+## Item 1b: The island must be see-through (translucent), not just rounded
+
+The owner tested it: the island must have a **translucent surface**, so the wallpaper and windows behind it visibly show through, like frosted glass. Today the fallback glass is `rgba(22, 24, 30, 0.86)`, which is nearly solid, and the tint over the accent blur is also too heavy.
+
+- **With the accent blur on:** use a light tint, alpha about **0.30–0.40**. The blurred desktop colours must clearly show through. Add a thin light rim (`rgba(255,255,255,0.18)`) and a soft top highlight, so it reads as glass.
+- **Fallback, when Windows refuses the blur:** the CSS glass uses alpha about **0.50–0.55** (not 0.86), with the same rim and highlight, so it's still clearly see-through.
+- **Readability:** keep the text readable with a subtle text shadow instead of a darker background. On very bright wallpapers, raise the tint only as far as needed (sample the average brightness behind the island at most once a minute, or when the wallpaper changes).
+- **Setting:** add **Glass strength** (Clear / Balanced / Frosted) next to Glass/Solid, with Balanced as the default. Solid stays opaque.
+- **Test:** extend `corner-test.ps1` so that over the magenta desktop, a pixel in the **middle** of the island must be visibly tinted magenta (the desktop shows through), while the corners stay pure magenta.
+
 ## Item 2: Music layout: smoother, and back to normal quicker (round 3 item 2)
 
 When Spotify starts, the island grows to the E layout, but after the music stops it takes too long to shrink back, and the change isn't smooth.

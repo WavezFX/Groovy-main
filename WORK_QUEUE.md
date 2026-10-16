@@ -17,6 +17,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. Night must look green
 - [x] 4. Choosing a look doesn't stick; the wardrobe lags
 - [x] 5. No stage picking
+- [ ] 1b. The island must be see-through (translucent). **Added after the owner's test: do this next.**
 - [ ] 6. Dictation: names and model numbers
 - [ ] 7. GitHub and the other integrations vanished from Settings
 - [ ] 8. Animate everything
