@@ -312,19 +312,19 @@ pub fn keep_newer_look(current: (&str, f64), incoming: (&str, f64)) -> (String, 
 
 /// The furthest of two growth records (round 3 item 6): the most active
 /// seconds and the highest stage reached win, so a window with an older copy
-/// never makes Groovy smaller; the stage shown is the newer one's, kept within
-/// what was reached. Anything unreadable counts as nothing.
+/// never makes Groovy smaller. There is no chosen stage any more (round 3B
+/// item 5): a saved one is dropped. Anything unreadable counts as nothing.
 pub fn merge_growth(old: &Value, new: &Value) -> Value {
     let seconds = |v: &Value| v.get("activeSeconds").and_then(Value::as_f64).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
     let stage = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).filter(|s| *s <= 5);
     let reached = stage(old, "reached").unwrap_or(0).max(stage(new, "reached").unwrap_or(0));
-    let shown = stage(new, "shown").filter(|s| *s <= reached);
     // The stage the launch intro last greeted him at (-1: never).
     let seen = stage(old, "seen").max(stage(new, "seen")).map_or(-1, |s| s.min(reached) as i64);
     serde_json::json!({
         "activeSeconds": seconds(old).max(seconds(new)),
         "reached": reached,
-        "shown": shown,
+        // No stage picking any more (round 3B item 5): a saved choice is dropped.
+        "shown": null,
         "seen": seen,
     })
 }
@@ -760,7 +760,8 @@ mod tests {
         assert_eq!(merged["activeSeconds"], 700000.0);
         assert_eq!(merged["reached"], 3);
         assert_eq!(merged["shown"], Value::Null);
-        // A newer record moves it on, and a stage not reached cannot be shown.
+        // A newer record moves it on; a chosen stage, even a reached one, is dropped.
+        assert_eq!(merge_growth(&old, &old)["shown"], Value::Null);
         let newer = serde_json::json!({ "activeSeconds": 800000.0, "reached": 4, "shown": 5 });
         let merged = merge_growth(&old, &newer);
         assert_eq!((merged["activeSeconds"].as_f64(), merged["reached"].as_u64()), (Some(800000.0), Some(4)));

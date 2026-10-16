@@ -12,7 +12,7 @@ import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
-import { parseGrowth, progressLine, showStage, shownStage } from "../mochi/growth";
+import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
@@ -131,17 +131,17 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     const current = parseSkin(settings.groovyLook);
     const g = parseGrowth(settings.growth);
     const shown = shownStage(g);
-    const pick = h("select", { "aria-label": t("Show stage") }) as HTMLSelectElement;
-    for (let i = 0; i <= g.reached; i++) pick.append(h("option", { value: String(i), text: i === g.reached ? t("Stage {n} (now)", { n: i }) : t("Stage {n}", { n: i }) }));
-    pick.value = String(shown);
-    pick.addEventListener("change", () => {
-      settings.growth = showStage(parseGrowth(settings.growth), Number(pick.value));
-      void Bridge.saveGrowth(settings.growth);
-      engine.setStage(shownStage(parseGrowth(settings.growth)), true);
-      drawAll();
-    });
+    // The stages he has already passed, as small pictures: to look at, not to pick
+    // (he always shows the stage he has grown to, round 3B item 5).
     growthRow.replaceChildren(h("span", { class: "hint", text: progressLine(g) }));
-    if (g.reached > 0) growthRow.append(h("label", { text: t("Show stage") }), pick);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    for (let i = 0; i <= g.reached; i++) {
+      const pic = spriteCanvas(lookSprite(current, i, 22, dpr), 22);
+      pic.className = i === g.reached ? "studio-stage now" : "studio-stage";
+      pic.title = t("Stage {n}", { n: i });
+      pic.setAttribute("aria-hidden", "true");
+      growthRow.append(pic);
+    }
     for (const look of SKINS) {
       if (!matches(look, SKIN_KEYS[look])) continue;
       const portrait = spriteCanvas(lookSprite(look, shown, 34, Math.min(2, window.devicePixelRatio || 1)), 34);

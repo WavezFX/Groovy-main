@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAX_STAGE, SAVE_EVERY_SECONDS, STAGE_AFTER, TICK_SECONDS, grow, mergeGrowth, migrateGrownLook, parseGrowth,
-  progressLine, showStage, shownStage, stageFor, startGrowthClock, untilNext,
+  progressLine, shownStage, stageFor, startGrowthClock, untilNext,
 } from "../src/mochi/growth.ts";
 import { GROWN_STYLES, SKINS, SKIN_STYLES, parseSkin, styleAt } from "../src/mochi/skins.ts";
 
@@ -41,19 +41,15 @@ test("the furthest of two copies wins, as Rust keeps them", () => {
   const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3 };
   const stale = { activeSeconds: 2 * DAY, reached: 1, shown: null };
   assert.deepEqual(mergeGrowth(island, stale), { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3 });
-  assert.deepEqual(mergeGrowth(stale, island), { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3 });
+  assert.deepEqual(mergeGrowth(stale, island), { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3 });
   assert.deepEqual(mergeGrowth("junk", null), { activeSeconds: 0, reached: 0, shown: null, seen: -1 });
 });
 
-test("only a stage already reached can be shown", () => {
-  const g = parseGrowth({ activeSeconds: 8 * DAY });
+test("no stage picking: he always shows the stage he has grown to, and an old choice is dropped", () => {
+  const g = parseGrowth({ activeSeconds: 8 * DAY, shown: 1 });
+  assert.equal(g.shown, null);
   assert.equal(shownStage(g), 3);
-  assert.equal(shownStage(showStage(g, 1)), 1);
-  assert.equal(shownStage(showStage(g, 0)), 0);
-  assert.equal(shownStage(showStage(g, 5)), 3, "not reached yet");
-  assert.equal(showStage(g, 3).shown, null, "the stage reached is the default, not a choice");
-  assert.equal(shownStage(showStage(g, 2.5)), 3);
-  assert.equal(parseGrowth({ activeSeconds: 8 * DAY, shown: 4 }).shown, null);
+  assert.equal(shownStage(parseGrowth({ activeSeconds: 8 * DAY, reached: 4, shown: 0 })), 4);
 });
 
 test("the progress line is rough and says when he is fully grown", () => {
@@ -63,8 +59,6 @@ test("the progress line is rough and says when he is fully grown", () => {
   assert.equal(progressLine(parseGrowth({ activeSeconds: DAY - 5 * 3600 })), "Stage 0 of 5 · next in about 5 hours");
   assert.equal(progressLine(parseGrowth({ activeSeconds: 31 * DAY })), "Stage 5 of 5 · fully grown");
   assert.equal(untilNext(parseGrowth({ activeSeconds: 31 * DAY })), null);
-  // A smaller stage shown still says how far he has really got.
-  assert.equal(progressLine(showStage(parseGrowth({ activeSeconds: 4 * DAY }), 0)), "Stage 0 of 5 · next in about 3 days");
 });
 
 test("Grove, Blaze and Tide become their base look, fully grown", () => {

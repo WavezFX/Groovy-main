@@ -2455,18 +2455,14 @@ input[type="range"]::-webkit-slider-thumb {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.wardrobe-stage {
-  height: 20px;
-  padding: 0 4px;
+/* The stages he has passed, in the Wardrobe Studio: pictures, not choices. */
+.studio-stage {
   border-radius: 6px;
-  border: 1px solid var(--hairline);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  font-family: inherit;
-  font-size: 10px;
+  opacity: 0.6;
 }
-.wardrobe-stage option {
-  background: #1b1d22;
+.studio-stage.now {
+  opacity: 1;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
 /* Head, Face, Neck: one row each, its None first (round 3 item 5). */

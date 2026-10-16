@@ -13635,28 +13635,6 @@
    "ru": "следующий примерно через {n} дн.",
    "id": "berikutnya sekitar {n} hari lagi"
   },
-  "Show stage": {
-   "zh-Hans": "显示阶段",
-   "hi": "चरण दिखाएँ",
-   "es": "Mostrar etapa",
-   "ar": "عرض المرحلة",
-   "fr": "Étape affichée",
-   "bn": "ধাপ দেখান",
-   "pt-BR": "Mostrar estágio",
-   "ru": "Показать этап",
-   "id": "Tampilkan tahap"
-  },
-  "Stage {n} (now)": {
-   "zh-Hans": "第 {n} 阶段（当前）",
-   "hi": "चरण {n} (अभी)",
-   "es": "Etapa {n} (ahora)",
-   "ar": "المرحلة {n} (الآن)",
-   "fr": "Étape {n} (actuelle)",
-   "bn": "ধাপ {n} (এখন)",
-   "pt-BR": "Estágio {n} (agora)",
-   "ru": "Этап {n} (сейчас)",
-   "id": "Tahap {n} (sekarang)"
-  },
   "Stage {n}": {
    "zh-Hans": "第 {n} 阶段",
    "hi": "चरण {n}",
