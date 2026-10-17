@@ -94,13 +94,27 @@ mod os {
         }
     }
 
+    fn variant() -> String {
+        std::env::var("GROOVY_BACKDROP").unwrap_or_else(|_| "full".into())
+    }
+
     fn build(app: &AppHandle) -> windows::core::Result<Tree> {
+        let v = variant();
+        crate::log::line(format!("backdrop diag: variant {v}"));
+        if v == "off" {
+            return Err(windows::core::Error::from(windows::core::HRESULT(-1)));
+        }
         let win = app.get_webview_window(crate::island::WINDOW_LABEL).ok_or_else(|| windows::core::Error::from(windows::core::HRESULT(-1)))?;
         let hwnd = HWND(win.hwnd().map_err(|_| windows::core::Error::from(windows::core::HRESULT(-1)))?.0);
         unsafe {
             // Windows 11 draws the host backdrop for windows that ask for it.
             let on: windows::core::BOOL = true.into();
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_HOSTBACKDROPBRUSH, &on as *const _ as *const _, std::mem::size_of_val(&on) as u32)?;
+            if v != "noattr" {
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_HOSTBACKDROPBRUSH, &on as *const _ as *const _, std::mem::size_of_val(&on) as u32)?;
+            }
+            if v == "attronly" {
+                return Err(windows::core::Error::from(windows::core::HRESULT(-1)));
+            }
             let queue = CreateDispatcherQueueController(DispatcherQueueOptions {
                 dwSize: std::mem::size_of::<DispatcherQueueOptions>() as u32,
                 threadType: DQTYPE_THREAD_CURRENT,
@@ -117,7 +131,11 @@ mod os {
             root.SetClip(&compositor.CreateGeometricClipWithGeometry(&clip)?)?;
             let blur = compositor.CreateSpriteVisual()?;
             blur.SetRelativeSizeAdjustment(Vector2 { X: 1.0, Y: 1.0 })?;
-            blur.SetBrush(&compositor.CreateHostBackdropBrush()?)?;
+            if v == "solid" {
+                blur.SetBrush(&compositor.CreateColorBrushWithColor(windows::UI::Color { A: 255, R: 0, G: 255, B: 0 })?)?;
+            } else {
+                blur.SetBrush(&compositor.CreateHostBackdropBrush()?)?;
+            }
             root.Children()?.InsertAtTop(&blur)?;
             // The clip follows the island with the same timing as its unfold.
             let follow = compositor.CreateImplicitAnimationCollection()?;
@@ -136,6 +154,10 @@ mod os {
 
     pub fn shape(rect: (f32, f32, f32, f32, f32)) {
         let (x, y, w, h, r) = rect;
+        static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        if N.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 6 {
+            crate::log::line(format!("backdrop diag: clip {x},{y} {w}x{h} r{r}"));
+        }
         TREE.with(|t| {
             if let Some(tree) = t.borrow().as_ref() {
                 // Rounded all round, but starting one radius above the top:

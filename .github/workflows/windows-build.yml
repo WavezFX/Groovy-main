@@ -138,6 +138,29 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
+      - name: Backdrop diagnostics (diag branch only)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          foreach ($v in @("off", "attronly", "noattr", "solid", "full")) {
+            Write-Host "===== variant $v"
+            $env:GROOVY_BACKDROP = $v
+            try { ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir "diag-shots/$v" } catch { Write-Host "  (variant $v: $_)" }
+            $log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
+            if (Test-Path $log) { Get-Content $log | Select-String "backdrop diag" | Select-Object -Last 8 | ForEach-Object { Write-Host "  log: $_" } }
+          }
+          Remove-Item Env:GROOVY_BACKDROP
+
+      - name: Upload the diagnostic shots
+        uses: actions/upload-artifact@v7
+        with:
+          name: diag-shots
+          path: windows/diag-shots/
+
+      - name: Stop here on the diag branch
+        shell: pwsh
+        run: exit 1
+
       - name: Nothing but the island is drawn, and it is frosted (F and E)
         shell: pwsh
         run: ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir corner-shots
