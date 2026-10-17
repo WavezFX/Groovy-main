@@ -1,3 +1,4 @@
+// An experiment, off unless GROOVY_BACKDROP=composition (see `start`).
 // Real frosted glass on Windows 11 (round 3C item 1): a Windows.UI.Composition
 // visual tree under the island's webview, with the host backdrop brush (what
 // is behind the window, blurred the way Windows 11's own flyouts are) clipped
@@ -26,6 +27,20 @@ pub fn active() -> bool {
 pub fn start(app: &AppHandle) -> bool {
     if STATE.load(Ordering::Relaxed) != 0 {
         return active();
+    }
+    // Not by default. CI's corner test showed that once a DesktopWindowTarget
+    // is attached, the island's window draws an opaque surface over its whole
+    // rectangle: the visuals beneath never show (not even a plain colour), and
+    // the window region no longer cuts the corners. A visual tree under a
+    // window's content needs a window made without a redirection surface,
+    // which the webview's window isn't and can't become afterwards. The
+    // island uses DWM's acrylic blur instead (glass.rs, also Windows
+    // composition, clipped by the region). GROOVY_BACKDROP=composition still
+    // tries this path, to test it on a PC.
+    if std::env::var("GROOVY_BACKDROP").as_deref() != Ok("composition") {
+        STATE.store(2, Ordering::Relaxed);
+        crate::log::line("glass: acrylic blur behind (composition backdrop not used)");
+        return false;
     }
     let on = os::start(app);
     STATE.store(if on { 1 } else { 2 }, Ordering::Relaxed);
