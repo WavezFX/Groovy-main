@@ -814,7 +814,14 @@ function buildSettings(actions: ViewActions): ViewHost {
       : t("Groovy speaks with Windows' own voice.");
   }
 
-  const el = h("div", { class: "view qs-view" }, card(null, h("div", { class: "stack", style: "padding:16px 16px 10px 84px" }, rows)));
+  // The first unfold used to drop one frame (CI's frame test: 47–63 ms, never
+  // on later opens): the status lines' ✓ / ✗ / « » were shaped for the first
+  // time just then, and Windows looked up a fallback font for them. Shape
+  // them once while idle at start, and fill the lines then too.
+  const warm = h("span", { class: "qs-warm", "aria-hidden": "true", text: "✓ ✗ · « » →" });
+  const el = h("div", { class: "view qs-view" }, card(null, h("div", { class: "stack", style: "padding:16px 16px 10px 84px" }, rows)), warm);
+  const idle = (fn: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1500));
+  idle(() => void refresh());
 
   let wasShown = false;
   return {

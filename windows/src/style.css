@@ -1041,6 +1041,16 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* Round 4 item 2: quick settings, unfolded out of the island by the gear. */
+/* Shapes the quick settings' symbols at start (views.ts buildSettings); never seen. */
+.qs-warm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  font-size: 12px;
+}
+
 .qs {
   display: flex;
   flex-direction: column;
