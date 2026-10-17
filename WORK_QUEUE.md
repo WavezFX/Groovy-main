@@ -27,7 +27,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 9. Checks
 
 ## 1C. Fixes round 3C: `FIXES_ROUND3C.md` (the owner's 0.6.0 test). **Do this next, after the item in progress.**
-- [ ] 1. Real frosted glass: translucent and blurred, clipped to the island's shape
+- [x] 1. Real frosted glass: translucent and blurred, clipped to the island's shape
 - [ ] 2. Hover opens the island; leaving closes it
 - [ ] 3. Bigger icons and controls (Spotify buttons)
 - [ ] 4. Tiles open in the island (soft settings): Reminders, This PC, Mail, Spotify and the others

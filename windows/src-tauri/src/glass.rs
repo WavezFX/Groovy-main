@@ -107,10 +107,21 @@ pub fn apply(app: &AppHandle) {
     let now = match (glass, before) {
         // Already blurred (or on the page's glass): nothing to ask Windows again.
         (true, Look::Blur | Look::Css) => before,
+        // Round 3C item 1: Windows 11's host backdrop, clipped to the island's
+        // shape, before anything else; then the accent blur if it stays in the
+        // shape; else the page's tint, opaque enough to read.
+        (true, Look::Solid) if crate::backdrop::active() => {
+            crate::backdrop::show(app, true);
+            Look::Blur
+        }
         (true, Look::Solid) => decide(true, !BLUR_LEAKS.load(Ordering::Relaxed) && os::set_accent(&win, true)),
         (false, _) => {
             if before == Look::Blur {
-                os::set_accent(&win, false);
+                if crate::backdrop::active() {
+                    crate::backdrop::show(app, false);
+                } else {
+                    os::set_accent(&win, false);
+                }
             }
             Look::Solid
         }
@@ -120,7 +131,7 @@ pub fn apply(app: &AppHandle) {
     if now != before {
         crate::log::line(format!("island style: {}", now.as_str()));
         let _ = app.emit_to(WINDOW_LABEL, "island-glass", now.as_str());
-        if now == Look::Blur {
+        if now == Look::Blur && !crate::backdrop::active() {
             check_blur_later(app.clone());
         }
     }
@@ -149,7 +160,21 @@ fn check_blur_later(app: AppHandle) {
             }
         }
         let Some((win, (corner, beside))) = reading else { return };
-        if blur_leaks(corner, &beside) {
+        // Something dark behind the corner (a dark browser tab) looks like the
+        // tint: the blur is turned off for a moment, and only if the corner
+        // then changes was it the blur (round 3C item 1: a false alarm here
+        // left the owner with clear glass).
+        let confirmed = blur_leaks(corner, &beside) && {
+            os::set_accent(&win, false);
+            std::thread::sleep(Duration::from_millis(250));
+            let without = os::corner_pixels(&win).map(|(c, _)| c);
+            let ours = without.is_some_and(|c| !blur_leaks(c, &beside));
+            if !ours {
+                os::set_accent(&win, true);
+            }
+            ours
+        };
+        if confirmed {
             os::set_accent(&win, false);
             BLUR_LEAKS.store(true, Ordering::Relaxed);
             LOOK.store(Look::Css as u8, Ordering::Relaxed);
@@ -201,7 +226,14 @@ fn reshape(win: &tauri::WebviewWindow) {
     if let Ok(size) = win.inner_size() {
         shape.0 = centred_left(size.width as f64 / scale, shape.2);
     }
-    os::set_region(win, region(shape, scale));
+    let r = region(shape, scale);
+    os::set_region(win, r);
+    // The frosted backdrop is clipped to the same shape (round 3C item 1).
+    if crate::backdrop::active() {
+        let (x, y, w, h, radius) = shape;
+        let px = |v: f64| (v * scale) as f32;
+        crate::backdrop::shape(win.app_handle(), (px(x), px(y), px(w), px(h), px(radius.clamp(0.0, h.min(w / 2.0)))));
+    }
     // Windows works out where the accent blur goes when it is set: set after
     // a new region, or it keeps filling the old one (CI's corner test saw the
     // tint in the corners, round 3B item 1).

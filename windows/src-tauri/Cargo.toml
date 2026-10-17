@@ -78,6 +78,8 @@ bzip2 = "0.5"
 tar = { version = "0.4", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
+# Vector2 for the composition backdrop (backdrop.rs), the version windows 0.61 uses.
+windows-numerics = { version = "0.2", default-features = false }
 keyring = { version = "3", features = ["windows-native"] }
 # The island's file drop reads paths straight from WebView2 (webview_drop.rs).
 # Same versions as wry, so nothing new is compiled.
@@ -123,6 +125,14 @@ windows = { version = "0.61", features = [
   # Dictation learns from corrections: the focused field's text (flow/os_windows.rs).
   "Win32_UI_Accessibility",
   "Win32_UI_WindowsAndMessaging",
+  # Round 3C item 1: the frosted island, a composition backdrop under the webview.
+  "System",
+  "UI",
+  "UI_Composition",
+  "UI_Composition_Desktop",
+  "Win32_Graphics_Dwm",
+  "Win32_System_WinRT",
+  "Win32_System_WinRT_Composition",
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

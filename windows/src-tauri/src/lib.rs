@@ -17,6 +17,7 @@ mod github;
 mod hooks;
 mod i18n;
 mod idle;
+mod backdrop;
 mod pc;
 mod browser;
 mod calls;
@@ -1586,6 +1587,8 @@ pub fn run() {
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
+            // On the main thread: the composition backdrop needs its message loop.
+            backdrop::start(&handle);
             glass::spawn_watch(handle.clone());
             Ok(())
         })
