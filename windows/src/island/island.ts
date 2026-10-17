@@ -1587,7 +1587,7 @@ export class Island {
         this.focusWanted = wantsFocus;
         // Only the chat takes the keyboard at once (round 3B item 8b: activating
         // the window cost a 60-110 ms frame as quick settings opened).
-        void Bridge.focusWindow(wantsFocus, State.view === "prompt");
+        if (!(window as unknown as { __qsNoFocus?: boolean }).__qsNoFocus) void Bridge.focusWindow(wantsFocus, State.view === "prompt");
       }
       if (toChat) window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
     }

@@ -138,24 +138,16 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
-      - name: Backdrop diagnostics (diag branch only)
+      - name: Quick settings frame diagnostics (diag branch only)
         shell: pwsh
         continue-on-error: true
-        run: |
-          foreach ($v in @("off", "attronly", "noattr", "solid", "full")) {
-            Write-Host "===== variant $v"
-            $env:GROOVY_BACKDROP = $v
-            try { ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir "diag-shots/$v" } catch { Write-Host "  (variant ${v}: $_)" }
-            $log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
-            if (Test-Path $log) { Get-Content $log | Select-String "backdrop diag" | Select-Object -Last 8 | ForEach-Object { Write-Host "  log: $_" } }
-          }
-          Remove-Item Env:GROOVY_BACKDROP
+        run: ./scripts/frame-test.ps1 -Exe release/groovy.exe -Trace frame-diag.json -TimeoutSeconds 90
 
-      - name: Upload the diagnostic shots
+      - name: Upload the diagnostic trace
         uses: actions/upload-artifact@v7
         with:
-          name: diag-shots
-          path: windows/diag-shots/
+          name: frame-diag
+          path: windows/frame-diag.json
 
       - name: Stop here on the diag branch
         shell: pwsh

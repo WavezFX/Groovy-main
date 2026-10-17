@@ -828,7 +828,7 @@ function buildSettings(actions: ViewActions): ViewHost {
       segButtons.forEach((b, i) => b.classList.toggle("on", chosen === AUTO_CLOSE_CHOICES[i]));
       // Fresh each time it unfolds: the AI, the microphone and the voice may have changed.
       const shown = State.view === "settings" && State.mode === "expanded";
-      if (shown && !wasShown) void refresh();
+      if (shown && !wasShown && !(window as unknown as { __qsNoStatus?: boolean }).__qsNoStatus) void refresh();
       wasShown = shown;
     },
   };
