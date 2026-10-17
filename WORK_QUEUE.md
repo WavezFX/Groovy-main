@@ -6,6 +6,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - **Pushing:** push after every item so the Windows build runs.
 - **Red builds:** if a build goes red, fix that first, before the next item.
 - **When briefs disagree:** the **later** item on this list wins. The overlaps are noted below.
+- **Memory rule for every item:** Groovy stays **under 300 MB idle and never over 400 MB at peak**, counting all of its own processes (round 3D item 7).
 - **Don't remove existing features,** including brain switching and the `Brain` interface, unless a brief says to.
 
 ## 0. Make CI green
@@ -41,6 +42,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 3. Rebuild every page on the template (screenshots in CI)
 - [ ] 4. Animation and feel in Settings
 - [ ] 5. Local AI through Ollama + Qwen first (like Butler), built-in model as fallback
+- [ ] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [ ] 6. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`

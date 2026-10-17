@@ -95,9 +95,41 @@ The owner's earlier assistant, Butler, ran **Qwen through Ollama**, and it ran s
 - **The built-in model** stays as a fallback for people without Ollama, running out of process (round 3B item 10).
 - **Tests:** mocked `/api/tags` and `/api/chat` check the order, model selection, the keep-alive, and the fallback when Ollama is down.
 
+## Item 7: A hard 400 MB ceiling, even at peak
+
+The owner's rule: **Groovy must never use more than 400 MB of RAM, even at peak use.** The idle budget (300 MB, round 3B item 10) stays as well.
+
+**What counts:** every process Groovy owns, measured as the private working set (the "Memory" column in Task Manager):
+- the main process;
+- all its WebView2 children (island, Settings, renderer, GPU, utilities);
+- any helper processes Groovy starts, such as speech, ffmpeg or a built-in model.
+
+Apps the user installed themselves (Ollama, LM Studio, Spotify, ArtCraft) are their own processes and don't count. Settings → System should say so plainly.
+
+**Peak scenario test in CI** (fails if the total is ever above 400 MB, sampled every 250 ms). Run all of this at once:
+- the island open with the music layout;
+- Settings open on the heaviest page;
+- a dictation, a live voice call (with the speaking voice), and an OK Groovy command;
+- a mail refresh, Reminders open in the island, and the wardrobe open.
+
+Also report the peak and the idle numbers in `STATUS.md`.
+
+How to stay under the ceiling:
+- **At most one extra WebView at a time** besides the island. Opening Settings closes any other panel window, and the wardrobe and detail cards live inside the island page, not in new windows.
+- **Local speech recognition must fit.** Parakeet (about 670 MB) can't fit under 400 MB.
+  - Make the default offline engine a small model in a helper process: for example Whisper base or small (int8), or Moonshine, at about 60–250 MB. Cloud speech recognition still comes first.
+  - Keep Parakeet as an optional "High accuracy (uses more memory)" choice, **off by default**. When it's chosen, Settings clearly says it goes over Groovy's 400 MB limit.
+  - Free the speech model after idle (round 3B item 10).
+- **Only one model loaded at a time:** never speech recognition and the voice model together if that would cross the limit. Queue or stream instead.
+- **Local AI:**
+  - Ollama or LM Studio (round 3D item 5) does the thinking in its own app, so Groovy stays under 400 MB.
+  - The **built-in local model can't fit** (even a 0.5B model needs about 400 MB on its own). Keep it, but **off by default**, labelled "Uses extra memory: over Groovy's 400 MB limit". The CI peak test runs with it off.
+- **Caches:** cap the image, sprite and mail caches, and use bounded queues everywhere. Watch WebView2 memory: when the total nears 380 MB, Groovy drops its caches, sets `MemoryUsageTargetLevel` to Low on hidden views and closes the least-recently-used panel.
+- **Kokoro voice (local TTS):** load it on demand and free it when idle. It must fit within the peak scenario, or run in a helper process that's freed straight away.
+
 ## Item 6: Checks
 
 - All tests pass.
 - Settings screenshots are uploaded for every page.
-- Idle memory stays under 300 MB and CPU near 0 with Settings closed, and Settings closes fully (round 3B item 10).
+- Idle memory stays under 300 MB, the **peak stays under 400 MB** (item 7), and CPU near 0 with Settings closed, and Settings closes fully (round 3B item 10).
 - No setting was lost: a test loads an old settings file and checks that every key is still reachable in the new layout.
