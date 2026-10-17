@@ -7,7 +7,7 @@
 import "./hub.css";
 import { h, clear } from "../views/dom";
 import { t } from "../i18n/i18n";
-import { onEvent } from "../core/bridge";
+import { Bridge, onEvent } from "../core/bridge";
 import { FlowBridge, type FlowPrefs, type FlowStatus, type ModelsStatus } from "../core/flow";
 import { hero, liveGroovy } from "./hero";
 import { icon, keyLabel } from "./ui";
@@ -205,6 +205,12 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
   drawStatus();
   await show(current);
 
+  // Opening (round 3C item 6): Rust shows the window only after this first
+  // paint, then grows it out of the island; the page slides in after it.
+  void onEvent<null>("hub-shown", () => document.body.classList.add("shown"));
+  requestAnimationFrame(() => requestAnimationFrame(() => void Bridge.hubPainted()));
+  // Outside Groovy (the dev page) nothing says so: shown after a moment.
+  window.setTimeout(() => document.body.classList.add("shown"), 3000);
   // Closing: the page folds up while the window shrinks back into the island.
   void onEvent<null>("hub-closing", () => document.body.classList.add("closing"));
   void onEvent<string>("hub-page", (page) => {

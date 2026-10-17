@@ -402,6 +402,50 @@ pub fn pin_to_monitor(_win: &WebviewWindow, _x: i32, _y: i32) {}
 
 /// Moves and sizes the window in one step (physical pixels), so the island,
 /// anchored at the top centre, never shows a frame at the wrong place.
+/// The whole window's opacity (0–255), for Settings' fade in and out (round 3C
+/// item 6): a layered window, faded by DWM. None turns layering off again, so
+/// the window draws as usual once it is fully shown.
+pub fn set_window_alpha(win: &WebviewWindow, alpha: Option<u8>) {
+    use ::windows::Win32::Foundation::COLORREF;
+    use ::windows::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetLayeredWindowAttributes, SetWindowLongPtrW, GWL_EXSTYLE, LWA_ALPHA, WS_EX_LAYERED};
+    let Some(hwnd) = hwnd_of(win) else { return };
+    unsafe {
+        let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        match alpha {
+            Some(a) => {
+                if style & WS_EX_LAYERED.0 as isize == 0 {
+                    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED.0 as isize);
+                }
+                let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), a, LWA_ALPHA);
+            }
+            None => {
+                if style & WS_EX_LAYERED.0 as isize != 0 {
+                    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style & !(WS_EX_LAYERED.0 as isize));
+                }
+            }
+        }
+    }
+}
+
+/// Windows' apps are in dark mode (Settings → Personalisation → Colours).
+pub fn apps_dark() -> bool {
+    use ::windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
+    let mut light: u32 = 0;
+    let mut size = 4u32;
+    let r = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            w!("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"),
+            w!("AppsUseLightTheme"),
+            RRF_RT_REG_DWORD,
+            None,
+            Some(&mut light as *mut u32 as *mut _),
+            Some(&mut size),
+        )
+    };
+    r.is_err() || light == 0
+}
+
 pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
     let Some(hwnd) = hwnd_of(win) else { return };
     unsafe {

@@ -163,6 +163,18 @@ jobs:
           path: windows/frame-trace.json
           if-no-files-found: ignore
 
+      - name: Settings grows out of the island and fades in (no flash), and folds back
+        shell: pwsh
+        run: ./scripts/settings-anim-test.ps1 -Exe release/groovy.exe -Out settings-anim.json
+
+      - name: Upload the Settings animation samples
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: settings-anim
+          path: windows/settings-anim.json
+          if-no-files-found: ignore
+
       - name: Install with the NSIS installer and smoke test it offline
         shell: pwsh
         run: |

@@ -492,6 +492,8 @@ export const Bridge = {
 
   /** Opens the Control Centre, on `page` when given ("island", "reminders"…). */
   openSettingsWindow: (page?: string) => call<void>("open_settings_window", { page: page ?? null }),
+  /** The Control Centre's first paint: Rust shows its window only after it. */
+  hubPainted: () => call<void>("hub_painted"),
   /** "My island" (island_tiles.rs): apps that can go on it, opening a tile, mail pop-ups. */
   islandApps: () => call<{ name: string; target: string }[]>("island_apps"),
   islandLaunch: (kind: string, target: string) => callOrThrow<void>("island_launch", { kind, target }),

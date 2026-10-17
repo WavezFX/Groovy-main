@@ -1068,9 +1068,23 @@ input[type="checkbox"] {
 }
 body.hub-window #hub {
   transform-origin: 50% 0;
-  animation: hub-open 320ms var(--ease-out) both;
+  opacity: 0;
+}
+/* After the window has started to grow (hub-shown), a little behind it. */
+body.hub-window.shown #hub {
+  animation: hub-open 320ms var(--ease-out) 90ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.hub-window.shown #hub {
+    animation: hub-fade 180ms linear both;
+  }
+}
+@keyframes hub-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 body.hub-window.closing #hub {
+  animation: none;
   transition:
     opacity 200ms ease-in,
     transform 200ms ease-in;

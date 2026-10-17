@@ -936,6 +936,7 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
         return;
     }
     let app = app.clone();
+    *HUB_PAINTED.0.lock().unwrap() = false;
     let url = page_url(&app, "settings.html", hub_query(page).as_deref());
     let _ = std::thread::Builder::new().name("groovy-hub-window".into()).spawn(move || {
         let built = WebviewWindowBuilder::new(&app, HUB_LABEL, url)
@@ -946,6 +947,9 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
             .resizable(true)
             .center()
             .focused(true)
+            // No white flash: the webview's own background is the page's, and the
+            // window stays hidden until the page has painted (round 3C item 6).
+            .background_color(if platform::apps_dark() { tauri::window::Color(11, 12, 14, 255) } else { tauri::window::Color(243, 244, 246, 255) })
             // Shown where the island is, then grown to its place (grow_out_of_island).
             .visible(false)
             .build();
@@ -967,7 +971,7 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
                         let _ = std::thread::Builder::new().name("groovy-hub-close".into()).spawn(move || {
                             let _ = win.emit("hub-closing", ());
                             if let (Some(from), Some(to)) = (window_rect(&win), island_spot(&app)) {
-                                animate_window(&win, from, to, 200);
+                                animate_window(&win, from, to, 240, (255, 0));
                             }
                             let _ = win.destroy();
                             CLOSING.store(false, Ordering::SeqCst);
@@ -1012,43 +1016,74 @@ fn animation_effects_on() -> bool {
     true
 }
 
-/// Moves and sizes a window from one rectangle to another over `ms`, eased
-/// out (the shared motion: src/core/motion.ts). With Windows' animation
-/// effects off it goes straight there; the page only fades.
-fn animate_window(win: &tauri::WebviewWindow, from: (f64, f64, f64, f64), to: (f64, f64, f64, f64), ms: u64) {
+/// One step of a window animation: where it is and how opaque, `k` of the way.
+pub(crate) fn window_step(from: (f64, f64, f64, f64), to: (f64, f64, f64, f64), alpha: (u8, u8), k: f64) -> ((i32, i32, u32, u32), u8) {
+    let lerp = |a: f64, b: f64| a + (b - a) * k;
+    (
+        (lerp(from.0, to.0).round() as i32, lerp(from.1, to.1).round() as i32, lerp(from.2, to.2).round().max(1.0) as u32, lerp(from.3, to.3).round().max(1.0) as u32),
+        lerp(alpha.0 as f64, alpha.1 as f64).round().clamp(0.0, 255.0) as u8,
+    )
+}
+
+/// Moves, sizes and fades a window from one rectangle and opacity to another
+/// over `ms`, eased out (the shared motion: src/core/motion.ts). With
+/// Windows' animation effects off (reduce motion) it only fades, in place.
+fn animate_window(win: &tauri::WebviewWindow, from: (f64, f64, f64, f64), to: (f64, f64, f64, f64), ms: u64, alpha: (u8, u8)) {
     const STEP: u64 = 16;
-    let ms = if animation_effects_on() { ms } else { 0 };
+    let motion = animation_effects_on();
+    let (from, ms) = if motion { (from, ms) } else { (to, 180) };
     let steps = (ms / STEP).max(1);
     for i in 1..=steps {
         let k = 1.0 - (1.0 - i as f64 / steps as f64).powi(3);
-        let lerp = |a: f64, b: f64| a + (b - a) * k;
-        platform::set_bounds(
-            win,
-            lerp(from.0, to.0).round() as i32,
-            lerp(from.1, to.1).round() as i32,
-            lerp(from.2, to.2).round().max(1.0) as u32,
-            lerp(from.3, to.3).round().max(1.0) as u32,
-        );
+        let ((x, y, w, h), a) = window_step(from, to, alpha, k);
+        if motion {
+            platform::set_bounds(win, x, y, w, h);
+        }
+        platform::set_window_alpha(win, Some(a));
         std::thread::sleep(std::time::Duration::from_millis(STEP));
     }
 }
 
-/// The Control Centre opens out of the island: it starts small where the
-/// island is and grows to its place while its page fades in (round 3B item 8).
+/// The page's first paint (settings.html calls `hub_painted`): the window is
+/// shown only after it, so it never flashes white or empty.
+static HUB_PAINTED: (Mutex<bool>, std::sync::Condvar) = (Mutex::new(false), std::sync::Condvar::new());
+
+#[tauri::command]
+fn hub_painted() {
+    *HUB_PAINTED.0.lock().unwrap() = true;
+    HUB_PAINTED.1.notify_all();
+}
+
+/// Waits for the first paint, at most `limit`.
+fn wait_painted(limit: std::time::Duration) -> bool {
+    let guard = HUB_PAINTED.0.lock().unwrap();
+    let (guard, _) = HUB_PAINTED.1.wait_timeout_while(guard, limit, |painted| !*painted).unwrap();
+    *guard
+}
+
+/// The Control Centre opens out of the island (round 3C item 6): hidden and
+/// fully transparent until its page has painted, then it grows from the
+/// island's place and size to its own while fading in, over 320 ms; the page
+/// slides in after it (hub-shown).
 fn grow_out_of_island(app: &AppHandle, win: &tauri::WebviewWindow) {
+    let painted = wait_painted(std::time::Duration::from_millis(2500));
+    if !painted {
+        log::line("control centre: no first paint after 2.5 s, shown anyway");
+    }
     let Some(to) = window_rect(win) else {
         let _ = win.show();
+        let _ = win.emit("hub-shown", ());
         return;
     };
-    let Some(from) = island_spot(app) else {
-        let _ = win.show();
-        let _ = win.set_focus();
-        return;
-    };
+    // No island to grow from (it is hidden on another screen…): a fade in place.
+    let from = island_spot(app).unwrap_or(to);
+    platform::set_window_alpha(win, Some(0));
     platform::set_bounds(win, from.0 as i32, from.1 as i32, from.2 as u32, from.3 as u32);
     let _ = win.show();
     let _ = win.set_focus();
-    animate_window(win, from, to, 300);
+    let _ = win.emit("hub-shown", ());
+    animate_window(win, from, to, 320, (0, 255));
+    platform::set_window_alpha(win, None);
 }
 
 /// The Control Centre window (every setting, Flow dictation, the Notetaker…),
@@ -1227,6 +1262,11 @@ pub fn run() {
             // settings run where we can't listen for keys ourselves (Wayland).
             match shortcuts::from_args(&argv) {
                 Some(action) => shortcuts::dispatch(app, action),
+                // `groovy --settings [page]`: opens the Control Centre (and its open/close test).
+                None if argv.iter().any(|a| a == "--settings") => {
+                    let page = argv.iter().skip_while(|a| *a != "--settings").nth(1).filter(|p| !p.starts_with('-')).cloned();
+                    show_hub(app, page.as_deref());
+                }
                 None => {
                     let _ = app.emit_to(island::WINDOW_LABEL, "tray", "open".to_string());
                 }
@@ -1422,6 +1462,7 @@ pub fn run() {
             music::music_set_mode,
             db::usage_today,
             fit_zoom,
+            hub_painted,
             notify_error,
             context_menu,
             island_tiles::island_apps,
@@ -1640,6 +1681,17 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::diff_file;
+
+    #[test]
+    fn settings_grows_and_fades_from_the_island() {
+        let island = (900.0, 0.0, 360.0, 160.0);
+        let own = (500.0, 200.0, 1840.0, 1480.0);
+        assert_eq!(super::window_step(island, own, (0, 255), 0.0), ((900, 0, 360, 160), 0), "starts as the island, invisible");
+        assert_eq!(super::window_step(island, own, (0, 255), 1.0), ((500, 200, 1840, 1480), 255));
+        let ((_, _, w, _), a) = super::window_step(island, own, (0, 255), 0.5);
+        assert!(w > 360 && w < 1840 && a > 100 && a < 160);
+        assert_eq!(super::window_step(own, island, (255, 0), 1.0).1, 0, "closing fades out");
+    }
 
     #[test]
     fn every_window_asks_webview2_for_the_islands_arguments() {

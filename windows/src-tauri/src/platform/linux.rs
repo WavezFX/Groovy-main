@@ -524,6 +524,13 @@ fn start_pointer_watch() {
 /// multi-monitor Hyprland or Sway desktop the island wandered from one screen
 /// to the other every time it was remapped. A no-op for a regular window, which
 /// `set_position` already places.
+/// Window opacity is Windows-only (Settings' fade); the page's own fade covers Linux.
+pub fn set_window_alpha(_win: &WebviewWindow, _alpha: Option<u8>) {}
+
+pub fn apps_dark() -> bool {
+    true
+}
+
 pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
     let _ = win.set_resizable(true);
     let _ = win.set_size(tauri::PhysicalSize::new(w, h));
