@@ -715,6 +715,13 @@ fn quick_status_now(app: AppHandle) -> serde_json::Value {
     })
 }
 
+/// A full-screen app, a game or a presentation has the screen: the island
+/// doesn't open on hover then (round 3C item 2).
+#[tauri::command]
+fn fullscreen_busy() -> bool {
+    platform::fullscreen_busy()
+}
+
 #[tauri::command]
 fn voice_status(app: AppHandle, shared: State<'_, Shared>) -> voice::VoiceStatus {
     let model = shared.settings.lock().unwrap().voice_model.clone();
@@ -1182,6 +1189,14 @@ pub fn run() {
     }
     // Round 4 item 3: talking over Groovy stops him, by default. Installs that
     // had the old default (off) get it once.
+    // Round 3C item 2: hovering opens the island, by default. Once for installs that had click.
+    if !first_run && !loaded.hover_default {
+        loaded.open_on_hover = true;
+        loaded.hover_default = true;
+        if let Err(e) = settings::save(&loaded) {
+            log::line(format!("could not save settings: {e}"));
+        }
+    }
     if !first_run && !loaded.barge_in_default {
         loaded.voice_interrupt = true;
         loaded.barge_in_default = true;
@@ -1440,6 +1455,7 @@ pub fn run() {
             okgroovy::voice_done,
             okgroovy::okgroovy_status,
             quick_status,
+            fullscreen_busy,
             browser::browsers,
             calls::voice_call_active,
             calls::voice_basic,

@@ -955,6 +955,15 @@ function generalSection(): HTMLElement {
     onclick: () => void Bridge.reloadSounds().then(() => window.setTimeout(countCustom, 300)),
   });
 
+  // Round 3C item 2: hovering opens it (the default), or a click does.
+  const openOnHover = h("select", {}) as HTMLSelectElement;
+  openOnHover.append(h("option", { value: "hover", text: t("Open on hover") }), h("option", { value: "click", text: t("Open on click") }));
+  openOnHover.value = settings.openOnHover === false ? "click" : "hover";
+  openOnHover.addEventListener("change", () => {
+    settings.openOnHover = openOnHover.value === "hover";
+    void save();
+  });
+
   const autoClose = h("select", {},
     ...AUTO_CLOSE_CHOICES.map((c) => h("option", { value: String(c), text: c === 0 ? t("When I leave") : c === CLICK_AWAY ? t("When I click away") : t("{seconds} s after I leave", { seconds: c }) })),
   ) as HTMLSelectElement;
@@ -1010,10 +1019,10 @@ function generalSection(): HTMLElement {
     h("div", { class: "row" }, soundsFolder, reloadSounds, customCount),
     h("div", { class: "hint", text: t("Drop a file named like one of Groovy's sounds (finish.wav, approval.mp3, greet.m4a…) in the sounds folder to replace it, then Reload.") }),
     h("div", { class: "row" },
-      h("label", { text: t("Open on hover") }),
-      toggle(settings.openOnHover, (v) => { settings.openOnHover = v; void save(); }),
+      h("label", { text: t("The island opens") }),
+      openOnHover,
     ),
-    h("div", { class: "hint", text: t("Hovering the island opens it; it folds again shortly after the pointer leaves. Click inside to keep it open.") }),
+    h("div", { class: "hint", text: t("On hover: resting the pointer on the island opens it, and it folds again after the close timing below. Never while a full-screen app or game is in front.") }),
     h("div", { class: "row" },
       h("label", { text: t("Auto-close") }),
       autoClose,

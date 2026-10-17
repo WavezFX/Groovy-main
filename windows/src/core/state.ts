@@ -268,6 +268,7 @@ export interface Settings {
   /** Round 4 item 3: a short summary of each conversation goes to chat history. */
   callSummary: boolean;
   bargeInDefault: boolean;
+  hoverDefault: boolean;
   /** Round 4 item 4: "default" (Windows' own) or a browser's id. */
   browser: string;
   /** Round 4 item 4: the search engine's id, DuckDuckGo by default. */
@@ -280,7 +281,7 @@ export const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   soundVolume: 0.12,
   autoCloseInterval: 0,
-  openOnHover: false,
+  openOnHover: true,
   absenceInterval: 180,
   activeIntegrations: [
     "integration_resend", "integration_n8n", "integration_vercel", "integration_github",
@@ -330,6 +331,7 @@ export const DEFAULT_SETTINGS: Settings = {
   instantVoice: "off",
   callSummary: true,
   bargeInDefault: true,
+  hoverDefault: true,
   browser: "default",
   searchEngine: "duckduckgo",
   growth: {},

@@ -10,6 +10,8 @@ export type FsmState = "hidden" | "petit" | "home" | "groovy";
 
 /** Auto-close "When I leave" (delay 0): the grace period, seconds, so a pointer brushing the edge doesn't flicker it. */
 export const LEAVE_GRACE = 0.3;
+/** Hover intent (round 3C item 2): the pointer must rest this long before the island opens, seconds. */
+export const HOVER_INTENT = 0.15;
 /** How often a collapse held back by holdOpen looks again, seconds. */
 const HOLD_RECHECK = 1;
 
@@ -51,9 +53,12 @@ export class IslandStateMachine {
   stayVisible: (() => boolean) | null = null;
   /**
    * Hovering opens the island all the way instead of peeking (Settings →
-   * General → Open on hover, off by default), as IslandStateMachine.openOnHover.
+   * General → Open on hover, on by default since round 3C item 2), after
+   * HOVER_INTENT so a pointer passing across doesn't open it.
    */
-  openOnHover = false;
+  openOnHover = true;
+  /** False while a full-screen app or game has the screen: hovering only peeks then. */
+  hoverAllowed: (() => boolean) | null = null;
   /** Grace period after the pointer leaves a hover-opened island, seconds. */
   hoverCloseDelay = 0.6;
   /** Open because of a hover, until the user clicks inside it. */
@@ -72,6 +77,7 @@ export class IslandStateMachine {
   private byHover = false;
   private petitHide: number | null = null;
   private homeCollapse: number | null = null;
+  private hoverOpen: number | null = null;
   private greetCollapse: number | null = null;
   /** The open island is the one the intro settled into (INTRO_HOLD). */
   private afterIntro = false;
@@ -84,10 +90,21 @@ export class IslandStateMachine {
   }
 
   mouseEntered() {
-    if (this.openOnHover && (this.state === "hidden" || this.state === "petit") && !this.pinned) {
-      this.cancelTimers();
-      this.byHover = true;
-      this.transition("home");
+    if (this.openOnHover && (this.state === "hidden" || this.state === "petit") && !this.pinned && this.hoverAllowed?.() !== false) {
+      // Peek at once; open fully if the pointer is still there after the intent delay.
+      if (this.state === "hidden") {
+        this.cancelTimers();
+        this.transition("petit");
+      } else this.clear("petitHide");
+      this.clear("hoverOpen");
+      this.hoverOpen = window.setTimeout(() => {
+        this.hoverOpen = null;
+        if ((this.state === "hidden" || this.state === "petit") && !this.pinned && this.hoverAllowed?.() !== false) {
+          this.cancelTimers();
+          this.byHover = true;
+          this.transition("home");
+        }
+      }, HOVER_INTENT * 1000);
       return;
     }
     switch (this.state) {
@@ -108,6 +125,7 @@ export class IslandStateMachine {
   }
 
   mouseLeft() {
+    this.clear("hoverOpen");
     switch (this.state) {
       case "hidden":
         break;
@@ -202,7 +220,9 @@ export class IslandStateMachine {
   private scheduleHomeCollapse() {
     this.clear("homeCollapse");
     if (this.pinned) return;
-    let delay = this.byHover ? this.hoverCloseDelay : this.homeDelay;
+    // Opened by hover or by a click, leaving closes it after the close-timing
+    // setting (round 3C item 2); "When I leave" keeps the short grace.
+    let delay = this.homeDelay;
     // "Click away": leaving doesn't fold it; a click outside does (the island's blur).
     if (delay === CLICK_AWAY) {
       this.homeCollapseDueAt = null;
@@ -237,7 +257,7 @@ export class IslandStateMachine {
     }, delay * 1000);
   }
 
-  private clear(which: "petitHide" | "homeCollapse" | "greetCollapse") {
+  private clear(which: "petitHide" | "homeCollapse" | "greetCollapse" | "hoverOpen") {
     const id = this[which];
     if (id != null) window.clearTimeout(id);
     this[which] = null;

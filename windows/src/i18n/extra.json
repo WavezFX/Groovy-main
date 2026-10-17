@@ -16098,6 +16098,39 @@
    "pt-BR": "“Digite Caro Sam” — onde está o cursor.",
    "ru": "«Напечатай Dear Sam» — там, где курсор.",
    "id": "“Ketik Dear Sam” — di posisi kursor."
+  },
+  "Open on click": {
+   "zh-Hans": "点击打开",
+   "hi": "क्लिक पर खोलें",
+   "es": "Abrir al hacer clic",
+   "ar": "الفتح بالنقر",
+   "fr": "Ouvrir au clic",
+   "bn": "ক্লিকে খুলুন",
+   "pt-BR": "Abrir ao clicar",
+   "ru": "Открывать по щелчку",
+   "id": "Buka saat diklik"
+  },
+  "The island opens": {
+   "zh-Hans": "岛的打开方式",
+   "hi": "आइलैंड कैसे खुले",
+   "es": "La isla se abre",
+   "ar": "تُفتح الجزيرة",
+   "fr": "L’île s’ouvre",
+   "bn": "আইল্যান্ড খোলে",
+   "pt-BR": "A ilha abre",
+   "ru": "Остров открывается",
+   "id": "Pulau terbuka"
+  },
+  "On hover: resting the pointer on the island opens it, and it folds again after the close timing below. Never while a full-screen app or game is in front.": {
+   "zh-Hans": "悬停：指针停在岛上即打开，离开后按下面的收起时间收起。全屏应用或游戏在前台时不会打开。",
+   "hi": "होवर पर: पॉइंटर आइलैंड पर रुकते ही वह खुलता है, और नीचे दिए बंद होने के समय के बाद फिर सिमट जाता है। फ़ुल-स्क्रीन ऐप या गेम सामने हो तो कभी नहीं।",
+   "es": "Al pasar el puntero: dejarlo sobre la isla la abre, y se pliega de nuevo según el tiempo de cierre de abajo. Nunca con una app o juego a pantalla completa delante.",
+   "ar": "عند التمرير: يؤدي إبقاء المؤشر على الجزيرة إلى فتحها، وتنطوي مجددًا بعد مدة الإغلاق أدناه. لا يحدث ذلك أبدًا أثناء تشغيل تطبيق أو لعبة بملء الشاشة في المقدمة.",
+   "fr": "Au survol : laisser le pointeur sur l’île l’ouvre, et elle se replie après le délai de fermeture ci-dessous. Jamais quand une app ou un jeu en plein écran est au premier plan.",
+   "bn": "হোভারে: পয়েন্টার আইল্যান্ডে রাখলেই খোলে, আর নিচের বন্ধের সময় পরে আবার গুটিয়ে যায়। ফুল-স্ক্রিন অ্যাপ বা গেম সামনে থাকলে কখনও নয়।",
+   "pt-BR": "Ao passar o ponteiro: deixá-lo sobre a ilha a abre, e ela se recolhe depois do tempo de fechamento abaixo. Nunca com um app ou jogo em tela cheia na frente.",
+   "ru": "При наведении: остров открывается, когда указатель задерживается на нём, и сворачивается по таймингу закрытия ниже. Никогда — при полноэкранном приложении или игре.",
+   "id": "Saat diarahkan: menahan penunjuk di pulau membukanya, lalu terlipat lagi sesuai waktu tutup di bawah. Tidak pernah saat aplikasi atau game layar penuh ada di depan."
   }
  }
 }

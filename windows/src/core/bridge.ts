@@ -674,6 +674,8 @@ export const Bridge = {
 
   // ── Voice (voice.rs, livekit.rs) ──────────────────────────────────────────
   /** 16 kHz mono 16-bit samples to text; `wake` asks for the quick pass. */
+  /** A full-screen app or game has the screen (round 3C item 2). */
+  fullscreenBusy: () => call<boolean>("fullscreen_busy"),
   // Settings → Browser (round 4 item 4, browser.rs).
   browsers: () =>
     call<{ installed: { id: string; name: string }[]; default: string | null; engines: { id: string; name: string }[] }>("browsers"),

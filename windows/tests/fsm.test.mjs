@@ -10,6 +10,8 @@ let transitions;
 beforeEach(() => {
   mock.timers.enable({ apis: ["setTimeout"] });
   fsm = new IslandStateMachine();
+  // Most tests here are about the compact island and clicks; the hover tests turn it on.
+  fsm.openOnHover = false;
   transitions = [];
   fsm.onTransition = (from, to) => transitions.push(`${from}>${to}`);
 });
@@ -326,25 +328,59 @@ test("open on hover off: hovering only peeks", () => {
   assert.equal(fsm.openedByHover, false);
 });
 
-test("open on hover: hovering opens, leaving folds after the short grace period", () => {
+test("open on hover is the default (round 3C item 2)", () => {
+  assert.equal(new IslandStateMachine().openOnHover, true);
+});
+
+test("open on hover: resting 150 ms opens, leaving folds after the close-timing setting", () => {
   fsm.openOnHover = true;
+  fsm.homeToPetitDelay = 2;
   fsm.mouseEntered();
+  assert.equal(fsm.state, "petit", "it peeks at once");
+  seconds(0.14);
+  assert.equal(fsm.state, "petit");
+  seconds(0.02);
   assert.equal(fsm.state, "home");
   assert.equal(fsm.openedByHover, true);
   fsm.mouseLeft();
-  seconds(0.5);
+  seconds(1.9);
   assert.equal(fsm.state, "home");
-  seconds(0.1);
+  seconds(0.2);
   assert.equal(fsm.state, "petit");
   assert.equal(fsm.openedByHover, false);
   // From the compact island it opens again.
   fsm.mouseEntered();
+  seconds(0.2);
+  assert.equal(fsm.state, "home");
+});
+
+test("open on hover: a pointer passing across doesn't open it", () => {
+  fsm.openOnHover = true;
+  fsm.mouseEntered();
+  seconds(0.08);
+  fsm.mouseLeft();
+  seconds(1);
+  assert.equal(fsm.state, "petit");
+});
+
+test("open on hover: never while a full-screen app has the screen", () => {
+  fsm.openOnHover = true;
+  let fullScreen = true;
+  fsm.hoverAllowed = () => !fullScreen;
+  fsm.mouseEntered();
+  seconds(1);
+  assert.equal(fsm.state, "petit");
+  fullScreen = false;
+  fsm.mouseLeft();
+  fsm.mouseEntered();
+  seconds(0.2);
   assert.equal(fsm.state, "home");
 });
 
 test("open on hover: coming back before the grace period keeps it open", () => {
   fsm.openOnHover = true;
   fsm.mouseEntered();
+  seconds(0.2);
   fsm.mouseLeft();
   seconds(0.3);
   fsm.mouseEntered();
@@ -356,8 +392,9 @@ test("open on hover: a click inside makes it an ordinary open island", () => {
   fsm.openOnHover = true;
   fsm.homeToPetitDelay = 3;
   fsm.mouseEntered();
+  seconds(0.2);
   fsm.mouseLeft();
-  fsm.userInteracted();          // the short countdown becomes the normal one
+  fsm.userInteracted();
   seconds(1);
   assert.equal(fsm.state, "home");
   seconds(2);

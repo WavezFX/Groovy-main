@@ -168,6 +168,9 @@ pub struct Settings {
     /// Barge-in is on by default since round 4 item 3; turned on once for
     /// installs that had the old default (off).
     pub barge_in_default: bool,
+    /// Hover opens the island by default since round 3C item 2; turned on once
+    /// for installs that had the old default (click).
+    pub hover_default: bool,
     /// Settings → Browser (round 4 item 4): "default" (Windows' own) or a
     /// browser's id ("duckduckgo", "edge", "chrome"…).
     pub browser: String,
@@ -208,7 +211,7 @@ impl Default for Settings {
             sound_enabled: true,
             sound_volume: 0.12,
             auto_close_interval: 0.0,
-            open_on_hover: false,
+            open_on_hover: true,
             absence_interval: 180.0,
             active_integrations: vec![
                 "integration_resend".into(),
@@ -274,6 +277,7 @@ impl Default for Settings {
             instant_voice: "off".into(),
             call_summary: true,
             barge_in_default: true,
+            hover_default: true,
             browser: "default".into(),
             search_engine: "duckduckgo".into(),
             listening_view: "badge".into(),
@@ -680,6 +684,7 @@ mod tests {
   "instantVoice": "openai",
   "callSummary": false,
   "bargeInDefault": true,
+  "hoverDefault": true,
   "browser": "duckduckgo",
   "searchEngine": "google",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
@@ -1312,6 +1317,7 @@ mod tests {
                 "instantVoice",
                 "callSummary",
                 "bargeInDefault",
+                "hoverDefault",
                 "browser",
                 "searchEngine",
                 "growth",

@@ -119,6 +119,8 @@ export class Island {
 
   // Rust starts the window at full size so the launch greeting has room.
   private collapsed = false;
+  /** A full-screen app or game has the screen: hovering doesn't open the island (round 3C item 2). */
+  private fullScreenBusy = false;
   /** The island asked for keyboard focus (chat, quick settings, "Click away"). */
   private focusWanted = false;
   private collapseTimer: number | null = null;
@@ -513,6 +515,7 @@ export class Island {
     // While Groovy listens, the compact island (with its badge or strip) stays.
     this.fsm.stayVisible = () => liveBusy() || State.voiceCall;
     this.fsm.openOnHover = State.settings.openOnHover;
+    this.fsm.hoverAllowed = () => !this.fullScreenBusy;
     this.fsm.keepVisible = State.settings.keepVisible !== false;
     if (this.fsm.keepVisible && this.fsm.state === "hidden" && this.greetingShown) this.fsm.reveal();
     this.fsm.onTransition = (from, to) => {
@@ -1229,6 +1232,8 @@ export class Island {
     this.wasInIsland = inIsland;
     if (inIsland && !wasIn) {
       if (this.fsm.state === "groovy") this.intro?.hover();
+      // Asked now, answered within the hover intent's 150 ms.
+      if (State.settings.openOnHover) void Bridge.fullscreenBusy().then((b) => (this.fullScreenBusy = b === true));
       this.fsm.mouseEntered();
     }
     if (!inIsland && wasIn) {

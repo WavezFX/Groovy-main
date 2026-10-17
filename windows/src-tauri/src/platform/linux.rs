@@ -243,6 +243,10 @@ pub fn no_console(cmd: &mut Command) -> &mut Command {
     cmd
 }
 
+pub fn fullscreen_busy() -> bool {
+    false
+}
+
 pub fn open_url(url: &str) {
     let _ = Command::new("xdg-open").arg(url).spawn();
 }
