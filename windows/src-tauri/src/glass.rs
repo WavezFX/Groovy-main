@@ -147,13 +147,14 @@ pub fn apply(app: &AppHandle) {
 fn check_blur_later(app: AppHandle) {
     let _ = std::thread::Builder::new().name("groovy-glass-check".into()).spawn(move || {
         // Read once the island is open (folded away, its window is a thin strip),
-        // then keep looking for a few seconds: on CI's runner the tint sometimes
-        // only fills the corners a few seconds after the island first shows, so
-        // a single early reading missed it (build of fee1ba8).
+        // then keep looking for the first minute: the tint can only be told
+        // apart from what is behind the island once that differs from it (a
+        // dark window behind, then the desktop), so a single early reading
+        // missed it (builds of fee1ba8 and e1da2d1).
         let mut opened = None;
-        // A dark window behind the corner is only ruled out twice: the blur is
-        // never flickered off and on every second.
-        let mut tries = 2;
+        // A dark window behind the corner is ruled out at most four times: the
+        // blur is never flickered off and on every second.
+        let mut tries = 4;
         for _ in 0..60 {
             std::thread::sleep(Duration::from_millis(1000));
             if look() != Look::Blur {
@@ -164,7 +165,11 @@ fn check_blur_later(app: AppHandle) {
             let since = *opened.get_or_insert_with(std::time::Instant::now);
             if tries > 0 && blur_leaks(corner, &beside) && {
                 tries -= 1;
-                confirm_leak(&win, &beside)
+                let ours = confirm_leak(&win, &beside);
+                if !ours {
+                    crate::log::line(format!("glass check: the corner looks like the tint (rgb{corner:?}) but is what is behind; blur kept"));
+                }
+                ours
             } {
                 os::set_accent(&win, false);
                 BLUR_LEAKS.store(true, Ordering::Relaxed);
@@ -182,7 +187,7 @@ fn check_blur_later(app: AppHandle) {
 }
 
 /// How long after the island opens its corners are still checked.
-const WATCH_CORNERS: Duration = Duration::from_secs(12);
+const WATCH_CORNERS: Duration = Duration::from_secs(60);
 
 /// Something dark behind the corner (a dark browser tab) looks like the tint:
 /// the blur is turned off for a moment, and only if the corner then changes

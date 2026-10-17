@@ -156,7 +156,9 @@ foreach ($view in $Views) {
   # Only the desktop may be behind the island: whatever else is open (the
   # runner's console) would fill the corners and hide the magenta.
   $hidden = [CornerWin]::MinimizeOthers([uint32]$proc.Id)
-  Start-Sleep -Seconds 1
+  # Groovy looks at its corners every second for its first minute: a moment
+  # to see the desktop it now has behind it.
+  Start-Sleep -Seconds 3
   Write-Host "  ${view}: minimised $hidden other window(s)"
   $rects = [CornerWin]::Windows([uint32]$proc.Id)
   if ($rects.Count -eq 0) {
