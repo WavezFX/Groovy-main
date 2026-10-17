@@ -1,0 +1,17 @@
+# The Windows build links the C runtime statically: sherpa-onnx's prebuilt
+# libraries (speech/) are built /MT, every C and C++ dependency (SQLite,
+# whisper.cpp) must match, and groovy.exe then needs no Visual C++
+# redistributable on the user's PC.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# whisper.cpp (whisper-rs-sys, built with CMake) would still pick the DLL
+# runtime (/MD): its CMakeLists asks for CMake 3.5, which leaves the runtime
+# policy unset. whisper-rs-sys passes CMAKE_* variables on as -D definitions,
+# so these make it /MT like the rest. Ignored by non-MSVC compilers.
+[env]
+CMAKE_POLICY_DEFAULT_CMP0091 = "NEW"
+CMAKE_MSVC_RUNTIME_LIBRARY = "MultiThreaded"

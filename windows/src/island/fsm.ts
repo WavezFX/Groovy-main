@@ -1,0 +1,279 @@
+// Island open/close FSM — port of IslandStateMachine.swift.
+// No DOM, no Tauri: it only reports transitions.
+
+import { CLICK_AWAY } from "../core/autoclose";
+
+/** Seconds the open island stays after the launch intro, whatever the auto-close. */
+export const INTRO_HOLD = 6;
+
+export type FsmState = "hidden" | "petit" | "home" | "groovy";
+
+/** Auto-close "When I leave" (delay 0): the grace period, seconds, so a pointer brushing the edge doesn't flicker it. */
+export const LEAVE_GRACE = 0.3;
+/** Hover intent (round 3C item 2): the pointer must rest this long before the island opens, seconds. */
+export const HOVER_INTENT = 0.15;
+/** How often a collapse held back by holdOpen looks again, seconds. */
+const HOLD_RECHECK = 1;
+
+export class IslandStateMachine {
+  state: FsmState = "hidden";
+
+  onTransition: ((from: FsmState, to: FsmState) => void) | null = null;
+
+  /**
+   * home → petit delay, seconds: the auto-close preference. Changing it while a
+   * countdown runs starts that countdown again with the new delay, so an edit in
+   * Settings applies at once (IslandStateMachine.homeToPetitDelay on macOS).
+   */
+  get homeToPetitDelay(): number {
+    return this.homeDelay;
+  }
+  set homeToPetitDelay(seconds: number) {
+    if (!Number.isFinite(seconds) || (seconds < 0 && seconds !== CLICK_AWAY) || seconds === this.homeDelay) return;
+    this.homeDelay = seconds;
+    if (this.state === "home" && this.homeCollapse != null) this.scheduleHomeCollapse();
+  }
+  /** petit → hidden delay, seconds. */
+  petitToHiddenDelay = 60;
+  /**
+   * Settings → General → Always show Groovy (on by default): the closed island
+   * stays on screen as the small pill instead of hiding away.
+   */
+  keepVisible = false;
+  /** groovy → petit while the mouse hovers the greeting. */
+  greetHoverCollapseDelay = 10;
+  /** An alert waiting for an answer stays open, even when the mouse leaves. */
+  pinned = false;
+  /**
+   * Asked when the countdown ends: true keeps the island open a little longer
+   * (typing in a text field, dictating), then it asks again.
+   */
+  holdOpen: (() => boolean) | null = null;
+  /** Asked before the compact island hides: true keeps it on screen (Groovy is listening). */
+  stayVisible: (() => boolean) | null = null;
+  /**
+   * Hovering opens the island all the way instead of peeking (Settings →
+   * General → Open on hover, on by default since round 3C item 2), after
+   * HOVER_INTENT so a pointer passing across doesn't open it.
+   */
+  openOnHover = true;
+  /** False while a full-screen app or game has the screen: hovering only peeks then. */
+  hoverAllowed: (() => boolean) | null = null;
+  /** Grace period after the pointer leaves a hover-opened island, seconds. */
+  hoverCloseDelay = 0.6;
+  /** Open because of a hover, until the user clicks inside it. */
+  get openedByHover(): boolean {
+    return this.byHover;
+  }
+
+  /**
+   * When the open island will fold, on the performance.now() clock, while the
+   * mouse-leave countdown runs; null otherwise. The island draws its countdown
+   * bar from it.
+   */
+  homeCollapseDueAt: number | null = null;
+
+  private homeDelay = 15;
+  private byHover = false;
+  private petitHide: number | null = null;
+  private homeCollapse: number | null = null;
+  private hoverOpen: number | null = null;
+  private greetCollapse: number | null = null;
+  /** The open island is the one the intro settled into (INTRO_HOLD). */
+  private afterIntro = false;
+
+  // ── Inputs ──────────────────────────────────────────────────────────────────
+
+  launch() {
+    this.cancelTimers();
+    this.transition("groovy");
+  }
+
+  mouseEntered() {
+    if (this.openOnHover && (this.state === "hidden" || this.state === "petit") && !this.pinned && this.hoverAllowed?.() !== false) {
+      // Peek at once; open fully if the pointer is still there after the intent delay.
+      if (this.state === "hidden") {
+        this.cancelTimers();
+        this.transition("petit");
+      } else this.clear("petitHide");
+      this.clear("hoverOpen");
+      this.hoverOpen = window.setTimeout(() => {
+        this.hoverOpen = null;
+        if ((this.state === "hidden" || this.state === "petit") && !this.pinned && this.hoverAllowed?.() !== false) {
+          this.cancelTimers();
+          this.byHover = true;
+          this.transition("home");
+        }
+      }, HOVER_INTENT * 1000);
+      return;
+    }
+    switch (this.state) {
+      case "hidden":
+        this.cancelTimers();
+        this.transition("petit");
+        break;
+      case "petit":
+        this.clear("petitHide");
+        break;
+      case "home":
+        this.clear("homeCollapse");
+        break;
+      case "groovy":
+        this.scheduleGreetCollapse(this.greetHoverCollapseDelay);
+        break;
+    }
+  }
+
+  mouseLeft() {
+    this.clear("hoverOpen");
+    switch (this.state) {
+      case "hidden":
+        break;
+      case "petit":
+        this.schedulePetitHide();
+        break;
+      case "home":
+        this.scheduleHomeCollapse();
+        break;
+      case "groovy":
+        this.clear("greetCollapse");
+        this.transition("petit");
+        break;
+    }
+  }
+
+  click() {
+    this.byHover = false;
+    if (this.state !== "petit") return;
+    this.cancelTimers();
+    this.transition("home");
+  }
+
+  /**
+   * The launch intro ended: it settles into the open island (round 3 item 7),
+   * which then folds as any open island does when the pointer is away.
+   */
+  greetComplete() {
+    if (this.state !== "groovy") return;
+    this.cancelTimers();
+    this.afterIntro = true;
+    this.transition("home");
+  }
+
+  /** Non-alert work event: show compact from hidden. */
+  reveal() {
+    if (this.state !== "hidden") return;
+    this.cancelTimers();
+    this.transition("petit");
+    this.schedulePetitHide();
+  }
+
+  /**
+   * The user clicked inside the island: a hover-opened island now stays like
+   * any open island (normal auto-close) instead of folding once the pointer leaves.
+   */
+  userInteracted() {
+    if (!this.byHover) return;
+    this.byHover = false;
+    // The short countdown already running becomes the normal one.
+    if (this.state === "home" && this.homeCollapse != null) this.scheduleHomeCollapse();
+  }
+
+  /** Alert or explicit request: open straight to expanded. */
+  forceHome() {
+    this.byHover = false;
+    this.cancelTimers();
+    this.transition("home");
+  }
+
+  /// Explicit close (OK button, Escape, an alert being answered).
+  forcePetit() {
+    this.byHover = false;
+    this.cancelTimers();
+    this.transition("petit");
+  }
+
+  forceHidden() {
+    this.byHover = false;
+    this.cancelTimers();
+    this.transition("hidden");
+  }
+
+  // ── Timers ──────────────────────────────────────────────────────────────────
+
+  private schedulePetitHide() {
+    this.clear("petitHide");
+    // A card folded away while it waits for an answer keeps the compact island
+    // on screen, so it can be reopened (isHeldOpen on macOS).
+    if (this.pinned || this.keepVisible) return;
+    this.petitHide = window.setTimeout(() => {
+      this.petitHide = null;
+      if (this.state !== "petit" || this.pinned) return;
+      if (this.stayVisible?.()) {
+        this.schedulePetitHide();
+        return;
+      }
+      this.transition("hidden");
+    }, this.petitToHiddenDelay * 1000);
+  }
+
+  private scheduleHomeCollapse() {
+    this.clear("homeCollapse");
+    if (this.pinned) return;
+    // Opened by hover or by a click, leaving closes it after the close-timing
+    // setting (round 3C item 2); "When I leave" keeps the short grace.
+    let delay = this.homeDelay;
+    // "Click away": leaving doesn't fold it; a click outside does (the island's blur).
+    if (delay === CLICK_AWAY) {
+      this.homeCollapseDueAt = null;
+      return;
+    }
+    // Just after the intro, Up next stays long enough to be read.
+    if (this.afterIntro) delay = Math.max(delay, INTRO_HOLD);
+    this.afterIntro = false;
+    const ms = (delay === 0 ? LEAVE_GRACE : delay) * 1000;
+    this.homeCollapseDueAt = performance.now() + ms;
+    this.homeCollapse = window.setTimeout(() => this.collapseHome(), ms);
+  }
+
+  private collapseHome() {
+    this.homeCollapse = null;
+    this.homeCollapseDueAt = null;
+    // An alert pinned while the countdown ran keeps the island open.
+    if (this.state !== "home" || this.pinned) return;
+    if (this.holdOpen?.()) {
+      this.homeCollapse = window.setTimeout(() => this.collapseHome(), HOLD_RECHECK * 1000);
+      return;
+    }
+    this.byHover = false;
+    this.transition("petit");
+  }
+
+  private scheduleGreetCollapse(delay: number) {
+    this.clear("greetCollapse");
+    this.greetCollapse = window.setTimeout(() => {
+      this.greetCollapse = null;
+      if (this.state === "groovy") this.transition("petit");
+    }, delay * 1000);
+  }
+
+  private clear(which: "petitHide" | "homeCollapse" | "greetCollapse" | "hoverOpen") {
+    const id = this[which];
+    if (id != null) window.clearTimeout(id);
+    this[which] = null;
+    if (which === "homeCollapse") this.homeCollapseDueAt = null;
+  }
+
+  cancelTimers() {
+    this.clear("petitHide");
+    this.clear("homeCollapse");
+    this.clear("greetCollapse");
+  }
+
+  private transition(next: FsmState) {
+    if (next === this.state) return;
+    const from = this.state;
+    this.state = next;
+    this.onTransition?.(from, next);
+  }
+}

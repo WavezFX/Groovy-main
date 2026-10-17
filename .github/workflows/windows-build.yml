@@ -1,0 +1,285 @@
+name: Windows
+
+# The one to use: builds Groovy for Windows on every push and uploads three
+# downloads at the bottom of the run page:
+#   Groovy-Windows-Setup-<version>     the installer (Setup.exe), use this one
+#   Groovy-Windows-Portable-<version>  groovy.exe that runs without installing
+#   Groovy-Windows-MSI-<version>       the .msi installer
+# The installers are built and uploaded first, so they're there even when a
+# test further down fails (the run then shows red: check "Rust tests").
+# After that it smoke-tests them (online and offline), installs/uninstalls,
+# and runs all the tests. Publishing releases stays in windows-release.yml
+# (tags only).
+
+on:
+  push:
+    branches: [main, 'groovy-ai-*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Restored here and saved at the end even when a later step fails, so a
+      # red run doesn't throw away a 20-minute compile.
+      - name: Restore the cargo cache
+        id: cargo-cache
+        uses: actions/cache/restore@v6
+        with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            windows/target
+          # Bump the version when a C/C++ build setting changes (v3: static CRT
+          # for whisper.cpp): build scripts don't rerun for it, cached objects would.
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-
+            windows-build-cargo-v3-
+
+      # whisper.cpp (voice) builds from source and needs CMake and libclang.
+      - name: Check build tools
+        shell: pwsh
+        run: |
+          cmake --version
+          if (-not $env:LIBCLANG_PATH) {
+            $llvm = "C:\Program Files\LLVM\bin"
+            if (Test-Path "$llvm\libclang.dll") { "LIBCLANG_PATH=$llvm" >> $env:GITHUB_ENV }
+            else { throw "libclang not found: install LLVM" }
+          }
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build the relay
+        run: cargo build --release -p groovy-hook
+
+      - name: Build and pack the installers
+        id: pack
+        shell: pwsh
+        run: |
+          npm run pack
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Copy-Item target/release/groovy.exe release/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/groovy-hook.exe
+          Get-ChildItem release | Format-Table Name, Length
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File | Where-Object Name -ne SHA256SUMS.txt | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+          Copy-Item ../CHANGELOG.md release/CHANGELOG.md -ErrorAction SilentlyContinue
+
+      - name: Upload the installer (Setup.exe)
+        uses: actions/upload-artifact@v7
+        with:
+          name: Groovy-Windows-Setup-${{ steps.pack.outputs.version }}
+          path: |
+            windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows-Setup.exe
+            windows/release/SHA256SUMS.txt
+            windows/release/CHANGELOG.md
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload the portable exe
+        uses: actions/upload-artifact@v7
+        with:
+          name: Groovy-Windows-Portable-${{ steps.pack.outputs.version }}
+          path: |
+            windows/release/groovy.exe
+            windows/release/groovy-hook.exe
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload the MSI installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Groovy-Windows-MSI-${{ steps.pack.outputs.version }}
+          path: windows/release/Groovy-AI-${{ steps.pack.outputs.version }}-Windows.msi
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Smoke test the portable executable
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
+
+      - name: Nothing but the island is drawn, and it is frosted (F and E)
+        shell: pwsh
+        run: ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir corner-shots
+
+      - name: Upload the corner screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: island-corners
+          path: windows/corner-shots/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
+        shell: pwsh
+        run: ./scripts/frame-test.ps1 -Exe release/groovy.exe -Trace frame-trace.json
+
+      - name: Upload the frame trace
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frame-trace
+          path: windows/frame-trace.json
+          if-no-files-found: ignore
+
+      - name: Settings grows out of the island and fades in (no flash), and folds back
+        shell: pwsh
+        run: ./scripts/settings-anim-test.ps1 -Exe release/groovy.exe -Out settings-anim.json
+
+      - name: Upload the Settings animation samples
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: settings-anim
+          path: windows/settings-anim.json
+          if-no-files-found: ignore
+
+      - name: Install with the NSIS installer and smoke test it offline
+        shell: pwsh
+        run: |
+          $v = "${{ steps.pack.outputs.version }}"
+          $setup = "release/Groovy-AI-$v-Windows-Setup.exe"
+          $p = Start-Process -FilePath $setup -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
+          $entry = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall |
+            Get-ItemProperty | Where-Object DisplayName -like "Groovy*" | Select-Object -First 1
+          if (-not $entry) { throw "no uninstall entry registered" }
+          "Registered: $($entry.DisplayName) $($entry.DisplayVersion)"
+          $dir = if ($entry.InstallLocation) { $entry.InstallLocation.Trim('"') } else { Split-Path ($entry.UninstallString.Trim('"')) }
+          "dir=$dir" >> $env:GITHUB_ENV
+          $installed = Join-Path $dir "groovy.exe"
+          if (-not (Test-Path $installed)) { throw "groovy.exe not installed at $installed" }
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "Groovy*.lnk"
+          if (-not $lnk) { throw "no Start menu shortcut" }
+          "Start menu: $($lnk.FullName -join ', ')"
+          ./scripts/smoke-test.ps1 -Exe $installed -Offline -Label installed
+
+      - name: Uninstall
+        shell: pwsh
+        run: |
+          $un = Join-Path $env:dir "uninstall.exe"
+          if (-not (Test-Path $un)) { throw "no uninstaller at $un" }
+          $p = Start-Process -FilePath $un -ArgumentList "/S" -Wait -PassThru
+          # The NSIS uninstaller copies itself to %TEMP% and returns at once.
+          Start-Sleep -Seconds 10
+          if (Test-Path (Join-Path $env:dir "groovy.exe")) { throw "groovy.exe still present after uninstall" }
+          "uninstalled"
+
+      # Round 3B item 10: the budget is for a real PC with the models on it.
+      # Parakeet, the wake word spotter, llama.cpp and the smallest local
+      # model are cached between runs (about 1.2 GB).
+      - name: Restore the downloaded models
+        id: models-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v1
+
+      - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
+        shell: pwsh
+        run: ./scripts/work-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
+
+      - name: Save the downloaded models
+        if: always() && steps.models-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v1
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Front-end tests
+        run: npm test
+
+      - name: Rust tests
+        shell: pwsh
+        run: |
+          cargo test --workspace 2>&1 | Tee-Object -FilePath rust-tests.txt
+          exit $LASTEXITCODE
+
+      # Groovy's offline voice (round 3B item 8c): Kokoro downloaded as
+      # Settings would, then a sentence spoken through the same path.
+      - name: Kokoro speaks
+        shell: pwsh
+        run: |
+          cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo test -p groovy kws_hears_ok_groovy -- --ignored --nocapture
+          exit $LASTEXITCODE
+
+      # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):
+      # add a local skill, list it, remove it with a backup.
+      - name: Skills CLI end-to-end
+        shell: pwsh
+        run: |
+          cargo test -p groovy skills_cli -- --ignored 2>&1 | Tee-Object -FilePath skills-cli-test.txt
+          exit $LASTEXITCODE
+
+      - name: Save the cargo cache
+        # Not after a cancel: a cancelled run's files may be half written.
+        if: (success() || failure()) && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            windows/target
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-logs
+          path: |
+            windows/rust-tests.txt
+            windows/skills-cli-test.txt
+          retention-days: 7
