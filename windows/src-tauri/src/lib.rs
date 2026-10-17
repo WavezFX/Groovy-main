@@ -698,8 +698,14 @@ async fn voice_words(app: &AppHandle, model: String, language: Option<String>, s
 }
 
 /// Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice, in one call.
+/// Off the main thread: it reads Credential Manager and the microphone, which
+/// stalled the island's frames while quick settings opened (the frame test).
 #[tauri::command]
-fn quick_status(app: AppHandle) -> serde_json::Value {
+async fn quick_status(app: AppHandle) -> serde_json::Value {
+    tauri::async_runtime::spawn_blocking(move || quick_status_now(app)).await.unwrap_or(serde_json::Value::Null)
+}
+
+fn quick_status_now(app: AppHandle) -> serde_json::Value {
     let ai: Vec<serde_json::Value> = brain_ai::states().into_iter().map(|(name, state)| serde_json::json!({ "name": name, "state": state })).collect();
     serde_json::json!({
         "ai": ai,

@@ -79,15 +79,40 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
     lookItems.set(look, button);
     looks.append(button);
   }
+  // Each portrait is a whole Groovy drawn in software on a GPU-less PC: never
+  // all three in the frame the wardrobe opens in (the frame-time test saw
+  // 0.1–3.5 s there). They are drawn ahead, while the island is idle, and
+  // any still missing one per frame after it opens.
+  const LOOK_SIZE = 40;
+  const dprNow = () => Math.min(2, window.devicePixelRatio || 1);
   const drawLooks = (stage: number) => {
     if (looksDrawn === stage) return;
     looksDrawn = stage;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const size = 40;
-    for (const [look, button] of lookItems) {
-      button.querySelector("canvas")!.replaceWith(spriteCanvas(lookSprite(look, stage, size, dpr), size));
-    }
+    const queue = [...lookItems];
+    const next = () => {
+      const item = queue.shift();
+      if (!item || looksDrawn !== stage) return;
+      const [look, button] = item;
+      button.querySelector("canvas")!.replaceWith(spriteCanvas(lookSprite(look, stage, LOOK_SIZE, dprNow()), LOOK_SIZE));
+      if (queue.length) requestAnimationFrame(next);
+    };
+    requestAnimationFrame(next);
   };
+  const prewarm = (stage: number) => {
+    const idle = (fn: () => void) => {
+      if (typeof requestIdleCallback === "function") requestIdleCallback(fn, { timeout: 4000 });
+      else setTimeout(fn, 200);
+    };
+    const looks = [...lookItems.keys()];
+    const one = () => {
+      const look = looks.shift();
+      if (!look) return;
+      lookSprite(look, stage, LOOK_SIZE, dprNow());
+      idle(one);
+    };
+    idle(one);
+  };
+  prewarm(shownStage(parseGrowth(State.settings.growth)));
 
   return {
     el,
