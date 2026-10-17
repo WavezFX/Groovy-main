@@ -3782,3 +3782,102 @@ body.live-on .plan-pills {
 .wardrobe-item.on {
   animation: chosen var(--motion-unfold) var(--ease-out);
 }
+
+/* ── Round 3C item 3: bigger icons and controls ─────────────────────────────
+   Every clickable thing on the island has at least a 32 × 32 px hit area
+   with a 20 px icon; play/pause is the biggest (40 px, a 24 px icon). Labels
+   are 12 px or more and wrap to a second line rather than being cut mid-word.
+   Each control has a hover state and presses in to 0.95. CSS pixels, so they
+   scale with Windows' 125–200% display scaling. */
+.tab {
+  width: 38px;
+  height: 32px;
+  border-radius: 16px;
+}
+.header-actions {
+  gap: 6px;
+}
+.header-actions button {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 16px;
+}
+.header-actions button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+.home-ctl {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+}
+.home-ctl:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.home-ctl.main {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+.home-ctl.main:hover {
+  background: #fff;
+  filter: brightness(0.92);
+}
+.np-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+}
+.np-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.np-play {
+  width: 40px;
+  height: 40px;
+}
+#island button,
+#island .home-cell {
+  transition: transform 0.12s ease-out, background-color 0.12s ease-out, filter 0.12s ease-out;
+}
+#island button:active,
+#island .home-cell:active,
+.np-icon:active,
+.np-play:active {
+  transform: scale(0.95);
+}
+.home-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+}
+.home-mark.letter {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+.home-cell-head {
+  font-size: 12px;
+}
+.home-cell-text b {
+  font-size: 12.5px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.home-cell-text span {
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+@media (prefers-reduced-motion: reduce) {
+  #island button:active,
+  #island .home-cell:active {
+    transform: none;
+  }
+}

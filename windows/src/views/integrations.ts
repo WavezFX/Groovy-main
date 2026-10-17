@@ -78,10 +78,10 @@ export function idleStatus(
   if (def?.connect.kind === "none") return ok(t("Ready · no setup needed"));
   if (def?.connect.kind === "server") return configured ? ok(t("Connected")) : missing(t("Not connected"));
   if (def?.category === "ai") {
-    if (!configured) return missing(t("Key not configured"));
+    if (!configured) return missing(t("Not set up"));
     return ok(id === "ai_anthropic" ? t("Key configured · {model}", { model: chatModel }) : t("Key configured"));
   }
-  return configured ? ok(t("Connected · loading…")) : missing(t("Key not configured"));
+  return configured ? ok(t("Connected · loading…")) : missing(t("Not set up"));
 }
 
 function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {

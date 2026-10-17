@@ -102,7 +102,7 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   wardrobe: { height: 248, botX: 68, botY: null, botDiameter: 58, agentMode: "none" },
   // The normal state (round 3, mockups MixF/MixE): "Up next" with Groovy in the
   // left card, the tiles (or the player) in the right one. Cards 152 high.
-  home: { height: 204, botX: 55, botY: 120, botDiameter: 50, agentMode: "none" },
+  home: { height: 236, botX: 55, botY: 136, botDiameter: 50, agentMode: "none" },
   notify: { height: 160, botX: 60, botY: null, botDiameter: 52, agentMode: "none" },
 };
 

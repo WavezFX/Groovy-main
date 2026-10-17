@@ -199,10 +199,10 @@ export function buildSpotifyCard(): SpotifyCardHost {
   );
   const progressRow = h("div", { class: "np-progress" }, elapsed, progress.el, remaining);
 
-  const shuffle = iconButton(ICONS.shuffle, 10, 2.2, () => setFlag("shuffle", !Spotify.state.shuffle));
-  const prev = iconButton(ICONS.backward, 11, 0, () => void Bridge.spotifyControl("previous"));
-  const next = iconButton(ICONS.forward, 11, 0, () => void Bridge.spotifyControl("next"));
-  const repeat = iconButton(ICONS.repeat, 10, 2.2, () => setFlag("repeat", !Spotify.state.repeat));
+  const shuffle = iconButton(ICONS.shuffle, 18, 2.2, () => setFlag("shuffle", !Spotify.state.shuffle));
+  const prev = iconButton(ICONS.backward, 20, 0, () => void Bridge.spotifyControl("previous"));
+  const next = iconButton(ICONS.forward, 20, 0, () => void Bridge.spotifyControl("next"));
+  const repeat = iconButton(ICONS.repeat, 18, 2.2, () => setFlag("repeat", !Spotify.state.repeat));
   prev.style.color = "#C5C8CD";
   next.style.color = "#C5C8CD";
   const play = h("button", { class: "np-play", onclick: togglePlay });
@@ -300,7 +300,7 @@ export function buildSpotifyCard(): SpotifyCardHost {
     if (playIcon !== s.playing) {
       playIcon = s.playing;
       clear(play);
-      const icon = svg(s.playing ? ICONS.pause : ICONS.play, 9);
+      const icon = svg(s.playing ? ICONS.pause : ICONS.play, 24);
       if (!s.playing) icon.style.transform = "translateX(1px)";
       play.append(icon);
     }

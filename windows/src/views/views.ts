@@ -127,13 +127,13 @@ function stack(padLeft: number, padRight: number, ...children: Node[]): HTMLElem
 
 export function buildHeader(actions: ViewActions): ViewHost {
   // Home: "Up next" and the tiles (round 3); the agents are one of the tiles.
-  const tabHome = h("button", { class: "tab", title: tl("Home"), onclick: () => go("home") }, svg(ICONS.house, 13));
-  const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
-  const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
+  const tabHome = h("button", { class: "tab", title: tl("Home"), onclick: () => go("home") }, svg(ICONS.house, 18));
+  const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 18));
+  const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 18));
 
   // Round 4 item 2: the gear unfolds quick settings out of the island; a long
   // press, or "All settings →" in the panel, opens the Control Centre.
-  const gearBtn = h("button", { class: "gear", "aria-label": tl("Quick settings") }, svg(ICONS.gear, 15));
+  const gearBtn = h("button", { class: "gear", "aria-label": tl("Quick settings") }, svg(ICONS.gear, 20));
   let pressTimer = 0;
   let longPressed = false;
   gearBtn.addEventListener("pointerdown", () => {
@@ -149,7 +149,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
     if (longPressed) return;
     go(State.view === "settings" ? "home" : "settings");
   });
-  const soundBtn = h("button", { title: tl("Mute"), onclick: () => actions.toggleSound() }, svg(ICONS.speakerOn, 14));
+  const soundBtn = h("button", { title: tl("Mute"), onclick: () => actions.toggleSound() }, svg(ICONS.speakerOn, 20));
   // Plan usage pills (off by default): before the gear, Claude first, as on the Mac.
   const claudePill = buildPlanPill(false);
   const codexPill = buildPlanPill(true);
@@ -179,7 +179,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
       gearBtn.classList.toggle("on", v === "settings");
       gearBtn.title = settingsTitle(State.settings.shortcuts);
       clear(soundBtn);
-      soundBtn.append(svg(State.settings.soundEnabled ? ICONS.speakerOn : ICONS.speakerOff, 14));
+      soundBtn.append(svg(State.settings.soundEnabled ? ICONS.speakerOn : ICONS.speakerOff, 20));
       syncPlanPills();
       el.style.opacity = v === "confused" ? "0" : "1";
     },

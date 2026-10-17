@@ -134,7 +134,8 @@ function serviceLine(id: string): { text: string; good: boolean } {
 // ── Cells ─────────────────────────────────────────────────────────────────────
 
 function iconBtn(path: string, label: string, onclick: () => void, cls = ""): HTMLElement {
-  const b = h("button", { class: `home-ctl ${cls}`.trim(), title: label, "aria-label": label }, svg(path, 11));
+  // Round 3C item 3: 32 px buttons with 20 px icons, the play/pause 40 px with 24 px.
+  const b = h("button", { class: `home-ctl ${cls}`.trim(), title: label, "aria-label": label }, svg(path, cls === "main" ? 24 : 20));
   b.addEventListener("click", (e) => {
     e.stopPropagation();
     onclick();
@@ -166,7 +167,7 @@ function musicCell(): HTMLElement {
 
 function cell(tile: Tile, setView: (v: IslandViewName) => void): HTMLElement {
   if (tile === ADD) {
-    return h("button", { class: "home-cell add", title: t("Add a tile"), "aria-label": t("Add a tile"), onclick: () => void Bridge.openSettingsWindow("island") }, svg(ICONS.plus, 14));
+    return h("button", { class: "home-cell add", title: t("Add a tile"), "aria-label": t("Add a tile"), onclick: () => void Bridge.openSettingsWindow("island") }, svg(ICONS.plus, 20));
   }
   if (tile.kind === "music") return musicCell();
   if (tile.kind === "service") {

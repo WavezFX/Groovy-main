@@ -29,7 +29,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 1C. Fixes round 3C: `FIXES_ROUND3C.md` (the owner's 0.6.0 test). **Do this next, after the item in progress.**
 - [x] 1. Real frosted glass: translucent and blurred, clipped to the island's shape
 - [x] 2. Hover opens the island; leaving closes it
-- [ ] 3. Bigger icons and controls (Spotify buttons)
+- [x] 3. Bigger icons and controls (Spotify buttons)
 - [ ] 4. Tiles open in the island (soft settings): Reminders, This PC, Mail, Spotify and the others
 - [ ] 5. Connect real mail: Gmail, Outlook, iCloud (iPhone) and IMAP
 - [ ] 6. Settings animates open and closed (no pop-in, no white flash)
