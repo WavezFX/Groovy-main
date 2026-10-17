@@ -145,7 +145,7 @@ jobs:
           foreach ($v in @("off", "attronly", "noattr", "solid", "full")) {
             Write-Host "===== variant $v"
             $env:GROOVY_BACKDROP = $v
-            try { ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir "diag-shots/$v" } catch { Write-Host "  (variant $v: $_)" }
+            try { ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir "diag-shots/$v" } catch { Write-Host "  (variant ${v}: $_)" }
             $log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
             if (Test-Path $log) { Get-Content $log | Select-String "backdrop diag" | Select-Object -Last 8 | ForEach-Object { Write-Host "  log: $_" } }
           }
