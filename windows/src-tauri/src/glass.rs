@@ -146,43 +146,60 @@ pub fn apply(app: &AppHandle) {
 /// (round 3B items 1 and 1b).
 fn check_blur_later(app: AppHandle) {
     let _ = std::thread::Builder::new().name("groovy-glass-check".into()).spawn(move || {
-        // Read once the island is open (folded away, its window is a thin strip).
-        let mut reading = None;
+        // Read once the island is open (folded away, its window is a thin strip),
+        // then keep looking for a few seconds: on CI's runner the tint sometimes
+        // only fills the corners a few seconds after the island first shows, so
+        // a single early reading missed it (build of fee1ba8).
+        let mut opened = None;
+        // A dark window behind the corner is only ruled out twice: the blur is
+        // never flickered off and on every second.
+        let mut tries = 2;
         for _ in 0..60 {
             std::thread::sleep(Duration::from_millis(1000));
             if look() != Look::Blur {
                 return;
             }
             let Some(win) = app.get_webview_window(WINDOW_LABEL) else { return };
-            if let Some(r) = os::corner_pixels(&win) {
-                reading = Some((win, r));
-                break;
+            let Some((corner, beside)) = os::corner_pixels(&win) else { continue };
+            let since = *opened.get_or_insert_with(std::time::Instant::now);
+            if tries > 0 && blur_leaks(corner, &beside) && {
+                tries -= 1;
+                confirm_leak(&win, &beside)
+            } {
+                os::set_accent(&win, false);
+                BLUR_LEAKS.store(true, Ordering::Relaxed);
+                LOOK.store(Look::Css as u8, Ordering::Relaxed);
+                reshape(&win);
+                crate::log::line(format!("island style: css (the blur filled the corners: rgb{corner:?})"));
+                let _ = app.emit_to(WINDOW_LABEL, "island-glass", Look::Css.as_str());
+                return;
             }
-        }
-        let Some((win, (corner, beside))) = reading else { return };
-        // Something dark behind the corner (a dark browser tab) looks like the
-        // tint: the blur is turned off for a moment, and only if the corner
-        // then changes was it the blur (round 3C item 1: a false alarm here
-        // left the owner with clear glass).
-        let confirmed = blur_leaks(corner, &beside) && {
-            os::set_accent(&win, false);
-            std::thread::sleep(Duration::from_millis(250));
-            let without = os::corner_pixels(&win).map(|(c, _)| c);
-            let ours = without.is_some_and(|c| !blur_leaks(c, &beside));
-            if !ours {
-                os::set_accent(&win, true);
+            if since.elapsed() >= WATCH_CORNERS {
+                return;
             }
-            ours
-        };
-        if confirmed {
-            os::set_accent(&win, false);
-            BLUR_LEAKS.store(true, Ordering::Relaxed);
-            LOOK.store(Look::Css as u8, Ordering::Relaxed);
-            reshape(&win);
-            crate::log::line(format!("island style: css (the blur filled the corners: rgb{corner:?})"));
-            let _ = app.emit_to(WINDOW_LABEL, "island-glass", Look::Css.as_str());
         }
     });
+}
+
+/// How long after the island opens its corners are still checked.
+const WATCH_CORNERS: Duration = Duration::from_secs(12);
+
+/// Something dark behind the corner (a dark browser tab) looks like the tint:
+/// the blur is turned off for a moment, and only if the corner then changes
+/// was it the blur (round 3C item 1: a false alarm here left the owner with
+/// clear glass). Windows can take more than a frame to repaint without the
+/// accent, so the corner is read a few times before deciding. The accent is
+/// left off when the leak is confirmed, back on otherwise.
+fn confirm_leak(win: &tauri::WebviewWindow, beside: &[(u8, u8, u8)]) -> bool {
+    os::set_accent(win, false);
+    for _ in 0..6 {
+        std::thread::sleep(Duration::from_millis(200));
+        if os::corner_pixels(win).is_some_and(|(c, _)| !blur_leaks(c, beside)) {
+            return true;
+        }
+    }
+    os::set_accent(win, true);
+    false
 }
 
 /// Set once the accent blur was seen filling the corners: this run keeps the page's glass.
