@@ -122,6 +122,16 @@ const MIGRATIONS: &[&str] = &[
         at INTEGER NOT NULL
     );
     CREATE INDEX file_history_by_path ON file_history(workspace_id, path, id);",
+    // 6: connected mail accounts (mail/). Passwords and tokens are in Credential Manager, not here.
+    "CREATE TABLE mail_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        email TEXT NOT NULL,
+        host TEXT NOT NULL,
+        port INTEGER NOT NULL,
+        username TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+    );",
 ];
 
 pub fn path() -> PathBuf {

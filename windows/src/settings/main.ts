@@ -35,6 +35,7 @@ import { islandSection } from "./island";
 import { modelsSection } from "./models";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
+import { mailSection } from "./mail";
 import { systemSection } from "./system";
 import { wardrobeSection } from "./wardrobe";
 import { musicSection } from "./music";
@@ -1530,6 +1531,7 @@ async function render() {
     browser: () => [browserSection()],
     permissions: () => [permissionsSection()],
     system: () => [systemSection()],
+    mail: () => [mailSection()],
   };
   root.append(...pages[groovyPage]());
   if (groovyPage === "general") {

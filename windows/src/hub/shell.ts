@@ -19,7 +19,7 @@ export type PageId =
 /** The pages drawn by settings/main.ts from Groovy's own sections. */
 export type GroovyPageId =
   | "assistant" | "island" | "wardrobe" | "models" | "memory" | "reminders" | "music" | "calls" | "chat"
-  | "agents" | "pills" | "phone" | "breaks" | "general" | "browser" | "permissions" | "system";
+  | "agents" | "pills" | "phone" | "breaks" | "general" | "browser" | "permissions" | "system" | "mail";
 
 interface PageDef {
   id: PageId;
@@ -45,6 +45,7 @@ export const GROOVY_PAGES: PageDef[] = [
   { id: "island", icon: "grid", title: () => t("My island"), subtitle: () => t("Your apps, mail, music and services on the island, in your order.") },
   { id: "models", icon: "chip", title: () => t("Models"), subtitle: () => t("The AI models that run on this computer.") },
   { id: "memory", icon: "book", title: () => t("Memory"), subtitle: () => t("What Groovy remembers about you, on this computer only.") },
+  { id: "mail", icon: "mail", title: () => t("Mail"), subtitle: () => t("Gmail, Outlook, iCloud and other accounts, read on this PC only.") },
   { id: "reminders", icon: "bell", title: () => t("Reminders"), subtitle: () => t("Tasks and reminders Groovy keeps for you.") },
   { id: "music", icon: "music", title: () => t("Music"), subtitle: () => t("Spotify and your own music folder.") },
   { id: "calls", icon: "phone", title: () => t("Voice calls"), subtitle: () => t("Talking with Groovy: languages, microphone and voices.") },

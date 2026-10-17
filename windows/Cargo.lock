@@ -1901,6 +1901,7 @@ name = "groovy"
 version = "0.6.0"
 dependencies = [
  "arboard",
+ "base64 0.22.1",
  "bzip2 0.5.2",
  "cpal 0.18.2",
  "dbus",

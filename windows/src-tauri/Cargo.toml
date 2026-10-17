@@ -76,6 +76,8 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 # The wake word spotter comes as a .tar.bz2 (speech/kws.rs).
 bzip2 = "0.5"
 tar = { version = "0.4", default-features = false }
+# Mail accounts (mail/): RFC 2047 headers and OAuth PKCE (already in the tree).
+base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
 # Vector2 for the composition backdrop (backdrop.rs), the version windows 0.61 uses.

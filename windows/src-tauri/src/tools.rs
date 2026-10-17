@@ -79,6 +79,7 @@ pub const TOOLS: &[ToolDef] = &[
     ToolDef { id: "open_folder", label: n_("Open folders"), description: n_("“Open my downloads” — your own folders only."), default: Perm::Allow },
     ToolDef { id: "search_files", label: n_("Search your files"), description: n_("“Find files named invoice” — by name, in your own folders."), default: Perm::Ask },
     ToolDef { id: "reminders", label: n_("Reminders and to-dos"), description: n_("“Remind me to call Sam at 5pm”, “add milk to my to-do list”."), default: Perm::Allow },
+    ToolDef { id: "mail", label: n_("New emails"), description: n_("“Any new emails?”: the count and who they're from, from your connected accounts."), default: Perm::Allow },
     ToolDef { id: "system_status", label: n_("System status"), description: n_("“How's my battery?”, “how much memory is free?”"), default: Perm::Allow },
     ToolDef { id: "clipboard", label: n_("Read the clipboard"), description: n_("“What's on my clipboard?” — shown in the chat, sent nowhere."), default: Perm::Ask },
 ];
@@ -131,6 +132,7 @@ pub enum Call {
     Todo(String),
     SystemStatus,
     Clipboard,
+    Mail,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -166,6 +168,7 @@ impl Call {
             Call::Remind { .. } | Call::Todo(_) => "reminders",
             Call::SystemStatus => "system_status",
             Call::Clipboard => "clipboard",
+            Call::Mail => "mail",
         }
     }
 
@@ -180,7 +183,7 @@ impl Call {
             Call::SearchFiles(q) => json!({ "query": q }),
             Call::Remind { text, when } => json!({ "text": text, "when": format!("{when:?}") }),
             Call::Todo(text) => json!({ "text": text }),
-            Call::SystemStatus | Call::Clipboard => json!({}),
+            Call::SystemStatus | Call::Clipboard | Call::Mail => json!({}),
         }
     }
 
@@ -199,6 +202,7 @@ impl Call {
             Call::Todo(text) => tf("Add to your to-do list: {text}?", &[("text", text)]),
             Call::SystemStatus => t("Read the system status?"),
             Call::Clipboard => t("Read what's on your clipboard? It is shown here and sent nowhere."),
+            Call::Mail => t("Check how many new emails you have?"),
         }
     }
 }
@@ -209,7 +213,7 @@ impl Call {
 fn strip_leads(text: &str) -> String {
     let mut t: String = text.trim().chars().filter(|c| *c != '?' && *c != '!').collect();
     t = t.trim_end_matches('.').trim().to_string();
-    for lead in ["hey groovy,", "hey groovy", "groovy,", "groovy", "please", "can you", "could you", "would you"] {
+    for lead in ["ok groovy,", "ok groovy", "hey groovy,", "hey groovy", "groovy,", "groovy", "please", "can you", "could you", "would you"] {
         if t.to_ascii_lowercase().starts_with(lead) {
             t = t[lead.len()..].trim().trim_start_matches(',').trim().to_string();
         }
@@ -379,6 +383,14 @@ pub fn parse(text: &str) -> Option<Call> {
                 }
             }
         }
+    }
+    // New mail.
+    let mail_words = ["new email", "new emails", "new mail", "unread email", "unread emails", "unread mail", "my email", "my emails", "my mail", "my inbox", "any email", "any emails", "any mail"];
+    if (t.starts_with("any") || t.starts_with("do i have") || t.starts_with("have i got") || t.starts_with("check") || t.starts_with("how many") || t.starts_with("what") || t.starts_with("read"))
+        && mail_words.iter().any(|w| t.contains(w))
+        && t.split_whitespace().count() <= 10
+    {
+        return Some(Call::Mail);
     }
     // System status.
     let status_words = ["battery", "cpu", "processor", "memory usage", "ram", "free memory", "disk space", "storage space", "system status"];
@@ -562,6 +574,7 @@ fn run(call: &Call) -> String {
         Call::Todo(text) => db::conn().and_then(|c| crate::tasks::add(&c, text, None)).map(|_| tf("Added to your to-do list: {text}", &[("text", text)])),
         Call::SystemStatus => Ok(status_text()),
         Call::Clipboard => read_clipboard(),
+        Call::Mail => Ok(crate::mail::summary()),
     };
     let outcome = if result.is_ok() { "done" } else { "failed" };
     if let Ok(conn) = db::conn() {
@@ -859,6 +872,9 @@ mod tests {
         assert_eq!(parse("Add milk to my to-do list"), Some(Call::Todo("Milk".into())));
         assert_eq!(parse("add a to-do: call mum"), Some(Call::Todo("Call mum".into())));
         assert_eq!(parse("How's my battery?"), Some(Call::SystemStatus));
+        assert_eq!(parse("OK Groovy, any new emails?"), Some(Call::Mail));
+        assert_eq!(parse("do I have any new mail"), Some(Call::Mail));
+        assert_eq!(parse("check my inbox"), Some(Call::Mail));
         assert_eq!(parse("how much ram is free"), Some(Call::SystemStatus));
         assert_eq!(parse("What's on my clipboard?"), Some(Call::Clipboard));
         assert_eq!(parse("find files named invoice"), Some(Call::SearchFiles("invoice".into())));

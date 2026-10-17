@@ -70,6 +70,12 @@ jobs:
       # copies the installer out of target/ under its shipping name.
       - name: Build and pack the installer
         id: pack
+        # The owner's Gmail and Outlook app registrations (mail/oauth.rs), when the
+        # repository has them as secrets; without them Settings → Mail asks for them.
+        env:
+          GROOVY_GOOGLE_CLIENT_ID: ${{ secrets.GROOVY_GOOGLE_CLIENT_ID }}
+          GROOVY_GOOGLE_CLIENT_SECRET: ${{ secrets.GROOVY_GOOGLE_CLIENT_SECRET }}
+          GROOVY_MICROSOFT_CLIENT_ID: ${{ secrets.GROOVY_MICROSOFT_CLIENT_ID }}
         shell: pwsh
         run: |
           npm run pack

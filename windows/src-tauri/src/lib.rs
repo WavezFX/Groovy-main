@@ -54,6 +54,7 @@ mod spotify;
 mod studio;
 mod system;
 mod tasks;
+mod mail;
 mod tools;
 mod tray;
 mod voice;
@@ -1374,6 +1375,16 @@ pub fn run() {
             tasks::task_delete,
             tasks::task_clear_done,
             tasks::task_parse,
+            mail::mail_accounts,
+            mail::mail_inboxes,
+            mail::mail_refresh,
+            mail::mail_connect_imap,
+            mail::mail_connect_oauth,
+            mail::mail_disconnect,
+            mail::mail_act,
+            mail::mail_open_message,
+            mail::mail_oauth_ready,
+            mail::mail_oauth_configure,
             tasks::task_edit,
             pc::pc_do,
             models::models_status,
@@ -1559,6 +1570,7 @@ pub fn run() {
                 }
             }
             tasks::spawn(handle.clone());
+            mail::spawn(handle.clone());
             brain_ai::init(&handle);
             island_tiles::spawn_mail_watch(handle.clone());
             flow::setup(&handle);

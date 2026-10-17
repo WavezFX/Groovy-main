@@ -148,6 +148,36 @@ export interface MemoryHog {
   bytes: number;
 }
 
+export interface MailAccount {
+  id: number;
+  kind: "gmail" | "outlook" | "icloud" | "imap";
+  email: string;
+  host: string;
+  port: number;
+  username: string;
+}
+
+export interface MailMessage {
+  account: number;
+  id: string;
+  from: string;
+  subject: string;
+  snippet: string;
+  /** Unix seconds. */
+  at: number;
+  unread: boolean;
+  link: string | null;
+}
+
+export interface MailInbox {
+  account: MailAccount;
+  unread: number;
+  messages: MailMessage[];
+  error: string | null;
+  checkedAt: number;
+  canModify: boolean;
+}
+
 export interface SystemStatus {
   os: string;
   cpuName: string;
@@ -468,6 +498,19 @@ export const Bridge = {
   islandPickFolder: () => callOrThrow<string | null>("island_pick_folder"),
   mailAccess: () => call<"allowed" | "denied" | "unspecified" | "unsupported">("mail_access"),
   mailOpen: (appId: string) => callOrThrow<void>("mail_open", { appId }),
+  // Connected mail accounts (mail/): passwords and tokens go to Credential Manager and never come back.
+  mailAccounts: () => call<MailAccount[]>("mail_accounts"),
+  mailInboxes: () => call<MailInbox[]>("mail_inboxes"),
+  mailRefresh: () => call<MailInbox[]>("mail_refresh"),
+  mailConnectImap: (kind: "icloud" | "imap", email: string, host: string, port: number, username: string, password: string) =>
+    callOrThrow<MailAccount>("mail_connect_imap", { kind, email, host, port, username, password }),
+  mailConnectOauth: (provider: "gmail" | "outlook") => callOrThrow<MailAccount>("mail_connect_oauth", { provider }),
+  mailDisconnect: (id: number) => callOrThrow<void>("mail_disconnect", { id }),
+  mailAct: (account: number, id: string, action: "read" | "archive") => callOrThrow<void>("mail_act", { account, id, action }),
+  mailOpenMessage: (account: number, id: string) => callOrThrow<void>("mail_open_message", { account, id }),
+  mailOauthReady: () => call<{ google: boolean; microsoft: boolean }>("mail_oauth_ready"),
+  mailOauthConfigure: (provider: "gmail" | "outlook", clientId: string, clientSecret: string) =>
+    callOrThrow<void>("mail_oauth_configure", { provider, clientId, clientSecret }),
 
   /** Writes to %LOCALAPPDATA%\Groovy\groovy.log, next to the Rust lines. */
   log: (message: string) => call<void>("log_line", { message }),

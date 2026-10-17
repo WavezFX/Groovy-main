@@ -3,7 +3,7 @@
 // reminders and the PC's state — drawn in the home view's grid (views/home.ts),
 // and the pop-up for Groovy's messages and a new mail.
 
-import { Bridge } from "../core/bridge";
+import { Bridge, type MailInbox, type MailMessage } from "../core/bridge";
 import type { IslandViewName } from "../core/layout";
 import { isAgentTask, pillDefinition } from "../core/pills";
 import { Spotify } from "../core/spotify";
@@ -29,6 +29,15 @@ export interface MailNote {
 /** The newest mail first; at most five kept, in memory only. */
 export const Mail = {
   notes: [] as MailNote[],
+  /** The connected accounts' inboxes as last checked (mail/; round 3C item 5). */
+  inboxes: [] as MailInbox[],
+  unread(): number {
+    return this.inboxes.reduce((n, i) => n + i.unread, 0);
+  },
+  /** The newest unread message across the accounts. */
+  newestUnread(): MailMessage | null {
+    return this.inboxes.flatMap((i) => i.messages).filter((m) => m.unread).sort((a, b) => b.at - a.at)[0] ?? null;
+  },
   push(n: MailNote) {
     this.notes = [n, ...this.notes.filter((x) => x.id !== n.id)].slice(0, 5);
   },
@@ -118,6 +127,18 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
     }
     case "mail": {
       const last = Mail.notes[0];
+      // Connected accounts first: the unread count and the newest unread.
+      if (Mail.inboxes.length) {
+        const unread = Mail.unread();
+        const top = Mail.newestUnread();
+        return {
+          icon: "✉",
+          color: "#3B9EFF",
+          title: unread ? t("Mail · {n} unread", { n: unread }) : t("Mail"),
+          sub: top ? `${top.from}: ${top.subject}` : t("No new emails"),
+          open: () => openPanel("mail", setView),
+        };
+      }
       return {
         icon: "✉",
         color: "#3B9EFF",

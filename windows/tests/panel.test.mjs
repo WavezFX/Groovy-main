@@ -3,11 +3,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { installFakeDom } from "./fakedom.mjs";
-import "./tauri.mjs";
+import { sent } from "./tauri.mjs";
 
 installFakeDom();
-const { face } = await import("../src/views/tiles.ts");
-const { buildPanel, bytes, localInput, speed, SYSTEM_EVERY_MS } = await import("../src/views/panel.ts");
+const { face, Mail } = await import("../src/views/tiles.ts");
+const { buildPanel, bytes, connectAccount, localInput, speed, SYSTEM_EVERY_MS } = await import("../src/views/panel.ts");
 const { State } = await import("../src/core/state.ts");
 const { VIEW_LAYOUTS } = await import("../src/core/layout.ts");
 
@@ -46,4 +46,40 @@ test("network speed comes from two readings; sizes and picker values read well",
   assert.equal(bytes(3 * 1024 ** 3), "3.0 GB");
   assert.equal(bytes(5 * 1024 ** 2), "5 MB");
   assert.match(localInput(0 + new Date(2026, 9, 17, 9, 5).getTime() / 1000), /^2026-10-17T09:05$/);
+});
+
+const inbox = (id, email, unread, messages) => ({
+  account: { id, kind: "imap", email, host: "imap.x.com", port: 993, username: email },
+  unread, messages, error: null, checkedAt: 0, canModify: true,
+});
+
+test("connected mail (round 3C item 5): the tile counts the unread, the panel lists each inbox", () => {
+  Mail.inboxes = [
+    inbox(1, "me@icloud.com", 2, [
+      { account: 1, id: "8", from: "Bob", subject: "Two", snippet: "", at: 200, unread: true, link: null },
+      { account: 1, id: "7", from: "Anna", subject: "One", snippet: "", at: 100, unread: false, link: null },
+    ]),
+    inbox(2, "me@gmail.com", 1, [{ account: 2, id: "x", from: "GitHub", subject: "PR", snippet: "", at: 150, unread: true, link: "https://mail.google.com/" }]),
+  ];
+  const f = face({ kind: "mail", target: "", label: "" }, () => {});
+  assert.equal(f.title, "Mail · 3 unread");
+  assert.equal(f.sub, "Bob: Two", "the newest unread");
+  const host = buildPanel({ setView: () => {} });
+  State.mode = "expanded";
+  State.view = "panel";
+  State.panel = "mail";
+  host.sync();
+  const text = host.el.textContent;
+  assert.match(text, /me@icloud\.com/);
+  assert.match(text, /me@gmail\.com/);
+  assert.match(text, /Bob/);
+  assert.equal(sent("mail_refresh").length, 1, "opening the panel checks once");
+  State.view = "home";
+  host.sync();
+  Mail.inboxes = [];
+});
+
+test("iCloud and IMAP connect in Settings → Mail (they need a password)", async () => {
+  await connectAccount("icloud");
+  assert.deepEqual(sent("open_settings_window").at(-1), { page: "mail" });
 });

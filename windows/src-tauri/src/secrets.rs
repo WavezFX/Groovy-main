@@ -76,11 +76,14 @@ pub const INTERNAL_KEYS: &[&str] = &[
     "phone-relay-room",
     "phone-relay-key",
     "phone-relay-access",
+    // The owner's own Google app registration for Gmail (mail/oauth.rs).
+    "mail-google-client-secret",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.
 pub fn is_internal(key: &str) -> bool {
-    INTERNAL_KEYS.contains(&key)
+    // One per mail account (mail/): its password or refresh token.
+    INTERNAL_KEYS.contains(&key) || key.strip_prefix("mail-account-").is_some_and(|n| !n.is_empty() && n.len() <= 18 && n.bytes().all(|b| b.is_ascii_digit()))
 }
 
 fn internal_entry(key: &str) -> Result<Entry, String> {

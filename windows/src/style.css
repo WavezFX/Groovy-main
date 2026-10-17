@@ -3961,3 +3961,10 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
 @media (prefers-reduced-motion: reduce) {
   .panel-card.unfold { animation: none; }
 }
+.panel-account { display: flex; gap: 8px; align-items: baseline; padding-bottom: 2px; }
+.panel-account span:first-child { color: var(--ink); font-weight: 600; }
+.panel-warn { color: var(--amber); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-mail .panel-text b { font-weight: 500; max-width: 150px; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; }
+.panel-mail .panel-text span { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+.panel-mail.unread .panel-text b { font-weight: 700; }
+.panel-mail.unread .panel-text span { color: var(--ink); }

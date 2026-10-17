@@ -1,7 +1,7 @@
 // Entry point: boot the bridge, wire the island, start the greeting.
 
 import "./style.css";
-import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
+import { Bridge, IS_TAURI, onEvent, type MailInbox } from "./core/bridge";
 import { Sound } from "./core/sound";
 import { installErrorReporting } from "./views/toast";
 import { Mail, wantsMail, type MailNote } from "./views/tiles";
@@ -196,6 +196,17 @@ async function main() {
     if (!wantsMail() || !isMailNotification(n.app, currentTiles(State.settings).mailApps)) return;
     Mail.push(n);
     island.alert("notify");
+  });
+  // Connected mail accounts (mail/): the tile's unread count and the Mail panel.
+  await onEvent<MailInbox[]>("mail-inboxes", (inboxes) => {
+    Mail.inboxes = inboxes;
+    State.notify();
+  });
+  void Bridge.mailInboxes().then((inboxes) => {
+    if (inboxes) {
+      Mail.inboxes = inboxes;
+      State.notify();
+    }
   });
   registerSpotifyHandlers(island);
   // Rust may have read Spotify before this page listened: ask once.

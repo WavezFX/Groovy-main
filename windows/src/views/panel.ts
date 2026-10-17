@@ -4,7 +4,7 @@
 // bottom for the deep setup. Nothing here polls while the panel is shut; This
 // PC reads the computer every 2 s only while it is open.
 
-import { Bridge, type MemoryHog, type SystemStatus, type TaskItem } from "../core/bridge";
+import { Bridge, type MailMessage, type MemoryHog, type SystemStatus, type TaskItem } from "../core/bridge";
 import { State } from "../core/state";
 import { t } from "../i18n/i18n";
 import { clear, h, svg } from "./dom";
@@ -342,29 +342,95 @@ function system(): Body {
 
 // ── Mail ──────────────────────────────────────────────────────────────────────
 
+/** "09:05" today, "Tue" this week, else "17 Oct". */
+export function mailTime(at: number, now = Date.now()): string {
+  const d = new Date(at * 1000);
+  if (d.toDateString() === new Date(now).toDateString()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (now - d.getTime() < 6 * 86_400_000) return d.toLocaleDateString([], { weekday: "short" });
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
+/** Gmail and Outlook sign in here; iCloud and IMAP need a password, in Settings → Mail. */
+export async function connectAccount(kind: "gmail" | "outlook" | "icloud" | "imap"): Promise<void> {
+  if (kind === "icloud" || kind === "imap") return void (await Bridge.openSettingsWindow("mail"));
+  const ready = await Bridge.mailOauthReady();
+  if (kind === "gmail" ? ready?.google : ready?.microsoft) await Bridge.mailConnectOauth(kind);
+  else await Bridge.openSettingsWindow("mail");
+}
+
 function mail(): Body {
   const list = h("div", { class: "panel-list" });
+  const note = h("div", { class: "panel-hint" });
   const connect = h("div", { class: "panel-connect" },
-    ...["Gmail", "Outlook", "iCloud", "IMAP"].map((name) =>
-      h("button", { class: "btn secondary", text: t("Connect {name}", { name }), onclick: () => void Bridge.openSettingsWindow("mail") })),
+    ...([["gmail", "Gmail"], ["outlook", "Outlook"], ["icloud", "iCloud"], ["imap", "IMAP"]] as const).map(([kind, name]) =>
+      h("button", {
+        class: "btn secondary",
+        text: t("Connect {name}", { name }),
+        onclick: () => {
+          if (kind === "gmail" || kind === "outlook") note.textContent = t("Finish signing in in your browser…");
+          void connectAccount(kind).then(() => {
+            note.textContent = "";
+            void Bridge.mailRefresh();
+          }, (e) => (note.textContent = errorText(e)));
+        },
+      })),
   );
+  const act = (m: MailMessage, action: "read" | "archive") =>
+    void Bridge.mailAct(m.account, m.id, action).catch((e) => (note.textContent = errorText(e)));
+  let drawn = "";
+
   function draw() {
+    const key = JSON.stringify(Mail.inboxes.map((i) => [i.account.id, i.unread, i.error, i.messages.map((m) => [m.id, m.unread])])) + Mail.notes.length;
+    if (key === drawn) return;
+    drawn = key;
     clear(list);
-    if (!Mail.notes.length) list.append(h("div", { class: "panel-empty", text: t("No new mail. Connect an account to see your inbox here.") }));
-    for (const n of Mail.notes) {
-      list.append(h("button", { class: "panel-row panel-mail", onclick: () => void Bridge.mailOpen(n.appId).catch(showError) },
-        h("b", { text: n.title || n.app }),
-        h("span", { class: "panel-text", text: n.body }),
-        h("span", { class: "panel-due", text: n.app }),
+    if (!Mail.inboxes.length) {
+      // No account yet: the mail Windows showed, and the connect buttons, not Settings.
+      if (!Mail.notes.length) list.append(h("div", { class: "panel-empty", text: t("No new mail. Connect an account to see your inbox here.") }));
+      for (const n of Mail.notes) {
+        list.append(h("button", { class: "panel-row panel-mail", onclick: () => void Bridge.mailOpen(n.appId).catch(showError) },
+          h("b", { text: n.title || n.app }),
+          h("span", { class: "panel-text", text: n.body }),
+          h("span", { class: "panel-due", text: n.app }),
+        ));
+      }
+      connect.style.display = "";
+      return;
+    }
+    connect.style.display = "none";
+    for (const inbox of Mail.inboxes) {
+      list.append(h("div", { class: "panel-sub panel-account" },
+        h("span", { text: inbox.account.email }),
+        h("span", { class: "panel-due", text: inbox.unread ? t("{n} unread", { n: inbox.unread }) : t("All read") }),
+        inbox.error ? h("span", { class: "panel-warn", text: inbox.error }) : null,
       ));
+      for (const m of inbox.messages.slice(0, 5)) {
+        list.append(h("div", { class: m.unread ? "panel-row panel-mail unread" : "panel-row panel-mail" },
+          h("button", {
+            class: "panel-text",
+            title: m.snippet || m.subject,
+            onclick: () => void Bridge.mailOpenMessage(m.account, m.id).catch((e) => (note.textContent = errorText(e))),
+          }, h("b", { text: m.from }), h("span", { text: m.subject || t("(no subject)") })),
+          h("span", { class: "panel-due", text: mailTime(m.at) }),
+          m.unread && inbox.canModify ? h("button", { class: "panel-icon", "aria-label": t("Mark read"), title: t("Mark read"), onclick: () => act(m, "read") }, svg(ICONS.check, 14, { stroke: 2.2 })) : null,
+          inbox.canModify ? h("button", { class: "panel-icon", "aria-label": t("Archive"), title: t("Archive"), onclick: () => act(m, "archive") }, svg(ICONS.xmark, 11)) : null,
+        ));
+      }
     }
   }
   return {
-    el: h("div", { class: "panel-mailbox" }, list, connect),
+    el: h("div", { class: "panel-mailbox" }, list, connect, note),
     title: () => t("Mail"),
     shown(on) {
-      if (on) draw();
+      drawn = "";
+      note.textContent = "";
+      if (on) {
+        draw();
+        // Fresh when it opens; the 3-minute check keeps it current after that.
+        if (Mail.inboxes.length) void Bridge.mailRefresh();
+      }
     },
+    sync: draw,
   };
 }
 

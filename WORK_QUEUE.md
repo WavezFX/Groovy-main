@@ -31,7 +31,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Hover opens the island; leaving closes it
 - [x] 3. Bigger icons and controls (Spotify buttons)
 - [x] 4. Tiles open in the island (soft settings): Reminders, This PC, Mail, Spotify and the others
-- [ ] 5. Connect real mail: Gmail, Outlook, iCloud (iPhone) and IMAP
+- [x] 5. Connect real mail: Gmail, Outlook, iCloud (iPhone) and IMAP
 - [ ] 6. Settings animates open and closed (no pop-in, no white flash)
 - [ ] 7. Checks
 
