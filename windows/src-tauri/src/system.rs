@@ -32,6 +32,10 @@ pub struct SystemStatus {
     pub disks: Vec<Disk>,
     pub battery: Option<Battery>,
     pub uptime_secs: u64,
+    /// Bytes received and sent since start-up, all adapters but loopback; the
+    /// island's This PC panel turns two readings into a speed.
+    pub net_received: u64,
+    pub net_sent: u64,
 }
 
 #[tauri::command]
@@ -45,7 +49,7 @@ pub fn read_now() -> SystemStatus {
 }
 
 fn read() -> SystemStatus {
-    use sysinfo::{Disks, ProcessesToUpdate, System};
+    use sysinfo::{Disks, Networks, ProcessesToUpdate, System};
     let mut sys = System::new();
     sys.refresh_memory();
     sys.refresh_cpu_usage();
@@ -62,6 +66,10 @@ fn read() -> SystemStatus {
         .map(|d| Disk { mount: d.mount_point().to_string_lossy().to_string(), total: d.total_space(), available: d.available_space() })
         .filter(|d| d.total > 0)
         .collect();
+    let nets = Networks::new_with_refreshed_list();
+    let real = || nets.iter().filter(|(name, _)| !name.to_lowercase().contains("loopback") && name.as_str() != "lo");
+    let net_received = real().map(|(_, n)| n.total_received()).sum();
+    let net_sent = real().map(|(_, n)| n.total_transmitted()).sum();
     SystemStatus {
         os: System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
         cpu_name: sys.cpus().first().map(|c| c.brand().trim().to_string()).unwrap_or_default(),
@@ -73,6 +81,8 @@ fn read() -> SystemStatus {
         disks,
         battery: battery(),
         uptime_secs: System::uptime(),
+        net_received,
+        net_sent,
     }
 }
 

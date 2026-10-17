@@ -355,6 +355,32 @@ pub fn run(action: &Action) -> Result<String, String> {
     }
 }
 
+/// What the This PC panel's controls ask for (round 3C item 4): the answer,
+/// or the question when the permission asks first.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Done {
+    pub answer: String,
+    pub pending: Option<crate::tools::PendingAction>,
+}
+
+#[tauri::command]
+pub fn pc_do(action: String, value: Option<i64>, app: Option<String>) -> Result<Done, String> {
+    let level = value.map(|v| v.clamp(0, 100) as u8);
+    let on = value.unwrap_or(1) != 0;
+    let act = match action.as_str() {
+        "volume" => Action::Volume(level.ok_or("a level")?),
+        "brightness" => Action::Brightness(Change::Set(level.ok_or("a level")?)),
+        "wifi" => Action::Radio { wifi: true, on },
+        "bluetooth" => Action::Radio { wifi: false, on },
+        "dnd" => Action::DoNotDisturb,
+        "end" => Action::Close(app.filter(|a| !a.trim().is_empty()).ok_or("an app")?),
+        other => return Err(format!("unknown action {other}")),
+    };
+    let (answer, pending) = crate::tools::handle(crate::tools::Call::Pc(act));
+    Ok(Done { answer, pending })
+}
+
 fn not_open(app: &str) -> String {
     tf("{app} isn't open.", &[("app", app)])
 }

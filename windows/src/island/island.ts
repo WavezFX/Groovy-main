@@ -275,7 +275,7 @@ export class Island {
   private clickedAway() {
     if (State.mode !== "expanded" || !this.focusWanted) return;
     const clickAway = State.settings.autoCloseInterval === CLICK_AWAY;
-    if (State.view === "settings") {
+    if (State.view === "settings" || State.view === "panel") {
       this.setView("home");
       if (!clickAway) return;
     }
@@ -1168,6 +1168,8 @@ export class Island {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && State.mode === "expanded") {
         if (State.pendingApproval) this.foldApproval();
+        // A tile's panel or quick settings folds back to the tiles first.
+        else if (State.view === "panel" || State.view === "settings") this.setView("home");
         else if (!State.isPinned) this.collapse();
       }
       State.lastActivity = performance.now();
@@ -1584,7 +1586,7 @@ export class Island {
     // The island takes keyboard focus only for the chat's text field, and
     // (round 4 item 2) while quick settings or "Click away" need to know when
     // you click somewhere else: that click is the window's blur.
-    const wantsFocus = expanded && (State.view === "prompt" || State.view === "settings" || State.settings.autoCloseInterval === CLICK_AWAY);
+    const wantsFocus = expanded && (State.view === "prompt" || State.view === "settings" || State.view === "panel" || State.settings.autoCloseInterval === CLICK_AWAY);
     if (this.lastSyncedView !== State.view || wantsFocus !== this.focusWanted) {
       const toChat = State.view === "prompt" && this.lastSyncedView !== "prompt";
       this.lastSyncedView = State.view;

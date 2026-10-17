@@ -159,6 +159,9 @@ export interface SystemStatus {
   disks: { mount: string; total: number; available: number }[];
   battery: { percent: number; charging: boolean } | null;
   uptimeSecs: number;
+  /** Bytes since start-up; two readings make a speed. */
+  netReceived: number;
+  netSent: number;
 }
 
 // ── Music (music.rs) ──────────────────────────────────────────────────────────
@@ -539,6 +542,12 @@ export const Bridge = {
   taskAdd: (text: string, dueAt: number | null) => callOrThrow<TaskItem>("task_add", { text, dueAt }),
   taskSetDone: (id: number, done: boolean) => callOrThrow<TaskItem>("task_set_done", { id, done }),
   taskDelete: (id: number) => callOrThrow<void>("task_delete", { id }),
+  /** "Call mum tomorrow 9am" → the text and when; null when no time is understood. */
+  taskParse: (text: string) => call<{ text: string; dueAt: number } | null>("task_parse", { text }),
+  taskEdit: (id: number, text: string, dueAt: number | null) => callOrThrow<void>("task_edit", { id, text, dueAt }),
+  /** A PC action from the island's This PC panel, through the tools' permissions (pc.rs). */
+  pcDo: (action: "volume" | "brightness" | "wifi" | "bluetooth" | "dnd" | "end", value: number | null, app: string | null) =>
+    callOrThrow<{ answer: string; pending: { id: number; tool: string; label: string } | null }>("pc_do", { action, value, app }),
   taskClearDone: () => callOrThrow<number>("task_clear_done"),
 
   // ── Local models (models.rs) ──────────────────────────────────────────────

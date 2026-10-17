@@ -347,6 +347,8 @@ export const DIFF_TTL_MS = 3_600_000;
 class AppState {
   mode: IslandMode = "hidden";
   view: IslandViewName = "overview";
+  /** Which tile the "panel" view shows (round 3C item 4). */
+  panel: import("../views/panel").PanelName = "reminders";
 
   tasks: AgentTask[] = [];
   focusId: string | null = null;

@@ -160,9 +160,85 @@ pub fn task_clear_done() -> Result<usize, String> {
     clear_done(&*db::conn()?)
 }
 
+/// What the island's Add reminder field holds, split into the reminder and
+/// its time (round 3C item 4): "Call Sam tomorrow 9am" → ("Call Sam", 9:00
+/// tomorrow); "Stand up in 20 minutes"; or a bare time. None when no time is
+/// understood: the island then offers a date and time picker.
+pub fn parse_reminder(text: &str, now: i64, local: (i64, u32, u32, u32, u32, u32)) -> Option<(String, i64)> {
+    let lower = text.trim().to_lowercase();
+    // "tomorrow 9am" / "today 5pm" read as "tomorrow at 9am" / "at 5pm".
+    let read = |w: &str| {
+        let w = w.trim().trim_end_matches(['.', '!']);
+        let w = w.strip_prefix("today ").map(|r| format!("at {}", r.trim_start_matches("at "))).unwrap_or_else(|| w.to_string());
+        let w = match w.strip_prefix("tomorrow ") {
+            Some(r) if !r.starts_with("at ") => format!("tomorrow at {r}"),
+            _ => w,
+        };
+        let w = if w.chars().next().is_some_and(|c| c.is_ascii_digit()) { format!("at {w}") } else { w };
+        crate::tools::parse_when(&w)
+    };
+    if let Some(when) = read(&lower) {
+        return Some((String::new(), crate::tools::due_at(when, now, local)));
+    }
+    // The earliest place where the rest is a time; the reminder is what comes before it.
+    let mut best: Option<(usize, i64)> = None;
+    for (i, _) in lower.match_indices(' ') {
+        if let Some(when) = read(&lower[i + 1..]) {
+            best = Some((i, crate::tools::due_at(when, now, local)));
+            break;
+        }
+    }
+    let (i, due) = best?;
+    let reminder = text.trim()[..i].trim().trim_end_matches([',', ' ']).to_string();
+    Some((reminder, due))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Parsed {
+    text: String,
+    due_at: i64,
+}
+
+#[tauri::command]
+pub fn task_parse(text: String) -> Option<Parsed> {
+    let lt = crate::platform::local_time();
+    let local = (lt.year as i64, lt.month, lt.day, lt.hour, lt.minute, lt.second);
+    parse_reminder(&text, db::now(), local).map(|(text, due_at)| Parsed { text, due_at })
+}
+
+/// Changes a reminder's text and time in place (the island's inline edit).
+#[tauri::command]
+pub fn task_edit(id: i64, text: String, due_at: Option<i64>) -> Result<(), String> {
+    let text = text.trim();
+    if text.is_empty() || text.chars().count() > MAX_TEXT {
+        return Err(crate::i18n::t("A reminder needs some text."));
+    }
+    let conn = db::conn()?;
+    conn.execute("UPDATE tasks SET text = ?2, due_at = ?3, notified = 0 WHERE id = ?1", rusqlite::params![id, text, due_at]).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reminders_are_read_from_one_sentence() {
+        // Friday 16 Oct 2026, 10:00 local; unix "now" chosen to match.
+        let now = 1_000_000;
+        let local = (2026, 10, 16, 10, 0, 0);
+        let day_start = now - 10 * 3600;
+        let (text, due) = parse_reminder("Call Sam tomorrow 9am", now, local).unwrap();
+        assert_eq!((text.as_str(), due), ("Call Sam", day_start + 86_400 + 9 * 3600));
+        let (text, due) = parse_reminder("Stand up in 20 minutes", now, local).unwrap();
+        assert_eq!((text.as_str(), due), ("Stand up", now + 1200));
+        let (text, due) = parse_reminder("Water the plants at 5pm", now, local).unwrap();
+        assert_eq!((text.as_str(), due), ("Water the plants", day_start + 17 * 3600));
+        let (text, due) = parse_reminder("tomorrow 9am", now, local).unwrap();
+        assert_eq!((text.as_str(), due), ("", day_start + 86_400 + 9 * 3600));
+        assert!(parse_reminder("Buy milk sometime", now, local).is_none(), "the picker then");
+    }
 
     #[test]
     fn add_list_done_delete() {

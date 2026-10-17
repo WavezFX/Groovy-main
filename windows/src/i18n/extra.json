@@ -16142,6 +16142,215 @@
    "pt-BR": "Não configurado",
    "ru": "Не настроено",
    "id": "Belum diatur"
+  },
+  "Tomorrow {time}": {
+   "zh-Hans": "明天 {time}",
+   "hi": "कल {time}",
+   "es": "Mañana {time}",
+   "ar": "غدًا {time}",
+   "fr": "Demain {time}",
+   "bn": "আগামীকাল {time}",
+   "pt-BR": "Amanhã {time}",
+   "ru": "Завтра {time}",
+   "id": "Besok {time}"
+  },
+  "Add a reminder: “call mum tomorrow 9am”": {
+   "zh-Hans": "添加提醒：“明天上午9点给妈妈打电话”",
+   "hi": "रिमाइंडर जोड़ें: “कल सुबह 9 बजे माँ को फ़ोन करना”",
+   "es": "Añade un recordatorio: «llamar a mamá mañana a las 9»",
+   "ar": "أضف تذكيرًا: «اتصل بأمي غدًا الساعة 9 صباحًا»",
+   "fr": "Ajouter un rappel : « appeler maman demain 9 h »",
+   "bn": "রিমাইন্ডার যোগ করুন: “কাল সকাল ৯টায় মাকে ফোন”",
+   "pt-BR": "Adicione um lembrete: “ligar para a mãe amanhã às 9h”",
+   "ru": "Добавьте напоминание: «позвонить маме завтра в 9»",
+   "id": "Tambah pengingat: “telepon ibu besok jam 9 pagi”"
+  },
+  "Nothing due. Add one below.": {
+   "zh-Hans": "没有待办提醒。在下面添加一个。",
+   "hi": "कुछ बाकी नहीं। नीचे एक जोड़ें।",
+   "es": "Nada pendiente. Añade uno abajo.",
+   "ar": "لا شيء مستحق. أضف واحدًا بالأسفل.",
+   "fr": "Rien de prévu. Ajoutez-en un ci-dessous.",
+   "bn": "কিছু বাকি নেই। নিচে একটি যোগ করুন।",
+   "pt-BR": "Nada pendente. Adicione um abaixo.",
+   "ru": "Ничего не запланировано. Добавьте ниже.",
+   "id": "Tidak ada yang jatuh tempo. Tambahkan di bawah."
+  },
+  "When? Pick a time, then Save.": {
+   "zh-Hans": "什么时候？选择时间，然后保存。",
+   "hi": "कब? समय चुनें, फिर सेव करें।",
+   "es": "¿Cuándo? Elige una hora y pulsa Guardar.",
+   "ar": "متى؟ اختر وقتًا ثم احفظ.",
+   "fr": "Quand ? Choisissez une heure, puis Enregistrer.",
+   "bn": "কখন? একটি সময় বেছে নিন, তারপর সেভ করুন।",
+   "pt-BR": "Quando? Escolha um horário e toque em Salvar.",
+   "ru": "Когда? Выберите время и нажмите «Сохранить».",
+   "id": "Kapan? Pilih waktu, lalu Simpan."
+  },
+  "{n} GB": {
+   "zh-Hans": "{n} GB",
+   "hi": "{n} GB",
+   "es": "{n} GB",
+   "ar": "{n} غ.ب",
+   "fr": "{n} Go",
+   "bn": "{n} GB",
+   "pt-BR": "{n} GB",
+   "ru": "{n} ГБ",
+   "id": "{n} GB"
+  },
+  "{n} MB": {
+   "zh-Hans": "{n} MB",
+   "hi": "{n} MB",
+   "es": "{n} MB",
+   "ar": "{n} م.ب",
+   "fr": "{n} Mo",
+   "bn": "{n} MB",
+   "pt-BR": "{n} MB",
+   "ru": "{n} МБ",
+   "id": "{n} MB"
+  },
+  "{n} KB": {
+   "zh-Hans": "{n} KB",
+   "hi": "{n} KB",
+   "es": "{n} KB",
+   "ar": "{n} ك.ب",
+   "fr": "{n} Ko",
+   "bn": "{n} KB",
+   "pt-BR": "{n} KB",
+   "ru": "{n} КБ",
+   "id": "{n} KB"
+  },
+  "On": {
+   "zh-Hans": "开",
+   "hi": "चालू",
+   "es": "Activar",
+   "ar": "تشغيل",
+   "fr": "Activer",
+   "bn": "চালু",
+   "pt-BR": "Ligar",
+   "ru": "Вкл.",
+   "id": "Nyala"
+  },
+  "Brightness": {
+   "zh-Hans": "亮度",
+   "hi": "चमक",
+   "es": "Brillo",
+   "ar": "السطوع",
+   "fr": "Luminosité",
+   "bn": "উজ্জ্বলতা",
+   "pt-BR": "Brilho",
+   "ru": "Яркость",
+   "id": "Kecerahan"
+  },
+  "Wi-Fi": {
+   "zh-Hans": "Wi-Fi",
+   "hi": "वाई-फ़ाई",
+   "es": "Wi-Fi",
+   "ar": "Wi-Fi",
+   "fr": "Wi-Fi",
+   "bn": "ওয়াই-ফাই",
+   "pt-BR": "Wi-Fi",
+   "ru": "Wi-Fi",
+   "id": "Wi-Fi"
+  },
+  "Bluetooth": {
+   "zh-Hans": "蓝牙",
+   "hi": "ब्लूटूथ",
+   "es": "Bluetooth",
+   "ar": "بلوتوث",
+   "fr": "Bluetooth",
+   "bn": "ব্লুটুথ",
+   "pt-BR": "Bluetooth",
+   "ru": "Bluetooth",
+   "id": "Bluetooth"
+  },
+  "Do not disturb": {
+   "zh-Hans": "勿扰",
+   "hi": "परेशान न करें",
+   "es": "No molestar",
+   "ar": "عدم الإزعاج",
+   "fr": "Ne pas déranger",
+   "bn": "বিরক্ত করবেন না",
+   "pt-BR": "Não perturbe",
+   "ru": "Не беспокоить",
+   "id": "Jangan ganggu"
+  },
+  "Disk {mount}": {
+   "zh-Hans": "磁盘 {mount}",
+   "hi": "डिस्क {mount}",
+   "es": "Disco {mount}",
+   "ar": "القرص {mount}",
+   "fr": "Disque {mount}",
+   "bn": "ডিস্ক {mount}",
+   "pt-BR": "Disco {mount}",
+   "ru": "Диск {mount}",
+   "id": "Disk {mount}"
+  },
+  "{n} free": {
+   "zh-Hans": "可用 {n}",
+   "hi": "{n} खाली",
+   "es": "{n} libres",
+   "ar": "{n} متاح",
+   "fr": "{n} libres",
+   "bn": "{n} খালি",
+   "pt-BR": "{n} livres",
+   "ru": "свободно {n}",
+   "id": "{n} kosong"
+  },
+  "Network": {
+   "zh-Hans": "网络",
+   "hi": "नेटवर्क",
+   "es": "Red",
+   "ar": "الشبكة",
+   "fr": "Réseau",
+   "bn": "নেটওয়ার্ক",
+   "pt-BR": "Rede",
+   "ru": "Сеть",
+   "id": "Jaringan"
+  },
+  "Top apps by memory": {
+   "zh-Hans": "占用内存最多的应用",
+   "hi": "सबसे ज़्यादा मेमोरी वाले ऐप",
+   "es": "Apps que más memoria usan",
+   "ar": "التطبيقات الأكثر استخدامًا للذاكرة",
+   "fr": "Apps qui utilisent le plus de mémoire",
+   "bn": "সবচেয়ে বেশি মেমরি ব্যবহারকারী অ্যাপ",
+   "pt-BR": "Apps que mais usam memória",
+   "ru": "Больше всего памяти",
+   "id": "Aplikasi pemakai memori terbesar"
+  },
+  "End": {
+   "zh-Hans": "结束",
+   "hi": "बंद करें",
+   "es": "Cerrar",
+   "ar": "إنهاء",
+   "fr": "Fermer",
+   "bn": "বন্ধ করুন",
+   "pt-BR": "Encerrar",
+   "ru": "Завершить",
+   "id": "Akhiri"
+  },
+  "Connect {name}": {
+   "zh-Hans": "连接 {name}",
+   "hi": "{name} जोड़ें",
+   "es": "Conectar {name}",
+   "ar": "ربط {name}",
+   "fr": "Connecter {name}",
+   "bn": "{name} যুক্ত করুন",
+   "pt-BR": "Conectar {name}",
+   "ru": "Подключить {name}",
+   "id": "Hubungkan {name}"
+  },
+  "No new mail. Connect an account to see your inbox here.": {
+   "zh-Hans": "没有新邮件。连接一个账户即可在这里查看收件箱。",
+   "hi": "कोई नया मेल नहीं। अपना इनबॉक्स यहाँ देखने के लिए एक खाता जोड़ें।",
+   "es": "No hay correo nuevo. Conecta una cuenta para ver aquí tu bandeja de entrada.",
+   "ar": "لا يوجد بريد جديد. اربط حسابًا لترى صندوق الوارد هنا.",
+   "fr": "Aucun nouveau mail. Connectez un compte pour voir votre boîte de réception ici.",
+   "bn": "নতুন মেল নেই। এখানে ইনবক্স দেখতে একটি অ্যাকাউন্ট যুক্ত করুন।",
+   "pt-BR": "Nenhum e-mail novo. Conecte uma conta para ver sua caixa de entrada aqui.",
+   "ru": "Новых писем нет. Подключите аккаунт, чтобы видеть входящие здесь.",
+   "id": "Tidak ada email baru. Hubungkan akun untuk melihat kotak masuk di sini."
   }
  }
 }

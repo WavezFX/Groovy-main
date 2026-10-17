@@ -15,6 +15,7 @@ import { h } from "./dom";
 import { icon } from "../hub/ui";
 import { Notices, noticeIcon } from "../island/live";
 import type { ViewHost } from "./views";
+import type { PanelName } from "./panel";
 
 /** A new mail from Windows' notification feed (island_tiles.rs). */
 export interface MailNote {
@@ -58,6 +59,18 @@ export function refreshSlowData(onChange: () => void) {
       onChange();
     }, () => {});
   }
+}
+
+/** The next refresh reads the reminders and the PC again (after a panel changed them). */
+export function forgetSlowData() {
+  remindersAt = 0;
+  systemAt = 0;
+}
+
+/** Opens a tile into its panel in the island (round 3C item 4). */
+function openPanel(name: PanelName, setView: (v: IslandViewName) => void) {
+  State.panel = name;
+  setView("panel");
 }
 
 function initial(label: string): string {
@@ -110,10 +123,7 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         color: "#3B9EFF",
         title: last ? last.title || last.app : t("Mail"),
         sub: last ? last.body || last.app : t("New mail pops up here"),
-        open: () => {
-          if (last) void Bridge.mailOpen(last.appId).catch(showError);
-          else void Bridge.openSettingsWindow("island");
-        },
+        open: () => openPanel("mail", setView),
       };
     }
     case "music": {
@@ -124,7 +134,8 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         title: s.track ? s.track.title : t("Spotify"),
         sub: s.track ? s.track.artist : s.installed || s.running ? t("Play something in the Spotify app and it appears here") : t("Get Spotify"),
         // Opens Spotify, or its Microsoft Store page when it isn't installed (spotify.rs).
-        open: () => void Bridge.spotifyOpen(),
+        // The full player in the island; it offers Spotify itself when there's nothing to play.
+        open: () => openPanel("spotify", setView),
       };
     }
     case "agents": {
@@ -149,7 +160,7 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         color: "#F7B32B",
         title: t("Reminders"),
         sub: nextReminder?.text ?? t("Nothing due"),
-        open: () => void Bridge.openSettingsWindow("reminders"),
+        open: () => openPanel("reminders", setView),
       };
     case "system":
       return {
@@ -157,7 +168,7 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         color: "#34D399",
         title: t("This PC"),
         sub: system ? t("CPU {cpu} % · memory {mem} %", { cpu: system.cpu, mem: system.mem }) : "…",
-        open: () => void Bridge.openSettingsWindow("system"),
+        open: () => openPanel("system", setView),
       };
   }
 }
