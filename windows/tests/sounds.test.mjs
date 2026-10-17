@@ -5,11 +5,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { MAX_SECONDS, RECIPES, SAMPLE_RATE, renderSound } from "../src/core/sounds-synth.ts";
 import { SOUND_NAMES } from "../src/core/sound.ts";
 
-const root = new URL("..", import.meta.url).pathname;
+// A real path on every system (a URL's pathname is "/D:/…" on Windows).
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 test("every sound event is made in code, in wood, warm and glass", () => {
   for (const name of SOUND_NAMES) {
@@ -41,7 +43,7 @@ test("no audio file ships: only the speech tests' recordings are in the reposito
       if (["node_modules", "target", "dist", ".git", "release"].includes(name)) continue;
       const path = join(dir, name);
       if (statSync(path).isDirectory()) walk(path);
-      else if (/\.(wav|mp3|ogg|m4a|aiff?|caf|flac|opus)$/i.test(name)) found.push(relative(root, path));
+      else if (/\.(wav|mp3|ogg|m4a|aiff?|caf|flac|opus)$/i.test(name)) found.push(relative(root, path).split(sep).join("/"));
     }
   };
   walk(root);
