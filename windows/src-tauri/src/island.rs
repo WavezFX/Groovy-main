@@ -492,6 +492,9 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
     std::thread::spawn(move || {
         let mut was_down = false;
         let mut pressed_outside = false;
+        // A press anywhere but on the island (round 3C: quick settings and the
+        // panels close on a click away without taking keyboard focus).
+        let mut was_pressed = false;
         // Remembered across wakes so a display change while hidden is noticed the
         // moment the island comes back.
         let mut last_screen: Option<(i32, i32, u32, u32, u64)> = None;
@@ -533,6 +536,15 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
                     Ok(s) => (s.width as f64 / scale, s.height as f64 / scale),
                     Err(_) => (PANEL_W, PANEL_H),
                 };
+                let pressed = left_button_down();
+                if pressed && !was_pressed {
+                    let r = *gate.rect.lock().unwrap();
+                    let on = r.w > 0.0 && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+                    if !on {
+                        let _ = win.emit("click-outside", ());
+                    }
+                }
+                was_pressed = pressed;
                 if (x - last.0).abs() < 1.0 && (y - last.1).abs() < 1.0 {
                     continue;
                 }

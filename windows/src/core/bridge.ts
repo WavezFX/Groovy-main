@@ -415,7 +415,11 @@ export const Bridge = {
   islandGlass: () => call<string>("island_glass"),
 
   /** Give the window keyboard focus (chat field) and take it away again. */
-  focusWindow: (focused: boolean) => call<void>("focus_window", { focused }),
+  /**
+   * `take`: also take the keyboard now (the chat). Without it the island only
+   * becomes clickable-to-focus: activating the window costs a long frame.
+   */
+  focusWindow: (focused: boolean, take = true) => call<void>("focus_window", { focused, take }),
 
   reposition: () => call<void>("reposition"),
   fitZoom: (dpr: number) => call<boolean>("fit_zoom", { dpr }),

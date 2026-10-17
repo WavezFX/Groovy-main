@@ -272,10 +272,10 @@ fn fit_island(app: AppHandle, width: f64, height: f64) {
 }
 
 #[tauri::command]
-fn focus_window(app: AppHandle, focused: bool) {
+fn focus_window(app: AppHandle, focused: bool, take: Option<bool>) {
     let Some(win) = island::window(&app) else { return };
     platform::set_activating(&win, focused);
-    if focused {
+    if focused && take.unwrap_or(true) {
         let _ = win.set_focus();
     }
 }

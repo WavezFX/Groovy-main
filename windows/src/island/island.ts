@@ -269,6 +269,17 @@ export class Island {
    * then it waits its turn. It goes by itself after its time, not while the
    * pointer is on the island.
    */
+  /** Quick settings folds back, and with "Click away" the island folds too. */
+  private clickedAway() {
+    if (State.mode !== "expanded" || !this.focusWanted) return;
+    const clickAway = State.settings.autoCloseInterval === CLICK_AWAY;
+    if (State.view === "settings") {
+      this.setView("home");
+      if (!clickAway) return;
+    }
+    if (clickAway && !State.isPinned && !State.pendingApproval && State.view !== "prompt") this.collapse();
+  }
+
   showNotice() {
     const n = Notices.current;
     if (!n) return;
@@ -1142,15 +1153,11 @@ export class Island {
 
     // Round 4 item 2: a click outside the island (it had focus) closes quick
     // settings, and with "Click away" chosen, folds the island too.
-    window.addEventListener("blur", () => {
-      if (State.mode !== "expanded" || !this.focusWanted) return;
-      const clickAway = State.settings.autoCloseInterval === CLICK_AWAY;
-      if (State.view === "settings") {
-        this.setView("home");
-        if (!clickAway) return;
-      }
-      if (clickAway && !State.isPinned && !State.pendingApproval && State.view !== "prompt") this.collapse();
-    });
+    window.addEventListener("blur", () => this.clickedAway());
+    // A press outside the island, seen by Rust's cursor poll: the same as the
+    // blur, for views that never took the keyboard (quick settings, panels).
+    void onEvent<null>("click-outside", () => this.clickedAway());
+
 
     // Only keys typed into the island itself land here, never Escape typed in
     // a terminal — so it may fold a waiting card away, as Escape in the notch
@@ -1578,7 +1585,9 @@ export class Island {
       this.lastSyncedView = State.view;
       if (wantsFocus !== this.focusWanted) {
         this.focusWanted = wantsFocus;
-        void Bridge.focusWindow(wantsFocus);
+        // Only the chat takes the keyboard at once (round 3B item 8b: activating
+        // the window cost a 60-110 ms frame as quick settings opened).
+        void Bridge.focusWindow(wantsFocus, State.view === "prompt");
       }
       if (toChat) window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
     }
