@@ -35,6 +35,14 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Settings animates open and closed (no pop-in, no white flash)
 - [ ] 7. Checks
 
+## 1D. Fixes round 3D: `FIXES_ROUND3D.md` (a professional Settings window, and a local AI that runs smoothly). **After 3C, before round 5.**
+- [ ] 1. Reorganise Settings into grouped sections, with search
+- [ ] 2. One page template (cards, rows, buttons, status, empty states)
+- [ ] 3. Rebuild every page on the template (screenshots in CI)
+- [ ] 4. Animation and feel in Settings
+- [ ] 5. Local AI through Ollama + Qwen first (like Butler), built-in model as fallback
+- [ ] 6. Checks
+
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**

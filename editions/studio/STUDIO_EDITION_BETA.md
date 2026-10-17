@@ -87,6 +87,39 @@ This is the main Studio feature. It's fully in-house, cheap and legally clean.
   - Open Higgsfield has no licence file, so **don't copy its code**. Talk only to the services it calls, or to a running instance of it, over HTTP.
 - **Thumbnails** are made with the motion kit (text and shapes, free) or with an image model plus a text overlay.
 
+## Item 3b: Editing with ArtCraft and free tools (photo, video, motion, design)
+
+The owner has **ArtCraft** installed: Brandon Thomas's open-source suite of Adobe replacements (getartcraft.com, github.com/storytold), for Windows, macOS and Linux. It includes:
+
+| ArtCraft app | Replaces |
+|---|---|
+| PhotoCraft | Photoshop |
+| LightCraft | Lightroom |
+| VectorCraft | Illustrator |
+| FilmCraft | Premiere Pro |
+| EffectCraft | After Effects |
+| DesignCraft | InDesign |
+| PdfCraft | Acrobat |
+
+Groovy Studio should be able to edit as well as generate, using ArtCraft and other free tools as **resources in the Planner** (item 1). Every one is opt-in and detected automatically.
+
+- **Licence first:** ArtCraft calls itself open source, but check each repository's licence before relying on it. Never copy ArtCraft code into Groovy; talk to it as a separate program, the same rule as Open Higgsfield.
+- **Detection:** find installed ArtCraft apps (install paths, Start-menu entries, registry App Paths) and show them in Creator settings as "ArtCraft: PhotoCraft ✓, FilmCraft ✓ …". Check whether each app has a **command line, an automation/scripting interface, a plugin API or an open project format**, and record what each one supports in `STATUS.md`.
+- **Three levels of integration, best available first:**
+  1. **Automate it** (if ArtCraft has a CLI, scripting or plugins): Groovy runs the edit inside ArtCraft, for example "PhotoCraft: remove the background, export PNG" or "FilmCraft: cut to 30 s, add captions, export 9:16".
+  2. **Hand off a ready project:** Groovy prepares the files ArtCraft opens (layered images, an edit list or project file, SVG, a PDF) and opens them in the right ArtCraft app, so the user finishes the edit by hand.
+  3. **Groovy does it itself:** quick edits that need no app. Use **ffmpeg** for trim, cut, join, resize to 9:16 / 1:1 / 16:9, captions from Groovy's own speech-to-text, loudness normalising, colour LUTs and speed changes. Use an image library (the Rust `image` crate, or libvips) for crop, resize, background removal with a small open model, and basic colour or light adjustments, like Lightroom's quick controls.
+- **Voice and island flow:** "Groovy, cut this video to 30 seconds and add subtitles" → the Planner picks level 3 (free, local), shows the plan card, does it, and offers "Open in FilmCraft" to fine-tune.
+  - Photos: "edit this photo like Lightroom: warmer and brighter" → level 3, or LightCraft for more.
+  - Motion: Groovy's own motion kit (item 2) first, or EffectCraft if it can be automated.
+- **Generation resources:**
+  - **Open Higgsfield / "Open Generative AI"**: as an external plugin, as in item 3.
+  - **Any other free or open-source generator the owner names:** each is added as a resource manifest after a licence and terms check (commercial use allowed?).
+  - Only tools the user has installed or connected are offered.
+- **Planner integration:** each ArtCraft app and local tool is a resource with `cost: 0`, a quality score per job and its speed. In Free mode the Planner prefers them; in Best mode it may still pick a paid generator for footage and then hand off to ArtCraft for the edit.
+- **Memory:** ArtCraft runs as its own program, so Groovy's 300 MB budget is unaffected. ffmpeg and image work run as short-lived helper processes.
+- **Tests:** detection with fake install paths; level 3 edits produce correct outputs (duration, size, captions burned in); a handoff opens the right app with the right file; the Planner prefers free local resources in Free mode.
+
 ## Item 4: Posting, starting with YouTube
 
 - **Accounts.** In Creator settings, sign in with OAuth 2.0 using the platform's own sign-in page in the default browser (DuckDuckGo, as in round 4). Tokens are stored in Windows Credential Manager, never in settings.
