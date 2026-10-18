@@ -37,11 +37,12 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 7. Checks
 
 ## 1D. Fixes round 3D: `FIXES_ROUND3D.md` (a professional Settings window, and a local AI that runs smoothly). **After 3C, before round 5.**
-- [ ] 1. Reorganise Settings into grouped sections, with search
+- [ ] 1. Reorganise Settings into grouped sections, with search (**match `docs/design/settings-v2/`**)
 - [ ] 2. One page template (cards, rows, buttons, status, empty states)
 - [ ] 3. Rebuild every page on the template (screenshots in CI)
 - [ ] 4. Animation and feel in Settings
 - [ ] 5. Local AI through Ollama + Qwen first (like Butler), built-in model as fallback
+- [ ] 8. Island tiles that expand: Spotify to 4, Mail and This PC to 6 with a music strip, Mail to all 8 (design `docs/design/settings-v2/IslandTiles.dc.html`)
 - [ ] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [ ] 6. Checks
 

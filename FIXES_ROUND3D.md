@@ -2,6 +2,13 @@
 
 **Do this after round 3C and before round 5.** Commit each item separately with "Fixes round 3D, item N: …" as the subject, tick it in `WORK_QUEUE.md` in the same commit, push, and keep the build green.
 
+> **Approved designs:** `docs/design/settings-v2/`. Open the `.dc.html` files in a browser.
+> - `Sidebar.dc.html`: the shared sidebar (Groovy card, search, 15 pages in 8 groups).
+> - The pages: `Main` (Home), `Brains`, `Voice`, `Groovy` (character and wardrobe), `Island` and `System`.
+> - `IslandTiles` and its variants: the expanding island tiles.
+>
+> Build Settings and the island to match these exactly: layout, spacing, colours (#0A0C0E ground, glass cards, #46EB78 accent for Night, following the current look), type sizes and copy. The pages not drawn follow the same template.
+
 ## Item 1: Reorganise Settings (information architecture)
 
 The owner says some Settings pages "aren't professional" and their layout needs smoothing out on every tab. Today the sidebar is a flat list of **26 pages**: 18 Groovy pages (`GROOVY_PAGES`, `src/hub/shell.ts`) plus 8 Flow pages. Related settings are split across pages:
@@ -126,6 +133,19 @@ How to stay under the ceiling:
   - The **built-in local model can't fit** (even a 0.5B model needs about 400 MB on its own). Keep it, but **off by default**, labelled "Uses extra memory: over Groovy's 400 MB limit". The CI peak test runs with it off.
 - **Caches:** cap the image, sprite and mail caches, and use bounded queues everywhere. Watch WebView2 memory: when the total nears 380 MB, Groovy drops its caches, sets `MemoryUsageTargetLevel` to Low on hidden views and closes the least-recently-used panel.
 - **Kokoro voice (local TTS):** load it on demand and free it when idle. It must fit within the peak scenario, or run in a helper process that's freed straight away.
+
+## Item 8: Island tiles that expand (approved design: `IslandTiles.dc.html`)
+
+The island's tile area is a 4 × 2 grid. Tiles grow **out of their own spot**, the other tiles slide aside, and a **Back** button returns them to one tile. All of this uses the motion module.
+
+- **Spotify:** 1 tile becomes **4 (2 × 2)**, showing the art, song, artist and a progress bar you can scrub. Previous and next are **40 px**, and play/pause is **52 px**. The other four tiles stay visible.
+- **Mail:** 1 tile becomes **6** (three columns). While music is playing, Spotify becomes a **2-tile vertical strip** in the fourth column, with art, title, a 44 px play/pause and 34 px previous/next.
+  - An **"All 8" / "6 tiles"** switch lets Mail take the whole grid.
+  - Inside Mail: the inbox list (sender, subject, time, unread), then reading an email (subject and body; **Reply**, **Archive**, **Open in …**), then a reply box (**Send**, plus **"Groovy, polish it"**, which rewrites it with the active brain).
+  - Back goes from reply to email to inbox to tiles. Uses round 3C item 5's accounts.
+- **This PC:** 1 tile becomes **6**, with the same music strip. It shows memory, CPU, disk, **Groovy against its 400 MB limit**, battery and Wi-Fi, plus "Top apps by memory" with **End** (which asks first, behind round 4 item 5's permissions). It updates every 2 s only while open.
+- **Other tiles** (Reminders and the rest) follow the same pattern: grow to 6 with the music strip, or to 4 if that suits them.
+- Only one tile is expanded at a time. Esc or a click away collapses it. Everything stays inside the island window: no new windows, and it respects the 400 MB peak (item 7).
 
 ## Item 6: Checks
 
