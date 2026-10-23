@@ -956,6 +956,9 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
         match built {
             Ok(win) => {
                 log::line("control centre opened");
+                // Transparent from the start: whatever shows it early (focus,
+                // WebView2) shows nothing until the grow fades it in.
+                platform::set_window_alpha(&win, Some(0));
                 grow_out_of_island(&app, &win);
                 let closing = win.clone();
                 let app2 = app.clone();
@@ -1075,15 +1078,20 @@ fn grow_out_of_island(app: &AppHandle, win: &tauri::WebviewWindow) {
         let _ = win.emit("hub-shown", ());
         return;
     };
-    // No island to grow from (it is hidden on another screen…): a fade in place.
-    let from = island_spot(app).unwrap_or(to);
+    // No island to grow from (it is hidden on another screen…), or Windows'
+    // animation effects are off: a fade in place, at its own size. (With the
+    // effects off it used to start at the island's size and stay there: CI's
+    // runner has them off.)
+    let from = if animation_effects_on() { island_spot(app).unwrap_or(to) } else { to };
     platform::set_window_alpha(win, Some(0));
     platform::set_bounds(win, from.0 as i32, from.1 as i32, from.2 as u32, from.3 as u32);
-    let _ = win.show();
-    let _ = win.set_focus();
+    // Shown here, keeping the transparency (Tauri's show() would re-apply the
+    // window's styles and drop it: it popped in opaque for a frame or two).
+    platform::show_now(win);
     let _ = win.emit("hub-shown", ());
     animate_window(win, from, to, 320, (0, 255));
     platform::set_window_alpha(win, None);
+    let _ = win.set_focus();
 }
 
 /// The Control Centre window (every setting, Flow dictation, the Notetaker…),

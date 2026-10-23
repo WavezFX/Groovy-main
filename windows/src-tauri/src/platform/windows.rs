@@ -446,6 +446,21 @@ pub fn apps_dark() -> bool {
     r.is_err() || light == 0
 }
 
+/// Shows a window now, from any thread, keeping its extended styles. Tauri's
+/// own show() goes through the event loop and re-applies the window's styles,
+/// which drops WS_EX_LAYERED: a window set transparent just before (the
+/// Control Centre about to fade in) popped in opaque for a frame or two.
+pub fn show_now(win: &WebviewWindow) {
+    match hwnd_of(win) {
+        Some(hwnd) => unsafe {
+            let _ = ShowWindow(hwnd, SW_SHOWNORMAL);
+        },
+        None => {
+            let _ = win.show();
+        }
+    }
+}
+
 pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
     let Some(hwnd) = hwnd_of(win) else { return };
     unsafe {

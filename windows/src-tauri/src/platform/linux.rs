@@ -531,6 +531,10 @@ pub fn apps_dark() -> bool {
     true
 }
 
+pub fn show_now(win: &WebviewWindow) {
+    let _ = win.show();
+}
+
 pub fn set_bounds(win: &WebviewWindow, x: i32, y: i32, w: u32, h: u32) {
     let _ = win.set_resizable(true);
     let _ = win.set_size(tauri::PhysicalSize::new(w, h));
