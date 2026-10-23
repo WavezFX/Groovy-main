@@ -147,6 +147,35 @@ The island's tile area is a 4 × 2 grid. Tiles grow **out of their own spot**, t
 - **Other tiles** (Reminders and the rest) follow the same pattern: grow to 6 with the music strip, or to 4 if that suits them.
 - Only one tile is expanded at a time. Esc or a click away collapses it. Everything stays inside the island window: no new windows, and it respects the 400 MB peak (item 7).
 
+## Item 9: Lazy-load everything: nothing loads until it's needed
+
+The owner's rule: **every component loads only when it's actually needed, and unloads when it's no longer used.** For example, **in cloud mode the offline language model must never be loaded at all**: not at startup, not "just in case", not as a warm-up.
+
+- **AI brains:**
+  - Load a local model (built-in, or a request to Ollama or LM Studio to load) only when a local brain is actually chosen for a request, meaning the cloud brains are unavailable or out of limit, or the user picked local.
+  - In cloud mode, the local runtime, its weights and its helper process don't exist.
+- **Speech:**
+  - The offline speech recognition model loads only when cloud speech recognition isn't available or fails, and only when the user is actually speaking.
+  - Kokoro loads only when Fish Audio can't answer.
+  - The wake-word spotter runs only while OK Groovy is on.
+- **UI:**
+  - Each Settings page's code is a separate dynamic import, loaded the first time the page opens. Heavy pages (Brains/Models, Statistics, Wardrobe previews, the Coding Studio editor and CodeMirror) are never in the startup bundle.
+  - Island panels (Mail, This PC, the full Spotify player, Reminders) load their code and data when first opened.
+  - Settings, Studio, the wardrobe and the desktop Groovy windows are created on first use and destroyed when closed.
+- **Integrations:**
+  - Mail, calendar, GitHub and the other integrations don't connect or poll until their tile is visible or their panel is open, or a notification setting needs them. Then they poll at the slowest rate that still works.
+  - Disconnected integrations load nothing.
+- **Rust side:**
+  - Group heavy modules (whisper, sherpa-onnx, local LLM, ffmpeg, the image tools) behind runtime initialisation, using `OnceCell` or a lazy constructor, so nothing is initialised at startup.
+  - Where possible, put rarely used, heavy native libraries in a **helper process** started on demand, so their memory is fully returned when they stop.
+- **Startup:**
+  - Startup does only what's needed to show the island and Groovy.
+  - Measure cold start to island visible (target **under 1.5 s**) and idle memory right after startup. Put both in `STATUS.md`.
+- **Tests:**
+  - In cloud mode with models downloaded: start Groovy, chat a few times and run a dictation with cloud STT. Assert that **no local LLM or offline STT model was ever loaded** (log or counter check) and that no helper process for them exists.
+  - Assert that opening a Settings page loads its chunk on first visit only.
+  - Add these to the peak/idle memory tests (item 7).
+
 ## Item 6: Checks
 
 - All tests pass.
