@@ -176,6 +176,42 @@ The owner's rule: **every component loads only when it's actually needed, and un
   - Assert that opening a Settings page loads its chunk on first visit only.
   - Add these to the peak/idle memory tests (item 7).
 
+## Item 10: Three operating states: Standby, Conversation, Offline
+
+Efficiency must **not** cost features, interface quality or voice responsiveness. Groovy runs in exactly one of three states, managed by one state machine in Rust (`runtime_state.rs`). The island shows the state subtly, and Settings → System shows it in full.
+
+| State | What's loaded | What's not loaded | Budget |
+|---|---|---|---|
+| **Standby** (default) | The island WebView (visible, animated only when something changes), the **wake-word spotter** (a few MB, VAD-gated), integrations visible on the island (polling slowly), a cloud connection ready but idle | Full speech recognition, every local model, Kokoro, the Settings and Studio windows, closed panels | **≤ 300 MB, under 1% CPU** |
+| **Conversation** (wake word, hotkey, dictation or a live call) | Everything in Standby, plus **cloud speech recognition streaming**, the cloud brain, Fish Audio streaming TTS and the panels in use | Local models (unless cloud fails) | **≤ 400 MB peak** |
+| **Offline** (no network, cloud limits hit with no cloud fallback, or the user chose local) | Standby, plus the **small offline STT** and **Kokoro** on demand, with local thinking through **Ollama** (its own app; Groovy only calls it) | The built-in model, unless the user turned it on | **≤ 400 MB peak** for Groovy's own processes |
+
+**Moving between states:**
+
+- **Standby → Conversation:** triggered by the wake word, the hotkey, the island's Talk button or a live call.
+  - When the wake word fires, **pre-warm** at once and in parallel: open the cloud STT stream, send a warm-up to the brain (keep-alive HTTP/2 connection), and get the TTS stream ready.
+  - Buffer the audio from the wake word onwards, so **no words are lost** while things connect.
+  - Targets: first sound of feedback (chime and island glow) **under 150 ms**, words on screen **under 500 ms**, and the start of the spoken reply **under 1.5 s** after the user stops.
+- **Conversation → Standby:** after the reply finishes and about **8 s** of silence (follow-up window), or at once when the user says "thanks" or "stop".
+  - Then **release** STT buffers and streams, TTS audio buffers, panel data no longer shown and any temporary caches.
+  - Memory must return close to the Standby figure within about 10 s. Test this.
+- **→ Offline:** entered automatically when the network is down or cloud limits are hit with no cloud brain left. Groovy shows it on the island ("Offline: thinking on this PC") and loads only what's needed per request. It returns to Standby when the cloud is reachable again. If the offline engines aren't downloaded, Groovy says so and the basic commands still work.
+- **The island stays visible and live in every state.** Groovy's animations, hover-to-open and the tiles work in Standby. Only invisible work stops.
+
+**WebView2 audit:** the owner's Task Manager earlier showed about 9 WebView2 processes. Check whether Tauri creates extra WebViews or keeps hidden windows alive.
+
+- List every window and WebView created at runtime (log them with their purpose).
+- Target in Standby: **one** WebView (the island) plus WebView2's own shared processes (browser, GPU, utility). That means no hidden Settings, Studio, desktop-Groovy or helper WebViews kept alive.
+- Every window other than the island is created on first use and **destroyed** on close (not hidden). Confirm in Task Manager terms that its renderer process exits.
+- All windows share **one** WebView2 environment and user-data folder, so they share the browser, GPU and network processes instead of spawning new sets.
+- Turn off WebView2 features Groovy doesn't use (for example, unused extensions or devtools in release builds, and spell-check where not needed), and set `MemoryUsageTargetLevel` Low whenever a WebView is hidden.
+- In CI, record the process list in Standby and fail if any extra renderer process exists.
+
+**Tests:**
+- State-machine unit tests for every transition.
+- An end-to-end CI test: Standby → wake word (simulated audio) → Conversation using mocked cloud STT, brain and TTS → back to Standby. Assert the latency targets (mocked), that no local model was loaded, the memory after release, and Standby ≤ 300 MB / peak ≤ 400 MB.
+- An Offline test with the network cut: the offline engines load on demand and unload after.
+
 ## Item 6: Checks
 
 - All tests pass.
