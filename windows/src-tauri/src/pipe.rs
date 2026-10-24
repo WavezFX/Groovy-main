@@ -69,13 +69,96 @@ pub fn pipe_name() -> String {
     format!(r"\\.\pipe\groovy-{key}")
 }
 
+/// The pipe's access list (round 3G item 4): full access for the signed-in
+/// user and for SYSTEM, nothing for Everyone, Anonymous, other users or the
+/// network. `P` stops it inheriting anything. As SDDL.
+#[cfg(any(windows, test))]
+pub fn pipe_sddl(user_sid: &str) -> String {
+    format!("D:P(A;;GA;;;{user_sid})(A;;GA;;;SY)")
+}
+
+/// The security descriptor made from `pipe_sddl`, kept for the life of the process.
+#[cfg(windows)]
+mod acl {
+    use std::ffi::c_void;
+    use std::sync::OnceLock;
+
+    use ::windows::core::PCWSTR;
+    use ::windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1};
+    use ::windows::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
+
+    /// The descriptor's address (Windows allocated it once; it is never freed).
+    static DESCRIPTOR: OnceLock<Option<usize>> = OnceLock::new();
+
+    /// A descriptor for `sddl`, converted once per process.
+    pub fn descriptor(sddl: &str) -> Option<usize> {
+        *DESCRIPTOR.get_or_init(|| {
+            let wide: Vec<u16> = sddl.encode_utf16().chain(std::iter::once(0)).collect();
+            let mut sd = PSECURITY_DESCRIPTOR::default();
+            unsafe { ConvertStringSecurityDescriptorToSecurityDescriptorW(PCWSTR(wide.as_ptr()), SDDL_REVISION_1, &mut sd, None) }.ok()?;
+            Some(sd.0 as usize)
+        })
+    }
+
+    /// `SECURITY_ATTRIBUTES` pointing at a descriptor from `descriptor`.
+    pub fn attributes(descriptor: usize) -> SECURITY_ATTRIBUTES {
+        SECURITY_ATTRIBUTES { nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32, lpSecurityDescriptor: descriptor as *mut c_void, bInheritHandle: false.into() }
+    }
+
+    /// The SIDs (as text) granted access by a descriptor's DACL, in order, and
+    /// whether any entry is not an "allow" (for the test).
+    #[cfg(test)]
+    pub fn dacl_sids(descriptor: usize) -> (Vec<String>, bool) {
+        use ::windows::core::PWSTR;
+        use ::windows::Win32::Foundation::{LocalFree, HLOCAL};
+        use ::windows::Win32::Security::Authorization::ConvertSidToStringSidW;
+        use ::windows::Win32::Security::{GetAce, GetAclInformation, GetSecurityDescriptorDacl, AclSizeInformation, ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_SIZE_INFORMATION, PSID};
+        let mut present = false.into();
+        let mut defaulted = false.into();
+        let mut acl: *mut ACL = std::ptr::null_mut();
+        unsafe {
+            GetSecurityDescriptorDacl(PSECURITY_DESCRIPTOR(descriptor as *mut c_void), &mut present, &mut acl, &mut defaulted).unwrap();
+            assert!(present.as_bool() && !acl.is_null(), "the descriptor has a DACL");
+            let mut info = ACL_SIZE_INFORMATION::default();
+            GetAclInformation(acl, &mut info as *mut _ as *mut c_void, std::mem::size_of::<ACL_SIZE_INFORMATION>() as u32, AclSizeInformation).unwrap();
+            let mut sids = Vec::new();
+            let mut only_allow = true;
+            for i in 0..info.AceCount {
+                let mut ace: *mut c_void = std::ptr::null_mut();
+                GetAce(acl, i, &mut ace).unwrap();
+                let header = &*(ace as *const ACE_HEADER);
+                only_allow &= header.AceType == 0; // ACCESS_ALLOWED_ACE_TYPE
+                let allowed = &*(ace as *const ACCESS_ALLOWED_ACE);
+                let mut text = PWSTR::null();
+                ConvertSidToStringSidW(PSID(&allowed.SidStart as *const _ as *mut c_void), &mut text).unwrap();
+                sids.push(text.to_string().unwrap());
+                let _ = LocalFree(Some(HLOCAL(text.0 as *mut _)));
+            }
+            (sids, only_allow)
+        }
+    }
+}
+
+/// One instance of the pipe, readable and writable by this user and SYSTEM
+/// only, and never from another computer.
+#[cfg(windows)]
+fn create_instance(name: &str, first: bool) -> std::io::Result<NamedPipeServer> {
+    let sid = crate::platform::current_user_sid().ok_or_else(|| std::io::Error::other("the user's SID is unknown"))?;
+    let descriptor = acl::descriptor(&pipe_sddl(&sid)).ok_or_else(|| std::io::Error::other("the pipe's access list could not be made"))?;
+    let mut attributes = acl::attributes(descriptor);
+    let mut options = ServerOptions::new();
+    options.first_pipe_instance(first).reject_remote_clients(true);
+    // SAFETY: `attributes` points at a descriptor that lives as long as the process.
+    unsafe { options.create_with_security_attributes_raw(name, (&mut attributes as *mut _) as *mut std::ffi::c_void) }
+}
+
 #[cfg(windows)]
 pub fn start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let name = pipe_name();
         // first_pipe_instance also means we refuse to join a pipe somebody else
         // already owns under our name, rather than serving on top of it.
-        let mut server = match ServerOptions::new().first_pipe_instance(true).create(&name) {
+        let mut server = match create_instance(&name, true) {
             Ok(s) => s,
             Err(err) => {
                 log::line(format!("cannot open the relay pipe: {err}"));
@@ -88,7 +171,7 @@ pub fn start(app: AppHandle) {
                 continue;
             }
             // Hand the connected instance to a task and listen on a fresh one.
-            let next = match ServerOptions::new().create(&name) {
+            let next = match create_instance(&name, false) {
                 Ok(s) => s,
                 Err(err) => {
                     log::line(format!("cannot reopen the relay pipe: {err}"));
@@ -358,4 +441,46 @@ pub fn answer_question(app: &AppHandle, request_id: &str, answers: &HashMap<Stri
     // One line: the relay reads up to the first newline.
     let line = json!({ "answers": answers }).to_string();
     send(app, request_id, Reply::Decision(line), false);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_pipe_is_for_this_user_and_system_only() {
+        let sddl = pipe_sddl("S-1-5-21-1-2-3-1001");
+        assert_eq!(sddl, "D:P(A;;GA;;;S-1-5-21-1-2-3-1001)(A;;GA;;;SY)");
+        // Nobody else, spelled out: Everyone, Anonymous, Authenticated and
+        // Built-in Users, Network, Guests, Interactive.
+        for other in [";WD)", ";AN)", ";AU)", ";BU)", ";NU)", ";BG)", ";IU)", ";LS)", ";NS)", ";BA)"] {
+            assert!(!sddl.contains(other), "{other}");
+        }
+    }
+
+    /// The access list Windows built from the SDDL holds exactly the user's
+    /// SID and SYSTEM's, both "allow", and nothing else.
+    #[cfg(windows)]
+    #[test]
+    fn the_descriptor_windows_builds_has_two_entries() {
+        let sid = crate::platform::current_user_sid().expect("a SID");
+        let descriptor = acl::descriptor(&pipe_sddl(&sid)).expect("a descriptor");
+        let (sids, only_allow) = acl::dacl_sids(descriptor);
+        assert_eq!(sids, vec![sid, "S-1-5-18".to_string()]);
+        assert!(only_allow);
+    }
+
+    /// A pipe made with it can be opened by this user, and the first instance
+    /// can't be made twice under one name.
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn the_pipe_opens_for_this_user_only_once_first() {
+        use tokio::net::windows::named_pipe::ClientOptions;
+        let name = format!(r"\\.\pipe\groovy-test-{}", std::process::id());
+        let first = create_instance(&name, true).expect("the first instance");
+        assert!(create_instance(&name, true).is_err(), "a second first instance is refused");
+        let client = ClientOptions::new().open(&name);
+        assert!(client.is_ok(), "this user can open it: {:?}", client.err());
+        drop(first);
+    }
 }

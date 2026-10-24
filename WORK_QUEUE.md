@@ -65,7 +65,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 1. Command approval decided in Rust, never trusted from the page (`studio_run` and every action tool)
 - [ ] 2. Per-window capabilities: each window can only call the commands it needs
 - [x] 3. Tighter CSP (no wildcard `wss:`, `object-src 'none'` and friends, freezePrototype)
-- [ ] 4. Named pipe with an explicit current-user-only DACL
+- [x] 4. Named pipe with an explicit current-user-only DACL
 - [ ] 5. Untrusted content (mail, web, issues) can't trigger actions without approval
 - [ ] 6. Test environment switches compiled out of the release build
 - [ ] 7. Logs redact keys and tokens
