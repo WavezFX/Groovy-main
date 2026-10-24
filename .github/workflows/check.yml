@@ -66,6 +66,10 @@ jobs:
       - name: Front-end tests
         run: npm test
 
+      # The app's build script bundles the relay (groovy-hook), so it is built first.
+      - name: Build the relay
+        run: cargo build --release -p groovy-hook
+
       - name: cargo check
         run: cargo check --workspace --all-targets
 
