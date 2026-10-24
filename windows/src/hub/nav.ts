@@ -19,6 +19,8 @@ export type PageId = GroovyPageId | FlowPageId;
 
 export interface NavPage {
   id: PageId;
+  /** The page's own heading when the design gives one ("How Groovy sounds"); else its title. */
+  heading?: string;
   /** The sidebar's line icon: an SVG path on a 24 × 24 grid (docs/design/settings-v2/Sidebar). */
   icon: string;
   title: string;
@@ -32,7 +34,7 @@ export interface NavSection {
   pages: NavPage[];
 }
 
-const p = (id: PageId, icon: string, title: string, subtitle: string): NavPage => ({ id, icon, title, subtitle });
+const p = (id: PageId, icon: string, title: string, subtitle: string, heading?: string): NavPage => ({ id, icon, title, subtitle, heading });
 
 /** The sidebar's icons, from the approved design. */
 export const NAV_ICONS = {
@@ -60,7 +62,7 @@ export const SECTIONS: NavSection[] = [
     p("home", I.home, N_("Home"), N_("Everything Groovy is doing, at a glance.")),
   ] },
   { id: "groovy", title: "Groovy", pages: [
-    p("wardrobe", I.character, N_("Character & wardrobe"), N_("His look, how far he has grown, and what he's wearing.")),
+    p("wardrobe", I.character, N_("Character & wardrobe"), N_("His look, how far he has grown, and what he's wearing."), N_("Your Groovy")),
   ] },
   { id: "ai", title: N_("AI"), pages: [
     p("brains", I.brains, N_("Brains"), N_("Which AI Groovy thinks with, and what he switches to when one runs out.")),
@@ -68,12 +70,12 @@ export const SECTIONS: NavSection[] = [
     p("skills", I.skills, N_("Skills"), N_("Extra things Groovy can do, added and removed here.")),
   ] },
   { id: "voice", title: N_("Voice"), pages: [
-    p("speaking", I.speaking, N_("Speaking"), N_("Pick his voice. Fish Audio goes first; Kokoro takes over offline so he's never silent.")),
+    p("speaking", I.speaking, N_("Speaking"), N_("Pick his voice. Fish Audio goes first; Kokoro takes over offline so he's never silent."), N_("How Groovy sounds")),
     p("listening", I.listening, N_("Listening & calls"), N_("« OK Groovy », the microphone, and talking with him like a phone call.")),
     p("dictation", I.dictation, N_("Dictation"), N_("Speak instead of typing, in any app.")),
   ] },
   { id: "island", title: N_("Island"), pages: [
-    p("island", I.layout, N_("Layout & tiles"), N_("What the island shows, how it looks and when it opens. Changes appear live.")),
+    p("island", I.layout, N_("Layout & tiles"), N_("What the island shows, how it looks and when it opens. Changes appear live."), N_("Your island")),
     p("accounts", I.accounts, N_("Accounts"), N_("Mail, Spotify, GitHub and your other services, in one place.")),
   ] },
   { id: "everyday", title: N_("Everyday"), pages: [
@@ -194,6 +196,11 @@ export function resolvePage(raw: string | null | undefined): Place | null {
 
 export function pageDef(id: PageId): NavPage {
   return ALL_PAGES.find((x) => x.id === id) ?? SECTIONS[0].pages[0];
+}
+
+/** "Good morning", "Good afternoon" or "Good evening" (Home's heading). */
+export function greeting(hour = new Date().getHours()): string {
+  return hour < 12 ? t("Good morning") : hour < 18 ? t("Good afternoon") : t("Good evening");
 }
 
 export function sectionOf(id: PageId): NavSection | undefined {

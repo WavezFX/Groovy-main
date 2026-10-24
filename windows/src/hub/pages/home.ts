@@ -10,7 +10,7 @@ import { GROWS_INTO, SKIN_KEYS, parseSkin } from "../../mochi/skins";
 import { t } from "../../i18n/i18n";
 import { h } from "../../views/dom";
 import type { HubContext } from "../shell";
-import { button, card, divider, label, row, toggle } from "../ui";
+import { btn, emptyState, group, setting, toggle } from "../ui";
 
 export interface Warning {
   text: string;
@@ -48,40 +48,33 @@ export async function homePage(page: HTMLElement, ctx: HubContext) {
   const g = parseGrowth(settings?.growth);
   const portrait = h("span", { class: "hub-home-portrait" });
   requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(g), 56, Math.min(2, window.devicePixelRatio || 1)), 56)));
-  page.append(card(
-    h("div", { class: "hub-home-him" }, portrait, h("div", {},
+  page.append(group(null,
+    h("div", { class: "hub-t-row hub-home-him" }, portrait, h("div", { class: "hub-t-text" },
       h("div", { class: "hub-home-name", text: name }),
-      h("div", { class: "hub-note", text: `${t(SKIN_KEYS[look])} → ${t(GROWS_INTO[look])} · ${progressLine(g)}` }),
-    ), button(t("Wardrobe"), () => ctx.navigate("wardrobe"), "", true)),
+      h("div", { class: "hub-t-detail", text: `${t(SKIN_KEYS[look])} → ${t(GROWS_INTO[look])} · ${progressLine(g)}` }),
+    ), btn(t("Wardrobe"), () => ctx.navigate("wardrobe"))),
   ));
 
   // ── Brain, voice, memory ──
   const ready = quick?.ai.find((a) => a.state === "ready") ?? null;
   const ok = quick?.ok;
   const speechReady = status.models.parakeet.state === "ready";
-  page.append(label(t("Now")));
-  page.append(card(
-    row(t("Brain"), ready ? t("{name} answers.", { name: ready.name }) : t("No AI yet."), button(t("Brains"), () => ctx.navigate("brains"), "", true)),
-    divider(),
-    row(t("Voice"), ok?.on ? (ok.listening ? t("Listening for « OK Groovy ».") : t("« OK Groovy » is on, not listening yet.")) : t("« OK Groovy » is off."), button(t("Listening"), () => ctx.navigate("listening"), "", true)),
-    divider(),
-    row(t("Memory use"), sys ? t("Groovy uses {mb} of {total}.", { mb: mb(sys.groovyMemory), total: mb(sys.memoryTotal) }) : "…", button(t("System"), () => ctx.navigate("system"), "", true)),
+  page.append(group(t("Now"),
+    setting(t("Brain"), ready ? t("{name} answers.", { name: ready.name }) : t("No AI yet."), btn(t("Brains"), () => ctx.navigate("brains"), "subtle")),
+    setting(t("Voice"), ok?.on ? (ok.listening ? t("Listening for « OK Groovy ».") : t("« OK Groovy » is on, not listening yet.")) : t("« OK Groovy » is off."), btn(t("Listening"), () => ctx.navigate("listening"), "subtle")),
+    setting(t("Memory use"), sys ? t("Groovy uses {mb} of {total}.", { mb: mb(sys.groovyMemory), total: mb(sys.memoryTotal) }) : "…", btn(t("System"), () => ctx.navigate("system"), "subtle")),
   ));
 
   // ── Quick toggles ──
-  page.append(label(t("Quick toggles")));
-  page.append(card(
-    row("« OK Groovy »", null, toggle(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
-    divider(),
-    row(t("Dictation"), null, toggle(status.prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
-    divider(),
-    row(t("Do not disturb"), t("Windows' own Focus: notifications wait."), button(t("Open"), () => void Bridge.pcDo("dnd", null, null).catch(() => {}), "", true)),
+  page.append(group(t("Quick toggles"),
+    setting("« OK Groovy »", null, toggle(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
+    setting(t("Dictation"), null, toggle(status.prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
+    setting(t("Do not disturb"), t("Windows' own Focus: notifications wait."), btn(t("Open"), () => void Bridge.pcDo("dnd", null, null).catch(() => {}))),
   ));
 
   // ── Needs you ──
   const list = warnings({ aiReady: !!ready, okOn: !!ok?.on, micError: ok?.micError ?? null, speechReady, dictationOn: status.prefs.enabled });
-  page.append(label(t("Needs you")));
-  page.append(list.length
-    ? card(...list.flatMap((w, i) => [i ? divider() : null, row(w.text, null, button(w.fix, () => ctx.navigate(w.page, w.tab), "primary", true))]))
-    : card(h("div", { class: "hub-empty" }, h("span", { class: "hub-empty-icon", text: "✓" }), h("span", { text: t("Nothing needs you. All set.") }))));
+  page.append(group(t("Needs you"), ...(list.length
+    ? list.map((w, i) => setting(w.text, null, btn(w.fix, () => ctx.navigate(w.page, w.tab), i === 0 ? "primary" : "secondary")))
+    : [emptyState("check", t("Nothing needs you. All set."))])));
 }

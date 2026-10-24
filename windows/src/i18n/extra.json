@@ -17517,6 +17517,116 @@
    "pt-BR": "{look} · Estágio {stage}",
    "ru": "{look} · Стадия {stage}",
    "id": "{look} · Tahap {stage}"
+  },
+  "Learn more": {
+   "zh-Hans": "了解更多",
+   "hi": "और जानें",
+   "es": "Más información",
+   "ar": "اعرف المزيد",
+   "fr": "En savoir plus",
+   "bn": "আরও জানুন",
+   "pt-BR": "Saiba mais",
+   "ru": "Подробнее",
+   "id": "Pelajari lebih lanjut"
+  },
+  "Downloading": {
+   "zh-Hans": "正在下载",
+   "hi": "डाउनलोड हो रहा है",
+   "es": "Descargando",
+   "ar": "جارٍ التنزيل",
+   "fr": "Téléchargement",
+   "bn": "ডাউনলোড হচ্ছে",
+   "pt-BR": "Baixando",
+   "ru": "Загрузка",
+   "id": "Mengunduh"
+  },
+  "Saved — type to replace": {
+   "zh-Hans": "已保存 — 输入以替换",
+   "hi": "सहेजा गया — बदलने के लिए टाइप करें",
+   "es": "Guardada — escribe para reemplazarla",
+   "ar": "محفوظ — اكتب للاستبدال",
+   "fr": "Enregistré — tapez pour remplacer",
+   "bn": "সংরক্ষিত — বদলাতে টাইপ করুন",
+   "pt-BR": "Salvo — digite para substituir",
+   "ru": "Сохранено — введите, чтобы заменить",
+   "id": "Tersimpan — ketik untuk mengganti"
+  },
+  "Test": {
+   "zh-Hans": "测试",
+   "hi": "जाँचें",
+   "es": "Probar",
+   "ar": "اختبار",
+   "fr": "Tester",
+   "bn": "পরীক্ষা",
+   "pt-BR": "Testar",
+   "ru": "Проверить",
+   "id": "Uji"
+  },
+  "Testing…": {
+   "zh-Hans": "正在测试…",
+   "hi": "जाँच हो रही है…",
+   "es": "Probando…",
+   "ar": "جارٍ الاختبار…",
+   "fr": "Test en cours…",
+   "bn": "পরীক্ষা চলছে…",
+   "pt-BR": "Testando…",
+   "ru": "Проверка…",
+   "id": "Menguji…"
+  },
+  "Saved": {
+   "zh-Hans": "已保存",
+   "hi": "सहेजा गया",
+   "es": "Guardado",
+   "ar": "تم الحفظ",
+   "fr": "Enregistré",
+   "bn": "সংরক্ষিত",
+   "pt-BR": "Salvo",
+   "ru": "Сохранено",
+   "id": "Tersimpan"
+  },
+  "Your Groovy": {
+   "zh-Hans": "你的 Groovy",
+   "hi": "आपका Groovy",
+   "es": "Tu Groovy",
+   "ar": "Groovy الخاص بك",
+   "fr": "Votre Groovy",
+   "bn": "আপনার Groovy",
+   "pt-BR": "Seu Groovy",
+   "ru": "Ваш Groovy",
+   "id": "Groovy Anda"
+  },
+  "How Groovy sounds": {
+   "zh-Hans": "Groovy 的声音",
+   "hi": "Groovy कैसा सुनाई देता है",
+   "es": "Cómo suena Groovy",
+   "ar": "كيف يبدو صوت Groovy",
+   "fr": "La voix de Groovy",
+   "bn": "Groovy কেমন শোনায়",
+   "pt-BR": "Como o Groovy soa",
+   "ru": "Как звучит Groovy",
+   "id": "Suara Groovy"
+  },
+  "Your island": {
+   "zh-Hans": "你的岛",
+   "hi": "आपका आइलैंड",
+   "es": "Tu isla",
+   "ar": "جزيرتك",
+   "fr": "Votre île",
+   "bn": "আপনার আইল্যান্ড",
+   "pt-BR": "Sua ilha",
+   "ru": "Ваш остров",
+   "id": "Pulau Anda"
+  },
+  "Sign in again": {
+   "zh-Hans": "重新登录",
+   "hi": "फिर से साइन इन करें",
+   "es": "Vuelve a iniciar sesión",
+   "ar": "سجّل الدخول مجددًا",
+   "fr": "Reconnectez-vous",
+   "bn": "আবার সাইন ইন করুন",
+   "pt-BR": "Entre de novo",
+   "ru": "Войдите снова",
+   "id": "Masuk lagi"
   }
  }
 }

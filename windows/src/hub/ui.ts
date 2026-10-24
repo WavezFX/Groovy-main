@@ -163,3 +163,152 @@ export function shortCount(n: number): string {
   const k = n / 1000;
   return `${number(k >= 100 ? Math.round(k) : Math.round(k * 10) / 10, 1)} k`;
 }
+
+// ── The page template (round 3D item 2) ──────────────────────────────────────
+// Every Settings page is built from these: a header, group labels over cards,
+// rows of label + control, status pills, empty states, masked key fields, and
+// a small "Saved" toast. The look lives in hub.css (".hub-t-…").
+
+export type ButtonKind = "primary" | "secondary" | "subtle" | "danger";
+
+/** One button style per kind; at most one primary per card. */
+export function btn(text: string, onclick: () => void, kind: ButtonKind = "secondary"): HTMLButtonElement {
+  return h("button", { class: `hub-t-btn ${kind}`, text, onclick }) as HTMLButtonElement;
+}
+
+/** A danger action asks first: the first click turns it into "Sure?", the second does it. */
+export function dangerBtn(text: string, ask: string, action: () => void): HTMLButtonElement {
+  const b = btn(text, () => {}, "danger");
+  let armed: ReturnType<typeof setTimeout> | null = null;
+  b.onclick = () => {
+    if (armed) {
+      clearTimeout(armed);
+      armed = null;
+      b.textContent = text;
+      b.classList.remove("armed");
+      action();
+      return;
+    }
+    b.textContent = ask;
+    b.classList.add("armed");
+    armed = setTimeout(() => {
+      armed = null;
+      b.textContent = text;
+      b.classList.remove("armed");
+    }, 4000);
+  };
+  return b;
+}
+
+/** The page's header: title, one-line purpose, actions on the right. */
+export function pageHeader(title: string, subtitle: string, ...actions: HTMLElement[]): HTMLElement {
+  return h("header", { class: "hub-t-header" },
+    h("div", {}, h("h1", { text: title }), h("p", { text: subtitle })),
+    actions.length ? h("div", { class: "hub-t-actions" }, ...actions) : null,
+  );
+}
+
+/** A small uppercase label, then the card of its rows. */
+export function group(title: string | null, ...rows: (HTMLElement | null | false)[]): HTMLElement {
+  const c = h("div", { class: "hub-t-card" });
+  for (const r of rows) if (r) c.append(r);
+  return h("div", { class: "hub-t-group" }, title ? h("div", { class: "hub-t-label", text: title }) : null, c);
+}
+
+/** Help that would be a paragraph: an ⓘ with the text as its tooltip (and for screen readers). */
+export function info(text: string): HTMLElement {
+  return h("span", { class: "hub-t-info", tabindex: "0", role: "note", title: text, "aria-label": text, text: "ⓘ" });
+}
+
+/** Longer help behind "Learn more". */
+export function learnMore(...content: (HTMLElement | string)[]): HTMLElement {
+  const d = h("details", { class: "hub-t-more" }, h("summary", { text: t("Learn more") }));
+  for (const c of content) d.append(typeof c === "string" ? h("p", { text: c }) : c);
+  return d;
+}
+
+/** A setting: label and one-line description on the left, its control on the right. */
+export function setting(title: string, detail: string | null, control: HTMLElement | null, help?: string): HTMLElement {
+  const name = h("div", { class: "hub-t-name" }, h("span", { class: "hub-row-title", text: title }), help ? info(help) : null);
+  const text = h("div", { class: "hub-t-text" }, name, detail ? h("div", { class: "hub-t-detail", text: detail }) : null);
+  if (control && !control.getAttribute("aria-label")) control.setAttribute("aria-label", title);
+  return h("div", { class: "hub-t-row hub-row" }, text, control ? h("div", { class: "hub-t-control" }, control) : null);
+}
+
+export type Status = "connected" | "unset" | "warn" | "error" | "downloading";
+
+/** The same pill everywhere: Connected / Not set up / Error / Downloading (with progress). */
+export function statusPill(status: Status, text?: string, progress?: number): HTMLElement {
+  const words: Record<Status, string> = { connected: t("Connected"), unset: t("Not set up"), warn: t("Sign in again"), error: t("Error"), downloading: t("Downloading") };
+  const pill = h("span", { class: `hub-t-status ${status}`, role: "status", text: text ?? words[status] });
+  if (status === "downloading" && progress !== undefined) {
+    const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);
+    pill.textContent = `${text ?? words[status]} ${pct}%`;
+    pill.style.setProperty("--progress", `${pct}%`);
+  }
+  return pill;
+}
+
+/** Never a blank card: an icon, one sentence, the action. */
+export function emptyState(iconName: string, sentence: string, action?: HTMLElement): HTMLElement {
+  const i = h("span", { class: "hub-t-empty-icon" });
+  i.append(icon(iconName));
+  return h("div", { class: "hub-t-empty" }, i, h("p", { text: sentence }), action ?? null);
+}
+
+/**
+ * A key or password: masked, with show/hide, Save and Test. The stored value
+ * never comes back to the page; `present` only says whether there is one.
+ */
+export function secretField(opts: {
+  label: string;
+  placeholder: string;
+  present: boolean;
+  save: (value: string) => Promise<void>;
+  test?: () => Promise<string>;
+}): HTMLElement {
+  const input = h("input", { class: "hub-t-input", type: "password", autocomplete: "off", spellcheck: "false", placeholder: opts.present ? t("Saved — type to replace") : opts.placeholder, "aria-label": opts.label }) as HTMLInputElement;
+  const eye = h("button", { class: "hub-t-btn subtle", type: "button", text: t("Show"), "aria-pressed": "false" }) as HTMLButtonElement;
+  eye.onclick = () => {
+    const shown = input.type === "text";
+    input.type = shown ? "password" : "text";
+    eye.textContent = shown ? t("Show") : t("Hide");
+    eye.setAttribute("aria-pressed", String(!shown));
+  };
+  const result = h("div", { class: "hub-t-result", role: "status" });
+  const say = (text: string, ok: boolean) => {
+    result.textContent = text;
+    result.className = ok ? "hub-t-result ok" : "hub-t-result bad";
+  };
+  const save = btn(t("Save"), () => {
+    const v = input.value.trim();
+    if (!v) return;
+    void opts.save(v).then(() => {
+      input.value = "";
+      input.placeholder = t("Saved — type to replace");
+      savedToast();
+    }, (e) => say(String(e).replace(/^Error:\s*/, ""), false));
+  }, "secondary");
+  const test = opts.test ? btn(t("Test"), () => {
+    say(t("Testing…"), true);
+    void opts.test!().then((msg) => say(msg, true), (e) => say(String(e).replace(/^Error:\s*/, ""), false));
+  }, "secondary") : null;
+  return h("div", { class: "hub-t-secret" }, h("div", { class: "hub-t-secret-row" }, input, eye, save, test), result);
+}
+
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Every change saves by itself; this says so, briefly. */
+export function savedToast(text = t("Saved")) {
+  let el = document.querySelector<HTMLElement>(".hub-t-toast");
+  if (!el) {
+    el = h("div", { class: "hub-t-toast", role: "status", "aria-live": "polite" });
+    document.body.append(el);
+  }
+  el.textContent = text;
+  el.classList.remove("shown");
+  void el.offsetWidth;
+  el.classList.add("shown");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el!.classList.remove("shown"), 1600);
+}

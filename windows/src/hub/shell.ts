@@ -9,11 +9,10 @@ import { h, clear } from "../views/dom";
 import { t } from "../i18n/i18n";
 import { Bridge, onEvent } from "../core/bridge";
 import { FlowBridge, type FlowPrefs, type FlowStatus, type ModelsStatus } from "../core/flow";
-import { hero } from "./hero";
 import { parseGrowth, shownStage, stageProgress } from "../mochi/growth";
 import { SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
 import { lookSprite, spriteCanvas } from "../mochi/sprites";
-import { ALL_PAGES, SECTIONS, TABS, pageDef, resolvePage, search, type Place } from "./nav";
+import { ALL_PAGES, SECTIONS, TABS, greeting, pageDef, parentOf, resolvePage, search, sectionOf, type Place } from "./nav";
 import type { GroovyPageId, PageId } from "./nav";
 
 export type { FlowPageId, GroovyPageId, PageId } from "./nav";
@@ -27,7 +26,12 @@ export interface HubContext {
   refresh(): Promise<FlowStatus>;
   /** Saves new preferences and keeps them as the window's. */
   setPrefs(change: (p: FlowPrefs) => void): Promise<void>;
-  /** The band of a page, Groovy strolling on it. */
+  /**
+   * The page's header (docs/design/settings-v2): the group › page trail, the
+   * heading and its one line, actions on the right. A page shown as a tab
+   * gets its sidebar page's header; `title` and `subtitle` are used by the
+   * pages reached on their own (Set up speech).
+   */
   hero(page: PageId, title: string, subtitle: string | null, actions?: HTMLElement[], compact?: boolean): HTMLElement;
   /** Set by a page: called when the page is left. */
   onLeave?: () => void;
@@ -118,8 +122,34 @@ function searchIcon(): SVGSVGElement {
   return svg;
 }
 
+/**
+ * The page header. Pages in the sidebar, and their tabs, take the sidebar
+ * page's trail, heading and line; others (Set up speech) their own.
+ */
+function header(id: PageId, title: string, subtitle: string | null, actions: HTMLElement[] = []): HTMLElement {
+  const own = pageDef(id);
+  const top = parentOf(id) ? pageDef(parentOf(id)!) : SECTIONS.some((s) => s.pages.some((x) => x.id === id)) ? own : null;
+  const section = top ? sectionOf(top.id) : undefined;
+  const heading = top ? (top.id === "home" ? greeting() : t(top.heading ?? top.title)) : title;
+  const line = top ? t(top.subtitle) : subtitle;
+  const crumb = top && section?.title ? `${t(section.title)} › ${t(top.title)}` : null;
+  return h("header", { class: "hub-head" },
+    h("div", { class: "hub-head-text" },
+      crumb ? h("div", { class: "hub-crumb", text: crumb }) : null,
+      h("h1", { text: heading }),
+      line ? h("p", { text: line }) : null,
+    ),
+    actions.length ? h("div", { class: "hub-head-actions" }, ...actions) : null,
+  );
+}
+
 export async function startHub(root: HTMLElement, opts: HubOptions) {
   document.body.classList.add("hub-window");
+  // Light or dark as Windows is (round 3D item 2), and following it live.
+  const light = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)") : null;
+  const theme = () => document.body.classList.toggle("light", !!light?.matches);
+  theme();
+  light?.addEventListener?.("change", theme);
   const saved = recall();
   // Opened on a page (lib.rs show_hub: settings.html?page=…), else where it was left, else Home.
   let place: Place = resolvePage(new URLSearchParams(location.search).get("page"))
@@ -150,7 +180,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
       status = { ...status, prefs: next };
       await FlowBridge.setPrefs(next);
     },
-    hero: (page, title, subtitle, actions = [], compact = false) => hero(page, title, subtitle, actions, compact),
+    hero: (page, title, subtitle, actions = []) => header(page, title, subtitle, actions),
   };
 
   /** The tab bar of a merged page; the tab shown is `tab`. */
@@ -195,7 +225,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
       if (bar) inner.insertBefore(bar, inner.children[1] ?? null);
       page_.append(inner);
     } else {
-      page_.append(hero(def.id, t(def.title), t(def.subtitle) || null));
+      page_.append(header(def.id, t(def.title), t(def.subtitle) || null));
       if (bar) page_.append(bar);
       const container = h("div", { id: "settings-root" });
       page_.append(container);

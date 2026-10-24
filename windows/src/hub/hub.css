@@ -1347,3 +1347,274 @@ body.hub-window {
 .hub-item.on { background: var(--hub-accent-soft); color: #f2f5f3; font-weight: 500; }
 .hub-badge { font-size: 11px; font-weight: 700; color: #0d1012; background: #f5b84b; border-radius: 9px; padding: 1px 7px; }
 .hub-panel { background: var(--hub-ground); }
+
+/* ── The page template (round 3D item 2): Windows 11 Settings, Groovy's glass ── */
+.hub-page { max-width: 760px; margin: 0 auto; gap: 16px; }
+.hub-page #settings-root { display: flex; flex-direction: column; gap: 16px; }
+.hub-scroll { padding: 24px; }
+.hub-hero { height: 116px; }
+.hub-hero .copy { padding: 20px 24px; gap: 4px; }
+.hub-hero h1 { font: 600 24px var(--font); letter-spacing: -0.01em; }
+.hub-hero p { font-size: 13px; }
+.hub-t-header { display: flex; align-items: flex-start; gap: 16px; }
+.hub-t-header > div { flex: 1 1 auto; }
+.hub-t-header h1 { font: 600 24px var(--font); color: var(--hub-text); }
+.hub-t-header p { font-size: 13px; color: var(--hub-secondary); margin-top: 4px; }
+.hub-t-actions { display: flex; gap: 8px; }
+.hub-t-group { display: flex; flex-direction: column; gap: 8px; }
+.hub-t-label, .hub-label {
+  font: 600 11px var(--font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hub-muted);
+  padding: 0 4px;
+}
+.hub-t-card {
+  background: var(--hub-card);
+  border: 1px solid var(--hub-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.hub-t-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 12px 16px;
+}
+.hub-t-row + .hub-t-row { border-top: 1px solid var(--hub-line); }
+.hub-t-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hub-t-name { display: flex; align-items: center; gap: 6px; font: 500 14px var(--font); color: var(--hub-text); }
+.hub-t-detail { font-size: 12px; color: var(--hub-secondary); }
+.hub-t-control { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.hub-t-info {
+  display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 999px;
+  font-size: 11px; color: var(--hub-muted); cursor: help;
+}
+.hub-t-info:hover, .hub-t-info:focus-visible { color: var(--hub-text); }
+.hub-t-more { padding: 0 16px 12px; color: var(--hub-secondary); font-size: 12.5px; }
+.hub-t-more summary { cursor: pointer; color: var(--hub-accent); font-weight: 500; padding: 4px 0; }
+.hub-t-more p { margin: 6px 0; }
+.hub-t-btn {
+  height: 32px; padding: 0 14px; border-radius: 8px; font: 500 13px var(--font); cursor: pointer;
+  border: 1px solid var(--hub-line); background: var(--hub-field); color: var(--hub-text);
+  transition: background-color var(--motion-small, 180ms), transform var(--motion-small, 180ms);
+}
+.hub-t-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.hub-t-btn:active { transform: scale(0.97); }
+.hub-t-btn.primary { background: var(--hub-accent); border-color: transparent; color: var(--hub-on-accent); font-weight: 600; }
+.hub-t-btn.subtle { background: transparent; border-color: transparent; color: var(--hub-secondary); }
+.hub-t-btn.danger { background: transparent; border-color: rgba(255, 69, 58, 0.5); color: #ff6b61; }
+.hub-t-btn.danger.armed { background: var(--hub-red); color: #fff; }
+.hub-t-status {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px;
+  font: 600 11.5px var(--font); white-space: nowrap;
+}
+.hub-t-status.connected { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; }
+.hub-t-status.unset { background: rgba(255, 255, 255, 0.08); color: var(--hub-secondary); }
+.hub-t-status.error { background: rgba(255, 69, 58, 0.16); color: #ff8d86; }
+.hub-t-status.downloading {
+  color: #93c5fd;
+  background: linear-gradient(90deg, rgba(96, 165, 250, 0.3) var(--progress, 0%), rgba(96, 165, 250, 0.12) var(--progress, 0%));
+}
+.hub-t-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 16px; text-align: center; color: var(--hub-secondary); }
+.hub-t-empty-icon { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.06); }
+.hub-t-empty-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.hub-t-input {
+  height: 32px; border-radius: 8px; border: 1px solid var(--hub-line); background: var(--hub-field);
+  color: var(--hub-text); font: 13px var(--font); padding: 0 10px; min-width: 0; flex: 1 1 auto;
+}
+.hub-t-secret { display: flex; flex-direction: column; gap: 6px; min-width: 320px; }
+.hub-t-secret-row { display: flex; gap: 6px; align-items: center; }
+.hub-t-result { font-size: 12px; min-height: 16px; }
+.hub-t-result.ok { color: #6ee7b7; }
+.hub-t-result.bad { color: #ff8d86; }
+.hub-t-toast {
+  position: fixed; right: 24px; bottom: 24px; z-index: 50; padding: 8px 14px; border-radius: 10px;
+  background: var(--hub-card); border: 1px solid var(--hub-line); color: var(--hub-text);
+  font: 500 13px var(--font); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity var(--motion-small, 180ms), transform var(--motion-small, 180ms) var(--ease-out, ease-out);
+}
+.hub-t-toast.shown { opacity: 1; transform: none; }
+body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--hub-accent);
+  outline-offset: 2px;
+}
+
+/* Light (round 3D item 2: both themes): Windows in Light mode (shell.ts sets
+   body.light), or data-theme="light" on the root. */
+:root[data-theme="light"] body.hub-window,
+:root:not([data-theme="dark"]) body.hub-window.light {
+  color-scheme: light;
+  --hub-panel: #f6f7f9;
+  --hub-card: #ffffff;
+  --hub-field: #f1f2f4;
+  --hub-line: rgba(0, 0, 0, 0.09);
+  --hub-text: #15171a;
+  --hub-body: #2a2d33;
+  --hub-secondary: #555b64;
+  --hub-muted: #6f7580;
+  --hub-on-accent: #170c04;
+  --ink: var(--hub-text);
+  --dim: #555b64;
+  --dim-2: #6f7580;
+  --bg: #eef0f3;
+  --fill: rgba(0, 0, 0, 0.06);
+  --fill-hover: rgba(0, 0, 0, 0.11);
+  --field: rgba(0, 0, 0, 0.05);
+  --focus: rgba(0, 0, 0, 0.3);
+  --menu: #ffffff;
+  --code: #f1f2f4;
+  --ok-ink: #15803d;
+  --err-ink: #b91c1c;
+  --warn-ink: #92400e;
+  --track: rgba(0, 0, 0, 0.18);
+  background: #e9ebef;
+}
+:root[data-theme="light"] .hub-side,
+:root:not([data-theme="dark"]) body.light .hub-side { background: #e9ebef; }
+:root[data-theme="light"] .hub-item,
+:root:not([data-theme="dark"]) body.light .hub-item { color: #2a2d33; }
+:root[data-theme="light"] .hub-item.on,
+:root:not([data-theme="dark"]) body.light .hub-item.on { background: rgba(0, 0, 0, 0.07); }
+:root[data-theme="light"] .hub-t-btn:hover,
+:root:not([data-theme="dark"]) body.light .hub-t-btn:hover { background: rgba(0, 0, 0, 0.06); }
+:root[data-theme="light"] .hub-t-status.connected,
+:root:not([data-theme="dark"]) body.light .hub-t-status.connected { color: #047857; }
+:root[data-theme="light"] .hub-t-status.error,
+:root:not([data-theme="dark"]) body.light .hub-t-status.error { color: #b91c1c; }
+
+/* ── Settings v2: the page template (round 3D item 2), as approved in
+   docs/design/settings-v2: header, tabs, cards, rows, buttons, pills,
+   switches and fields. The same values for Groovy's own sections and the
+   Flow pages, so every page looks alike. ── */
+.hub-scroll { padding: 32px 40px; box-sizing: border-box; }
+.hub-page { display: flex; flex-direction: column; gap: 20px; max-width: none; margin: 0; }
+.hub-page #settings-root { gap: 20px; }
+.hub-page > div { display: flex; flex-direction: column; gap: 20px; }
+.hub-head { display: flex; align-items: flex-start; gap: 16px; }
+.hub-head-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.hub-crumb { font-size: 12px; color: #7e8883; }
+.hub-head h1 { margin: 0; font: 700 26px/1.25 var(--font); color: var(--hub-text); letter-spacing: 0; }
+.hub-head p { margin: 0; font-size: 13.5px; color: var(--hub-secondary); }
+.hub-head-actions { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; padding-top: 18px; }
+
+/* Tabs: the design's pill strip. */
+.hub-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  margin: 0;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  align-self: flex-start;
+  flex-wrap: wrap;
+}
+.hub-tab {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hub-secondary);
+  font: 600 13.5px var(--font);
+  margin: 0;
+}
+.hub-tab.on { background: rgba(255, 255, 255, 0.1); color: var(--hub-text); border: 0; }
+.hub-tab:hover:not(.on) { color: var(--hub-text); }
+
+/* Group labels and cards. */
+.hub-label, .hub-t-label {
+  font: 700 10.5px var(--font);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #7e8883;
+  margin: 0;
+}
+.hub-card, .hub-t-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  box-shadow: none;
+}
+.hub-t-group { gap: 8px; }
+.hub-row, .hub-t-row {
+  min-height: 64px;
+  padding: 0 18px;
+  gap: 14px;
+  box-sizing: border-box;
+}
+.hub-t-row + .hub-t-row, .hub-card > .hub-row + .hub-row { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.hub-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 0; }
+.hub-row .title, .hub-t-name, .hub-row-title { font: 600 14px var(--font); color: var(--hub-text); }
+.hub-row .detail, .hub-t-detail { font-size: 12px; color: #8c9691; }
+
+/* Buttons: .btn and .btn-p of the design. */
+.hub-btn, .hub-t-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef3f0;
+  font: 600 13px var(--font);
+}
+.hub-btn:hover:not(:disabled), .hub-t-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.hub-btn.primary, .hub-t-btn.primary { background: var(--hub-accent); border-color: var(--hub-accent); color: var(--hub-on-accent); }
+.hub-btn.primary:hover:not(:disabled), .hub-t-btn.primary:hover:not(:disabled) { background: var(--hub-accent); filter: brightness(1.08); }
+.hub-btn.danger, .hub-t-btn.danger { background: rgba(255, 90, 90, 0.1); border-color: rgba(255, 110, 110, 0.35); color: #ff8b8b; }
+.hub-t-btn.subtle { background: transparent; border-color: transparent; color: var(--hub-secondary); }
+.hub-icon { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: transparent; color: #c4cbc7; }
+
+/* Status pills: Connected / Not set up / needs you / error. */
+.hub-t-status { font: 700 11.5px var(--font); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
+.hub-t-status.connected { background: rgba(70, 235, 120, 0.15); color: #7ff0a4; }
+.hub-t-status.unset { background: rgba(255, 255, 255, 0.08); color: #9aa59f; }
+.hub-t-status.warn { background: rgba(245, 184, 75, 0.16); color: #f5c66b; }
+.hub-t-status.error { background: rgba(255, 90, 90, 0.16); color: #ff8b8b; }
+
+/* Switches: 40 × 24, a white knob, the accent when on. */
+body.hub-window .switch {
+  width: 40px;
+  height: 24px;
+  flex: 0 0 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 0;
+}
+body.hub-window .switch.on { background: var(--hub-accent); }
+body.hub-window .switch::after { top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 10px; }
+body.hub-window .switch.on::after { transform: translateX(16px); }
+
+/* Fields. */
+body.hub-window select, .hub-select {
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #14181b;
+  color: #eef3f0;
+  font: 13px var(--font);
+  padding: 0 10px;
+}
+body.hub-window input[type="text"], body.hub-window input[type="password"], body.hub-window input[type="email"], body.hub-window input[type="url"], body.hub-window input[type="number"], .hub-t-input {
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #14181b;
+  color: #eef3f0;
+  font: 14px var(--font);
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+body.hub-window input[type="range"] { accent-color: var(--hub-accent); }
+body.hub-window a { color: #7ff0a4; }
+body.hub-window a:hover { color: #b5f7cb; }
+.hub-segmented { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 0; }
+.hub-segmented button { height: 32px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: var(--hub-secondary); font: 600 13px var(--font); }
+.hub-segmented button.on { background: rgba(255, 255, 255, 0.1); color: var(--hub-text); }
+.hub-panel { margin: 0; border: 0; border-radius: 0; background: var(--hub-ground); }
+.hub-card { padding: 0; gap: 0; }
+.hub-card > :not(.hub-row):not(.hub-divider):not(:empty) { margin: 14px 18px; }
+.hub-btn, .hub-t-btn, .hub-tab, .hub-segmented button { white-space: nowrap; }
