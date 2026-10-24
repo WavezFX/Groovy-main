@@ -2,6 +2,7 @@
 
 import "./style.css";
 import { Bridge, IS_TAURI, onEvent, type MailInbox, type RunState } from "./core/bridge";
+import { dropSprites } from "./mochi/sprites";
 import { Sound } from "./core/sound";
 import { installErrorReporting } from "./views/toast";
 import { Mail, wantsMail, type MailNote } from "./views/tiles";
@@ -228,8 +229,11 @@ async function main() {
   island.onWake = checkRecap;
   await onEvent<null>("recap-check", checkRecap);
 
+  // Near Groovy's 400 MB ceiling (ceiling.rs): the cached pictures go.
+  void onEvent<number>("memory-pressure", () => dropSprites());
   island.launch();
   if (boot?.smokeView === "frames") void frameTest(island);
+  else if (boot?.smokeView === "peak") peakHold(island);
   else if (boot?.smokeView) holdForSmokeTest(island, boot.smokeView);
 
   // In a plain browser there is no wake strip behind the cursor: make the whole
@@ -287,6 +291,31 @@ async function frameTest(island: Island) {
   island.setPinned(false);
   island.collapse();
   await Bridge.frameReport(report);
+}
+
+/**
+ * CI's peak test (round 3D item 7, scripts/peak-test.ps1): the island held
+ * open and turned every 3 s through its grown tiles (Spotify, Mail with the
+ * music strip, This PC, Reminders) and the wardrobe, while Rust runs the
+ * rest of the scenario.
+ */
+function peakHold(island: Island) {
+  const track = { id: "spotify:track:peak", title: "Peak test", artist: "Groovy", album: "", duration: 200, artUrl: null };
+  // Round 3D item 8: the grown tiles are the island's heaviest views.
+  const grow = (k: "music" | "mail" | "system" | "reminders") => () => {
+    island.alert("home");
+    State.homeExpanded = k;
+  };
+  const views = [grow("music"), grow("mail"), grow("system"), grow("reminders"), () => island.setView("wardrobe")];
+  let i = 0;
+  window.setTimeout(() => {
+    island.setPinned(true);
+    window.setInterval(() => {
+      Spotify.state = { ...Spotify.state, running: true, installed: true, playing: true, track, position: 10, positionAt: Date.now() };
+      views[i++ % views.length]();
+      State.notify();
+    }, 3000);
+  }, 4000);
 }
 
 function holdForSmokeTest(island: Island, view: "home" | "player") {

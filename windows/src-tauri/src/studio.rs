@@ -763,8 +763,12 @@ pub fn open_studio_window(app: AppHandle) {
     show(&app);
 }
 
+/// The Coding Studio's window.
+pub const LABEL: &str = "studio";
+
 pub fn show(app: &AppHandle) {
-    if let Some(win) = app.get_webview_window("studio") {
+    crate::ceiling::one_panel(app, LABEL);
+    if let Some(win) = app.get_webview_window(LABEL) {
         let _ = win.unminimize();
         let _ = win.show();
         let _ = win.set_focus();
@@ -779,7 +783,7 @@ pub fn show(app: &AppHandle) {
     let app = app.clone();
     let url = crate::page_url(&app, "studio.html", None);
     let _ = std::thread::Builder::new().name("groovy-studio-window".into()).spawn(move || {
-        match tauri::WebviewWindowBuilder::new(&app, "studio", url)
+        match tauri::WebviewWindowBuilder::new(&app, LABEL, url)
             .additional_browser_args(crate::BROWSER_ARGS)
             .title(crate::i18n::t("Coding Studio — Groovy"))
             .inner_size(1200.0, 800.0)

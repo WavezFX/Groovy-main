@@ -207,8 +207,8 @@ jobs:
           "uninstalled"
 
       # Round 3B item 10: the budget is for a real PC with the models on it.
-      # Parakeet, the wake word spotter, llama.cpp and the smallest local
-      # model are cached between runs (about 1.2 GB).
+      # The small Whisper model, the wake word spotter, Kokoro, llama.cpp and
+      # the smallest local model are cached between runs (round 3D item 7).
       - name: Restore the downloaded models
         id: models-cache
         uses: actions/cache/restore@v6
@@ -216,11 +216,16 @@ jobs:
           path: |
             ~/AppData/Local/Groovy/Models
             ~/AppData/Local/Groovy/runtime
-          key: windows-models-v1
+          key: windows-models-v2
 
       - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
         shell: pwsh
         run: ./scripts/work-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
+
+      # Round 3D item 7: never over 400 MB, even at peak (sampled every 250 ms).
+      - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, OK Groovy, mail)
+        shell: pwsh
+        run: ./scripts/peak-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
 
       - name: Save the downloaded models
         if: always() && steps.models-cache.outputs.cache-hit != 'true'
@@ -229,7 +234,7 @@ jobs:
           path: |
             ~/AppData/Local/Groovy/Models
             ~/AppData/Local/Groovy/runtime
-          key: windows-models-v1
+          key: windows-models-v2
 
       - name: Type check
         run: npx tsc --noEmit

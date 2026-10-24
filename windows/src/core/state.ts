@@ -213,6 +213,8 @@ export interface Settings {
   voiceEngine: "local" | "livekit";
   /** Whisper model: "tiny.en" or "base.en". */
   voiceModel: string;
+  /** Set once the quantized speech models were offered (round 3D item 7). */
+  smallSpeechSet: boolean;
   /** The user's LiveKit server and room; the key and secret stay in the keychain. */
   livekitUrl: string;
   livekitRoom: string;
@@ -320,7 +322,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lookAt: 0,
   voiceEnabled: false,
   voiceEngine: "local",
-  voiceModel: "base.en",
+  voiceModel: "base-q5_1",
+  smallSpeechSet: true,
   livekitUrl: "",
   livekitRoom: "groovy",
   voiceCall: true,

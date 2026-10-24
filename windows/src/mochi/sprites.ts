@@ -11,6 +11,11 @@ import type { Outfit } from "./wardrobe";
 const MAX = 64;
 const cache = new Map<string, HTMLCanvasElement>();
 
+/** Memory pressure (round 3D item 7): the pictures are drawn again when next needed. */
+export function dropSprites() {
+  cache.clear();
+}
+
 function remember(key: string, draw: (ctx: CanvasRenderingContext2D, size: number) => void, size: number, dpr: number): HTMLCanvasElement {
   const hit = cache.get(key);
   if (hit) return hit;

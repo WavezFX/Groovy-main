@@ -233,6 +233,8 @@ fn load() -> Option<Arc<OfflineTts>> {
     if !KOKORO.is_present() {
         return None;
     }
+    // Speech recognition and the voice together only when both fit (round 3D item 7).
+    crate::ceiling::make_room("voice", crate::ceiling::KOKORO_MB);
     let started = Instant::now();
     let config = OfflineTtsConfig {
         model: OfflineTtsModelConfig {
@@ -272,6 +274,21 @@ fn load() -> Option<Arc<OfflineTts>> {
     Some(tts)
 }
 
+/// Kokoro is in memory now.
+pub fn is_loaded() -> bool {
+    engine().try_lock().map(|e| e.is_some()).unwrap_or(true)
+}
+
+/// Frees Kokoro now (memory pressure, or speech recognition needs the room).
+/// Never waits: a sentence being spoken keeps it until the next time.
+pub fn free() {
+    if let Ok(mut e) = engine().try_lock() {
+        if e.take().is_some() {
+            crate::log::line("Kokoro freed (memory)");
+        }
+    }
+}
+
 /// Kokoro's WAV for `text` at a speed (Settings → Speaking), if Kokoro is downloaded.
 pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     let tts = load()?;
@@ -305,6 +322,16 @@ fn kokoro_state() -> super::ModelState {
     } else {
         super::ModelState::Missing
     }
+}
+
+/// Kokoro's files, downloaded now if missing (CI's peak test).
+pub async fn kokoro_fetch() -> Result<(), String> {
+    if KOKORO.is_present() {
+        return Ok(());
+    }
+    let client = super::download_client()?;
+    let mut done = 0;
+    super::fetch_set(&client, &KOKORO, &mut done, &mut |_| {}).await
 }
 
 #[tauri::command]

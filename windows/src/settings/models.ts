@@ -17,6 +17,9 @@ const PROFILES: [AssistantPrefs["performanceProfile"], string, string][] = [
   ["performance", N_("High performance"), N_("8K context, every core, stays loaded. Needs 16 GB or more.")],
 ];
 
+/** Round 3D item 7: the built-in model runs inside Groovy's own memory. */
+export const OVER_LIMIT_MODEL = N_("Uses extra memory: over Groovy's 400 MB limit. Ollama + Qwen (Brains → On this PC) does the thinking in its own app and keeps Groovy under it.");
+
 export function formatBytes(n: number): string {
   if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
   if (n >= 1024 ** 2) return `${Math.round(n / 1024 ** 2)} MB`;
@@ -184,6 +187,7 @@ export function modelsSection(settings: Settings, save: () => void): HTMLElement
     const p = prefs();
     if (!s.localAllowed) {
       const use = h("button", { text: t("Use local AI on this PC") }) as HTMLButtonElement;
+      body.append(h("div", { class: "notice warn", text: t(OVER_LIMIT_MODEL) }));
       use.addEventListener("click", () => {
         set("aiSetup", "local");
         void refresh();

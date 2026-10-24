@@ -69,8 +69,13 @@ pub struct Settings {
     /// "local" (Whisper on this computer) or "livekit" (a live conversation
     /// with the user's own LiveKit agent after the wake word).
     pub voice_engine: String,
-    /// The Whisper model voice.rs loads: "tiny.en" or "base.en".
+    /// The Whisper model voice.rs loads (voice::MODELS); "base-q5_1" by default.
     pub voice_model: String,
+    /// Set once the quantized speech models were offered (round 3D item 7):
+    /// "base.en" becomes "base.en-q5_1" and "base" "base-q5_1" (the same
+    /// models, a third of the memory). Missing from an older file means false.
+    #[serde(default)]
+    pub small_speech_set: bool,
     /// The user's LiveKit server (wss://…) and the room Groovy joins. The API
     /// key and secret are in the keychain (secrets.rs), never here.
     pub livekit_url: String,
@@ -243,7 +248,8 @@ impl Default for Settings {
             look_at: 0.0,
             voice_enabled: false,
             voice_engine: "local".into(),
-            voice_model: "base.en".into(),
+            voice_model: crate::voice::DEFAULT_MODEL.into(),
+            small_speech_set: true,
             livekit_url: String::new(),
             livekit_room: "groovy".into(),
             island_x: 0.5,
@@ -302,6 +308,21 @@ fn settings_path() -> PathBuf {
 }
 
 /// No settings.json yet: the very first start.
+/// Once, for a file from before round 3D item 7: the Whisper base models
+/// become their quantized versions. True when something changed.
+pub fn offer_small_speech(s: &mut Settings) -> bool {
+    if s.small_speech_set {
+        return false;
+    }
+    s.voice_model = match s.voice_model.as_str() {
+        "base.en" => "base.en-q5_1".into(),
+        "base" => "base-q5_1".into(),
+        other => other.to_string(),
+    };
+    s.small_speech_set = true;
+    true
+}
+
 pub fn first_run() -> bool {
     !settings_path().exists()
 }
@@ -628,6 +649,7 @@ mod tests {
   "voiceEnabled": true,
   "voiceEngine": "livekit",
   "voiceModel": "tiny.en",
+  "smallSpeechSet": true,
   "livekitUrl": "wss://me.livekit.cloud",
   "livekitRoom": "den",
   "islandX": 0.25,
@@ -753,6 +775,19 @@ mod tests {
     }
 
     // ── Reading ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn an_older_file_moves_to_the_quantized_speech_models_once() {
+        let mut old: Settings = serde_json::from_str(r#"{"voiceModel": "base.en"}"#).unwrap();
+        assert!(offer_small_speech(&mut old));
+        assert_eq!(old.voice_model, "base.en-q5_1");
+        old.voice_model = "base.en".into();
+        assert!(!offer_small_speech(&mut old), "picked again afterwards, it stays");
+        let mut small: Settings = serde_json::from_str(r#"{"voiceModel": "small"}"#).unwrap();
+        offer_small_speech(&mut small);
+        assert_eq!(small.voice_model, "small");
+        assert_eq!(Settings::default().voice_model, "base-q5_1");
+    }
 
     #[test]
     fn new_installs_close_the_island_when_the_pointer_leaves() {
@@ -1040,7 +1075,9 @@ mod tests {
             let loaded = parse(&custom_with(key, None))
                 .unwrap_or_else(|| panic!("a file without {key} was thrown away"));
             let mut expected = custom();
-            expected[key] = defaults()[key].clone();
+            // A one-time switch missing from a file is still to do.
+            let to_do = ["smallSpeechSet"].contains(&key.as_str());
+            expected[key] = if to_do { json!(false) } else { defaults()[key].clone() };
             assert_eq!(shown(&loaded), expected, "without {key}");
         }
     }
@@ -1289,6 +1326,7 @@ mod tests {
                 "voiceEnabled",
                 "voiceEngine",
                 "voiceModel",
+                "smallSpeechSet",
                 "livekitUrl",
                 "livekitRoom",
                 "islandX",

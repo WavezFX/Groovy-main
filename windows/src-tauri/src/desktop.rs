@@ -303,6 +303,7 @@ fn ensure_window(app: &AppHandle, d: &Desktop) -> bool {
     if window(app).is_some() {
         return true;
     }
+    crate::ceiling::one_panel(app, LABEL);
     match create_window(app, d.mode) {
         Some(win) if platform::prepare_desktop_window(&win, d.mode) => {
             crate::log::line("desktop Groovy: window made");
@@ -467,6 +468,20 @@ fn show(app: &AppHandle, d: &Desktop, at: (f64, f64)) {
     refresh(app, d);
     // The page draws only while he is on screen.
     let _ = app.emit_to(LABEL, "desktop-visible", true);
+}
+
+/// Back into the island with his window gone (round 3D item 7: one panel
+/// window at a time besides the island). He stays where he lives, so he
+/// comes out again next time he is sent out.
+pub fn put_away(app: &AppHandle) {
+    let Some(d) = app.try_state::<Arc<Desktop>>().map(|d| d.inner().clone()) else { return };
+    if window(app).is_none() {
+        return;
+    }
+    hide(app, &d);
+    if let Some(win) = window(app) {
+        let _ = win.destroy();
+    }
 }
 
 fn hide(app: &AppHandle, d: &Desktop) {

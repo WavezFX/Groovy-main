@@ -10093,17 +10093,6 @@
    "ru": "Движок распознавания",
    "id": "Mesin ucapan"
   },
-  "Parakeet knows 25 European languages. Whisper knows about 99 (Punjabi, Hindi, Arabic, Japanese, Chinese…) and uses the model and language picked in Groovy → Voice calls.": {
-   "zh-Hans": "Parakeet 支持 25 种欧洲语言。Whisper 支持约 99 种（旁遮普语、印地语、阿拉伯语、日语、中文…），并使用 Groovy → 语音通话 中选择的模型和语言。",
-   "hi": "Parakeet 25 यूरोपीय भाषाएँ जानता है। Whisper लगभग 99 जानता है (पंजाबी, हिंदी, अरबी, जापानी, चीनी…) और Groovy → वॉइस कॉल में चुना गया मॉडल और भाषा उपयोग करता है।",
-   "es": "Parakeet conoce 25 idiomas europeos. Whisper conoce unos 99 (panyabí, hindi, árabe, japonés, chino…) y usa el modelo y el idioma elegidos en Groovy → Llamadas de voz.",
-   "ar": "يعرف Parakeet ‏25 لغة أوروبية. ويعرف Whisper نحو 99 لغة (البنجابية والهندية والعربية واليابانية والصينية…) ويستخدم النموذج واللغة المختارين في Groovy ← المكالمات الصوتية.",
-   "fr": "Parakeet connaît 25 langues européennes. Whisper en connaît environ 99 (pendjabi, hindi, arabe, japonais, chinois…) et utilise le modèle et la langue choisis dans Groovy → Appels vocaux.",
-   "bn": "Parakeet ২৫টি ইউরোপীয় ভাষা জানে। Whisper প্রায় ৯৯টি জানে (পাঞ্জাবি, হিন্দি, আরবি, জাপানি, চীনা…) এবং Groovy → ভয়েস কল-এ বাছাই করা মডেল ও ভাষা ব্যবহার করে।",
-   "pt-BR": "O Parakeet conhece 25 idiomas europeus. O Whisper conhece cerca de 99 (punjabi, hindi, árabe, japonês, chinês…) e usa o modelo e o idioma escolhidos em Groovy → Chamadas de voz.",
-   "ru": "Parakeet знает 25 европейских языков. Whisper знает около 99 (панджаби, хинди, арабский, японский, китайский…) и использует модель и язык, выбранные в Groovy → Голосовые звонки.",
-   "id": "Parakeet mengenal 25 bahasa Eropa. Whisper mengenal sekitar 99 (Punjabi, Hindi, Arab, Jepang, Mandarin…) dan memakai model serta bahasa yang dipilih di Groovy → Panggilan suara."
-  },
   "Download a multilingual Whisper model (base or small) in Groovy → Voice calls.": {
    "zh-Hans": "请在 Groovy → 语音通话 中下载多语言 Whisper 模型（base 或 small）。",
    "hi": "Groovy → वॉइस कॉल में बहुभाषी Whisper मॉडल (base या small) डाउनलोड करें।",
@@ -11115,28 +11104,6 @@
    "pt-BR": "1. Microfone",
    "ru": "1. Микрофон",
    "id": "1. Mikrofon"
-  },
-  "Parakeet (25 European languages)": {
-   "zh-Hans": "Parakeet（25 种欧洲语言）",
-   "hi": "Parakeet (25 यूरोपीय भाषाएँ)",
-   "es": "Parakeet (25 idiomas europeos)",
-   "ar": "Parakeet (‏25 لغة أوروبية)",
-   "fr": "Parakeet (25 langues européennes)",
-   "bn": "Parakeet (২৫টি ইউরোপীয় ভাষা)",
-   "pt-BR": "Parakeet (25 idiomas europeus)",
-   "ru": "Parakeet (25 европейских языков)",
-   "id": "Parakeet (25 bahasa Eropa)"
-  },
-  "Whisper (99 languages, chosen in Voice calls)": {
-   "zh-Hans": "Whisper（99 种语言，在语音通话中选择）",
-   "hi": "Whisper (99 भाषाएँ, वॉइस कॉल में चुनी गई)",
-   "es": "Whisper (99 idiomas, elegido en Llamadas de voz)",
-   "ar": "Whisper (‏99 لغة، يُختار في المكالمات الصوتية)",
-   "fr": "Whisper (99 langues, choisi dans Appels vocaux)",
-   "bn": "Whisper (৯৯টি ভাষা, ভয়েস কল-এ বাছাই করা)",
-   "pt-BR": "Whisper (99 idiomas, escolhido em Chamadas de voz)",
-   "ru": "Whisper (99 языков, выбирается в «Голосовых звонках»)",
-   "id": "Whisper (99 bahasa, dipilih di Panggilan suara)"
   },
   "The Whisper model is ready.": {
    "zh-Hans": "Whisper 模型已就绪。",
@@ -12204,28 +12171,6 @@
    "pt-BR": "Neste computador",
    "ru": "На этом компьютере",
    "id": "Di komputer ini"
-  },
-  "Parakeet (fast, 25 languages)": {
-   "zh-Hans": "Parakeet（快速，25 种语言）",
-   "hi": "Parakeet (तेज़, 25 भाषाएँ)",
-   "es": "Parakeet (rápido, 25 idiomas)",
-   "ar": "Parakeet (سريع، 25 لغة)",
-   "fr": "Parakeet (rapide, 25 langues)",
-   "bn": "Parakeet (দ্রুত, ২৫টি ভাষা)",
-   "pt-BR": "Parakeet (rápido, 25 idiomas)",
-   "ru": "Parakeet (быстро, 25 языков)",
-   "id": "Parakeet (cepat, 25 bahasa)"
-  },
-  "Whisper (more languages)": {
-   "zh-Hans": "Whisper（更多语言）",
-   "hi": "Whisper (ज़्यादा भाषाएँ)",
-   "es": "Whisper (más idiomas)",
-   "ar": "Whisper (لغات أكثر)",
-   "fr": "Whisper (plus de langues)",
-   "bn": "Whisper (আরও ভাষা)",
-   "pt-BR": "Whisper (mais idiomas)",
-   "ru": "Whisper (больше языков)",
-   "id": "Whisper (lebih banyak bahasa)"
   },
   "Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».": {
    "zh-Hans": "下载一次，处处可用：通话、听写、笔记助手和 « OK Groovy »。",
@@ -18387,17 +18332,6 @@
    "ru": "Освободить память",
    "id": "Kosongkan memori sekarang"
   },
-  "now · highest since Settings opened {peak}": {
-   "zh-Hans": "当前 · 打开设置以来最高 {peak}",
-   "hi": "अभी · सेटिंग्स खुलने के बाद सबसे ज़्यादा {peak}",
-   "es": "ahora · máximo desde que abriste Ajustes {peak}",
-   "ar": "الآن · الأعلى منذ فتح الإعدادات {peak}",
-   "fr": "maintenant · au plus haut depuis l'ouverture des réglages {peak}",
-   "bn": "এখন · সেটিংস খোলার পর সর্বোচ্চ {peak}",
-   "pt-BR": "agora · máximo desde que abriu os Ajustes {peak}",
-   "ru": "сейчас · максимум с открытия настроек {peak}",
-   "id": "sekarang · tertinggi sejak Pengaturan dibuka {peak}"
-  },
   "Idle target {mb}": {
    "zh-Hans": "空闲目标 {mb}",
    "hi": "निष्क्रिय लक्ष्य {mb}",
@@ -19189,6 +19123,204 @@
    "pt-BR": "Offline: pensando neste PC",
    "ru": "Офлайн: думаю на этом ПК",
    "id": "Offline: berpikir di PC ini"
+  },
+  "Whisper (light) knows about 99 languages and uses the model and language picked in Groovy → Voice calls. Parakeet is more accurate in 25 European languages but uses about 670 MB, over Groovy's 400 MB limit.": {
+   "zh-Hans": "Whisper（轻量）支持约 99 种语言，使用在 Groovy → 语音通话中选择的模型和语言。Parakeet 在 25 种欧洲语言中更准确，但约占 670 MB，超过 Groovy 的 400 MB 上限。",
+   "hi": "Whisper (हल्का) लगभग 99 भाषाएँ जानता है और Groovy → वॉइस कॉल में चुना गया मॉडल और भाषा इस्तेमाल करता है। Parakeet 25 यूरोपीय भाषाओं में ज़्यादा सटीक है, पर लगभग 670 MB लेता है, जो Groovy की 400 MB सीमा से ज़्यादा है।",
+   "es": "Whisper (ligero) conoce unos 99 idiomas y usa el modelo y el idioma elegidos en Groovy → Llamadas de voz. Parakeet es más preciso en 25 idiomas europeos, pero usa unos 670 MB, por encima del límite de 400 MB de Groovy.",
+   "ar": "يعرف Whisper (الخفيف) نحو 99 لغة ويستخدم النموذج واللغة المختارين في Groovy ← المكالمات الصوتية. Parakeet أدق في 25 لغة أوروبية لكنه يستخدم نحو 670 ميغابايت، فوق حد Groovy البالغ 400 ميغابايت.",
+   "fr": "Whisper (léger) connaît environ 99 langues et utilise le modèle et la langue choisis dans Groovy → Appels vocaux. Parakeet est plus précis dans 25 langues européennes mais utilise environ 670 Mo, au-delà de la limite de 400 Mo de Groovy.",
+   "bn": "Whisper (হালকা) প্রায় ৯৯টি ভাষা জানে এবং Groovy → ভয়েস কলে বেছে নেওয়া মডেল ও ভাষা ব্যবহার করে। Parakeet ২৫টি ইউরোপীয় ভাষায় বেশি নির্ভুল, কিন্তু প্রায় 670 MB নেয়, যা Groovy-র 400 MB সীমার বেশি।",
+   "pt-BR": "O Whisper (leve) conhece cerca de 99 idiomas e usa o modelo e o idioma escolhidos em Groovy → Chamadas de voz. O Parakeet é mais preciso em 25 idiomas europeus, mas usa cerca de 670 MB, acima do limite de 400 MB do Groovy.",
+   "ru": "Whisper (лёгкий) знает около 99 языков и использует модель и язык, выбранные в Groovy → Голосовые звонки. Parakeet точнее в 25 европейских языках, но занимает около 670 МБ — больше лимита Groovy в 400 МБ.",
+   "id": "Whisper (ringan) mengenal sekitar 99 bahasa dan memakai model dan bahasa yang dipilih di Groovy → Panggilan suara. Parakeet lebih akurat di 25 bahasa Eropa tetapi memakai sekitar 670 MB, melebihi batas 400 MB Groovy."
+  },
+  "Whisper (light, 99 languages)": {
+   "zh-Hans": "Whisper（轻量，99 种语言）",
+   "hi": "Whisper (हल्का, 99 भाषाएँ)",
+   "es": "Whisper (ligero, 99 idiomas)",
+   "ar": "Whisper (خفيف، 99 لغة)",
+   "fr": "Whisper (léger, 99 langues)",
+   "bn": "Whisper (হালকা, ৯৯টি ভাষা)",
+   "pt-BR": "Whisper (leve, 99 idiomas)",
+   "ru": "Whisper (лёгкий, 99 языков)",
+   "id": "Whisper (ringan, 99 bahasa)"
+  },
+  "Uses extra memory: over Groovy's 400 MB limit. Ollama + Qwen (Brains → On this PC) does the thinking in its own app and keeps Groovy under it.": {
+   "zh-Hans": "会占用额外内存：超过 Groovy 的 400 MB 上限。Ollama + Qwen（大脑 → 在这台电脑上）在它自己的应用里思考，让 Groovy 保持在上限以下。",
+   "hi": "ज़्यादा मेमोरी लेता है: Groovy की 400 MB सीमा से ऊपर। Ollama + Qwen (ब्रेन → इस PC पर) अपनी ऐप में सोचता है और Groovy को सीमा के अंदर रखता है।",
+   "es": "Usa memoria extra: por encima del límite de 400 MB de Groovy. Ollama + Qwen (Cerebros → En este PC) piensa en su propia app y mantiene a Groovy por debajo.",
+   "ar": "يستخدم ذاكرة إضافية: فوق حد Groovy البالغ 400 ميغابايت. يفكر Ollama + Qwen (العقول ← على هذا الحاسوب) في تطبيقه الخاص ويُبقي Groovy تحت الحد.",
+   "fr": "Utilise de la mémoire en plus : au-delà de la limite de 400 Mo de Groovy. Ollama + Qwen (Cerveaux → Sur ce PC) réfléchit dans sa propre app et garde Groovy en dessous.",
+   "bn": "অতিরিক্ত মেমরি নেয়: Groovy-র 400 MB সীমার বেশি। Ollama + Qwen (ব্রেন → এই পিসিতে) নিজের অ্যাপে ভাবে এবং Groovy-কে সীমার নিচে রাখে।",
+   "pt-BR": "Usa memória extra: acima do limite de 400 MB do Groovy. O Ollama + Qwen (Cérebros → Neste PC) pensa no próprio app e mantém o Groovy abaixo dele.",
+   "ru": "Требует дополнительной памяти: больше лимита Groovy в 400 МБ. Ollama + Qwen (Мозги → На этом ПК) думает в своём приложении и держит Groovy в пределах лимита.",
+   "id": "Memakai memori tambahan: melebihi batas 400 MB Groovy. Ollama + Qwen (Otak → Di PC ini) berpikir di aplikasinya sendiri dan menjaga Groovy di bawah batas."
+  },
+  "windows": {
+   "zh-Hans": "窗口",
+   "hi": "विंडो",
+   "es": "ventanas",
+   "ar": "النوافذ",
+   "fr": "fenêtres",
+   "bn": "উইন্ডো",
+   "pt-BR": "janelas",
+   "ru": "окна",
+   "id": "jendela"
+  },
+  "highest since start {mb}": {
+   "zh-Hans": "启动以来最高 {mb}",
+   "hi": "शुरू होने के बाद सबसे ज़्यादा {mb}",
+   "es": "máximo desde el inicio {mb}",
+   "ar": "الأعلى منذ البدء {mb}",
+   "fr": "maximum depuis le démarrage {mb}",
+   "bn": "শুরু থেকে সর্বোচ্চ {mb}",
+   "pt-BR": "máximo desde o início {mb}",
+   "ru": "максимум с запуска {mb}",
+   "id": "tertinggi sejak mulai {mb}"
+  },
+  "{used} of its {limit} MB limit": {
+   "zh-Hans": "{used}，上限 {limit} MB",
+   "hi": "{limit} MB सीमा में से {used}",
+   "es": "{used} de su límite de {limit} MB",
+   "ar": "{used} من حده البالغ {limit} ميغابايت",
+   "fr": "{used} sur sa limite de {limit} Mo",
+   "bn": "{limit} MB সীমার মধ্যে {used}",
+   "pt-BR": "{used} do limite de {limit} MB",
+   "ru": "{used} из лимита {limit} МБ",
+   "id": "{used} dari batas {limit} MB"
+  },
+  "That counts every process Groovy owns: the app, its windows and the helpers it starts. Apps you installed yourself, such as Ollama, LM Studio or Spotify, run as their own processes and don't count.": {
+   "zh-Hans": "这包括 Groovy 拥有的每个进程：应用本身、它的窗口以及它启动的辅助程序。你自己安装的应用（如 Ollama、LM Studio 或 Spotify）以各自的进程运行，不计算在内。",
+   "hi": "इसमें Groovy की हर प्रक्रिया गिनी जाती है: ऐप, उसकी विंडो और उसके शुरू किए सहायक। आपकी खुद इंस्टॉल की गई ऐप, जैसे Ollama, LM Studio या Spotify, अपनी अलग प्रक्रियाओं में चलती हैं और नहीं गिनी जातीं।",
+   "es": "Cuenta cada proceso de Groovy: la app, sus ventanas y los ayudantes que inicia. Las apps que instalaste tú, como Ollama, LM Studio o Spotify, son procesos propios y no cuentan.",
+   "ar": "يُحتسب كل عملية يملكها Groovy: التطبيق ونوافذه والمساعدات التي يشغّلها. التطبيقات التي ثبّتّها بنفسك، مثل Ollama أو LM Studio أو Spotify، تعمل في عملياتها الخاصة ولا تُحتسب.",
+   "fr": "Cela compte chaque processus de Groovy : l’app, ses fenêtres et les assistants qu’il lance. Les apps que vous avez installées vous-même, comme Ollama, LM Studio ou Spotify, ont leurs propres processus et ne comptent pas.",
+   "bn": "এতে Groovy-র প্রতিটি প্রসেস গোনা হয়: অ্যাপ, তার উইন্ডো এবং তার চালু করা সহায়ক। আপনার নিজের ইনস্টল করা অ্যাপ, যেমন Ollama, LM Studio বা Spotify, নিজেদের প্রসেসে চলে এবং গোনা হয় না।",
+   "pt-BR": "Conta cada processo do Groovy: o app, suas janelas e os ajudantes que ele inicia. Apps que você mesmo instalou, como Ollama, LM Studio ou Spotify, rodam em processos próprios e não contam.",
+   "ru": "Сюда входит каждый процесс Groovy: само приложение, его окна и запущенные им помощники. Приложения, которые вы установили сами, например Ollama, LM Studio или Spotify, работают в своих процессах и не учитываются.",
+   "id": "Ini menghitung setiap proses milik Groovy: aplikasinya, jendelanya, dan pembantu yang dijalankannya. Aplikasi yang Anda pasang sendiri, seperti Ollama, LM Studio, atau Spotify, berjalan di prosesnya sendiri dan tidak dihitung."
+  },
+  "Parakeet: high accuracy (uses more memory)": {
+   "zh-Hans": "Parakeet：高准确度（占用更多内存）",
+   "hi": "Parakeet: ज़्यादा सटीक (ज़्यादा मेमोरी लेता है)",
+   "es": "Parakeet: alta precisión (usa más memoria)",
+   "ar": "Parakeet: دقة عالية (يستخدم ذاكرة أكثر)",
+   "fr": "Parakeet : haute précision (utilise plus de mémoire)",
+   "bn": "Parakeet: উচ্চ নির্ভুলতা (বেশি মেমরি নেয়)",
+   "pt-BR": "Parakeet: alta precisão (usa mais memória)",
+   "ru": "Parakeet: высокая точность (больше памяти)",
+   "id": "Parakeet: akurasi tinggi (memakai lebih banyak memori)"
+  },
+  "Parakeet uses about 670 MB while it listens: over Groovy's 400 MB limit. Whisper (light) keeps Groovy under it.": {
+   "zh-Hans": "Parakeet 在聆听时约占 670 MB：超过 Groovy 的 400 MB 上限。Whisper（轻量）能让 Groovy 保持在上限以下。",
+   "hi": "Parakeet सुनते समय लगभग 670 MB लेता है: Groovy की 400 MB सीमा से ऊपर। Whisper (हल्का) Groovy को सीमा के अंदर रखता है।",
+   "es": "Parakeet usa unos 670 MB mientras escucha: por encima del límite de 400 MB de Groovy. Whisper (ligero) mantiene a Groovy por debajo.",
+   "ar": "يستخدم Parakeet نحو 670 ميغابايت أثناء الاستماع: فوق حد Groovy البالغ 400 ميغابايت. يُبقي Whisper (الخفيف) Groovy تحت الحد.",
+   "fr": "Parakeet utilise environ 670 Mo pendant l’écoute : au-delà de la limite de 400 Mo de Groovy. Whisper (léger) garde Groovy en dessous.",
+   "bn": "Parakeet শোনার সময় প্রায় 670 MB নেয়: Groovy-র 400 MB সীমার বেশি। Whisper (হালকা) Groovy-কে সীমার নিচে রাখে।",
+   "pt-BR": "O Parakeet usa cerca de 670 MB enquanto escuta: acima do limite de 400 MB do Groovy. O Whisper (leve) mantém o Groovy abaixo dele.",
+   "ru": "Parakeet занимает около 670 МБ, пока слушает: больше лимита Groovy в 400 МБ. Whisper (лёгкий) держит Groovy в пределах лимита.",
+   "id": "Parakeet memakai sekitar 670 MB saat mendengarkan: melebihi batas 400 MB Groovy. Whisper (ringan) menjaga Groovy di bawah batas."
+  },
+  "main app": {
+   "zh-Hans": "主程序",
+   "hi": "मुख्य ऐप",
+   "es": "app principal",
+   "ar": "التطبيق الرئيسي",
+   "fr": "app principale",
+   "bn": "মূল অ্যাপ",
+   "pt-BR": "app principal",
+   "ru": "основное приложение",
+   "id": "aplikasi utama"
+  },
+  "built-in AI model": {
+   "zh-Hans": "内置 AI 模型",
+   "hi": "बिल्ट-इन AI मॉडल",
+   "es": "modelo de IA integrado",
+   "ar": "نموذج الذكاء الاصطناعي المدمج",
+   "fr": "modèle d’IA intégré",
+   "bn": "বিল্ট-ইন AI মডেল",
+   "pt-BR": "modelo de IA integrado",
+   "ru": "встроенная модель ИИ",
+   "id": "model AI bawaan"
+  },
+  "now · highest since start {peak}": {
+   "zh-Hans": "当前 · 启动以来最高 {peak}",
+   "hi": "अभी · शुरू होने के बाद सबसे ज़्यादा {peak}",
+   "es": "ahora · máximo desde el inicio {peak}",
+   "ar": "الآن · الأعلى منذ البدء {peak}",
+   "fr": "maintenant · au plus haut depuis le démarrage {peak}",
+   "bn": "এখন · চালুর পর সর্বোচ্চ {peak}",
+   "pt-BR": "agora · máximo desde o início {peak}",
+   "ru": "сейчас · максимум с запуска {peak}",
+   "id": "sekarang · tertinggi sejak mulai {peak}"
+  },
+  "Groovy core": {
+   "zh-Hans": "Groovy 核心",
+   "hi": "Groovy कोर",
+   "es": "Núcleo de Groovy",
+   "ar": "نواة Groovy",
+   "fr": "Cœur de Groovy",
+   "bn": "Groovy কোর",
+   "pt-BR": "Núcleo do Groovy",
+   "ru": "Ядро Groovy",
+   "id": "Inti Groovy"
+  },
+  "Island and windows": {
+   "zh-Hans": "岛和窗口",
+   "hi": "आइलैंड और विंडो",
+   "es": "Isla y ventanas",
+   "ar": "الجزيرة والنوافذ",
+   "fr": "Île et fenêtres",
+   "bn": "আইল্যান্ড ও উইন্ডো",
+   "pt-BR": "Ilha e janelas",
+   "ru": "Остров и окна",
+   "id": "Pulau dan jendela"
+  },
+  "Speech and voice": {
+   "zh-Hans": "语音识别与语音",
+   "hi": "वाक् और आवाज़",
+   "es": "Voz y habla",
+   "ar": "الكلام والصوت",
+   "fr": "Parole et voix",
+   "bn": "কণ্ঠ ও ভয়েস",
+   "pt-BR": "Fala e voz",
+   "ru": "Речь и голос",
+   "id": "Ucapan dan suara"
+  },
+  "Built-in AI model": {
+   "zh-Hans": "内置 AI 模型",
+   "hi": "अंतर्निहित AI मॉडल",
+   "es": "Modelo de IA integrado",
+   "ar": "نموذج الذكاء الاصطناعي المدمج",
+   "fr": "Modèle d'IA intégré",
+   "bn": "বিল্ট-ইন AI মডেল",
+   "pt-BR": "Modelo de IA integrado",
+   "ru": "Встроенная модель ИИ",
+   "id": "Model AI bawaan"
+  },
+  "Loaded, counted in the core": {
+   "zh-Hans": "已加载，计入核心",
+   "hi": "लोड है, कोर में गिना गया",
+   "es": "Cargado, contado en el núcleo",
+   "ar": "محمّل، ومحسوب ضمن النواة",
+   "fr": "Chargé, compté dans le cœur",
+   "bn": "লোড হয়েছে, কোরে গোনা",
+   "pt-BR": "Carregado, contado no núcleo",
+   "ru": "Загружено, учтено в ядре",
+   "id": "Dimuat, dihitung di inti"
+  },
+  "Model unloaded": {
+   "zh-Hans": "模型未加载",
+   "hi": "मॉडल हटा हुआ",
+   "es": "Modelo descargado",
+   "ar": "النموذج غير محمّل",
+   "fr": "Modèle déchargé",
+   "bn": "মডেল সরানো",
+   "pt-BR": "Modelo descarregado",
+   "ru": "Модель выгружена",
+   "id": "Model dilepas"
   }
  }
 }

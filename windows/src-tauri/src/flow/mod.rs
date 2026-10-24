@@ -128,6 +128,27 @@ pub fn setup(app: &AppHandle) {
         enable(app, &flow);
     }
     sync_engine(app);
+    small_speech_for_parakeet_users(app, &prefs);
+}
+
+/// Round 3D item 7: someone who had Parakeet on the PC (local speech set up)
+/// and is now on the small Whisper model gets it downloaded once, in the
+/// background (about 57 MB), so dictation keeps working offline.
+fn small_speech_for_parakeet_users(app: &AppHandle, prefs: &store::Prefs) {
+    if prefs.engine != "whisper" || !speech::PARAKEET.is_present() {
+        return;
+    }
+    let Some(model) = app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().voice_model.clone()) else { return };
+    if crate::voice::installed(&model) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        match crate::voice::download(&app, &model).await {
+            Ok(()) => crate::log::line(format!("speech: {model} downloaded (Groovy's small offline model)")),
+            Err(e) => crate::log::line(format!("speech: could not download {model}: {e}")),
+        }
+    });
 }
 
 /// The key as the pages write it ("right_ctrl"…), or "wayland" where the

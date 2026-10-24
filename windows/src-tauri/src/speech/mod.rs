@@ -302,7 +302,7 @@ pub fn fetch_kws() {
     });
 }
 
-fn download_client() -> Result<reqwest::Client, String> {
+pub fn download_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
         .read_timeout(Duration::from_secs(60))
@@ -416,6 +416,7 @@ pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
     config.model_config.tokens = Some(PARAKEET.path("tokens.txt"));
     config.model_config.model_type = Some("nemo_transducer".into());
     config.model_config.num_threads = threads();
+    crate::ceiling::make_room("speech", 670.0);
     let started = Instant::now();
     crate::loads::note(crate::loads::Part::OfflineStt, "Parakeet, for speech on this PC");
     let r = OfflineRecognizer::create(&config).map(Arc::new);
@@ -452,6 +453,17 @@ pub fn get_ready(app: &AppHandle) {
 
 /// Loading for longer than this shows "Getting ready…".
 const READY_NOTE_AFTER: Duration = Duration::from_millis(300);
+
+/// Memory pressure (round 3D item 7): frees the recognizers unless one is in use.
+pub fn unload_idle_now() {
+    if let Ok(mut slot) = recognizer_slot().try_lock() {
+        if slot.take().is_some() {
+            crate::log::line("Parakeet freed (memory)");
+        }
+    }
+    crate::voice::free_now();
+    kws::free_if_idle();
+}
 
 /// Frees the model's memory (dictation turned off, models removed).
 pub fn unload() {

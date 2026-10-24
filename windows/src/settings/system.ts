@@ -10,7 +10,14 @@ import { btn, dangerBtn } from "../hub/ui";
 
 export const SYSTEM_STRINGS = {
   freeNow: N_("Free memory now"),
-  nowPeak: N_("now · highest since Settings opened {peak}"),
+  nowPeak: N_("now · highest since start {peak}"),
+  core: N_("Groovy core"),
+  windowsPart: N_("Island and windows"),
+  speechPart: N_("Speech and voice"),
+  modelPart: N_("Built-in AI model"),
+  inCore: N_("Loaded, counted in the core"),
+  unloaded: N_("Model unloaded"),
+  off: N_("Off"),
   idleTarget: N_("Idle target {mb}"),
   limit: N_("Limit {mb}"),
   performance: N_("Performance"),
@@ -61,10 +68,11 @@ export function systemPage(settings: Settings, save: () => void, version: string
   let peak = 0;
 
   const card = h("div", { class: "hub-card hub-s-mem" });
-  const drawMemory = (s: SystemStatus | null) => {
+  const drawMemory = (s: SystemStatus | null, r: RunReport | null) => {
     clear(card);
     const used = s?.groovyMemory ?? 0;
-    peak = Math.max(peak, used);
+    // Every process Groovy owns (ceiling.rs), and the highest since it started.
+    peak = Math.max(peak, used, s?.groovyPeak ?? 0);
     const scale = (b: number) => Math.min(1, b / MB / LIMIT_MB);
     const bar = h("div", { class: "hub-s-bar" },
       h("i", { class: used / MB > IDLE_MB ? "warn" : "", style: `transform:scaleX(${scale(used).toFixed(3)})` }),
@@ -75,6 +83,18 @@ export function systemPage(settings: Settings, save: () => void, version: string
       bar,
       h("div", { class: "hub-s-scale" }, h("span", { text: "0" }), h("span", { class: "hub-s-mid", text: t(SYSTEM_STRINGS.idleTarget, { mb: `${IDLE_MB} MB` }) }), h("span", { text: t(SYSTEM_STRINGS.limit, { mb: `${LIMIT_MB} MB` }) })),
     );
+    if (s?.groovyParts?.length) {
+      const mb = (kind: string) => s.groovyParts.filter((p) => p.kind === kind).reduce((n, p) => n + p.mb, 0);
+      const tile = (name: string, value: string, line: string | null) =>
+        h("div", { class: "hub-s-part" }, h("span", { class: "hub-label", text: name }), h("b", { text: value }), line ? h("span", { class: "hub-b-detail", text: line }) : null);
+      const model = mb("built-in model");
+      card.append(h("div", { class: "hub-s-parts" },
+        tile(t(SYSTEM_STRINGS.core), `${Math.round(mb("groovy.exe"))} MB`, null),
+        tile(t(SYSTEM_STRINGS.windowsPart), `${Math.round(mb("webview2"))} MB`, null),
+        tile(t(SYSTEM_STRINGS.speechPart), r?.speechLoaded || r?.voiceLoaded ? t(SYSTEM_STRINGS.inCore) : "0 MB", r?.speechLoaded || r?.voiceLoaded ? null : t(SYSTEM_STRINGS.unloaded)),
+        tile(t(SYSTEM_STRINGS.modelPart), model > 0 ? `${Math.round(model)} MB` : t(SYSTEM_STRINGS.off), null),
+      ));
+    }
     cpu.textContent = s ? t(SYSTEM_STRINGS.cpuLine, { pct: s.cpuUsage.toFixed(1) }) : "";
     cpuState.textContent = s && s.cpuUsage > 50 ? t(SYSTEM_STRINGS.busy) : t(SYSTEM_STRINGS.good);
     cpuState.className = s && s.cpuUsage > 50 ? "hub-s-state warn" : "hub-s-state";
@@ -140,7 +160,7 @@ export function systemPage(settings: Settings, save: () => void, version: string
 
   async function load() {
     const [s, r] = await Promise.all([Bridge.systemStatus(), Bridge.runtimeState()]);
-    drawMemory(s);
+    drawMemory(s, r);
     drawRun(r);
   }
   void load();
@@ -156,6 +176,14 @@ export function meter(used: number, total: number): HTMLElement {
   const pct = total > 0 ? Math.max(0, Math.min(100, (used / total) * 100)) : 0;
   const cls = pct > 90 ? "meter err" : pct > 75 ? "meter warn" : "meter";
   return h("div", { class: cls, role: "meter", "aria-valuenow": Math.round(pct), "aria-valuemin": 0, "aria-valuemax": 100 }, h("i", { style: `width:${pct.toFixed(1)}%` }));
+}
+
+/** "app 62 MB · windows 140 MB · highest since start 210 MB". */
+export function groovyParts(s: SystemStatus): string {
+  const names: Record<string, string> = { "groovy.exe": t("main app"), webview2: t("windows"), "built-in model": t("built-in AI model") };
+  const parts = (s.groovyParts ?? []).map((p) => `${names[p.kind] ?? p.kind} ${Math.round(p.mb)} MB`);
+  parts.push(t("highest since start {mb}", { mb: formatBytes(s.groovyPeak ?? 0) }));
+  return parts.join(" · ");
 }
 
 export function systemSection(): HTMLElement {
@@ -175,7 +203,15 @@ export function systemSection(): HTMLElement {
         meter(used, s.memoryTotal),
         h("span", { class: "hint", text: t("{used} of {total}", { used: formatBytes(used), total: formatBytes(s.memoryTotal) }) }),
       ),
-      h("div", { class: "row" }, h("label", { text: t("Groovy uses") }), h("span", { class: "hint", text: formatBytes(s.groovyMemory) })),
+      h(
+        "div",
+        { class: "row" },
+        h("label", { text: t("Groovy uses") }),
+        meter(s.groovyMemory, (s.groovyCeiling || 400) * 1024 * 1024),
+        h("span", { class: "hint", text: t("{used} of its {limit} MB limit", { used: formatBytes(s.groovyMemory), limit: s.groovyCeiling || 400 }) }),
+      ),
+      h("div", { class: "hint", text: groovyParts(s) }),
+      h("div", { class: "hint", text: t("That counts every process Groovy owns: the app, its windows and the helpers it starts. Apps you installed yourself, such as Ollama, LM Studio or Spotify, run as their own processes and don't count.") }),
     );
     for (const d of s.disks) {
       body.append(

@@ -92,10 +92,16 @@ pub struct Prefs {
     /// The style of the apps that have none of their own.
     pub default_style: Style,
     pub summary_engine: SummaryEngine,
-    /// What turns speech into text: "parakeet" (25 European languages, the
-    /// most accurate) or "whisper" (≈99 languages, the model and language of
-    /// Settings → Voice calls).
+    /// What turns speech into text: "whisper" (≈99 languages, the model and
+    /// language of Settings → Voice calls; the default, a small quantized
+    /// model) or "parakeet" (25 European languages, the most accurate, about
+    /// 670 MB: over Groovy's 400 MB limit, so only when chosen; round 3D item 7).
     pub engine: String,
+    /// Set once the small speech model was made the default: installs from
+    /// before round 3D item 7 that were on Parakeet move to Whisper once.
+    /// Missing from an older file means false.
+    #[serde(default)]
+    pub small_speech_set: bool,
     /// The guided speech setup (microphone, model, a test) was done once.
     pub speech_setup_done: bool,
     /// Open the Groovy window when Groovy is opened (not when it starts with the computer).
@@ -122,6 +128,21 @@ pub struct Prefs {
     pub learn_words: bool,
 }
 
+impl Prefs {
+    /// Once, for prefs from before round 3D item 7: Parakeet (the old default,
+    /// about 670 MB) gives way to the small Whisper model. True when changed.
+    pub fn offer_small_speech(&mut self) -> bool {
+        if self.small_speech_set {
+            return false;
+        }
+        if self.engine == "parakeet" {
+            self.engine = "whisper".into();
+        }
+        self.small_speech_set = true;
+        true
+    }
+}
+
 impl Default for Prefs {
     fn default() -> Self {
         Self {
@@ -132,7 +153,8 @@ impl Default for Prefs {
             cleanup: false,
             default_style: Style::Natural,
             summary_engine: SummaryEngine::Ai,
-            engine: "parakeet".into(),
+            engine: "whisper".into(),
+            small_speech_set: true,
             speech_setup_done: false,
             open_at_launch: true,
             voice: false,
@@ -228,6 +250,9 @@ impl Store {
             folder,
         };
         store.prune(now_ms());
+        if store.prefs.offer_small_speech() {
+            store.save_prefs();
+        }
         store
     }
 
@@ -358,6 +383,17 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parakeet_gives_way_to_the_small_whisper_model_once() {
+        let mut old: Prefs = serde_json::from_str(r#"{"engine": "parakeet"}"#).unwrap();
+        assert!(old.offer_small_speech());
+        assert_eq!(old.engine, "whisper");
+        old.engine = "parakeet".into();
+        assert!(!old.offer_small_speech(), "chosen again, Parakeet stays");
+        assert_eq!(Prefs::default().engine, "whisper");
+        assert!(Prefs::default().small_speech_set);
+    }
 
     fn temp_store() -> (Store, PathBuf) {
         let dir = std::env::temp_dir().join(format!("groovy-flow-{}-{}", std::process::id(), new_id()));

@@ -191,6 +191,10 @@ pub struct Report {
     pub offline_chose_local: bool,
     pub warm_clients: usize,
     pub webviews: Vec<String>,
+    /// Speech recognition on this PC (Parakeet or Whisper) is in memory.
+    pub speech_loaded: bool,
+    /// Kokoro is in memory.
+    pub voice_loaded: bool,
 }
 
 /// For Settings → System and CI: the state, for how long, and why if offline.
@@ -205,6 +209,8 @@ pub fn runtime_state(app: AppHandle) -> Report {
         offline_chose_local: l.m.offline.chose_local,
         warm_clients: crate::net::shared_clients(),
         webviews,
+        speech_loaded: crate::speech::is_loaded() || crate::voice::is_loaded(),
+        voice_loaded: crate::speech::tts::is_loaded(),
     })
 }
 

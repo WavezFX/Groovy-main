@@ -3,6 +3,7 @@
 // model took 2 GB and the PC to 91 %). Shown at the top of the Assistant page,
 // opened at the first start, and again from General → Run setup again.
 
+import { OVER_LIMIT_MODEL } from "./models";
 import { Bridge } from "../core/bridge";
 import { providerDef } from "../core/providers";
 import type { AssistantPrefs, Settings } from "../core/state";
@@ -151,6 +152,7 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
             ? t("This PC has {total}: small local models work, but slowly. 16 GB or more is recommended.", { total: `${(memory / GB).toFixed(0)} GB` })
             : t("Runs on this computer, offline and private. Download a model in Groovy → Models afterwards."),
       }),
+      h("div", { class: "notice warn", text: t(OVER_LIMIT_MODEL) }),
       h("div", { class: "row" }, local),
     );
   };

@@ -188,6 +188,9 @@ export interface RunReport {
   offlineLimits: boolean;
   offlineChoseLocal: boolean;
   warmClients: number;
+  webviews: string[];
+  speechLoaded: boolean;
+  voiceLoaded: boolean;
 }
 
 export interface SystemStatus {
@@ -197,7 +200,14 @@ export interface SystemStatus {
   cpuUsage: number;
   memoryTotal: number;
   memoryAvailable: number;
+  /** Every process Groovy owns (main, WebView2, helpers), bytes. */
   groovyMemory: number;
+  /** The same by kind, MB. */
+  groovyParts: { kind: string; mb: number }[];
+  /** The highest total since Groovy started, bytes. */
+  groovyPeak: number;
+  /** Groovy's ceiling, MB (400). */
+  groovyCeiling: number;
   disks: { mount: string; total: number; available: number }[];
   battery: { percent: number; charging: boolean } | null;
   uptimeSecs: number;
@@ -260,7 +270,7 @@ export interface BootInfo {
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
   /** CI's smoke test: hold the island open on Home (F) or the player (E). */
-  smokeView?: "home" | "player" | "frames" | null;
+  smokeView?: "home" | "player" | "frames" | "peak" | null;
 }
 
 /** Ollama on this computer (ollama.rs). */

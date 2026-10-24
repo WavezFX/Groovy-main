@@ -16,12 +16,19 @@ use crate::platform;
 
 /// The models Groovy offers. Anything else is refused. The ".en" ones only
 /// understand English; the others understand ~99 languages (Spanish, German,
-/// Punjabi, Hindi…), less accurately per size.
-pub const MODELS: &[&str] = &["tiny.en", "base.en", "tiny", "base", "small"];
+/// Punjabi, Hindi…), less accurately per size. The "-q5_1" ones are the same
+/// models quantized: a third of the size and memory (round 3D item 7).
+pub const MODELS: &[&str] = &["base-q5_1", "base.en-q5_1", "tiny.en", "base.en", "tiny", "base", "small"];
+
+/// Groovy's offline speech model by default (round 3D item 7): Whisper base,
+/// quantized, ~99 languages, about 57 MB, so Groovy stays under 400 MB.
+pub const DEFAULT_MODEL: &str = "base-q5_1";
 
 /// What each download must be, from the whisper.cpp repository on Hugging Face:
 /// (model, size in bytes, SHA-256). A file that doesn't match is deleted.
 const PINNED: &[(&str, u64, &str)] = &[
+    ("base-q5_1", 59_707_625, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
+    ("base.en-q5_1", 59_721_011, "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"),
     ("tiny.en", 77_704_715, "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"),
     ("base.en", 147_964_211, "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002"),
     ("tiny", 77_691_713, "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"),
@@ -33,11 +40,16 @@ fn pinned(model: &str) -> Option<(u64, &'static str)> {
     PINNED.iter().find(|(m, _, _)| *m == model).map(|(_, size, sha)| (*size, *sha))
 }
 
+/// A model that only understands English ("base.en", "base.en-q5_1").
+pub fn english_only(model: &str) -> bool {
+    model.ends_with(".en") || model.contains(".en-")
+}
+
 /// The language Whisper is told to expect: English for the ".en" models,
 /// otherwise the one picked in Settings (an ISO 639-1 code), or None to let
 /// it detect the language itself.
 pub fn language_for(model: &str, picked: &str) -> Option<String> {
-    if model.ends_with(".en") {
+    if english_only(model) {
         return Some("en".into());
     }
     let code = picked.trim().to_lowercase();
@@ -193,6 +205,20 @@ static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 /// When Whisper was last used: freed once unused for the idle setting (round 3B item 10).
 static WHISPER_USED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
 
+/// Whether a Whisper model is in memory.
+pub fn is_loaded() -> bool {
+    LOADED.try_lock().map(|l| l.is_some()).unwrap_or(true)
+}
+
+/// Frees Whisper now unless it is transcribing (memory pressure, round 3D item 7).
+pub fn free_now() {
+    if let Ok(mut loaded) = LOADED.try_lock() {
+        if loaded.take().is_some() {
+            crate::log::line("Whisper freed (memory)");
+        }
+    }
+}
+
 /// Frees Whisper once unused for the idle setting (speech::spawn_idle_reaper).
 pub fn free_if_idle() {
     let idle = WHISPER_USED.lock().unwrap().is_some_and(crate::idle::expired);
@@ -241,6 +267,7 @@ fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<S
     *WHISPER_USED.lock().unwrap() = Some(std::time::Instant::now());
     let mut guard = LOADED.lock().unwrap();
     if guard.as_ref().map(|(name, _)| name.as_str()) != Some(model) {
+        crate::ceiling::make_room("speech", crate::ceiling::WHISPER_MB);
         crate::loads::note(crate::loads::Part::OfflineStt, "Whisper, for speech on this PC");
         let ctx = WhisperContext::new_with_params(&path.to_string_lossy(), WhisperContextParameters::default())
             .map_err(|e| format!("The speech model couldn't be loaded ({e})."))?;
@@ -307,6 +334,9 @@ mod tests {
     #[test]
     fn english_models_always_hear_english() {
         assert_eq!(language_for("base.en", "es").as_deref(), Some("en"));
+        assert_eq!(language_for("base.en-q5_1", "es").as_deref(), Some("en"));
+        assert_eq!(language_for("base-q5_1", "es").as_deref(), Some("es"));
+        assert!(model_path(DEFAULT_MODEL).unwrap().ends_with("ggml-base-q5_1.bin"));
         assert_eq!(language_for("base", "es").as_deref(), Some("es"));
         assert_eq!(language_for("small", "pa").as_deref(), Some("pa"));
         assert_eq!(language_for("base", "").as_deref(), None, "empty = detect");

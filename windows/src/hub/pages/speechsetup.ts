@@ -4,6 +4,7 @@
 // 2. the speech model, with its size and a progress bar; 3. a five-second test
 // that shows the words heard. Finishing turns on what was asked for.
 
+import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "../../settings/voice";
 import { invoke } from "@tauri-apps/api/core";
 import { h } from "../../views/dom";
 import { t } from "../../i18n/i18n";
@@ -57,11 +58,12 @@ export async function speechSetupPage(page: HTMLElement, ctx: HubContext) {
   void open(prefs.mic);
 
   // ── 2. Speech model ──
-  const engines: [FlowPrefs["engine"], string][] = [["parakeet", t("Parakeet (25 European languages)")], ["whisper", t("Whisper (99 languages, chosen in Voice calls)")]];
+  const engines: [FlowPrefs["engine"], string][] = [["whisper", t("Whisper (light, 99 languages)")], ["parakeet", t(PARAKEET_LABEL)]];
   const modelCard = card(
     row(t("Speech engine"), null, select(engines, prefs.engine, (engine) => void ctx.setPrefs((p) => (p.engine = engine)).then(() => ctx.navigate("speechsetup")))),
     divider(),
   );
+  if (prefs.engine === "parakeet") modelCard.append(h("div", { class: "hub-warn", text: t(PARAKEET_OVER_LIMIT) }));
   if (prefs.engine === "whisper") {
     modelCard.append(
       status.engineReady

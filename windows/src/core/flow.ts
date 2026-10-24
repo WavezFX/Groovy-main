@@ -41,6 +41,8 @@ export interface FlowPrefs {
   summaryEngine: "ai" | "off";
   /** Parakeet (25 European languages) or Whisper (≈99, Settings → Voice calls' model). */
   engine: "parakeet" | "whisper";
+  /** Set once the small speech model was made the default (round 3D item 7). */
+  smallSpeechSet?: boolean;
   /** The guided speech setup was done once. */
   speechSetupDone: boolean;
   openAtLaunch: boolean;

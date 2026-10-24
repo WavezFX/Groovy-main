@@ -23,6 +23,7 @@ mod backdrop;
 mod pc;
 mod browser;
 mod calls;
+mod ceiling;
 mod worktest;
 mod identity;
 mod integrations;
@@ -105,6 +106,7 @@ fn smoke_view(value: Option<&str>) -> Option<&'static str> {
         "home" => Some("home"),
         "player" => Some("player"),
         "frames" => Some("frames"),
+        "peak" => Some("peak"),
         _ => None,
     }
 }
@@ -1128,6 +1130,8 @@ pub fn show_settings_window(app: &AppHandle) {
 /// Shows the Control Centre, on `page` when given ("dictation", "notes",
 /// "assistant"…: the id of one of its sections).
 pub fn show_hub(app: &AppHandle, page: Option<&str>) {
+    // One panel window besides the island (round 3D item 7).
+    ceiling::one_panel(app, HUB_LABEL);
     let Some(win) = app.get_webview_window(HUB_LABEL) else {
         create_hub_window(app, page);
         return;
@@ -1262,6 +1266,12 @@ pub fn run() {
     if !first_run && !loaded.hover_default {
         loaded.open_on_hover = true;
         loaded.hover_default = true;
+        if let Err(e) = settings::save(&loaded) {
+            log::line(format!("could not save settings: {e}"));
+        }
+    }
+    // Round 3D item 7: the quantized Whisper models, a third of the memory.
+    if !first_run && settings::offer_small_speech(&mut loaded) {
         if let Err(e) = settings::save(&loaded) {
             log::line(format!("could not save settings: {e}"));
         }
@@ -1703,6 +1713,7 @@ pub fn run() {
             music::init(&handle);
             models::spawn_idle_reaper();
             speech::spawn_idle_reaper();
+            ceiling::start(&handle);
             worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());

@@ -49,7 +49,7 @@ export interface HubOptions {
 const DEFAULT_STATUS: FlowStatus = {
   prefs: {
     enabled: false, key: "right_ctrl", mic: "", keepDays: 30, cleanup: false,
-    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", speechSetupDone: false, openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female", fishVoice: "", fishModel: "s2-pro", voicePick: "fish", voiceSpeed: 1, cloudSpeech: true, learnWords: true,
+    defaultStyle: "natural", summaryEngine: "ai", engine: "whisper", speechSetupDone: false, openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female", fishVoice: "", fishModel: "s2-pro", voicePick: "fish", voiceSpeed: 1, cloudSpeech: true, learnWords: true,
   },
   models: { parakeet: { state: "missing" }, downloadMb: 700 },
   keys: "ok",

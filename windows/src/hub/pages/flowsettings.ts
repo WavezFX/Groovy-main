@@ -2,6 +2,7 @@
 // model, the Notetaker's summaries, the window and the history. Port of
 // FlowHubSettings.swift.
 
+import { PARAKEET_OVER_LIMIT } from "../../settings/voice";
 import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";
@@ -113,10 +114,11 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
         : t("No key yet: this computer's engine does it all.");
     });
   }
-  const engines: ["parakeet" | "whisper", string][] = [["parakeet", "Parakeet"], ["whisper", "Whisper"]];
+  const engines: ["parakeet" | "whisper", string][] = [["whisper", "Whisper"], ["parakeet", "Parakeet"]];
   page.append(card(
-    row(t("Speech engine"), t("Parakeet knows 25 European languages. Whisper knows about 99 (Punjabi, Hindi, Arabic, Japanese, Chinese…) and uses the model and language picked in Groovy → Voice calls."),
+    row(t("Speech engine"), t("Whisper (light) knows about 99 languages and uses the model and language picked in Groovy → Voice calls. Parakeet is more accurate in 25 European languages but uses about 670 MB, over Groovy's 400 MB limit."),
       segmented(engines, prefs.engine, (engine) => void ctx.setPrefs((p) => (p.engine = engine)).then(() => ctx.navigate("flowsettings")))),
+    prefs.engine === "parakeet" ? h("div", { class: "hub-warn", text: t(PARAKEET_OVER_LIMIT) }) : null,
     prefs.engine === "whisper" && !status.engineReady
       ? h("div", { class: "hub-warn", text: t("Download a multilingual Whisper model (base or small) in Groovy → Voice calls.") })
       : null,

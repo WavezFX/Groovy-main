@@ -7,11 +7,17 @@ import { Bridge, onEvent, type VoiceStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { h, clear } from "../views/dom";
 import { statusDot } from "./parts";
-import { t } from "../i18n/i18n";
+import { N_, t } from "../i18n/i18n";
 import { speak, voices } from "../voice/speak";
+
+/** Round 3D item 7: Parakeet is the accurate choice, not the default. */
+export const PARAKEET_LABEL = N_("Parakeet: high accuracy (uses more memory)");
+export const PARAKEET_OVER_LIMIT = N_("Parakeet uses about 670 MB while it listens: over Groovy's 400 MB limit. Whisper (light) keeps Groovy under it.");
 
 /** Whisper models Groovy can download (ggml format from whisper.cpp; pinned in voice.rs). */
 const MODELS: Array<[id: string, label: string]> = [
+  ["base-q5_1", "Base · 99 languages · light · 57 MB"],
+  ["base.en-q5_1", "Base · English · light · 57 MB"],
   ["tiny.en", "Tiny · English · fastest · 75 MB"],
   ["base.en", "Base · English · more accurate · 142 MB"],
   ["tiny", "Tiny · 99 languages · 74 MB"],
@@ -67,7 +73,7 @@ export function voiceSection(
     save();
     void refresh();
   });
-  if (![...model.options].some((o) => o.value === settings.voiceModel)) model.value = "base.en";
+  if (![...model.options].some((o) => o.value === settings.voiceModel)) model.value = "base-q5_1";
   const download = h("button", { class: "primary", text: t("Download") });
   const remove = h("button", { class: "danger", text: t("Remove") });
   const bar = h("progress", { max: "1", value: "0", style: "flex:1 1 auto;display:none" }) as HTMLProgressElement;
@@ -262,8 +268,8 @@ export function voiceSection(
 
   // ── Recognition: the one speech engine calls, dictation, notes and « OK Groovy » share ──
   const recognition = h("select", {},
-    h("option", { value: "parakeet", text: t("Parakeet (fast, 25 languages)") }),
-    h("option", { value: "whisper", text: t("Whisper (more languages)") }),
+    h("option", { value: "whisper", text: t("Whisper (light, 99 languages)") }),
+    h("option", { value: "parakeet", text: t(PARAKEET_LABEL) }),
   ) as HTMLSelectElement;
   let flowPrefs: FlowPrefs | null = null;
   let parakeetReady = false;
@@ -276,6 +282,7 @@ export function voiceSection(
   const parakeetState = h("span", { class: "hint" });
   const recognitionRow = h("div", { class: "row" }, h("label", { text: t("Recognition") }), recognition, parakeetState, setupSpeech);
   const recognitionHint = h("div", { class: "hint", text: t("Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».") });
+  const parakeetWarning = h("div", { class: "notice warn", text: t(PARAKEET_OVER_LIMIT) });
 
   function draw() {
     const local = settings.voiceEngine !== "livekit";
@@ -287,9 +294,10 @@ export function voiceSection(
     modelHint.style.display = local && whisper ? "" : "none";
     parakeetState.textContent = whisper ? "" : parakeetReady ? t("Ready") : t("Not downloaded yet");
     setupSpeech.style.display = !whisper && !parakeetReady ? "" : "none";
+    parakeetWarning.style.display = flowPrefs && !whisper ? "" : "none";
     livekitRows.style.display = local ? "none" : "";
     speakRows.style.display = local ? "" : "none";
-    const multilingual = !model.value.endsWith(".en");
+    const multilingual = !model.value.endsWith(".en") && !model.value.includes(".en-");
     languageRow.style.display = local && whisper && multilingual ? "" : "none";
     languageHint.style.display = local && whisper ? "" : "none";
     interruptRow.style.display = local ? "" : "none";
@@ -357,6 +365,7 @@ export function voiceSection(
     h("div", { class: "row" }, h("label", { text: t("Voice engine") }), engine),
     recognitionRow,
     recognitionHint,
+    parakeetWarning,
     speakRows,
     interruptRow,
     instantRow,

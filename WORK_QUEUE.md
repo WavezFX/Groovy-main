@@ -47,7 +47,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 9. Lazy-load everything: nothing loads until needed (no offline model at all in cloud mode, Settings pages and island panels loaded on first use, integrations idle until shown)
 - [x] 10. Three operating states (Standby, Conversation, Offline) with pre-warm on the wake word and release after, plus a WebView2 audit (one island WebView in Standby, other windows destroyed on close)
 - [ ] 11. Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
-- [ ] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
+- [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [ ] 6. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
