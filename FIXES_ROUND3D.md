@@ -212,6 +212,90 @@ Efficiency must **not** cost features, interface quality or voice responsiveness
 - An end-to-end CI test: Standby → wake word (simulated audio) → Conversation using mocked cloud STT, brain and TTS → back to Standby. Assert the latency targets (mocked), that no local model was loaded, the memory after release, and Standby ≤ 300 MB / peak ≤ 400 MB.
 - An Offline test with the network cut: the offline engines load on demand and unload after.
 
+## Item 11: Match Coucou's idle footprint (memory audit)
+
+**What the owner measured** (Task Manager, idle):
+- **Coucou:** about **7.6 MB**.
+- **Groovy:** about **80 MB** for the main process, plus about **140 MB** of WebView2, so about **220 MB** in total.
+- **The goal:** Groovy at idle should be **no heavier than Coucou**, and modest at peak.
+
+**What we know:**
+- Coucou's Windows app is **also Tauri 2 + WebView2**: the same stack as Groovy.
+- So Coucou's 7.6 MB is almost certainly **only its main Rust process**. Its WebView2 processes are listed separately ("WebView2: Coucou" entries, or under the "Microsoft Edge WebView2" group), so they are easy to miss.
+- The fair comparison is main process vs main process (**7.6 MB vs 80 MB**), and WebView2 vs WebView2.
+- The 10× gap in the main process is real and must be closed.
+
+**Step 1: measure both apps the same way.**
+- In CI, build **upstream Coucou** (`Louis-CFM/coucou`, its `windows/` app, latest release tag) next to Groovy, using the same runner and the same `smoke-test.ps1`.
+- Record the idle **private working set** of the **main process** and of **every WebView2 child**, for both apps, after 60 s idle and after 10 min idle.
+- Put the side-by-side table in `STATUS.md` and the CI summary.
+- This gives honest baseline numbers for the owner.
+
+**Step 2: find what Groovy's main process holds at idle.**
+- Use a heap profiler (`dhat`, or Windows heap snapshots with VMMap or `HeapWalk` in a diagnostic build).
+- List the top allocations by module.
+- Count threads (each reserves stack) and timers.
+- Today, `lib.rs` setup starts all of these in every run:
+  - cursor poll;
+  - tasks;
+  - mail (and the mail watch);
+  - the brain_ai init;
+  - music;
+  - two idle reapers;
+  - the named pipe;
+  - phone link (only when enabled);
+  - integrations;
+  - Spotify sync;
+  - shortcuts;
+  - the composition backdrop;
+  - the glass watch.
+- Check each one: is it needed at idle, and how much does it hold?
+- The usual suspects:
+  - sherpa-onnx or onnxruntime environments created at startup, plus the wake-word or VAD model;
+  - a tokio runtime with many worker threads (use a small `current_thread` or 1–2 worker runtime);
+  - the `reqwest` client and TLS roots built eagerly;
+  - `sysinfo` refreshing everything;
+  - the rodio output stream kept open;
+  - large `include_bytes!` assets;
+  - the SQLite page cache;
+  - logging buffers.
+
+**Step 3: cut it.**
+- **The main process does only:** window and tray, the hotkey, the state machine (item 10), settings and IPC. Everything else is lazy (item 9).
+- **Native engines go into helper processes,** started on demand and exiting when idle: speech (sherpa-onnx, whisper), wake word, TTS (Kokoro), local LLM, ffmpeg and image tools.
+  - The **wake-word helper** runs only while OK Groovy is on. Its few MB are reported separately in System, so the owner can see exactly what OK Groovy costs.
+  - When OK Groovy is **off**, nothing audio-related is resident.
+- **Background work:**
+  - One small async runtime.
+  - Timers coalesced into one scheduler tick that **stops** when nothing needs it.
+  - No polling loops at idle: use events (the cursor via hit-test or mouse-leave events instead of a poll; GSMTC events for music; push or IDLE for mail).
+- **Dependencies and features:**
+  - Remove dead code and unused dependencies and features. Run `cargo udeps` or `cargo machete` and a feature audit.
+  - Put rarely used modules (phone link, studio, livekit, portal, codex plan) behind runtime enable flags, so they don't initialise unless switched on. Don't delete them.
+- **The frontend:**
+  - Keep the island's startup bundle small, split per window and per panel (item 9).
+  - No large libraries in the island bundle (no CodeMirror, no markdown engine).
+  - Measure the JS heap of the island at idle.
+- **WebView2:**
+  - One island WebView at idle (item 10).
+  - Turn off unused browser features.
+  - Use `MemoryUsageTargetLevel` Low whenever the island is collapsed.
+  - Check whether the WebView can be **suspended** (`TrySuspend`) when the island is fully hidden or Groovy is idle in the tray, then resumed instantly on hover or the hotkey.
+
+**Targets (CI-enforced, private working set):**
+
+| Measure | Target |
+|---|---|
+| Main process idle, OK Groovy off | **≤ 15 MB**, about Coucou's level. Report the exact Coucou figure next to it. |
+| Main process idle, OK Groovy on | ≤ 15 MB, plus a wake-word helper of ≤ 25 MB |
+| Island WebView2 total idle | ≤ Coucou's WebView2 total + 10% |
+| Whole Groovy idle | Standby budget ≤ 300 MB stays the hard cap. Aim for **under 150 MB**. |
+| Peak | ≤ 400 MB (item 7) |
+
+- Fail CI if a target is missed.
+- Add a "Groovy vs Coucou" line to the CI summary.
+- **Nothing is removed from Groovy's features to get there**: features become lazy, not gone.
+
 ## Item 6: Checks
 
 - All tests pass.
