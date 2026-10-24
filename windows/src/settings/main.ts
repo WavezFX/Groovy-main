@@ -33,6 +33,7 @@ import { islandPage } from "./islandpage";
 import { brainsPage } from "./brains";
 import { islandSection } from "./island";
 import { modelsSection } from "./models";
+import { ollamaSection } from "./ollama";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
 import { mailSection } from "./mail";
@@ -1492,7 +1493,7 @@ async function render() {
     }),
     h("div", { class: "hub-b-more" },
       ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
-        : tab === "local" ? [localSection(customKey), modelsSection(settings, () => void save())]
+        : tab === "local" ? [ollamaSection(settings, save), localSection(customKey), modelsSection(settings, () => void save())]
         : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
     ),
     // How he answers is the same whichever brain does: under every tab.

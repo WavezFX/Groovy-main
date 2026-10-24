@@ -4065,28 +4065,6 @@
    "ru": "Groovy не может использовать микрофон: {0}",
    "id": "Groovy tidak dapat memakai mikrofon: {0}"
   },
-  "Ollama has no models yet. Open a terminal and run: ollama pull llama3.2": {
-   "zh-Hans": "Ollama 还没有模型。打开终端并运行：ollama pull llama3.2",
-   "hi": "Ollama में अभी कोई मॉडल नहीं है। टर्मिनल खोलें और चलाएँ: ollama pull llama3.2",
-   "es": "Ollama aún no tiene modelos. Abre una terminal y ejecuta: ollama pull llama3.2",
-   "ar": "لا توجد نماذج في Ollama بعد. افتح الطرفية وشغّل: ollama pull llama3.2",
-   "fr": "Ollama n’a encore aucun modèle. Ouvrez un terminal et lancez : ollama pull llama3.2",
-   "bn": "Ollama-তে এখনো কোনো মডেল নেই। একটি টার্মিনাল খুলে চালান: ollama pull llama3.2",
-   "pt-BR": "O Ollama ainda não tem modelos. Abra um terminal e rode: ollama pull llama3.2",
-   "ru": "В Ollama пока нет моделей. Откройте терминал и выполните: ollama pull llama3.2",
-   "id": "Ollama belum punya model. Buka terminal lalu jalankan: ollama pull llama3.2"
-  },
-  "Groovy's offline brain is Ollama, and it isn't running. Install it from ollama.com, open it, then run: ollama pull llama3.2": {
-   "zh-Hans": "Groovy 的离线大脑是 Ollama，但它没有运行。请从 ollama.com 安装并打开它，然后运行：ollama pull llama3.2",
-   "hi": "Groovy का ऑफ़लाइन दिमाग Ollama है, और यह चल नहीं रहा। इसे ollama.com से इंस्टॉल करें, खोलें, फिर चलाएँ: ollama pull llama3.2",
-   "es": "El cerebro sin conexión de Groovy es Ollama, y no está en marcha. Instálalo desde ollama.com, ábrelo y ejecuta: ollama pull llama3.2",
-   "ar": "عقل Groovy دون اتصال هو Ollama، وهو لا يعمل. ثبّته من ollama.com وافتحه ثم شغّل: ollama pull llama3.2",
-   "fr": "Le cerveau hors ligne de Groovy, c’est Ollama, et il ne tourne pas. Installez-le depuis ollama.com, ouvrez-le, puis lancez : ollama pull llama3.2",
-   "bn": "Groovy-এর অফলাইন মস্তিষ্ক Ollama, আর সেটি চলছে না। ollama.com থেকে ইনস্টল করে খুলুন, তারপর চালান: ollama pull llama3.2",
-   "pt-BR": "O cérebro offline do Groovy é o Ollama, e ele não está rodando. Instale pelo ollama.com, abra e rode: ollama pull llama3.2",
-   "ru": "Офлайн-мозг Groovy — это Ollama, и он не запущен. Установите его с ollama.com, откройте и выполните: ollama pull llama3.2",
-   "id": "Otak offline Groovy adalah Ollama, dan sedang tidak berjalan. Pasang dari ollama.com, buka, lalu jalankan: ollama pull llama3.2"
-  },
   "Automatic (offline English)": {
    "zh-Hans": "自动（离线英语）",
    "hi": "स्वचालित (ऑफ़लाइन अंग्रेज़ी)",
@@ -18749,6 +18727,204 @@
    "pt-BR": "5 min",
    "ru": "5 мин",
    "id": "5 mnt"
+  },
+  "Ollama has no models yet. Open a terminal and run: ollama pull qwen2.5:3b": {
+   "zh-Hans": "Ollama 还没有模型。打开终端并运行：ollama pull qwen2.5:3b",
+   "hi": "Ollama में अभी कोई मॉडल नहीं है। टर्मिनल खोलें और चलाएँ: ollama pull qwen2.5:3b",
+   "es": "Ollama aún no tiene modelos. Abre una terminal y ejecuta: ollama pull qwen2.5:3b",
+   "ar": "لا توجد نماذج في Ollama بعد. افتح الطرفية وشغّل: ollama pull qwen2.5:3b",
+   "fr": "Ollama n’a encore aucun modèle. Ouvrez un terminal et lancez : ollama pull qwen2.5:3b",
+   "bn": "Ollama-তে এখনো কোনো মডেল নেই। একটি টার্মিনাল খুলে চালান: ollama pull qwen2.5:3b",
+   "pt-BR": "O Ollama ainda não tem modelos. Abra um terminal e rode: ollama pull qwen2.5:3b",
+   "ru": "В Ollama пока нет моделей. Откройте терминал и выполните: ollama pull qwen2.5:3b",
+   "id": "Ollama belum punya model. Buka terminal lalu jalankan: ollama pull qwen2.5:3b"
+  },
+  "Groovy's offline brain is Ollama, and it isn't running. Install it from ollama.com, open it, then run: ollama pull qwen2.5:3b": {
+   "zh-Hans": "Groovy 的离线大脑是 Ollama，但它没有运行。请从 ollama.com 安装并打开它，然后运行：ollama pull qwen2.5:3b",
+   "hi": "Groovy का ऑफ़लाइन दिमाग Ollama है, और यह चल नहीं रहा। इसे ollama.com से इंस्टॉल करें, खोलें, फिर चलाएँ: ollama pull qwen2.5:3b",
+   "es": "El cerebro sin conexión de Groovy es Ollama, y no está en marcha. Instálalo desde ollama.com, ábrelo y ejecuta: ollama pull qwen2.5:3b",
+   "ar": "عقل Groovy دون اتصال هو Ollama، وهو لا يعمل. ثبّته من ollama.com وافتحه ثم شغّل: ollama pull qwen2.5:3b",
+   "fr": "Le cerveau hors ligne de Groovy, c’est Ollama, et il ne tourne pas. Installez-le depuis ollama.com, ouvrez-le, puis lancez : ollama pull qwen2.5:3b",
+   "bn": "Groovy-এর অফলাইন মস্তিষ্ক Ollama, আর সেটি চলছে না। ollama.com থেকে ইনস্টল করে খুলুন, তারপর চালান: ollama pull qwen2.5:3b",
+   "pt-BR": "O cérebro offline do Groovy é o Ollama, e ele não está rodando. Instale pelo ollama.com, abra e rode: ollama pull qwen2.5:3b",
+   "ru": "Офлайн-мозг Groovy — это Ollama, и он не запущен. Установите его с ollama.com, откройте и выполните: ollama pull qwen2.5:3b",
+   "id": "Otak offline Groovy adalah Ollama, dan sedang tidak berjalan. Pasang dari ollama.com, buka, lalu jalankan: ollama pull qwen2.5:3b"
+  },
+  "Ollama, then LM Studio, then Groovy's engine": {
+   "zh-Hans": "Ollama，然后 LM Studio，然后 Groovy 的引擎",
+   "hi": "Ollama, फिर LM Studio, फिर Groovy का इंजन",
+   "es": "Ollama, luego LM Studio, luego el motor de Groovy",
+   "ar": "Ollama، ثم LM Studio، ثم محرك Groovy",
+   "fr": "Ollama, puis LM Studio, puis le moteur de Groovy",
+   "bn": "Ollama, তারপর LM Studio, তারপর Groovy-র ইঞ্জিন",
+   "pt-BR": "Ollama, depois LM Studio, depois o motor do Groovy",
+   "ru": "Ollama, затем LM Studio, затем движок Groovy",
+   "id": "Ollama, lalu LM Studio, lalu mesin Groovy"
+  },
+  "Ollama + Qwen": {
+   "zh-Hans": "Ollama + Qwen",
+   "hi": "Ollama + Qwen",
+   "es": "Ollama + Qwen",
+   "ar": "Ollama + Qwen",
+   "fr": "Ollama + Qwen",
+   "bn": "Ollama + Qwen",
+   "pt-BR": "Ollama + Qwen",
+   "ru": "Ollama + Qwen",
+   "id": "Ollama + Qwen"
+  },
+  "The smoothest way to run AI on this PC. Groovy asks Ollama for answers and never loads the model itself.": {
+   "zh-Hans": "在这台电脑上运行 AI 最流畅的方式。Groovy 向 Ollama 请求回答，自己从不加载模型。",
+   "hi": "इस PC पर AI चलाने का सबसे सहज तरीका। Groovy जवाब Ollama से माँगता है और मॉडल खुद कभी लोड नहीं करता।",
+   "es": "La forma más fluida de usar IA en este PC. Groovy pide las respuestas a Ollama y nunca carga el modelo él mismo.",
+   "ar": "أسلس طريقة لتشغيل الذكاء الاصطناعي على هذا الحاسوب. يطلب Groovy الإجابات من Ollama ولا يحمّل النموذج بنفسه أبدًا.",
+   "fr": "La façon la plus fluide de faire tourner une IA sur ce PC. Groovy demande les réponses à Ollama et ne charge jamais le modèle lui-même.",
+   "bn": "এই পিসিতে AI চালানোর সবচেয়ে মসৃণ উপায়। Groovy উত্তর Ollama-র কাছে চায় এবং নিজে কখনো মডেল লোড করে না।",
+   "pt-BR": "A forma mais fluida de rodar IA neste PC. O Groovy pede as respostas ao Ollama e nunca carrega o modelo sozinho.",
+   "ru": "Самый плавный способ запускать ИИ на этом ПК. Groovy спрашивает ответы у Ollama и никогда не загружает модель сам.",
+   "id": "Cara paling mulus menjalankan AI di PC ini. Groovy meminta jawaban ke Ollama dan tidak pernah memuat modelnya sendiri."
+  },
+  "Looking for Ollama…": {
+   "zh-Hans": "正在查找 Ollama…",
+   "hi": "Ollama खोजा जा रहा है…",
+   "es": "Buscando Ollama…",
+   "ar": "جارٍ البحث عن Ollama…",
+   "fr": "Recherche d’Ollama…",
+   "bn": "Ollama খোঁজা হচ্ছে…",
+   "pt-BR": "Procurando o Ollama…",
+   "ru": "Ищем Ollama…",
+   "id": "Mencari Ollama…"
+  },
+  "Ollama isn't on this PC yet.": {
+   "zh-Hans": "这台电脑上还没有 Ollama。",
+   "hi": "इस PC पर अभी Ollama नहीं है।",
+   "es": "Ollama aún no está en este PC.",
+   "ar": "Ollama غير موجود على هذا الحاسوب بعد.",
+   "fr": "Ollama n’est pas encore sur ce PC.",
+   "bn": "এই পিসিতে এখনও Ollama নেই।",
+   "pt-BR": "O Ollama ainda não está neste PC.",
+   "ru": "Ollama на этом ПК пока нет.",
+   "id": "Ollama belum ada di PC ini."
+  },
+  "Get Ollama": {
+   "zh-Hans": "获取 Ollama",
+   "hi": "Ollama पाएँ",
+   "es": "Obtener Ollama",
+   "ar": "احصل على Ollama",
+   "fr": "Obtenir Ollama",
+   "bn": "Ollama নিন",
+   "pt-BR": "Baixar o Ollama",
+   "ru": "Скачать Ollama",
+   "id": "Dapatkan Ollama"
+  },
+  "Check again": {
+   "zh-Hans": "再检查一次",
+   "hi": "फिर से जाँचें",
+   "es": "Comprobar de nuevo",
+   "ar": "تحقق مرة أخرى",
+   "fr": "Vérifier à nouveau",
+   "bn": "আবার দেখুন",
+   "pt-BR": "Verificar de novo",
+   "ru": "Проверить снова",
+   "id": "Periksa lagi"
+  },
+  "Ollama is installed but not running. Use it and Groovy starts it.": {
+   "zh-Hans": "Ollama 已安装但未运行。使用它时 Groovy 会启动它。",
+   "hi": "Ollama इंस्टॉल है पर चल नहीं रहा। इसे इस्तेमाल करें तो Groovy इसे शुरू कर देगा।",
+   "es": "Ollama está instalado pero no se está ejecutando. Úsalo y Groovy lo iniciará.",
+   "ar": "Ollama مثبّت لكنه لا يعمل. استخدمه وسيشغّله Groovy.",
+   "fr": "Ollama est installé mais ne tourne pas. Utilisez-le et Groovy le démarre.",
+   "bn": "Ollama ইনস্টল আছে কিন্তু চলছে না। এটি ব্যবহার করুন, Groovy চালু করে দেবে।",
+   "pt-BR": "O Ollama está instalado, mas não está rodando. Use-o e o Groovy o inicia.",
+   "ru": "Ollama установлен, но не запущен. Выберите его, и Groovy его запустит.",
+   "id": "Ollama terpasang tapi tidak berjalan. Gunakan, dan Groovy akan menjalankannya."
+  },
+  "Ollama is running.": {
+   "zh-Hans": "Ollama 正在运行。",
+   "hi": "Ollama चल रहा है।",
+   "es": "Ollama se está ejecutando.",
+   "ar": "Ollama يعمل.",
+   "fr": "Ollama tourne.",
+   "bn": "Ollama চলছে।",
+   "pt-BR": "O Ollama está rodando.",
+   "ru": "Ollama запущен.",
+   "id": "Ollama sedang berjalan."
+  },
+  "Every model Ollama has. Qwen is picked for this PC.": {
+   "zh-Hans": "Ollama 拥有的所有模型。已为这台电脑选好 Qwen。",
+   "hi": "Ollama के सभी मॉडल। इस PC के लिए Qwen चुना गया है।",
+   "es": "Todos los modelos que tiene Ollama. Qwen está elegido para este PC.",
+   "ar": "كل النماذج الموجودة لدى Ollama. تم اختيار Qwen لهذا الحاسوب.",
+   "fr": "Tous les modèles d’Ollama. Qwen est choisi pour ce PC.",
+   "bn": "Ollama-র সব মডেল। এই পিসির জন্য Qwen বেছে নেওয়া হয়েছে।",
+   "pt-BR": "Todos os modelos que o Ollama tem. O Qwen foi escolhido para este PC.",
+   "ru": "Все модели Ollama. Для этого ПК выбран Qwen.",
+   "id": "Semua model yang dimiliki Ollama. Qwen dipilih untuk PC ini."
+  },
+  "{model} (downloads, about {size})": {
+   "zh-Hans": "{model}（需下载，约 {size}）",
+   "hi": "{model} (डाउनलोड होगा, लगभग {size})",
+   "es": "{model} (se descarga, unos {size})",
+   "ar": "{model} (يُنزَّل، نحو {size})",
+   "fr": "{model} (à télécharger, environ {size})",
+   "bn": "{model} (ডাউনলোড হবে, প্রায় {size})",
+   "pt-BR": "{model} (será baixado, cerca de {size})",
+   "ru": "{model} (загрузка, около {size})",
+   "id": "{model} (diunduh, sekitar {size})"
+  },
+  "Use Ollama + Qwen": {
+   "zh-Hans": "使用 Ollama + Qwen",
+   "hi": "Ollama + Qwen इस्तेमाल करें",
+   "es": "Usar Ollama + Qwen",
+   "ar": "استخدم Ollama + Qwen",
+   "fr": "Utiliser Ollama + Qwen",
+   "bn": "Ollama + Qwen ব্যবহার করুন",
+   "pt-BR": "Usar Ollama + Qwen",
+   "ru": "Использовать Ollama + Qwen",
+   "id": "Gunakan Ollama + Qwen"
+  },
+  "In use: {model}": {
+   "zh-Hans": "使用中：{model}",
+   "hi": "उपयोग में: {model}",
+   "es": "En uso: {model}",
+   "ar": "قيد الاستخدام: {model}",
+   "fr": "Utilisé : {model}",
+   "bn": "ব্যবহৃত হচ্ছে: {model}",
+   "pt-BR": "Em uso: {model}",
+   "ru": "Используется: {model}",
+   "id": "Digunakan: {model}"
+  },
+  "Downloading {model}…": {
+   "zh-Hans": "正在下载 {model}…",
+   "hi": "{model} डाउनलोड हो रहा है…",
+   "es": "Descargando {model}…",
+   "ar": "جارٍ تنزيل {model}…",
+   "fr": "Téléchargement de {model}…",
+   "bn": "{model} ডাউনলোড হচ্ছে…",
+   "pt-BR": "Baixando {model}…",
+   "ru": "Загрузка {model}…",
+   "id": "Mengunduh {model}…"
+  },
+  "Ready: {model} answers on this PC.": {
+   "zh-Hans": "就绪：{model} 在这台电脑上回答。",
+   "hi": "तैयार: {model} इस PC पर जवाब देता है।",
+   "es": "Listo: {model} responde en este PC.",
+   "ar": "جاهز: يجيب {model} على هذا الحاسوب.",
+   "fr": "Prêt : {model} répond sur ce PC.",
+   "bn": "প্রস্তুত: {model} এই পিসিতে উত্তর দেয়।",
+   "pt-BR": "Pronto: {model} responde neste PC.",
+   "ru": "Готово: {model} отвечает на этом ПК.",
+   "id": "Siap: {model} menjawab di PC ini."
+  },
+  "On this PC: Ollama first, then LM Studio, then Groovy's own model.": {
+   "zh-Hans": "在这台电脑上：先用 Ollama，然后 LM Studio，然后 Groovy 自己的模型。",
+   "hi": "इस PC पर: पहले Ollama, फिर LM Studio, फिर Groovy का अपना मॉडल।",
+   "es": "En este PC: primero Ollama, luego LM Studio, luego el modelo propio de Groovy.",
+   "ar": "على هذا الحاسوب: Ollama أولًا، ثم LM Studio، ثم نموذج Groovy الخاص.",
+   "fr": "Sur ce PC : d’abord Ollama, puis LM Studio, puis le modèle de Groovy.",
+   "bn": "এই পিসিতে: প্রথমে Ollama, তারপর LM Studio, তারপর Groovy-র নিজের মডেল।",
+   "pt-BR": "Neste PC: primeiro o Ollama, depois o LM Studio, depois o modelo do próprio Groovy.",
+   "ru": "На этом ПК: сначала Ollama, затем LM Studio, затем собственная модель Groovy.",
+   "id": "Di PC ini: Ollama dulu, lalu LM Studio, lalu model milik Groovy sendiri."
   }
  }
 }

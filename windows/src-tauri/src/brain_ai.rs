@@ -247,8 +247,11 @@ pub fn available() -> bool {
 }
 
 fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
+    let built_in = || crate::models::server_exe().is_some() && !crate::models::discover(&crate::models::models_dir(), 2048).is_empty();
     match prefs.local_provider.as_str() {
-        "llamacpp" => crate::models::server_exe().is_some() && !crate::models::discover(&crate::models::models_dir(), 2048).is_empty(),
+        // Ollama or LM Studio seen answering, Ollama on the PC, or the built-in model ready.
+        "auto" => crate::local_chat::auto_seen().is_some_and(|id| id != crate::chat::LLAMACPP) || crate::ollama::installed() || built_in(),
+        "llamacpp" => built_in(),
         "ollama" | "lmstudio" => true,
         "custom" => !s.custom_url.trim().is_empty(),
         _ => false,
@@ -268,7 +271,8 @@ struct Local {
 }
 
 async fn local(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs) -> Result<Local, String> {
-    let id = prefs.local_provider.as_str();
+    let resolved = crate::local_chat::resolve(s, &prefs.local_provider).await;
+    let id = resolved.as_str();
     if id == "llamacpp" {
         let mut p = prefs.clone();
         let picked = crate::chat::model_for(s, crate::chat::LLAMACPP);
@@ -306,6 +310,8 @@ async fn openai_turn(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, who:
         Who::Local => {
             let l = local(app, s, prefs).await?;
             body["model"] = json!(l.model);
+            // Ollama lets the model go when Groovy is quiet (round 3D item 5).
+            body["keep_alive"] = json!(crate::local_chat::KEEP_ALIVE);
             let endpoint = Url::parse(&crate::net::join(&l.base, "/v1/chat/completions")).map_err(|e| e.to_string())?;
             let r = post_to(endpoint, l.key.as_deref(), &body, timeout).await;
             crate::models::touch();

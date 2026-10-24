@@ -356,7 +356,8 @@ pub fn target(settings: &Settings) -> (String, bool) {
         && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
     let local = assistant::is_local(&route.primary, &settings.custom_url);
-    (route.primary, local)
+    let who = if route.primary == local_chat::AUTO { local_chat::auto_seen().unwrap_or(LLAMACPP).to_string() } else { route.primary };
+    (who, local)
 }
 
 /// "Test my voice setup": one spoken-style question to whoever answers the
@@ -419,6 +420,8 @@ async fn complete_with(
     if provider == assistant::NONE {
         return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
     }
+    let provider = this_pc(settings, prefs, provider).await;
+    let provider = provider.as_str();
     let model = model_for(settings, provider);
     let reply = if provider == ANTHROPIC {
         claude::send(chat, &model, prompt, None).await?
@@ -457,6 +460,17 @@ fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, prov
     }
 }
 
+/// "auto", and "On this PC" in the chat while the local provider is "auto":
+/// Ollama when it answers, then LM Studio, then Groovy's own model (round 3D item 5).
+async fn this_pc(settings: &Settings, prefs: &AssistantPrefs, provider: &str) -> String {
+    let auto = provider == local_chat::AUTO || (provider == LLAMACPP && prefs.local_provider == local_chat::AUTO);
+    if auto {
+        local_chat::resolve_auto(settings).await.to_string()
+    } else {
+        provider.to_string()
+    }
+}
+
 /// One turn with exactly `provider`.
 async fn send_to(
     app: &AppHandle,
@@ -470,6 +484,8 @@ async fn send_to(
     if provider == assistant::NONE {
         return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
     }
+    let provider = this_pc(settings, prefs, provider).await;
+    let provider = provider.as_str();
     let model = model_for(settings, provider);
     if provider == ANTHROPIC {
         return claude::send(chat, &model, query, context).await;

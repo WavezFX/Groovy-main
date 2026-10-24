@@ -257,6 +257,10 @@ export interface OllamaStatus {
   installed: boolean;
   models: string[];
   canInstall: boolean;
+  /** The Qwen model sized for this PC (round 3D item 5). */
+  recommended: string;
+  /** Where to get Ollama. */
+  downloadPage: string;
 }
 
 /** A step of the one-click offline brain setup. */
@@ -721,7 +725,7 @@ export const Bridge = {
   // ── The offline brain (ollama.rs) ─────────────────────────────────────────
   ollamaStatus: () => call<OllamaStatus>("ollama_status"),
   /** Installs/starts Ollama and downloads a model; progress as "ollama-setup" events. */
-  ollamaSetup: () => callOrThrow<string>("ollama_setup"),
+  ollamaSetup: (model?: string) => callOrThrow<string>("ollama_setup", { model: model ?? null }),
 
   // ── Moving the island along the top of the screen (island.rs) ─────────────
   /** Where the island sits (0 left … 1 right) and how many logical px it can travel. */

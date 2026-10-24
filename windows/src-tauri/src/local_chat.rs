@@ -27,6 +27,75 @@ use crate::{net, secrets};
 pub const CUSTOM_KEY: &str = "openai-compatible-key";
 
 const MAX_TOKENS: u32 = 4096;
+
+/// How long Ollama keeps the model in memory after a reply (round 3D item 5):
+/// Groovy never loads it itself, and Ollama lets it go once Groovy is quiet.
+pub const KEEP_ALIVE: &str = "5m";
+
+// ── On this PC: Ollama, then LM Studio, then Groovy's own model ──────────────
+
+/// The local provider that picks for itself (round 3D item 5).
+pub const AUTO: &str = "auto";
+
+/// The order on this PC, given which servers answer.
+pub fn auto_order(ollama: bool, lmstudio: bool) -> &'static str {
+    if ollama {
+        "ollama"
+    } else if lmstudio {
+        "lmstudio"
+    } else {
+        chat::LLAMACPP
+    }
+}
+
+/// The last answer and when: the two servers are asked at most every 30 seconds.
+static AUTO_SEEN: std::sync::Mutex<Option<(Instant, &'static str)>> = std::sync::Mutex::new(None);
+const AUTO_FRESH: Duration = Duration::from_secs(30);
+
+/// What "auto" was the last time it was worked out (None before the first time).
+pub fn auto_seen() -> Option<&'static str> {
+    AUTO_SEEN.lock().unwrap().map(|(_, id)| id)
+}
+
+/// Whether a server answers on `base` within half a second.
+async fn answers(base: &Url, id: &str) -> bool {
+    let path = if id == "ollama" { "api/tags" } else { "v1/models" };
+    let Ok(client) = net::client(base, Duration::from_millis(500)) else { return false };
+    client.get(net::join(base, path)).send().await.is_ok_and(|r| r.status().is_success())
+}
+
+/// The provider "auto" stands for right now, asking Ollama and then LM Studio.
+pub async fn resolve_auto(settings: &Settings) -> &'static str {
+    if let Some((at, id)) = *AUTO_SEEN.lock().unwrap() {
+        if at.elapsed() < AUTO_FRESH {
+            return id;
+        }
+    }
+    let id = probe(settings).await;
+    *AUTO_SEEN.lock().unwrap() = Some((Instant::now(), id));
+    id
+}
+
+/// Asks Ollama, then (only if it is down) LM Studio.
+async fn probe(settings: &Settings) -> &'static str {
+    let up = |id: &'static str| async move {
+        match server(settings, id).map(|s| base_url(&s)) {
+            Some(Ok(base)) => answers(&base, id).await,
+            _ => false,
+        }
+    };
+    let ollama = up("ollama").await;
+    auto_order(ollama, !ollama && up("lmstudio").await)
+}
+
+/// `id` with "auto" worked out.
+pub async fn resolve(settings: &Settings, id: &str) -> String {
+    if id == AUTO {
+        resolve_auto(settings).await.to_string()
+    } else {
+        id.to_string()
+    }
+}
 /// A text file is sent inline up to this many characters; the rest is cut.
 const MAX_INLINE_CHARS: usize = 24_000;
 /// The island is told about new text at most this often.
@@ -143,9 +212,12 @@ pub async fn first_model(server: &Server) -> Result<String, String> {
     let url = base_url(server)?;
     let ollama = server.id == "ollama";
     match list(&url, server.key.as_deref()).await {
+        // Ollama: the Qwen sized for this PC when it is there (round 3D item 5).
+        Ok(models) if ollama => crate::ollama::pick(&models, crate::ollama::recommended_here(0))
+            .ok_or_else(|| t("Ollama has no models yet. Open a terminal and run: ollama pull qwen2.5:3b")),
         Ok(models) => models.into_iter().next().ok_or_else(|| {
             if ollama {
-                t("Ollama has no models yet. Open a terminal and run: ollama pull llama3.2")
+                t("Ollama has no models yet. Open a terminal and run: ollama pull qwen2.5:3b")
             } else {
                 tf("No models yet. Download one in {name} first.", &[("name", &t(server.name))])
             }
@@ -157,7 +229,7 @@ pub async fn first_model(server: &Server) -> Result<String, String> {
 
 /// Ollama not answering: say exactly what to do.
 pub fn ollama_help() -> String {
-    t("Groovy's offline brain is Ollama, and it isn't running. Install it from ollama.com, open it, then run: ollama pull llama3.2")
+    t("Groovy's offline brain is Ollama, and it isn't running. Install it from ollama.com, open it, then run: ollama pull qwen2.5:3b")
 }
 
 /// What the "Connect" button reports: the address as it will be stored, the
@@ -326,7 +398,7 @@ pub async fn send_with(
     let user = json!({ "role": "user", "content": user_text(turn.first, context.as_ref(), &query) });
     let body = quick_answers(request_body(model, &chat.system_prompt(false), &turn.history, &user), server.id);
 
-    let answer = stream(&base, server.key.as_deref(), model, &body, on_delta).await?;
+    let answer = stream(&base, server.key.as_deref(), model, &body, server.id == "ollama", on_delta).await?;
     if answer.is_empty() {
         return Err(t("No response text."));
     }
@@ -350,6 +422,27 @@ fn parse_sse_line(line: &str) -> Option<Result<String, String>> {
         return Some(Err(msg.to_string()));
     }
     json.pointer("/choices/0/delta/content")?.as_str().map(|s| Ok(s.to_string()))
+}
+
+/// The same request for Ollama's /api/chat: the messages streamed back one
+/// JSON object a line, and the model let go after KEEP_ALIVE without use.
+fn ollama_body(body: &Value) -> Value {
+    json!({
+        "model": body["model"],
+        "messages": body["messages"],
+        "stream": true,
+        "keep_alive": KEEP_ALIVE,
+        "options": { "num_predict": body["max_tokens"] },
+    })
+}
+
+/// One line of Ollama's /api/chat stream, read like `parse_sse_line`.
+fn parse_ollama_line(line: &str) -> Option<Result<String, String>> {
+    let json: Value = serde_json::from_str(line.trim()).ok()?;
+    if let Some(msg) = json["error"].as_str() {
+        return Some(Err(msg.to_string()));
+    }
+    json.pointer("/message/content")?.as_str().map(|s| Ok(s.to_string()))
 }
 
 /// Removes finished `<think>…</think>` blocks (reasoning models such as DeepSeek-R1).
@@ -383,12 +476,19 @@ async fn stream(
     key: Option<&str>,
     model: &str,
     body: &Value,
+    ollama: bool,
     mut on_delta: impl FnMut(String),
 ) -> Result<String, String> {
+    // Ollama's own chat API takes keep_alive, which its OpenAI-style one ignores.
+    let (path, body, parse): (_, _, fn(&str) -> Option<Result<String, String>>) = if ollama {
+        ("api/chat", ollama_body(body), parse_ollama_line)
+    } else {
+        ("v1/chat/completions", body.clone(), parse_sse_line)
+    };
     let mut reply = net::client(base, Duration::from_secs(300))?
-        .post(net::join(base, "v1/chat/completions"))
+        .post(net::join(base, path))
         .header("Authorization", bearer(key))
-        .json(body)
+        .json(&body)
         .send()
         .await
         .map_err(|_| unreachable(base))?;
@@ -412,7 +512,7 @@ async fn stream(
         while let Some(end) = pending.iter().position(|b| *b == b'\n') {
             let line: Vec<u8> = pending.drain(..=end).collect();
             let line = String::from_utf8_lossy(&line);
-            match parse_sse_line(line.trim_end()) {
+            match parse(line.trim_end()) {
                 Some(Ok(delta)) => accumulated.push_str(&delta),
                 Some(Err(message)) => return Err(message),
                 None => {}
@@ -427,7 +527,7 @@ async fn stream(
         }
     }
     // A last line without its newline.
-    if let Some(Ok(delta)) = parse_sse_line(String::from_utf8_lossy(&pending).trim_end()) {
+    if let Some(Ok(delta)) = parse(String::from_utf8_lossy(&pending).trim_end()) {
         accumulated.push_str(&delta);
     }
     // The last state always goes out, whatever the throttle skipped.
@@ -557,7 +657,7 @@ mod tests {
         body.push_str("data: [DONE]\n\n");
         let u = serve_once("200 OK", "Content-Type: text/event-stream\r\n", body.into_bytes());
         let mut seen = Vec::new();
-        let answer = block_on(stream(&url(&u), None, "m", &json!({}), |v| seen.push(v))).unwrap();
+        let answer = block_on(stream(&url(&u), None, "m", &json!({}), false, |v| seen.push(v))).unwrap();
         assert_eq!(answer, "## Answer\n\n- **item 1**\n```python\nprint('hello')\n```");
         assert_eq!(seen.last().unwrap(), &answer);
         assert!(seen.iter().all(|v| !v.contains("step") && !v.contains("internal")));
@@ -566,19 +666,100 @@ mod tests {
     #[test]
     fn stream_errors_say_what_happened() {
         let u = serve_once("404 Not Found", "Content-Length: 2\r\n", b"{}".to_vec());
-        let err = block_on(stream(&url(&u), None, "unknown-model", &json!({}), |_| {})).unwrap_err();
+        let err = block_on(stream(&url(&u), None, "unknown-model", &json!({}), false, |_| {})).unwrap_err();
         assert_eq!(err, "unknown-model isn't installed. Pick another model above the chat box.");
         let body = br#"{"error":{"message":"context too long"}}"#;
         let u = serve_once("400 Bad Request", &format!("Content-Length: {}\r\n", body.len()), body.to_vec());
-        assert_eq!(block_on(stream(&url(&u), None, "m", &json!({}), |_| {})).unwrap_err(), "context too long");
+        assert_eq!(block_on(stream(&url(&u), None, "m", &json!({}), false, |_| {})).unwrap_err(), "context too long");
         let u = serve_once("200 OK", "", b"data: {\"error\":{\"message\":\"crashed\"}}\n".to_vec());
-        assert_eq!(block_on(stream(&url(&u), None, "m", &json!({}), |_| {})).unwrap_err(), "crashed");
+        assert_eq!(block_on(stream(&url(&u), None, "m", &json!({}), false, |_| {})).unwrap_err(), "crashed");
+    }
+
+    /// A server that answers once and hands back the request it got.
+    fn serve_and_record(body: &'static [u8]) -> (String, std::sync::mpsc::Receiver<String>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let mut got = Vec::new();
+            let mut buf = [0u8; 8192];
+            // Headers, then as much body as Content-Length says.
+            loop {
+                let n = conn.read(&mut buf).unwrap_or(0);
+                got.extend_from_slice(&buf[..n]);
+                let text = String::from_utf8_lossy(&got).to_string();
+                if let Some(end) = text.find("\r\n\r\n") {
+                    let len = text.lines().find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap_or(0))).unwrap_or(0);
+                    if got.len() >= end + 4 + len || n == 0 {
+                        break;
+                    }
+                }
+                if n == 0 {
+                    break;
+                }
+            }
+            let _ = conn.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nConnection: close\r\n\r\n");
+            let _ = conn.write_all(body);
+            let _ = tx.send(String::from_utf8_lossy(&got).to_string());
+        });
+        (url, rx)
+    }
+
+    fn dead_url() -> String {
+        let port = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        format!("http://127.0.0.1:{port}")
+    }
+
+    #[test]
+    fn ollama_streams_through_api_chat_and_keeps_the_model_five_minutes() {
+        let lines = b"{\"message\":{\"role\":\"assistant\",\"content\":\"Hel\"},\"done\":false}\n{\"message\":{\"content\":\"lo.\"},\"done\":false}\n{\"message\":{\"content\":\"\"},\"done\":true}\n";
+        let (u, request) = serve_and_record(lines);
+        let body = request_body("qwen2.5:3b", "sys", &[], &json!({ "role": "user", "content": "hi" }));
+        let mut seen = Vec::new();
+        let answer = block_on(stream(&url(&u), None, "qwen2.5:3b", &body, true, |v| seen.push(v))).unwrap();
+        assert_eq!(answer, "Hello.");
+        assert_eq!(seen.last().unwrap(), "Hello.");
+        let got = request.recv().unwrap();
+        assert!(got.starts_with("POST /api/chat "), "Ollama's own API: {got}");
+        let sent: Value = serde_json::from_str(&got[got.find("\r\n\r\n").unwrap() + 4..]).unwrap();
+        assert_eq!(sent["keep_alive"], "5m", "unloaded when Groovy is quiet");
+        assert_eq!(sent["model"], "qwen2.5:3b");
+        assert_eq!(sent["stream"], true);
+        assert_eq!(sent["messages"][1]["content"], "hi");
+        assert_eq!(sent["options"]["num_predict"], MAX_TOKENS);
+        // An error line ends the turn with Ollama's words.
+        let (u, _r) = serve_and_record(b"{\"error\":\"model 'qwen9' not found\"}\n");
+        assert_eq!(block_on(stream(&url(&u), None, "qwen9", &body, true, |_| {})).unwrap_err(), "model 'qwen9' not found");
+    }
+
+    #[test]
+    fn on_this_pc_ollama_comes_first_then_lm_studio_then_the_built_in_model() {
+        assert_eq!(auto_order(true, true), "ollama");
+        assert_eq!(auto_order(false, true), "lmstudio");
+        assert_eq!(auto_order(false, false), chat::LLAMACPP);
+        let tags = br#"{"models":[{"name":"qwen2.5:3b"}]}"#.to_vec();
+        let mut s = Settings::default();
+        // Ollama answers /api/tags: Ollama.
+        s.ollama_url = serve_once("200 OK", &format!("Content-Length: {}\r\n", tags.len()), tags.clone());
+        s.lmstudio_url = dead_url();
+        assert_eq!(block_on(probe(&s)), "ollama");
+        // Ollama down, LM Studio up: LM Studio.
+        s.ollama_url = dead_url();
+        s.lmstudio_url = serve_once("200 OK", "Content-Length: 11\r\n", br#"{"data":[]}"#.to_vec());
+        assert_eq!(block_on(probe(&s)), "lmstudio");
+        // Both down: Groovy's own model.
+        s.lmstudio_url = dead_url();
+        assert_eq!(block_on(probe(&s)), chat::LLAMACPP);
+        // A provider other than auto is left as it is.
+        assert_eq!(block_on(resolve(&s, "lmstudio")), "lmstudio");
     }
 
     #[test]
     fn an_endless_line_is_cut_off() {
         let u = serve_once("200 OK", "", vec![b'x'; MAX_LINE + 10]);
-        let err = block_on(stream(&url(&u), None, "m", &json!({}), |_| {})).unwrap_err();
+        let err = block_on(stream(&url(&u), None, "m", &json!({}), false, |_| {})).unwrap_err();
         assert_eq!(err, "The server's answer is too large.");
     }
 

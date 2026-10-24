@@ -30,8 +30,14 @@ pub struct AssistantPrefs {
     /// hybrid | local | online
     pub ai_mode: String,
     /// The local provider used in local mode and as the hybrid fallback:
-    /// llamacpp | ollama | lmstudio | custom
+    /// auto | llamacpp | ollama | lmstudio | custom. "auto" (round 3D item 5)
+    /// is Ollama when it answers, then LM Studio, then Groovy's own model.
     pub local_provider: String,
+    /// Set once "auto" was offered: installs from before round 3D item 5 had
+    /// Groovy's own model by default and are moved to "auto" once. Missing
+    /// from an old file means false (the struct's default would say true).
+    #[serde(default)]
+    pub local_auto_set: bool,
     /// The GGUF file (in the models folder) the built-in engine runs; empty = the first one found.
     pub local_model: String,
     /// Layers to put on the GPU with the Vulkan engine; 0 = CPU only.
@@ -77,7 +83,8 @@ impl Default for AssistantPrefs {
             language: String::new(),
             custom_instructions: String::new(),
             ai_mode: "hybrid".into(),
-            local_provider: "llamacpp".into(),
+            local_provider: "auto".into(),
+            local_auto_set: true,
             local_model: String::new(),
             gpu_layers: 0,
             daily_online_limit: 0,
@@ -98,7 +105,7 @@ impl Default for AssistantPrefs {
 pub const BRAINS: &[&str] = &["auto", "local", "claude", "google", "openai", "openrouter", "claude-code", "codex"];
 
 pub const PERSONALITIES: &[&str] = &["friendly", "professional", "sarcastic", "energetic", "quiet", "assistant"];
-pub const LOCAL_PROVIDERS: &[&str] = &["llamacpp", "ollama", "lmstudio", "custom"];
+pub const LOCAL_PROVIDERS: &[&str] = &["auto", "llamacpp", "ollama", "lmstudio", "custom"];
 const MAX_NAME: usize = 32;
 const MAX_INSTRUCTIONS: usize = 1500;
 
@@ -106,6 +113,19 @@ impl AssistantPrefs {
     /// Whether a local model may be started: only when the user chose local AI.
     pub fn local_allowed(&self) -> bool {
         self.ai_setup == "local" || self.ai_mode == "local"
+    }
+
+    /// Once, for a settings file from before round 3D item 5: Groovy's own
+    /// model (the old default) becomes "auto". True when something changed.
+    pub fn offer_auto_local(&mut self) -> bool {
+        if self.local_auto_set {
+            return false;
+        }
+        if self.local_provider == "llamacpp" {
+            self.local_provider = "auto".into();
+        }
+        self.local_auto_set = true;
+        true
     }
 
     /// Out-of-range values (a hand-edited settings.json) fall back to the defaults.
@@ -182,7 +202,7 @@ pub fn personality_prompt(p: &AssistantPrefs) -> String {
 /// local only when its address is this machine.
 pub fn is_local(provider: &str, custom_url: &str) -> bool {
     match provider {
-        "llamacpp" | "ollama" | "lmstudio" => true,
+        "auto" | "llamacpp" | "ollama" | "lmstudio" => true,
         "custom" => crate::net::normalise_server_url(custom_url)
             .map(|u| crate::net::is_loopback_url(&u))
             .unwrap_or(false),
@@ -293,6 +313,27 @@ mod tests {
     }
 
     #[test]
+    fn an_old_install_on_the_built_in_model_moves_to_auto_once() {
+        // A settings file from before round 3D item 5: Groovy's own model, no flag.
+        let old: AssistantPrefs = serde_json::from_str(r#"{"localProvider":"llamacpp"}"#).unwrap();
+        assert!(!old.local_auto_set);
+        let mut p = old;
+        assert!(p.offer_auto_local());
+        assert_eq!(p.local_provider, "auto", "Ollama, then LM Studio, then the built-in model");
+        // Picked again afterwards (and saved), the built-in model stays.
+        p.local_provider = "llamacpp".into();
+        let mut again: AssistantPrefs = serde_json::from_value(serde_json::to_value(&p).unwrap()).unwrap();
+        assert!(!again.offer_auto_local());
+        assert_eq!(again.local_provider, "llamacpp");
+        // Someone who chose LM Studio keeps it.
+        let mut lm: AssistantPrefs = serde_json::from_str(r#"{"localProvider":"lmstudio"}"#).unwrap();
+        lm.offer_auto_local();
+        assert_eq!(lm.local_provider, "lmstudio");
+        assert!(AssistantPrefs::default().local_auto_set, "a new install starts on auto");
+        assert!(is_local("auto", ""));
+    }
+
+    #[test]
     fn sanitising_fixes_hand_edited_values() {
         let p = AssistantPrefs {
             name: "  \u{7}  ".into(),
@@ -309,7 +350,7 @@ mod tests {
         assert_eq!(p.personality, "friendly");
         assert_eq!(p.humour, 10);
         assert_eq!(p.ai_mode, "hybrid");
-        assert_eq!(p.local_provider, "llamacpp");
+        assert_eq!(p.local_provider, "auto");
         assert_eq!(p.language, "Deutschscript");
         assert_eq!(p.custom_instructions.len(), MAX_INSTRUCTIONS);
     }
@@ -327,12 +368,12 @@ mod tests {
     #[test]
     fn local_mode_never_sends_to_the_cloud() {
         let r = route(&prefs("local"), "anthropic", "", false);
-        assert_eq!(r.primary, "llamacpp");
+        assert_eq!(r.primary, "auto");
         assert_eq!(r.fallback, None);
         assert!(r.note.is_some());
         assert_eq!(route(&prefs("local"), "ollama", "", false).primary, "ollama");
         let r = route(&prefs("local"), "custom", "https://remote.example", false);
-        assert_eq!(r.primary, "llamacpp", "a remote custom server is not local");
+        assert_eq!(r.primary, "auto", "a remote custom server is not local");
     }
 
     #[test]
@@ -346,9 +387,9 @@ mod tests {
         let local = AssistantPrefs { ai_mode: "hybrid".into(), ai_setup: "local".into(), ..Default::default() };
         let r = route(&local, "openai", "", false);
         assert_eq!(r.primary, "openai");
-        assert_eq!(r.fallback.as_deref(), Some("llamacpp"));
+        assert_eq!(r.fallback.as_deref(), Some("auto"));
         let r = route(&local, "openai", "", true);
-        assert_eq!(r.primary, "llamacpp", "limit reached goes local");
+        assert_eq!(r.primary, "auto", "limit reached goes local");
         assert_eq!(route(&local, "ollama", "", false).fallback, None);
     }
 

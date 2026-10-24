@@ -114,7 +114,10 @@ export interface AssistantPrefs {
   language: string;
   customInstructions: string;
   aiMode: "hybrid" | "local" | "online";
-  localProvider: "llamacpp" | "ollama" | "lmstudio" | "custom";
+  /** "auto": Ollama when it answers, then LM Studio, then Groovy's own model (round 3D item 5). */
+  localProvider: "auto" | "llamacpp" | "ollama" | "lmstudio" | "custom";
+  /** Set once "auto" was offered to an install from before it (assistant.rs). */
+  localAutoSet: boolean;
   /** GGUF file in the models folder; "" = the first one found. */
   localModel: string;
   gpuLayers: number;
@@ -146,7 +149,8 @@ export const DEFAULT_ASSISTANT: AssistantPrefs = {
   language: "",
   customInstructions: "",
   aiMode: "hybrid",
-  localProvider: "llamacpp",
+  localProvider: "auto",
+  localAutoSet: true,
   localModel: "",
   gpuLayers: 0,
   dailyOnlineLimit: 0,

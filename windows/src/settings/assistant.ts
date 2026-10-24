@@ -47,6 +47,7 @@ const BRAINS: [AssistantPrefs["brain"], string][] = [
 ];
 
 const LOCALS: [AssistantPrefs["localProvider"], string][] = [
+  ["auto", N_("Ollama, then LM Studio, then Groovy's engine")],
   ["llamacpp", N_("Groovy's engine (Settings → Models)")],
   ["ollama", "Ollama"],
   ["lmstudio", "LM Studio"],

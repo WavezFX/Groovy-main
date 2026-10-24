@@ -633,19 +633,23 @@ fn island_track(app: AppHandle, shared: State<'_, Shared>) -> (f64, f64) {
 // ── The offline brain (ollama.rs) ─────────────────────────────────────────────
 
 #[tauri::command]
-async fn ollama_status() -> ollama::OllamaStatus {
-    ollama::status().await
+async fn ollama_status(shared: State<'_, Shared>) -> Result<ollama::OllamaStatus, String> {
+    let gpu = shared.settings.lock().unwrap().assistant.gpu_layers;
+    Ok(ollama::status(gpu).await)
 }
 
 /// One click: install Ollama if needed, start it, download a model, and make
 /// it the chat's brain.
 #[tauri::command]
-async fn ollama_setup(app: AppHandle, shared: State<'_, Shared>) -> Result<String, String> {
-    let model = ollama::setup(&app).await?;
+async fn ollama_setup(app: AppHandle, shared: State<'_, Shared>, model: Option<String>) -> Result<String, String> {
+    let gpu = shared.settings.lock().unwrap().assistant.gpu_layers;
+    let model = ollama::setup(&app, model.as_deref(), gpu).await?;
     let settings = {
         let mut s = shared.settings.lock().unwrap();
         s.chat_provider = "ollama".into();
         s.chat_models.insert("ollama".into(), model.clone());
+        // On this PC, Ollama first (round 3D item 5).
+        s.assistant.local_provider = local_chat::AUTO.into();
         s.clone()
     };
     if let Err(err) = settings::save(&settings) {
@@ -1215,7 +1219,9 @@ pub fn run() {
         if let Some(p) = openai_compat::PROVIDERS.iter().find(|p| secrets::present(p.key)) {
             loaded.chat_provider = p.id.to_string();
         } else if loaded.assistant.local_allowed() {
-            loaded.chat_provider = loaded.assistant.local_provider.clone();
+            // "On this PC" in the chat follows the local order ("auto" included).
+            let local = &loaded.assistant.local_provider;
+            loaded.chat_provider = if local == local_chat::AUTO { chat::LLAMACPP.into() } else { local.clone() };
         }
     }
     // A local chat with no local AI chosen goes to a cloud key when there is one.
@@ -1246,6 +1252,12 @@ pub fn run() {
     if !first_run && !loaded.hover_default {
         loaded.open_on_hover = true;
         loaded.hover_default = true;
+        if let Err(e) = settings::save(&loaded) {
+            log::line(format!("could not save settings: {e}"));
+        }
+    }
+    // Round 3D item 5: on this PC, Ollama first, then LM Studio, then Groovy's own model.
+    if !first_run && loaded.assistant.offer_auto_local() {
         if let Err(e) = settings::save(&loaded) {
             log::line(format!("could not save settings: {e}"));
         }
