@@ -70,7 +70,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Test environment switches compiled out of the release build
 - [ ] 7. Logs redact keys and tokens
 - [ ] 8. Dependabot, cargo audit, npm audit and gitleaks in CI
-- [ ] 9. Fast check on every push; full build on demand / `[build]` / nightly into one "Groovy latest build" release; short retention and run clean-up
+- [x] 9. Fast check on every push; full build on demand / `[build]` / nightly into one "Groovy latest build" release; short retention and run clean-up
 - [ ] 10. Checks
 
 ## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this after 3F and 3G, then round 5, then finish 3D items 11, 7 and 6.**

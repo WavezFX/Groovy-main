@@ -1,0 +1,82 @@
+name: Check
+
+# The fast check on every push and pull request (round 3G item 9): about ten
+# minutes on Linux, no installer. It type-checks and tests the front end and
+# checks, lints and tests the Rust (the pure-Rust tests; what only runs on
+# Windows is in the full build, windows-build.yml). Clippy is run for dead
+# code and unused items only: they fail the check, style lints don't.
+
+run-name: "Check · ${{ github.event.head_commit.message || github.event.pull_request.title }}"
+
+on:
+  push:
+    branches: [main, 'groovy-ai-*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/check.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # What Tauri, the speech engine's build (cmake, libclang) and the audio
+      # and desktop crates link against on Linux.
+      - name: System libraries
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            build-essential pkg-config cmake clang libclang-dev patchelf \
+            libwebkit2gtk-4.1-dev libgtk-layer-shell-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev libdbus-1-dev libasound2-dev libxdo-dev \
+            libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: windows
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Front-end tests
+        run: npm test
+
+      - name: cargo check
+        run: cargo check --workspace --all-targets
+
+      - name: cargo check with the CI test harness (worktest feature)
+        run: cargo check -p groovy --all-targets --features worktest
+
+      # Dead code and unused items fail; clippy's style lints are not enforced.
+      - name: cargo clippy (dead code and unused items)
+        run: cargo clippy --workspace --all-targets -- -A clippy::all -D dead_code -D unused
+
+      - name: cargo test
+        run: cargo test --workspace
