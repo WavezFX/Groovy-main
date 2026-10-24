@@ -1370,12 +1370,14 @@ mod linux {
 
 /// The media session ids Spotify registers: "Spotify.exe" (the installer from
 /// spotify.com) or "SpotifyAB.SpotifyMusic_…!Spotify" (the Microsoft Store).
+#[cfg(any(windows, test))]
 pub fn is_spotify_app(app_id: &str) -> bool {
     app_id.to_ascii_lowercase().contains("spotify")
 }
 
 /// The name shown for a media session's app: its AppUserModelID (a Store
 /// app's "Family_hash!App") or its exe ("chrome.exe").
+#[cfg(any(windows, test))]
 pub fn app_label(app_id: &str) -> String {
     let lower = app_id.to_ascii_lowercase();
     const KNOWN: [(&str, &str); 12] = [
@@ -1408,6 +1410,7 @@ pub fn app_label(app_id: &str) -> String {
 
 /// Which media session the island follows: Spotify while it plays, else any
 /// app that plays, else Spotify paused. `sessions` are (app id, playing).
+#[cfg(any(windows, test))]
 pub fn pick_session(sessions: &[(String, bool)]) -> Option<usize> {
     let spotify = |i: &usize| is_spotify_app(&sessions[*i].0);
     let playing = |i: &usize| sessions[*i].1;
@@ -1419,12 +1422,14 @@ pub fn pick_session(sessions: &[(String, bool)]) -> Option<usize> {
 }
 
 /// Windows durations and timeline positions: 100 ns ticks → seconds.
+#[cfg(any(windows, test))]
 pub fn ticks_to_secs(ticks: i64) -> f64 {
     ticks.max(0) as f64 / 10_000_000.0
 }
 
 /// A Windows DateTime (100 ns ticks since 1601) → Unix milliseconds. Zero is
 /// "never updated".
+#[cfg(any(windows, test))]
 pub fn windows_time_to_unix_ms(universal: i64) -> Option<f64> {
     const UNIX_EPOCH_TICKS: i64 = 116_444_736_000_000_000;
     (universal > 0).then(|| (universal - UNIX_EPOCH_TICKS) as f64 / 10_000.0)
@@ -1434,6 +1439,7 @@ pub fn windows_time_to_unix_ms(universal: i64) -> Option<f64> {
 /// nothing is loaded. Windows gives no Spotify URI, so the id is made from the
 /// tags; an ad comes with a title and nothing else, and gets an ad id so the
 /// page treats it as the Mac does.
+#[cfg(any(windows, test))]
 pub fn windows_track(title: &str, artist: &str, album: &str, duration: f64, spotify: bool) -> Option<Track> {
     let title = title.trim();
     if title.is_empty() {

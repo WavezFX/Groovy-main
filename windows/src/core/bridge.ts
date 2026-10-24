@@ -259,7 +259,6 @@ export interface StudioEntry { name: string; path: string; dir: boolean; size: n
 export interface StudioFile { text: string; binary: boolean; size: number }
 export interface StudioVersion { id: number; reason: string; at: number; existed: boolean; size: number }
 export interface StudioHit { path: string; line: number; text: string }
-export interface StudioFinished { run: number; code: number | null; timedOut: boolean; seconds: number }
 
 export interface BootInfo {
   settings: Settings;
@@ -978,12 +977,6 @@ async function callOrThrow<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!IS_TAURI) throw new Error("not running inside Groovy");
   return invoke<T>(cmd, args);
 }
-
-export type BridgeEvent =
-  | { name: "cursor"; payload: { x: number; y: number } }
-  | { name: "tray"; payload: string }
-  | { name: "hook"; payload: Record<string, unknown> }
-  | { name: "screen-changed"; payload: null };
 
 export interface DragDropPayload {
   type: "enter" | "over" | "drop" | "leave";

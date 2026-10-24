@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, currentWardrobe, inSlot, migrateOutfit, migrateSettingsOutfit,
+  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, currentWardrobe, migrateOutfit, migrateSettingsOutfit,
   parseWardrobe, randomLook, readPack, styleWith, tryOn, wear, worn, writePack,
 } from "../src/mochi/appearance.ts";
 import { SKIN_STYLES } from "../src/mochi/skins.ts";
@@ -38,8 +38,6 @@ test("each slot's None empties that slot only; Remove all empties everything", (
   assert.deepEqual(clearSlot(layers, "face"), ["beanie", "scarf"]);
   assert.deepEqual(clearSlot(layers, "head"), ["sunglasses", "scarf"]);
   assert.deepEqual(clearSlot(layers, "all"), []);
-  assert.equal(inSlot(layers, "neck"), "scarf");
-  assert.equal(inSlot(["beanie"], "face"), null);
 });
 
 test("hovering tries an item on in its slot, the rest as worn", () => {

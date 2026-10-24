@@ -12,7 +12,7 @@ import { installFakeDom } from "./fakedom.mjs";
 installFakeDom();
 
 const {
-  LANGUAGES, LANGUAGE_CODES, N_, dayMonth, isComplete, isRtl, labels, language, lookup, monthShort,
+  LANGUAGES, LANGUAGE_CODES, N_, dayMonth, isRtl, labels, language, lookup,
   onLanguageChange, resolveLanguage, setLanguage, t, tl, tn, weekdayShort,
 } = await import("../src/i18n/i18n.ts");
 const { h, relabel, liveTextCount } = await import("../src/views/dom.ts");
@@ -91,9 +91,7 @@ test("labels() tables and dates read in the current language", () => {
   inLanguage("fr", () => {
     assert.equal(table.bow, "Nœud");
     assert.deepEqual(Object.keys(table), ["bow", "hat"]);
-    assert.match(monthShort(9), /^oct/);
   });
-  assert.equal(monthShort(9), "Oct");
   assert.equal(weekdayShort(1), "Mon");
   assert.equal(dayMonth(8, 28), "Sep 28");
   inLanguage("es", () => assert.match(dayMonth(8, 28), /^28 sept?/));
@@ -229,6 +227,7 @@ function usedKeys() {
 test("every string the code shows is translated in every language", () => {
   const keys = usedKeys();
   assert.ok(keys.size > 300, `only ${keys.size} keys found — has the scan broken?`);
+  const isComplete = (key) => LANGUAGE_CODES.every((l) => l === "en" || lookup(key, l) !== undefined);
   const missing = [...keys].filter(([key]) => !isComplete(key)).map(([key, path]) => `${path}: ${JSON.stringify(key)}`);
   assert.deepEqual(missing, []);
   // And the hand-written table carries nothing the code no longer uses.

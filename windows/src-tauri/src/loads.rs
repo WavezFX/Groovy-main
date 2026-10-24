@@ -92,12 +92,6 @@ pub fn report() -> Report {
     Report { counts: Part::ALL.iter().map(|p| (p.name(), count(*p))).collect(), island_visible_ms: *ISLAND_VISIBLE_MS.lock().unwrap() }
 }
 
-/// For CI and Settings → System: what has loaded since start-up.
-#[tauri::command]
-pub fn load_report() -> Report {
-    report()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

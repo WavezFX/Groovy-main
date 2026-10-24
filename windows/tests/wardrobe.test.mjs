@@ -3,11 +3,10 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ACCESSORIES, DEFAULT_OUTFIT, OUTFIT_KEYS, OUTFIT_SELECTIONS, isAccessory, parseOutfit } from "../src/mochi/wardrobe.ts";
+import { ACCESSORIES, DEFAULT_OUTFIT, OUTFIT_KEYS, isAccessory, parseOutfit } from "../src/mochi/wardrobe.ts";
 import { DEFAULT_SETTINGS } from "../src/core/state.ts";
 
 test("the items keep the Mac's raw values; Auto and the pumpkin are gone", () => {
-  assert.deepEqual([...OUTFIT_SELECTIONS], ["none", ...ACCESSORIES]);
   for (const id of ["partyHat", "beanie", "crown", "sunglasses", "roundGlasses", "bow", "scarf", "witchHat", "santaHat", "bunnyEars"]) {
     assert.ok(isAccessory(id), id);
     assert.ok(OUTFIT_KEYS[id], id);

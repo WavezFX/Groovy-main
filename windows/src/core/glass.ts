@@ -17,8 +17,6 @@ const TINT: Record<"blur" | "css", Record<GlassStrength, number>> = {
 };
 /** The most a bright backdrop adds to the tint: enough that white text keeps 4.5:1 over a white page. */
 const MAX_BOOST = 0.3;
-/** The tint's colour. */
-export const TINT_RGB = [20, 22, 28] as const;
 
 export function glassStrength(value: unknown): GlassStrength {
   return value === "clear" || value === "frosted" ? value : "balanced";

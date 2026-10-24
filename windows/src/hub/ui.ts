@@ -200,31 +200,9 @@ export function dangerBtn(text: string, ask: string, action: () => void): HTMLBu
   return b;
 }
 
-/** The page's header: title, one-line purpose, actions on the right. */
-export function pageHeader(title: string, subtitle: string, ...actions: HTMLElement[]): HTMLElement {
-  return h("header", { class: "hub-t-header" },
-    h("div", {}, h("h1", { text: title }), h("p", { text: subtitle })),
-    actions.length ? h("div", { class: "hub-t-actions" }, ...actions) : null,
-  );
-}
-
-/** A small uppercase label, then the card of its rows. */
-export function group(title: string | null, ...rows: (HTMLElement | null | false)[]): HTMLElement {
-  const c = h("div", { class: "hub-t-card" });
-  for (const r of rows) if (r) c.append(r);
-  return h("div", { class: "hub-t-group" }, title ? h("div", { class: "hub-t-label", text: title }) : null, c);
-}
-
 /** Help that would be a paragraph: an ⓘ with the text as its tooltip (and for screen readers). */
 export function info(text: string): HTMLElement {
   return h("span", { class: "hub-t-info", tabindex: "0", role: "note", title: text, "aria-label": text, text: "ⓘ" });
-}
-
-/** Longer help behind "Learn more". */
-export function learnMore(...content: (HTMLElement | string)[]): HTMLElement {
-  const d = h("details", { class: "hub-t-more" }, h("summary", { text: t("Learn more") }));
-  for (const c of content) d.append(typeof c === "string" ? h("p", { text: c }) : c);
-  return d;
 }
 
 /** A setting: label and one-line description on the left, its control on the right. */

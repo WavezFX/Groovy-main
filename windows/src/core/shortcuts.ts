@@ -10,7 +10,7 @@
 // the top of src-tauri/src/shortcuts.rs. In short, Windows reads Ctrl+Alt as
 // AltGr, and AltGr+E, Q, M, W, C, the digits and most punctuation type a
 // character on at least one of the French, German, Spanish, Italian,
-// Portuguese or Brazilian layouts (ALTGR_CHARACTERS below).
+// Portuguese or Brazilian layouts (tests/shortcuts.test.mjs checks every default).
 
 // ── Strings shown to the user ─────────────────────────────────────────────────
 // English keys: Settings shows them through `t()` (src/i18n). Key names
@@ -315,27 +315,7 @@ export function activeKeys(stored: Bindings | undefined): [string, string][] {
  * defaults were checked against: letters and digits only, the keys a shortcut
  * is likely to use. Standard Windows layouts.
  */
-export const ALTGR_CHARACTERS: Record<string, Record<string, string>> = {
-  "French (AZERTY)": {
-    E: "€", "2": "~", "3": "#", "4": "{", "5": "[", "6": "|", "7": "`", "8": "\\", "9": "^", "0": "@",
-  },
-  "German (QWERTZ)": { Q: "@", E: "€", M: "µ", "2": "²", "3": "³", "7": "{", "8": "[", "9": "]", "0": "}" },
-  Spanish: { E: "€", "1": "|", "2": "@", "3": "#", "4": "~", "5": "€", "6": "¬" },
-  Italian: { E: "€", "5": "€" },
-  Portuguese: { E: "€", "2": "@", "3": "£", "4": "§", "5": "€", "7": "{", "8": "[", "9": "]", "0": "}" },
-  "Brazilian (ABNT2)": {
-    Q: "/", W: "?", E: "°", C: "₢", "1": "¹", "2": "²", "3": "³", "4": "£", "5": "¢", "6": "¬",
-  },
-};
 
-/** The layouts on which `keys` would type a character instead of running. */
-export function altGrClashes(keys: string): string[] {
-  const c = parseKeys(keys);
-  if (!c || !c.ctrl || !c.alt || c.meta) return [];
-  return Object.entries(ALTGR_CHARACTERS)
-    .filter(([, chars]) => chars[c.key] != null)
-    .map(([layout]) => layout);
-}
 
 // ── Inside the open island ────────────────────────────────────────────────────
 

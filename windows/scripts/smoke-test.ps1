@@ -80,6 +80,8 @@ try {
       $proc.Refresh()
       $metrics["groovy.exe working set (MB)"] = [math]::Round($proc.WorkingSet64 / 1MB, 1)
       $metrics["groovy.exe private memory (MB)"] = [math]::Round($proc.PrivateMemorySize64 / 1MB, 1)
+      # Round 3F: threads, Groovy's own and with every process under it.
+      $metrics["groovy.exe threads"] = $proc.Threads.Count
       $all = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue
       $tree = @()
       $frontier = @($proc.Id)
@@ -90,6 +92,7 @@ try {
       }
       $ws = ($tree | Measure-Object -Property WorkingSetSize -Sum).Sum
       $metrics["child processes (WebView2…)"] = $tree.Count
+      $metrics["threads, groovy.exe and every child"] = $proc.Threads.Count + (($tree | Measure-Object -Property ThreadCount -Sum).Sum)
       $metrics["child processes working set (MB)"] = [math]::Round($ws / 1MB, 1)
       foreach ($group in ($tree | Group-Object Name)) {
         $sum = ($group.Group | Measure-Object -Property WorkingSetSize -Sum).Sum

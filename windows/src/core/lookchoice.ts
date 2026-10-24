@@ -16,13 +16,6 @@ export function chooseLook(settings: LookChoice, look: Skin, now = Date.now()): 
   settings.lookAt = Math.max(now, (settings.lookAt || 0) + 1);
 }
 
-/** The look to keep when two copies meet: the newer choice. */
-export function newerLook(current: LookChoice, incoming: LookChoice): LookChoice {
-  return (incoming.lookAt || 0) >= (current.lookAt || 0)
-    ? { groovyLook: incoming.groovyLook, lookAt: incoming.lookAt || 0 }
-    : { groovyLook: current.groovyLook, lookAt: current.lookAt || 0 };
-}
-
 /** The look on screen: a hover try-on, else the saved one. */
 export function shownLook(preview: Skin | null, saved: string): Skin {
   return preview ?? parseSkin(saved);

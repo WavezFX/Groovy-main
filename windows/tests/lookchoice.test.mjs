@@ -4,7 +4,7 @@
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 import { installFakeDom } from "./fakedom.mjs";
-import { DebouncedSave, chooseLook, newerLook, shownLook } from "../src/core/lookchoice.ts";
+import { DebouncedSave, chooseLook, shownLook } from "../src/core/lookchoice.ts";
 
 installFakeDom();
 
@@ -30,13 +30,6 @@ test("Night → Ember → Frost → Night twenty times quickly ends on Night, sa
   } finally {
     mock.timers.reset();
   }
-});
-
-test("a slower save of an older copy never undoes the newer choice", () => {
-  const now = { groovyLook: "night", lookAt: 200 };
-  assert.deepEqual(newerLook(now, { groovyLook: "ember", lookAt: 100 }), now);
-  assert.deepEqual(newerLook(now, { groovyLook: "frost", lookAt: 300 }), { groovyLook: "frost", lookAt: 300 });
-  assert.deepEqual(newerLook(now, { groovyLook: "ember" }), now, "a copy from before stamps loses");
 });
 
 test("a try-on shows only while it lasts; the saved look otherwise", () => {

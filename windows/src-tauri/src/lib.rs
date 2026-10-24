@@ -19,7 +19,6 @@ mod github;
 mod hooks;
 mod i18n;
 mod idle;
-mod backdrop;
 mod pc;
 mod browser;
 mod calls;
@@ -1444,7 +1443,6 @@ pub fn run() {
             sounds::custom_sound,
             sounds::reveal_sounds_folder,
             log::reveal_logs_folder,
-            loads::load_report,
             runtime_state::runtime_state,
             free_memory_now,
             sounds::reload_sounds,
@@ -1722,8 +1720,6 @@ pub fn run() {
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
-            // On the main thread: the composition backdrop needs its message loop.
-            backdrop::start(&handle);
             glass::spawn_watch(handle.clone());
             Ok(())
         })

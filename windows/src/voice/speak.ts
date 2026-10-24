@@ -134,7 +134,3 @@ export function stopSpeaking() {
   currentAudio?.pause();
   currentAudio = null;
 }
-
-export function isSpeaking(): boolean {
-  return !!synth()?.speaking || !!(currentAudio && !currentAudio.paused);
-}

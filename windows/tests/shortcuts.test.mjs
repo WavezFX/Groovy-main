@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { calls, emit, sent } from "./tauri.mjs";
 import {
-  ALTGR_CHARACTERS, ISLAND_SHORTCUTS, KEY_NAMES, SHORTCUTS, SHORTCUT_TEXT, activeKeys, altGrClashes,
+  ISLAND_SHORTCUTS, KEY_NAMES, SHORTCUTS, SHORTCUT_TEXT, activeKeys,
   cyclePill, displayKeys, duplicates, effective, formatKeys, islandKeyAction, navigate, normalizeKeys,
   parseKeys, pillByNumber, recordPress, settingsKeys,
 } from "../src/core/shortcuts.ts";
@@ -42,6 +42,30 @@ test("every default parses, is canonical and holds Ctrl+Alt", () => {
 test("no two defaults share a combination", () => {
   assert.deepEqual(duplicates(SHORTCUTS.map((d) => [d.id, d.defaultKeys])), new Set());
 });
+
+// What AltGr+key types on the European layouts checked: no default shortcut may
+// be one of these (Windows reads Ctrl+Alt as AltGr).
+const ALTGR_CHARACTERS = {
+  "French (AZERTY)": {
+    E: "€", "2": "~", "3": "#", "4": "{", "5": "[", "6": "|", "7": "`", "8": "\\", "9": "^", "0": "@",
+  },
+  "German (QWERTZ)": { Q: "@", E: "€", M: "µ", "2": "²", "3": "³", "7": "{", "8": "[", "9": "]", "0": "}" },
+  Spanish: { E: "€", "1": "|", "2": "@", "3": "#", "4": "~", "5": "€", "6": "¬" },
+  Italian: { E: "€", "5": "€" },
+  Portuguese: { E: "€", "2": "@", "3": "£", "4": "§", "5": "€", "7": "{", "8": "[", "9": "]", "0": "}" },
+  "Brazilian (ABNT2)": {
+    Q: "/", W: "?", E: "°", C: "₢", "1": "¹", "2": "²", "3": "³", "4": "£", "5": "¢", "6": "¬",
+  },
+};
+
+/** The layouts on which `keys` would type a character instead of running. */
+function altGrClashes(keys) {
+  const c = parseKeys(keys);
+  if (!c || !c.ctrl || !c.alt || c.meta) return [];
+  return Object.entries(ALTGR_CHARACTERS)
+    .filter(([, chars]) => chars[c.key] != null)
+    .map(([layout]) => layout);
+}
 
 test("no default types a character with AltGr on the checked European layouts", () => {
   for (const layout of ["French (AZERTY)", "German (QWERTZ)", "Spanish", "Italian", "Portuguese", "Brazilian (ABNT2)"]) {

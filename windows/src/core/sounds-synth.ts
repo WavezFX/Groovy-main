@@ -13,8 +13,6 @@ export function flavorOf(look: string): Flavor {
 }
 
 export const SAMPLE_RATE = 48000;
-/** Every sound ends within this, in seconds (the longest is approval, ~0.9 s). */
-export const MAX_SECONDS = 1.2;
 
 type Samples = Float32Array<ArrayBuffer>;
 

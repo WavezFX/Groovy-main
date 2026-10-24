@@ -41,11 +41,6 @@ export function nextCallState(state: CallState, event: CallEvent): CallState {
   return TABLE[state][event] ?? state;
 }
 
-/** Whether the microphone should be heard in this state. */
-export function micOpen(state: CallState, interruptible: boolean): boolean {
-  return state === "listening" || (state === "speaking" && interruptible);
-}
-
 /**
  * Spots the user speaking over Groovy: a frame clearly louder than the room's
  * noise floor, held for `holdFrames` frames in a row (about a quarter of a

@@ -7,7 +7,10 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { MAX_SECONDS, RECIPES, SAMPLE_RATE, renderSound } from "../src/core/sounds-synth.ts";
+import { RECIPES, SAMPLE_RATE, renderSound } from "../src/core/sounds-synth.ts";
+
+/** Every sound ends within this, in seconds (the longest is approval, about 0.9 s). */
+const MAX_SECONDS = 1.2;
 import { SOUND_NAMES } from "../src/core/sound.ts";
 
 // A real path on every system (a URL's pathname is "/D:/…" on Windows).

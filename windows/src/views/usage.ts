@@ -40,11 +40,6 @@ export function planCardOpen(): boolean {
 const claudeColor = (now = Date.now()) => planColor(dominantPct(State.planUsage, now));
 const codexColor = (now = Date.now()) => planColor(dominantPct(State.codexPlanUsage, now));
 
-/** The colour of the open card's plan, which Groovy wears while it is open. */
-export function openPlanColor(): string {
-  return State.planDetailIsCodex ? codexColor() : claudeColor();
-}
-
 /** Closes the plan card (view, mode or focus changed). */
 export function closePlanCard(): void {
   State.showingPlanDetail = false;

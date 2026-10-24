@@ -8,7 +8,7 @@
 // or the window is hidden, so a hidden window costs nothing.
 
 import { BotEngine, hexToRGB } from "../mochi/engine";
-import type { BotEmoteName, BotStateName } from "../core/layout";
+import type { BotStateName } from "../core/layout";
 
 interface Animated {
   el: HTMLCanvasElement;
@@ -217,97 +217,6 @@ export function backdrop(canvas: HTMLCanvasElement, color: string, pointerFrom: 
 
 // ── Groovy ────────────────────────────────────────────────────────────────────
 
-const EMOTES: BotEmoteName[] = ["love", "happy", "wink", "proud", "surprised"];
-
-/** Groovy on the band's floor, in the right part of `canvas`: he strolls, hops,
- *  emotes now and then, follows the pointer with his eyes and reacts when poked. */
-export function bandGroovy(canvas: HTMLCanvasElement, color: string, state: BotStateName, width: number) {
-  const engine = new BotEngine();
-  engine.bodyColor = hexToRGB(color);
-  engine.setState(state, true);
-  const size = 64;
-  let x = -1;
-  let target = 0;
-  let dir = 1;
-  let hop = 0;
-  let hopV = 0;
-  let pause = 1 + Math.random() * 2;
-  let nextEvent = 2 + Math.random() * 4;
-  let pointer: { x: number; y: number } | null = null;
-  canvas.addEventListener("pointermove", (e) => {
-    const r = canvas.getBoundingClientRect();
-    pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
-  });
-  canvas.addEventListener("pointerleave", () => (pointer = null));
-  canvas.addEventListener("click", (e) => {
-    const r = canvas.getBoundingClientRect();
-    if (Math.abs(e.clientX - r.left - x) < size * 0.4) {
-      engine.slap();
-      hopV = 260;
-    }
-  });
-  const roams = state === "idle";
-
-  add({
-    el: canvas,
-    draw(dt, t) {
-      const { w: cw, h: ch, ctx } = fit(canvas);
-      if (!ctx || cw === 0) return;
-      const lo = Math.max(0, cw - width - 18) + size / 2;
-      const hi = cw - 18 - size / 2;
-      if (x < 0) x = target = lo + (hi - lo) * 0.6;
-      ctx.clearRect(0, 0, cw, ch);
-      if (roams) {
-        if (Math.abs(target - x) < 1) {
-          pause -= dt;
-          if (pause <= 0) {
-            target = lo + Math.random() * Math.max(1, hi - lo);
-            pause = 1.5 + Math.random() * 3.5;
-          }
-        } else {
-          const step = Math.sign(target - x) * Math.min(Math.abs(target - x), 28 * dt);
-          x += step;
-          dir = Math.sign(step) || dir;
-          if (hop === 0 && hopV === 0) hopV = 70;
-        }
-      }
-      nextEvent -= dt;
-      if (nextEvent <= 0) {
-        nextEvent = 4 + Math.random() * 6;
-        const roll = Math.random();
-        if (roll < 0.35) hopV = 200;
-        else if (roll < 0.6) engine.triggerEmote(EMOTES[Math.floor(Math.random() * EMOTES.length)]);
-        else if (roll < 0.75) engine.greet();
-      }
-      if (hopV !== 0 || hop > 0) {
-        hopV -= 900 * dt;
-        hop = Math.max(0, hop + hopV * dt);
-        if (hop === 0 && hopV < 0) {
-          hopV = 0;
-          engine.squash();
-        }
-      }
-      if (pointer) {
-        engine.lookX = Math.max(-1, Math.min(1, (pointer.x - x) / 160));
-        engine.lookY = Math.max(-1, Math.min(1, (pointer.y - (ch - size * 0.6)) / 120));
-      } else {
-        engine.lookX = dir * 0.5;
-        engine.lookY = 0.1 + 0.1 * Math.sin(t);
-      }
-      engine.update(dt);
-      const floor = ch - 8;
-      ctx.save();
-      ctx.translate(x - size / 2, floor - size * 0.78 - hop);
-      ctx.fillStyle = `rgba(0,0,0,${0.35 * (1 - Math.min(1, hop / 60))})`;
-      ctx.beginPath();
-      ctx.ellipse(size / 2, size * 0.78 + hop - 1, size * 0.3, size * 0.05, 0, 0, Math.PI * 2);
-      ctx.fill();
-      engine.draw(ctx, size, size);
-      ctx.restore();
-    },
-  });
-}
-
 /** Groovy alone (the sidebar's logo, an empty page). */
 export function liveGroovy(canvas: HTMLCanvasElement, color = "#F5F6F8", state: BotStateName = "idle") {
   const engine = new BotEngine();
@@ -334,75 +243,6 @@ export function liveGroovy(canvas: HTMLCanvasElement, color = "#F5F6F8", state: 
     },
   });
   return engine;
-}
-
-// ── Page themes ───────────────────────────────────────────────────────────────
-
-export interface Theme {
-  color: string;
-  /** What Groovy is doing on the page's band. */
-  state?: BotStateName;
-}
-
-export const THEMES: Record<string, Theme> = {
-  dictation: { color: "#FB923C" },
-  notes: { color: "#3B9EFF", state: "working" },
-  insights: { color: "#34D399" },
-  dictionary: { color: "#A78BFA" },
-  snippets: { color: "#F7B32B" },
-  styles: { color: "#F472B6" },
-  flowsettings: { color: "#8E939C" },
-  voice: { color: "#F97316" },
-  skills: { color: "#22D3EE", state: "working" },
-  assistant: { color: "#7C5CFF" },
-  island: { color: "#3B9EFF" },
-  wardrobe: { color: "#F472B6" },
-  models: { color: "#22D3EE", state: "thinking" },
-  memory: { color: "#A78BFA" },
-  reminders: { color: "#F7B32B" },
-  music: { color: "#1DB954" },
-  calls: { color: "#F97316" },
-  chat: { color: "#E07950", state: "thinking" },
-  agents: { color: "#3B9EFF", state: "working" },
-  pills: { color: "#F5A524" },
-  phone: { color: "#3DDC84" },
-  breaks: { color: "#34D399", state: "sleeping" },
-  general: { color: "#8E939C" },
-  permissions: { color: "#EF4444" },
-  browser: { color: "#DE5833" },
-  system: { color: "#8E939C" },
-};
-
-/** The band itself: title, line, actions, and Groovy. */
-export function hero(page: string, title: string, subtitle: string | null, actions: HTMLElement[] = [], compact = false): HTMLElement {
-  const theme = THEMES[page] ?? THEMES.general;
-  const el = document.createElement("div");
-  el.className = compact ? "hub-hero compact" : "hub-hero";
-  el.style.setProperty("--hero-line", rgba(theme.color, 0.16));
-  const back = document.createElement("canvas");
-  back.className = "backdrop";
-  const bot = document.createElement("canvas");
-  bot.className = "troupe";
-  const copy = document.createElement("div");
-  copy.className = "copy";
-  const h1 = document.createElement("h1");
-  h1.textContent = title;
-  copy.append(h1);
-  if (subtitle) {
-    const p = document.createElement("p");
-    p.textContent = subtitle;
-    copy.append(p);
-  }
-  if (actions.length) {
-    const row = document.createElement("div");
-    row.className = "actions";
-    row.append(...actions);
-    copy.append(row);
-  }
-  el.append(back, bot, copy);
-  backdrop(back, theme.color, el);
-  bandGroovy(bot, "#F5F6F8", theme.state ?? "idle", compact ? 280 : 340);
-  return el;
 }
 
 /** A card in a colour: the band's black and particles behind `content`. */

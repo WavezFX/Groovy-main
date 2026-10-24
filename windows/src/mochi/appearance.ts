@@ -126,11 +126,6 @@ export function worn(layers: readonly string[]): Outfit[] {
   return combine("none", layers);
 }
 
-/** The item in `slot`, if any. */
-export function inSlot(layers: readonly string[], slot: Slot): Accessory | null {
-  return (worn(layers).find((o) => isAccessory(o) && SLOT_OF[o] === slot) as Accessory | undefined) ?? null;
-}
-
 export interface Worn {
   layers: Outfit[];
   /** What the click did, for a one-line hint. */

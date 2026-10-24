@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  PROVIDERS, activeModel, isLocalProvider, isLoopbackHost, pickModel, providerDef, urlExposure, visibleProviders, withModel,
+  PROVIDERS, activeModel, isLoopbackHost, pickModel, providerDef, urlExposure, visibleProviders, withModel,
 } from "../src/core/providers.ts";
 import { DEFAULT_SETTINGS } from "../src/core/state.ts";
 
@@ -40,15 +40,6 @@ test("model servers show in the picker once connected, or while in use", () => {
   assert.deepEqual(ids(settings()), ["llamacpp", "anthropic", "google", "openai", "openrouter"]);
   assert.deepEqual(ids(settings({ ollamaUrl: "http://127.0.0.1:11434" })), ["llamacpp", "anthropic", "google", "openai", "openrouter", "ollama"]);
   assert.deepEqual(ids(settings({ chatProvider: "custom" })), ["llamacpp", "anthropic", "google", "openai", "openrouter", "custom"]);
-});
-
-test("local providers are the ones on this computer", () => {
-  assert.ok(isLocalProvider(settings(), "llamacpp"));
-  assert.ok(isLocalProvider(settings(), "ollama"));
-  assert.ok(!isLocalProvider(settings(), "openai"));
-  assert.ok(isLocalProvider(settings({ customUrl: "http://127.0.0.1:8080" }), "custom"));
-  assert.ok(!isLocalProvider(settings({ customUrl: "https://llm.example.com" }), "custom"));
-  assert.ok(!isLocalProvider(settings(), "custom"), "an unset custom server is not assumed local");
 });
 
 test("the saved model is kept when offered, else a sensible one is picked", () => {

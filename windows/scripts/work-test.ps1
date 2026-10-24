@@ -109,6 +109,9 @@ try {
     $cpu = [math]::Round(100 * ($cpu1 - $cpu0) / ($seconds * $cores), 2)
     $results["idle memory under $BudgetMB MB (was $($idle.total))"] = $idle.total -lt $BudgetMB
     $results["idle CPU under $CpuBudget% of all $cores cores over $IdleSeconds s (was $cpu%)"] = $cpu -lt $CpuBudget
+    # Round 3F: threads at idle, Groovy's own and in all.
+    $threads = @{ main = (Get-Process -Id $proc.Id).Threads.Count; all = 0 }
+    foreach ($id in $idle.ids) { $q = Get-Process -Id $id -ErrorAction SilentlyContinue; if ($q) { $threads.all += $q.Threads.Count } }
   }
 }
 finally {
@@ -133,6 +136,7 @@ Write-Host "Peak while working (private working set, MB): $($peak.total)"
 foreach ($k in $peak.byKind.Keys) { Write-Host "    ${k}: $($peak.byKind[$k])" }
 if ($idle) {
   Write-Host "Idle after the unload (private working set, MB): $($idle.total)"
+  Write-Host "Idle CPU: $cpu% of all $cores cores; threads: groovy.exe $($threads.main), in all $($threads.all)"
   foreach ($k in $idle.byKind.Keys) { Write-Host "    ${k}: $($idle.byKind[$k])" }
 }
 if (Test-Path $log) {

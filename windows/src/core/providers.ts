@@ -42,12 +42,6 @@ export function providerDef(id: string): ProviderDef {
   return PROVIDERS.find((p) => p.id === id) ?? PROVIDERS.find((p) => p.id === "anthropic")!;
 }
 
-/** Runs on this computer: nothing typed leaves it (mirrors assistant.rs is_local). */
-export function isLocalProvider(settings: Settings, id: string): boolean {
-  if (id === "llamacpp" || id === "ollama" || id === "lmstudio") return true;
-  return id === "custom" && settings.customUrl.trim() !== "" && urlExposure(settings.customUrl) === "local";
-}
-
 /** The model the chat uses for the active provider. */
 export function activeModel(settings: Settings): string {
   const p = providerDef(settings.chatProvider);

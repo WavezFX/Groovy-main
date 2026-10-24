@@ -163,11 +163,6 @@ export function isComingSoon(id: string): boolean {
   return pillDefinition(id)?.support === "soon";
 }
 
-/** True for pills whose sessions arrive as hook events (Mac #183). */
-export function isHookPill(id: string): boolean {
-  return pillDefinition(id)?.connect.kind === "hooks";
-}
-
 /** Workspace tools that can be the main pill. */
 export function mainPillChoices(os: HostOs = HOST_OS): PillDefinition[] {
   return availablePills(os).filter((p) => p.category === "workspace" && p.support !== "soon");

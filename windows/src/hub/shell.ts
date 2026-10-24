@@ -372,6 +372,3 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     navigate: (page: string, tab?: string) => void ctx.navigate(page, tab),
   };
 }
-
-/** For the tests: every page the sidebar or a link can open. */
-export const PAGE_IDS: readonly PageId[] = ALL_PAGES.map((x) => x.id);

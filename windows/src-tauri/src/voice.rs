@@ -178,6 +178,7 @@ pub fn to_f32(samples: &[i16]) -> Vec<f32> {
 }
 
 /// Whisper's text, tidied: no "[BLANK_AUDIO]"-style markers, single spaces.
+#[cfg(any(feature = "voice", test))]
 pub fn clean(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut depth = 0i32;

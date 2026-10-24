@@ -6,7 +6,7 @@
 // `mochiOutfit`, the single outfit of earlier versions (the Mac's raw values),
 // is only read once more to move it into its slot (migrateOutfit).
 
-import { N_, labels } from "../i18n/i18n";
+import { N_ } from "../i18n/i18n";
 
 /** Every accessory, in the wardrobe's order: head, then face, then neck. */
 export const ACCESSORIES = [
@@ -19,10 +19,6 @@ export type Accessory = (typeof ACCESSORIES)[number];
 
 /** An accessory, or nothing. */
 export type Outfit = Accessory | "none";
-
-/** What the island's wardrobe buttons and the old setting can name. */
-export const OUTFIT_SELECTIONS: readonly Outfit[] = ["none", ...ACCESSORIES];
-export type OutfitSelection = Outfit;
 
 export const DEFAULT_OUTFIT: Outfit = "none";
 
@@ -42,9 +38,6 @@ export const OUTFIT_KEYS: Record<Outfit, string> = {
   santaHat: N_("Santa hat"),
   bunnyEars: N_("Bunny ears"),
 };
-
-/** In the current language: every read goes through `t()`. */
-export const OUTFIT_LABELS: Record<Outfit, string> = labels(OUTFIT_KEYS);
 
 // ── Logic ─────────────────────────────────────────────────────────────────────
 

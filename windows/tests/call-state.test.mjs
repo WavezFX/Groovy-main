@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BargeIn, LevelMeter, micOpen, nextCallState } from "../src/voice/call-state.ts";
+import { BargeIn, LevelMeter, nextCallState } from "../src/voice/call-state.ts";
 import { micConstraints } from "../src/voice/mic.ts";
 
 const run = (events, from = "idle") => events.reduce((s, e) => nextCallState(s, e), from);
@@ -34,13 +34,6 @@ test("failures and hanging up", () => {
   // Events that don't apply change nothing.
   assert.equal(nextCallState("idle", "heard"), "idle");
   assert.equal(nextCallState("listening", "spoke"), "listening");
-});
-
-test("the microphone is heard only while listening, or while speaking when interrupting is on", () => {
-  assert.ok(micOpen("listening", false));
-  assert.ok(!micOpen("speaking", false));
-  assert.ok(micOpen("speaking", true));
-  for (const s of ["idle", "processing", "muted", "error"]) assert.ok(!micOpen(s, true), s);
 });
 
 test("barge-in needs speech held for a moment, well above the noise", () => {

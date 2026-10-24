@@ -32,7 +32,6 @@ tokio = { version = "1", features = ["net", "io-util", "sync", "time", "rt", "ma
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 # Phone link (phone_link/): a TLS server for the Android app, off unless the user
 # turns it on. Every crate here is justified in docs/ANDROID_LINK.md.
-rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 ring = "0.17"
 rcgen = { version = "0.13", default-features = false, features = ["ring"] }
@@ -80,8 +79,6 @@ tar = { version = "0.4", default-features = false }
 base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
-# Vector2 for the composition backdrop (backdrop.rs), the version windows 0.61 uses.
-windows-numerics = { version = "0.2", default-features = false }
 keyring = { version = "3", features = ["windows-native"] }
 # The island's file drop reads paths straight from WebView2 (webview_drop.rs).
 # Same versions as wry, so nothing new is compiled.
@@ -131,14 +128,8 @@ windows = { version = "0.61", features = [
   # Dictation learns from corrections: the focused field's text (flow/os_windows.rs).
   "Win32_UI_Accessibility",
   "Win32_UI_WindowsAndMessaging",
-  # Round 3C item 1: the frosted island, a composition backdrop under the webview.
-  "System",
+  # The new-mail pop-ups read from Windows' notification feed (island_tiles.rs).
   "UI",
-  "UI_Composition",
-  "UI_Composition_Desktop",
-  "Win32_Graphics_Dwm",
-  "Win32_System_WinRT",
-  "Win32_System_WinRT_Composition",
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

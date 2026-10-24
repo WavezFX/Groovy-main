@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CELLS_E, CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, expandedLayout, expandsTo, nextMeeting, pagesOf, upNext,
+  CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, expandedLayout, expandsTo, nextMeeting, pagesOf, upNext,
 } from "../src/core/home.ts";
 import { tile } from "../src/core/tiles.ts";
 
@@ -57,7 +57,6 @@ test("eight cells a page, one row of four under the player, the add tile last", 
   assert.equal(f[0].at(-1), "+");
   const more = pagesOf([...cells, tile("mail")], CELLS_F, "+");
   assert.deepEqual(more.map((p) => p.length), [8, 1]);
-  assert.deepEqual(pagesOf(cells, CELLS_E, "+").map((p) => p.length), [4, 4]);
 });
 
 test("the player shows at once and folds 1.5 s after the music stops", () => {

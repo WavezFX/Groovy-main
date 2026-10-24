@@ -4,14 +4,13 @@ import assert from "node:assert/strict";
 import { keptServices } from "../src/core/tiles.ts";
 import { test } from "node:test";
 import {
-  DEFAULT_TILES, MAX_TILES, addTile, applyPreset, isMailNotification, moveTile, parseTiles, removeTile, resizeTile, tile, tilesHome,
+  DEFAULT_TILES, MAX_TILES, addTile, applyPreset, isMailNotification, moveTile, parseTiles, removeTile, resizeTile, tile,
 } from "../src/core/tiles.ts";
 import { DEFAULT_SETTINGS } from "../src/core/state.ts";
 
 test("nothing stored: today's developer island", () => {
   const t = parseTiles(DEFAULT_SETTINGS.islandTiles);
   assert.equal(t.preset, "developer");
-  assert.equal(tilesHome(t), false, "the agents overview stays the home");
   assert.deepEqual(t, parseTiles(undefined));
   assert.deepEqual(DEFAULT_TILES.mailApps, []);
 });
@@ -34,7 +33,6 @@ test("malformed tiles are dropped, good ones kept in order", () => {
   assert.deepEqual(t.tiles.map((x) => x.id), ["site:https://mail.google.com", "mail", "service:integration_github"]);
   assert.equal(t.tiles[0].size, "expanded");
   assert.deepEqual(t.mailApps, ["Outlook"]);
-  assert.equal(tilesHome(t), true);
 });
 
 test("presets, adding, moving, resizing and removing", () => {

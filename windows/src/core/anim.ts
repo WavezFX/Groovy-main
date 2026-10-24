@@ -19,7 +19,6 @@ export type EaseFn = (t: number) => number;
 
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-export const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
 
 /** cubic-bezier(x1,y1,x2,y2) — used for the 340 ms close curve (.45,0,.2,1). */
 export function cubicBezier(x1: number, y1: number, x2: number, y2: number): EaseFn {

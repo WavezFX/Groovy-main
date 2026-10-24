@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { glassAlpha, glassStrength } from "../src/core/glass.ts";
 
 test("the glass island is see-through: a light tint over the blur, a little more without it", () => {
@@ -28,7 +29,9 @@ test("an unknown strength is Balanced", () => {
 });
 
 test("white text keeps 4.5:1 over a white page at every strength (round 3C item 1)", async () => {
-  const { TINT_RGB } = await import("../src/core/glass.ts");
+  // The tint the island's glass is drawn with (style.css, body.glass).
+  const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
+  const TINT_RGB = css.match(/rgba\((\d+), (\d+), (\d+), var\(--glass-a/).slice(1, 4).map(Number);
   const lin = (c) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   const lum = (rgb) => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
   for (const look of ["blur", "css"]) {

@@ -112,74 +112,11 @@ body.settings-window {
   margin: 0 auto;
   min-height: 100vh;
 }
-.cc-header {
-  grid-area: head;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: 16px 24px 12px;
-  /* Nearly opaque instead of a backdrop-filter, which blurs on every scroll frame (round 3B item 8b). */
-  background: color-mix(in srgb, var(--bg) 96%, transparent);
-  border-bottom: 1px solid var(--hairline);
-}
-.cc-nav {
-  grid-area: nav;
-  position: sticky;
-  top: 58px;
-  align-self: start;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px 10px 16px 16px;
-  max-height: calc(100vh - 58px);
-  overflow-y: auto;
-}
-.cc-link {
-  text-align: start;
-  background: transparent;
-  color: var(--dim);
-  border-radius: 9px;
-  padding: 7px 12px;
-}
-.cc-link:hover:not(:disabled) { background: var(--fill); color: var(--ink); }
-.cc-link.on {
-  background: var(--fill);
-  color: var(--ink);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-.cc-content {
-  grid-area: main;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 18px 24px 40px 12px;
-  min-width: 0;
-}
-.cc-group {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  scroll-margin-top: 70px;
-}
 @media (max-width: 760px) {
   .cc {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "head" "nav" "main";
   }
-  .cc-nav {
-    position: sticky;
-    top: 50px;
-    z-index: 1;
-    flex-direction: row;
-    overflow-x: auto;
-    max-height: none;
-    padding: 8px 16px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--hairline);
-  }
-  .cc-link { white-space: nowrap; }
-  .cc-link.on { box-shadow: inset 0 -2px 0 var(--accent); }
-  .cc-content { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
@@ -626,14 +563,6 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   gap: 16px;
   align-items: start;
 }
-.studio-side {
-  position: sticky;
-  top: 72px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: stretch;
-}
 .studio-preview {
   width: 132px;
   height: 132px;
@@ -643,7 +572,6 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   border: 1px solid var(--hairline);
   cursor: pointer;
 }
-.studio-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .studio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
@@ -692,8 +620,7 @@ input[type="search"] {
 }
 @media (max-width: 760px) {
   .studio { grid-template-columns: minmax(0, 1fr); }
-  .studio-side { position: static; flex-direction: row; flex-wrap: wrap; align-items: center; }
-}
+  }
 
 /* ── Music ── */
 .music-player {

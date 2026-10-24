@@ -16,7 +16,6 @@ import {
 } from "../core/providers";
 import { Sound } from "../core/sound";
 import { CallControl, MicLevel } from "../voice/call";
-import type { CallState } from "../voice/call-state";
 import { brainReady, offerBrain } from "../island/brain";
 import { State, type ChatMessage } from "../core/state";
 import type { ViewHost } from "./views";
@@ -47,18 +46,6 @@ const STRINGS = {
   allowAlways: N_("Always allow"),
   deny: N_("Don't"),
 };
-
-/** What the call bar says in each state of the call. */
-export function callLabel(state: CallState): string {
-  switch (state) {
-    case "listening": return STRINGS.listening;
-    case "processing": return STRINGS.thinking;
-    case "speaking": return STRINGS.speaking;
-    case "muted": return STRINGS.muted;
-    case "error": return STRINGS.callError;
-    default: return "";
-  }
-}
 
 let nextId = 1;
 

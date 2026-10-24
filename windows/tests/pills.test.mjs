@@ -4,7 +4,7 @@ import { beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_MAIN_PILL, PILL_CATALOG, PILL_CATEGORIES, availablePills, chooseMainPill,
-  isComingSoon, isHookPill, mainPillChoices, orderPills, pillDefinition, sanitizeDeclared, sessionSubtitle,
+  isComingSoon, mainPillChoices, orderPills, pillDefinition, sanitizeDeclared, sessionSubtitle,
   toggleDeclared,
 } from "../src/core/pills.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
@@ -106,7 +106,6 @@ test("Spotify: a service on both systems with nothing to set up", () => {
   assert.deepEqual(def.connect, { kind: "none" });
   assert.equal(def.category, "service");
   assert.ok(!isComingSoon("integration_spotify"));
-  assert.ok(!isHookPill("integration_spotify"));
   assert.ok(!mainPillChoices("linux").some((p) => p.id === "integration_spotify"));
   assert.ok(!mainPillChoices("windows").some((p) => p.id === "integration_spotify"));
 });
@@ -141,6 +140,7 @@ test("the main pill is a workspace tool that works here", () => {
 });
 
 test("hook-driven pills are the workspace tools and the agents with hooks", () => {
+  const isHookPill = (id) => pillDefinition(id)?.connect.kind === "hooks";
   for (const id of ["integration_claude", "agent_cursor", "agent_codex", "agent_gemini", "agent_copilot", "agent_muse", "agent_antigravity", "agent_opencode", "agent_amp", "agent_hermes"]) {
     assert.ok(isHookPill(id), id);
   }

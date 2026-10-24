@@ -52,6 +52,7 @@ pub fn pick(installed: &[String], recommended: &str) -> Option<String> {
 pub const DOWNLOAD_PAGE: &str = "https://ollama.com/download/windows";
 
 const BASE: &str = "http://127.0.0.1:11434";
+#[cfg(windows)]
 const INSTALLER_URL: &str = "https://ollama.com/download/OllamaSetup.exe";
 
 #[derive(Serialize)]

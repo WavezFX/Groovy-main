@@ -96,11 +96,6 @@ export function currentTiles(settings: Pick<Settings, "islandTiles">): IslandTil
   return parseTiles(settings.islandTiles);
 }
 
-/** Whether the island opens on the tiles (not on today's agents overview). */
-export function tilesHome(t: IslandTiles): boolean {
-  return t.preset !== "developer" && t.tiles.length > 0;
-}
-
 /** Picking a preset: its tiles; "custom" keeps the current ones. */
 export function applyPreset(t: IslandTiles, preset: IslandPreset): IslandTiles {
   if (preset === "custom") return { ...t, preset };

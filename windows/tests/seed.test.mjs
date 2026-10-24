@@ -4,7 +4,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { SEED_ISLAND, SeedIntro, seedKind, seedPlan, seedPose } from "../src/mochi/seed.ts";
-import { MAX_SECONDS, RECIPES, SAMPLE_RATE, flavorOf, renderSound } from "../src/core/sounds-synth.ts";
+import { RECIPES, SAMPLE_RATE, flavorOf, renderSound } from "../src/core/sounds-synth.ts";
+
+/** Every sound ends within this, in seconds (the longest is approval, about 0.9 s). */
+const MAX_SECONDS = 1.2;
 import { SOUND_NAMES } from "../src/core/sound.ts";
 import { parseGrowth } from "../src/mochi/growth.ts";
 

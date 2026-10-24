@@ -12,9 +12,8 @@ export const MEETING_WINDOW_MIN = 30;
 export const REMINDER_WINDOW_MIN = 15;
 /** After a pause or stop, the player stays this long before the tiles come back. */
 export const PLAYER_HOLD_MS = 1500;
-/** Cells per page: 4 × 2 normally, one row of 4 under the player. */
+/** Cells per page: 4 × 2. */
 export const CELLS_F = 8;
-export const CELLS_E = 4;
 
 export interface Meeting {
   title: string;

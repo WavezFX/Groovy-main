@@ -107,21 +107,12 @@ pub fn apply(app: &AppHandle) {
     let now = match (glass, before) {
         // Already blurred (or on the page's glass): nothing to ask Windows again.
         (true, Look::Blur | Look::Css) => before,
-        // Round 3C item 1: Windows 11's host backdrop, clipped to the island's
-        // shape, before anything else; then the accent blur if it stays in the
-        // shape; else the page's tint, opaque enough to read.
-        (true, Look::Solid) if crate::backdrop::active() => {
-            crate::backdrop::show(app, true);
-            Look::Blur
-        }
+        // The accent blur if it stays in the shape; else the page's tint,
+        // opaque enough to read.
         (true, Look::Solid) => decide(true, !BLUR_LEAKS.load(Ordering::Relaxed) && os::set_accent(&win, true)),
         (false, _) => {
             if before == Look::Blur {
-                if crate::backdrop::active() {
-                    crate::backdrop::show(app, false);
-                } else {
-                    os::set_accent(&win, false);
-                }
+                os::set_accent(&win, false);
             }
             Look::Solid
         }
@@ -131,7 +122,7 @@ pub fn apply(app: &AppHandle) {
     if now != before {
         crate::log::line(format!("island style: {}", now.as_str()));
         let _ = app.emit_to(WINDOW_LABEL, "island-glass", now.as_str());
-        if now == Look::Blur && !crate::backdrop::active() {
+        if now == Look::Blur {
             check_blur_later(app.clone());
         }
     }
@@ -250,12 +241,6 @@ fn reshape(win: &tauri::WebviewWindow) {
     }
     let r = region(shape, scale);
     os::set_region(win, r);
-    // The frosted backdrop is clipped to the same shape (round 3C item 1).
-    if crate::backdrop::active() {
-        let (x, y, w, h, radius) = shape;
-        let px = |v: f64| (v * scale) as f32;
-        crate::backdrop::shape(win.app_handle(), (px(x), px(y), px(w), px(h), px(radius.clamp(0.0, h.min(w / 2.0)))));
-    }
     // Windows works out where the accent blur goes when it is set: set after
     // a new region, or it keeps filling the old one (CI's corner test saw the
     // tint in the corners, round 3B item 1).

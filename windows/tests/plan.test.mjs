@@ -11,7 +11,7 @@ import {
 import { emit } from "./tauri.mjs";
 import { registerHookHandlers } from "../src/island/hooks.ts";
 import {
-  claudePillVisible, codexPillVisible, openPlanColor, planCardOpen,
+  claudePillVisible, codexPillVisible, planCardOpen,
 } from "../src/views/usage.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
 
@@ -223,19 +223,16 @@ test("the Codex pill needs only its switch, on the overview", () => {
   assert.equal(codexPillVisible(), false);
 });
 
-test("an open card follows its pill, and Groovy wears that plan's colour", () => {
+test("an open card follows its pill", () => {
   State.settings.showPlanInNotch = true;
   State.settings.planRelayInstalled = true;
   State.showingPlanDetail = true;
   assert.equal(planCardOpen(), true);
-  assert.equal(openPlanColor(), "#6B7079");
   // The Codex card cannot be open without its pill.
   State.planDetailIsCodex = true;
   assert.equal(planCardOpen(), false);
   State.settings.showCodexPlanInNotch = true;
   assert.equal(planCardOpen(), true);
-  State.codexPlanUsage = { sevenDay: win(85, Date.now() / 1000 + 3600), updatedAt: Date.now() };
-  assert.equal(openPlanColor(), "#F4505E");
 });
 
 test("focusing another pill closes the plan card", () => {

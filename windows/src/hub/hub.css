@@ -67,19 +67,6 @@ body.hub-window {
   overflow-y: auto;
 }
 
-.hub-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 8px 14px;
-  font: 700 18px var(--font);
-}
-
-.hub-brand canvas {
-  width: 28px;
-  height: 28px;
-}
-
 .hub-group {
   font: 700 10.5px var(--font);
   letter-spacing: 0.12em;
@@ -134,29 +121,6 @@ body.hub-window {
   min-height: 12px;
 }
 
-.hub-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--hub-secondary);
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-.hub-status .dot {
-  width: 7px;
-  height: 7px;
-}
-
-.hub-version {
-  color: var(--hub-muted);
-  font-size: 11px;
-  padding: 8px 12px 0;
-}
-
 /* ── Panel ────────────────────────────────────────────────────────────────── */
 
 .hub-panel {
@@ -192,69 +156,6 @@ body.hub-window {
 }
 
 /* ── Hero band ────────────────────────────────────────────────────────────── */
-
-.hub-hero {
-  position: relative;
-  height: 170px;
-  border-radius: 18px;
-  overflow: hidden;
-  flex: 0 0 auto;
-  border: 1px solid var(--hero-line, rgba(255, 255, 255, 0.1));
-}
-
-.hub-hero.compact {
-  height: 116px;
-}
-
-.hub-hero canvas.backdrop,
-.hub-hero canvas.troupe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.hub-hero .copy {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 26px;
-  max-width: calc(100% - 340px);
-  height: 100%;
-  pointer-events: none;
-}
-
-.hub-hero.compact .copy {
-  padding: 20px;
-}
-
-.hub-hero .copy > * {
-  pointer-events: auto;
-}
-
-.hub-hero h1 {
-  font: 700 30px var(--font);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.hub-hero.compact h1 {
-  font-size: 24px;
-}
-
-.hub-hero p {
-  font-size: 14px;
-  color: #b7bbc2;
-  max-width: 420px;
-}
-
-.hub-hero .actions {
-  margin-top: auto;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 
 /* ── Cards, rows and controls of the Flow pages ───────────────────────────── */
 
@@ -410,18 +311,6 @@ button.hub-icon svg {
 .hub-segmented button.on {
   background: rgba(255, 255, 255, 0.14);
   color: var(--hub-text);
-}
-
-.hub-radio {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
-  border-radius: 50%;
-  border: 1.5px solid #5a5f68;
-}
-
-.hub-radio.on {
-  border: 5px solid var(--hub-accent);
 }
 
 .hub-progress {
@@ -937,10 +826,7 @@ button.hub-icon svg {
   .hub-chart-row {
     grid-template-columns: minmax(0, 1fr);
   }
-  .hub-hero .copy {
-    max-width: 100%;
   }
-}
 
 .hub-note-detail > button {
   align-self: flex-start;
@@ -962,11 +848,8 @@ button.hub-icon svg {
     padding: 8px 10px;
     gap: 4px;
   }
-  .hub-side .hub-brand,
   .hub-side .hub-group,
-  .hub-side .spacer,
-  .hub-side .hub-status,
-  .hub-side .hub-version {
+  .hub-side .spacer {
     display: none;
   }
   .hub-item {
@@ -981,10 +864,7 @@ button.hub-icon svg {
   .hub-scroll {
     padding: 14px 12px 20px;
   }
-  .hub-hero .troupe {
-    display: none;
   }
-}
 
 /* Light local (round 2 item 3) */
 .card.light-local {
@@ -1047,8 +927,6 @@ body.hub-window {
 /* Switches and checkboxes move rather than snap. */
 .switch,
 .switch::after,
-.hub-toggle,
-.hub-toggle::after,
 input[type="checkbox"] {
   transition:
     background-color var(--motion-small) var(--ease-out),
@@ -1162,17 +1040,6 @@ body.hub-window.closing #hub {
   outline: 2px solid var(--hub-accent);
   outline-offset: 1px;
 }
-.hub-chevron {
-  width: 7px;
-  height: 7px;
-  border-right: 1.6px solid currentColor;
-  border-bottom: 1.6px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform var(--motion-small, 180ms) var(--ease-out, ease-out);
-}
-.hub-group.open .hub-chevron { transform: rotate(45deg); }
-.hub-section-pages { display: flex; flex-direction: column; gap: 3px; animation: hub-unfold var(--motion-small, 180ms) var(--ease-out, ease-out); }
-.hub-section-pages.folded { display: none; }
 @keyframes hub-unfold {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
@@ -1238,12 +1105,8 @@ body.hub-window.closing #hub {
 }
 .hub-home-him { display: flex; align-items: center; gap: 14px; padding: 6px 2px; }
 .hub-home-him > div { flex: 1 1 auto; }
-.hub-home-name { font: 600 18px var(--font); color: var(--hub-text); }
 .hub-empty { display: flex; align-items: center; gap: 10px; padding: 10px 2px; color: var(--hub-secondary); font: 13px var(--font); }
-.hub-empty-icon { width: 26px; height: 26px; border-radius: 999px; display: inline-grid; place-items: center; background: rgba(52, 211, 153, 0.15); color: var(--hub-green); }
 @media (prefers-reduced-motion: reduce) {
-  .hub-chevron { transition-duration: 0s; }
-  .hub-section-pages { animation: none; }
   .hub-found { animation: none; outline: 2px solid var(--hub-accent); }
 }
 
@@ -1352,28 +1215,13 @@ body.hub-window {
 .hub-page { max-width: 760px; margin: 0 auto; gap: 16px; }
 .hub-page #settings-root { display: flex; flex-direction: column; gap: 16px; }
 .hub-scroll { padding: 24px; }
-.hub-hero { height: 116px; }
-.hub-hero .copy { padding: 20px 24px; gap: 4px; }
-.hub-hero h1 { font: 600 24px var(--font); letter-spacing: -0.01em; }
-.hub-hero p { font-size: 13px; }
-.hub-t-header { display: flex; align-items: flex-start; gap: 16px; }
-.hub-t-header > div { flex: 1 1 auto; }
-.hub-t-header h1 { font: 600 24px var(--font); color: var(--hub-text); }
-.hub-t-header p { font-size: 13px; color: var(--hub-secondary); margin-top: 4px; }
 .hub-t-actions { display: flex; gap: 8px; }
-.hub-t-group { display: flex; flex-direction: column; gap: 8px; }
-.hub-t-label, .hub-label {
+.hub-label {
   font: 600 11px var(--font);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--hub-muted);
   padding: 0 4px;
-}
-.hub-t-card {
-  background: var(--hub-card);
-  border: 1px solid var(--hub-line);
-  border-radius: 12px;
-  overflow: hidden;
 }
 .hub-t-row {
   display: flex;
@@ -1614,8 +1462,6 @@ section.hub-t-legacy .hub-t-detail {
   margin-top: 16px;
 }
 /* The band is dark in both themes: its words stay light. */
-.hub-hero h1 { color: #f5f6f8; }
-.hub-hero p { color: rgba(245, 246, 248, 0.72); }
 /* A status line with nothing to say yet is not a blank row. */
 section.hub-t-legacy > :empty { display: none; }
 
@@ -1695,20 +1541,19 @@ body.hub-window {
 .hub-tab:hover:not(.on) { color: var(--hub-text); }
 
 /* Group labels and cards. */
-.hub-label, .hub-t-label {
+.hub-label {
   font: 700 10.5px var(--font);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--hub-muted);
   margin: 0;
 }
-.hub-card, .hub-t-card {
+.hub-card {
   background: var(--v2-card);
   border: 1px solid var(--v2-edge);
   border-radius: 16px;
   box-shadow: none;
 }
-.hub-t-group { gap: 8px; }
 .hub-row, .hub-t-row {
   min-height: 64px;
   padding: 0 18px;

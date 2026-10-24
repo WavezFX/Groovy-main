@@ -144,6 +144,7 @@ pub async fn island_pick_folder(app: AppHandle) -> Result<Option<String>, String
 
 // ── Mail from Windows' notifications ─────────────────────────────────────────
 
+#[cfg(windows)]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MailNote {
