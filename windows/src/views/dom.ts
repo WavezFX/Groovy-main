@@ -89,7 +89,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     else if (k === "text") el.textContent = String(v);
     else if (k.startsWith("on") && typeof v === "function") {
       el.addEventListener(k.slice(2).toLowerCase(), v as EventListener);
-    } else if (k === "style") el.setAttribute("style", String(v));
+    // CSSOM, not the attribute: the page's CSP has no style-src 'unsafe-inline' (round 3G item 3).
+    } else if (k === "style") (el as HTMLElement).style.cssText = String(v);
     else el.setAttribute(k, v === true ? "" : String(v));
   }
   for (const c of children) {

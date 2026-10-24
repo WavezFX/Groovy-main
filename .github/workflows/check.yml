@@ -71,6 +71,16 @@ jobs:
       - name: Front-end tests
         run: npm test
 
+      # Round 3G item 3: every page opens under the release CSP (no inline
+      # styles, no wildcard wss:) with a frozen Object.prototype.
+      - name: Pages work under the release CSP
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: |
+          npm i --no-save playwright-core@1.48.2
+          npx vite build
+          node --import ./tests/setup.mjs scripts/csp-check.mjs
+
       # The app's build script bundles the relay (groovy-hook), so it is built first.
       - name: Build the relay
         run: cargo build --release -p groovy-hook

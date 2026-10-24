@@ -5,6 +5,7 @@
 
 import { installErrorReporting, showError } from "../views/toast";
 import "./settings.css";
+import "../views/toast.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {

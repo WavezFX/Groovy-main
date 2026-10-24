@@ -162,7 +162,7 @@ function numbers(stats: FlowStats | null): HTMLElement {
   const big = (value: string, text: string) => h("div", { class: "hub-big-number" }, h("b", { text: value }), h("span", { text }));
   const ok = h("div", { class: "hub-ok" });
   ok.append(icon("check"), h("span", { text: t("Unlimited and free") }));
-  ok.querySelector("svg")!.setAttribute("style", "width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2");
+  ok.querySelector("svg")!.style.cssText = "width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2";
   return card(
     big(shortCount(all?.words ?? 0), t("words dictated")),
     big(number(all?.wordsPerMinute ?? 0), t("words/min")),

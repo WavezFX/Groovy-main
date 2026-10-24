@@ -74,15 +74,4 @@ export function installErrorReporting(mode: "page" | "notice") {
     console.error("[groovy] unhandled", e.reason);
     show(errorText(e.reason));
   });
-  if (mode === "page" && !document.getElementById("toast-style")) {
-    const style = document.createElement("style");
-    style.id = "toast-style";
-    style.textContent = `
-.toasts { position: fixed; inset-inline-end: 16px; bottom: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
-.toast { display: flex; gap: 10px; align-items: flex-start; background: #2a1215; color: #ffd9dc; border: 1px solid #f05252; border-radius: 10px; padding: 10px 12px; font: 13px/1.4 system-ui, "Segoe UI", sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
-.toast-text { flex: 1; white-space: pre-wrap; word-break: break-word; }
-.toast-close { background: none; border: 0; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px; }
-@media (prefers-color-scheme: light) { .toast { background: #fff1f2; color: #8a1c24; } }`;
-    document.head.append(style);
-  }
 }

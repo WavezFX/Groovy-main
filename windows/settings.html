@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Groovy</title>
     <!-- The first frame, before the styles load: never white in dark, never black in light. -->
-    <style>
-      body { background: #000; color: #f5f6f8; }
-      @media (prefers-color-scheme: light) { body { background: #e9ebef; color: #15171a; } }
-    </style>
+    <link rel="stylesheet" href="/src/settings/first-frame.css" />
   </head>
   <body class="settings-window hub-window">
-    <div id="hub"><p style="padding: 24px">Loading…</p></div>
+    <div id="hub"><p class="boot-note">Loading…</p></div>
     <script type="module" src="/src/settings/main.ts"></script>
   </body>
 </html>

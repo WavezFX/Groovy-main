@@ -1,0 +1,4 @@
+/* The first frame, before the styles load (settings.html): never white in dark, never black in light. */
+body { background: #000; color: #f5f6f8; }
+@media (prefers-color-scheme: light) { body { background: #e9ebef; color: #15171a; } }
+.boot-note { padding: 24px; }

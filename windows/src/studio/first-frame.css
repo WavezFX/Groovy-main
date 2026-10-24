@@ -1,0 +1,3 @@
+/* The first frame, before the Studio's styles load (studio.html). */
+body.studio-window { background: #0b0c0e; color: #f5f6f8; }
+.boot-note { padding: 24px; }

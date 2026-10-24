@@ -17,6 +17,9 @@ export default defineConfig({
     target: "chrome110",
     minify: "esbuild",
     sourcemap: false,
+    // Fonts stay files: inlined as data: URIs they are blocked by the CSP's
+    // font-src 'self' (scripts/csp-check.mjs found Manrope was never loading).
+    assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
     emptyOutDir: true,
     rollupOptions: {
       input: {

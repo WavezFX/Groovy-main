@@ -6,6 +6,7 @@
 // The backend is src-tauri/src/studio.rs.
 
 import "./studio.css";
+import "../views/toast.css";
 import { invoke } from "@tauri-apps/api/core";
 import { Bridge, IS_TAURI, onEvent } from "../core/bridge";
 import { DEFAULT_SETTINGS } from "../core/state";
