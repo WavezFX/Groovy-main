@@ -59,6 +59,16 @@ jobs:
         with:
           workspaces: windows
 
+      # rust-cache can bring back sherpa-onnx-sys's build outputs without the
+      # prebuilt speech engine its build script downloaded into target/, and the
+      # build then fails to find the library. Without the download, the build
+      # script is made to run again.
+      - name: Make sherpa-onnx fetch its library again if the cache lost it
+        run: |
+          if [ ! -d target/sherpa-onnx-prebuilt ]; then
+            rm -rf target/*/build/sherpa-onnx-sys-* target/*/.fingerprint/sherpa-onnx-sys-*
+          fi
+
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
