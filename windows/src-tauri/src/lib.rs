@@ -241,9 +241,10 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     island::refresh_click_through(&app, &shared.gate);
     shared.gate.set_active(!collapsed);
     platform::set_pointer_watch(!collapsed);
-    // Folded away: its webview keeps as little memory as it can until it opens.
+    // Folded away: its webview keeps as little memory as it can until it opens
+    // (and while a model that only just fits is loaded, ceiling.rs).
     if let Some(win) = island::window(&app) {
-        webview_memory::set_low(&win, collapsed);
+        webview_memory::set_low(&win, collapsed || ceiling::squeezed());
     }
 }
 

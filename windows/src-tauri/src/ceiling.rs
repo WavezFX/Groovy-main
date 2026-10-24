@@ -27,7 +27,9 @@ pub const PRESSURE_MB: f64 = 380.0;
 #[allow(dead_code)] // used only with the "voice" feature
 /// Whisper while it transcribes (its buffers too), as CI's peak test saw it.
 pub const WHISPER_MB: f64 = 240.0;
-pub const KOKORO_MB: f64 = 230.0;
+/// Kokoro loaded (about 225 MB) and speaking a sentence (up to about 90 MB
+/// more), as CI's peak test and a run of the same sherpa-onnx here saw it.
+pub const KOKORO_MB: f64 = 310.0;
 
 /// How often the watcher reads the total.
 const EVERY: Duration = Duration::from_secs(3);
@@ -112,7 +114,43 @@ pub fn make_room(loading: &str, extra_mb: f64) {
     if !fits(after, extra_mb) {
         if let Some(app) = APP.get() {
             close_oldest_panel(app);
+            squeeze(app, after);
         }
+    }
+}
+
+/// While a model that only just fits is loaded, the island gives back what it
+/// can: its pages drop their caches, and its WebView runs at WebView2's Low
+/// memory target. Back to normal as soon as the model is freed (`start`).
+static SQUEEZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn squeeze(app: &AppHandle, now: f64) {
+    let _ = app.emit("memory-pressure", now);
+    if let Some(win) = app.get_webview_window(crate::island::WINDOW_LABEL) {
+        crate::webview_memory::set_low(&win, true);
+        if !SQUEEZED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            crate::log::line("memory: the island runs light while the model is loaded");
+        }
+    }
+}
+
+pub fn squeezed() -> bool {
+    SQUEEZED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+fn models_loaded() -> bool {
+    crate::speech::is_loaded() || crate::voice::is_loaded() || crate::speech::tts::is_loaded()
+}
+
+fn unsqueeze(app: &AppHandle) {
+    if SQUEEZED.load(std::sync::atomic::Ordering::Relaxed) && !models_loaded() {
+        SQUEEZED.store(false, std::sync::atomic::Ordering::Relaxed);
+        let folded = app.try_state::<crate::Shared>().is_some_and(|s| s.gate.collapsed.load(std::sync::atomic::Ordering::Relaxed));
+        // Folded, the island keeps its own Low target (lib.rs set_collapsed).
+        if let (false, Some(win)) = (folded, app.get_webview_window(crate::island::WINDOW_LABEL)) {
+            crate::webview_memory::set_low(&win, false);
+        }
+        crate::log::line("memory: the model is freed, the island is back to normal");
     }
 }
 
@@ -235,6 +273,7 @@ pub fn start(app: &AppHandle) {
                     *peak = now;
                 }
             }
+            unsqueeze(&app);
             if now >= PRESSURE_MB && last.is_none_or(|t| t.elapsed() >= COOLDOWN) {
                 last = Some(Instant::now());
                 relieve(&app, now);
@@ -355,7 +394,8 @@ mod tests {
     fn a_model_loads_only_when_it_fits_under_the_line() {
         assert!(fits(130.0, WHISPER_MB), "the island alone and Whisper fit");
         assert!(!fits(200.0, WHISPER_MB), "with Settings open too, Settings closes first");
-        assert!(!fits(300.0, KOKORO_MB), "the voice would cross 380 MB: speech goes first");
+        assert!(!fits(120.0, KOKORO_MB), "the voice and the island only just fit: the island runs light");
+        assert!(fits(60.0, KOKORO_MB), "with the island light, the voice fits");
         assert!(PRESSURE_MB < CEILING_MB);
     }
 
