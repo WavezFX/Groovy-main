@@ -61,7 +61,19 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 8. Merge the two Voice settings pages
 - [ ] 9. Checks
 
-## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this after 3F, then round 5, then finish 3D items 11, 7 and 6.**
+## 1G. Fixes round 3G: `FIXES_ROUND3G.md` (security hardening and a tidy CI). **After 3F, before 3E.**
+- [ ] 1. Command approval decided in Rust, never trusted from the page (`studio_run` and every action tool)
+- [ ] 2. Per-window capabilities: each window can only call the commands it needs
+- [ ] 3. Tighter CSP (no wildcard `wss:`, `object-src 'none'` and friends, freezePrototype)
+- [ ] 4. Named pipe with an explicit current-user-only DACL
+- [ ] 5. Untrusted content (mail, web, issues) can't trigger actions without approval
+- [ ] 6. Test environment switches compiled out of the release build
+- [ ] 7. Logs redact keys and tokens
+- [ ] 8. Dependabot, cargo audit, npm audit and gitleaks in CI
+- [ ] 9. Fast check on every push; full build on demand / `[build]` / nightly into one "Groovy latest build" release; short retention and run clean-up
+- [ ] 10. Checks
+
+## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this after 3F and 3G, then round 5, then finish 3D items 11, 7 and 6.**
 - [ ] 1. Island tiles look right at normal size: smaller text, a compact Spotify tile, a narrower Groovy area, a big page switcher
 - [ ] 2. Real app icons, never letters (apps, websites, folders, service logos)
 - [ ] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
