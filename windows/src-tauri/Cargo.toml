@@ -125,6 +125,8 @@ windows = { version = "0.61", features = [
   "Win32_System_Threading",
   # Groovy's memory ceiling: the private working set of its processes (ceiling.rs).
   "Win32_System_ProcessStatus",
+  # Freed models' memory handed back at once (ceiling.rs give_back).
+  "Win32_System_Memory",
   "Win32_UI_Input_KeyboardAndMouse",
   # Dictation learns from corrections: the focused field's text (flow/os_windows.rs).
   "Win32_UI_Accessibility",

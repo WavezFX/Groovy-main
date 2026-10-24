@@ -25,7 +25,8 @@ pub const PRESSURE_MB: f64 = 380.0;
 
 /// About what each model adds once loaded, measured on Windows (MB).
 #[allow(dead_code)] // used only with the "voice" feature
-pub const WHISPER_MB: f64 = 110.0;
+/// Whisper while it transcribes (its buffers too), as CI's peak test saw it.
+pub const WHISPER_MB: f64 = 240.0;
 pub const KOKORO_MB: f64 = 230.0;
 
 /// How often the watcher reads the total.
@@ -90,7 +91,9 @@ pub fn fits(now: f64, extra_mb: f64) -> bool {
 }
 
 /// Before a model loads: if it wouldn't fit, the other speech model goes
-/// first ("one model at a time"). `loading` is "speech" or "voice".
+/// first ("one model at a time"), its memory is handed back to Windows at
+/// once, and if it still wouldn't fit the panel window used longest ago
+/// closes. `loading` is "speech" or "voice".
 pub fn make_room(loading: &str, extra_mb: f64) {
     let now = total_mb();
     if now <= 0.0 || fits(now, extra_mb) {
@@ -103,8 +106,26 @@ pub fn make_room(loading: &str, extra_mb: f64) {
         }
         _ => crate::speech::tts::free(),
     }
-    crate::log::line(format!("memory: {now:.0} MB, making room for {loading} (+{extra_mb:.0} MB) by freeing the other model"));
+    give_back();
+    let after = total_mb();
+    crate::log::line(format!("memory: {now:.0} MB, making room for {loading} (+{extra_mb:.0} MB) by freeing the other model: {after:.0} MB"));
+    if !fits(after, extra_mb) {
+        if let Some(app) = APP.get() {
+            close_oldest_panel(app);
+        }
+    }
 }
+
+/// Hands memory a freed model leaves behind back to Windows straight away:
+/// the heaps' free blocks are released and the pages left are trimmed from
+/// the working set (they come back on use). Without it a freed model's
+/// memory stayed counted for seconds, long enough to cross the ceiling when
+/// the next model loaded (CI's peak test, 446 MB).
+pub fn give_back() {
+    os::give_back();
+}
+
+static APP: std::sync::OnceLock<AppHandle> = std::sync::OnceLock::new();
 
 /// When each panel window was last focused, to close the oldest first.
 static USED: Mutex<Vec<(String, Instant)>> = Mutex::new(Vec::new());
@@ -167,11 +188,30 @@ fn relieve(app: &AppHandle, now: f64) {
             open.push(label);
         }
     }
+    close_oldest(app, open, focused);
+    give_back();
+}
+
+fn close_oldest(app: &AppHandle, open: Vec<String>, focused: Option<String>) {
     let used = USED.lock().unwrap().clone();
     if let Some(label) = oldest_panel(&open, focused.as_deref(), &used) {
         crate::log::line(format!("memory: closing {label}, the panel used longest ago"));
         close_panel(app, &label);
     }
+}
+
+fn close_oldest_panel(app: &AppHandle) {
+    let mut open = Vec::new();
+    let mut focused = None;
+    for (label, win) in app.webview_windows() {
+        if PANELS.contains(&label.as_str()) {
+            if win.is_focused().unwrap_or(false) {
+                focused = Some(label.clone());
+            }
+            open.push(label);
+        }
+    }
+    close_oldest(app, open, focused);
 }
 
 /// The highest total seen since Groovy started, for the System page.
@@ -182,6 +222,7 @@ pub fn peak_mb() -> f64 {
 }
 
 pub fn start(app: &AppHandle) {
+    let _ = APP.set(app.clone());
     let app = app.clone();
     let _ = std::thread::Builder::new().name("groovy-memory".into()).spawn(move || {
         let mut last: Option<Instant> = None;
@@ -219,6 +260,20 @@ mod os {
             let _ = CloseHandle(h);
             r.ok()?;
             Some(c.PrivateWorkingSetSize as f64 / (1024.0 * 1024.0))
+        }
+    }
+
+    pub fn give_back() {
+        use windows::Win32::System::Memory::{GetProcessHeaps, HeapCompact, HEAP_FLAGS};
+        use windows::Win32::System::ProcessStatus::EmptyWorkingSet;
+        use windows::Win32::System::Threading::GetCurrentProcess;
+        unsafe {
+            let mut heaps = vec![Default::default(); 64];
+            let n = (GetProcessHeaps(&mut heaps) as usize).min(heaps.len());
+            for heap in &heaps[..n] {
+                HeapCompact(*heap, HEAP_FLAGS(0));
+            }
+            let _ = EmptyWorkingSet(GetCurrentProcess());
         }
     }
 
@@ -265,6 +320,8 @@ mod os {
         sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
         sys.process(pid).map(|p| vec![Part { kind: "groovy".into(), mb: p.memory() as f64 / (1024.0 * 1024.0) }]).unwrap_or_default()
     }
+
+    pub fn give_back() {}
 }
 
 #[cfg(test)]
@@ -296,7 +353,8 @@ mod tests {
 
     #[test]
     fn a_model_loads_only_when_it_fits_under_the_line() {
-        assert!(fits(200.0, WHISPER_MB));
+        assert!(fits(130.0, WHISPER_MB), "the island alone and Whisper fit");
+        assert!(!fits(200.0, WHISPER_MB), "with Settings open too, Settings closes first");
         assert!(!fits(300.0, KOKORO_MB), "the voice would cross 380 MB: speech goes first");
         assert!(PRESSURE_MB < CEILING_MB);
     }
