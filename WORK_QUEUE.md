@@ -35,7 +35,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 4. Tiles open in the island (soft settings): Reminders, This PC, Mail, Spotify and the others
 - [x] 5. Connect real mail: Gmail, Outlook, iCloud (iPhone) and IMAP
 - [x] 6. Settings animates open and closed (no pop-in, no white flash)
-- [ ] 7. Checks
+- [x] 7. Checks
 
 ## 1D. Fixes round 3D: `FIXES_ROUND3D.md` (a professional Settings window, and a local AI that runs smoothly). **After 3C, before round 5.**
 - [ ] 1. Reorganise Settings into grouped sections, with search (**match `docs/design/settings-v2/`**)
