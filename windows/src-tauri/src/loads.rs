@@ -53,6 +53,7 @@ pub fn note(part: Part, why: &str) {
     crate::log::line(format!("load: {} ({why})", part.name()));
 }
 
+#[cfg(any(feature = "worktest", test))]
 pub fn count(part: Part) -> u64 {
     COUNTS[part.index()].load(Ordering::Relaxed)
 }
@@ -81,6 +82,7 @@ pub fn island_visible() {
     }
 }
 
+#[cfg(any(feature = "worktest", test))]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Report {
@@ -88,6 +90,7 @@ pub struct Report {
     pub island_visible_ms: Option<u64>,
 }
 
+#[cfg(any(feature = "worktest", test))]
 pub fn report() -> Report {
     Report { counts: Part::ALL.iter().map(|p| (p.name(), count(*p))).collect(), island_visible_ms: *ISLAND_VISIBLE_MS.lock().unwrap() }
 }

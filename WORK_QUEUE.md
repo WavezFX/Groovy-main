@@ -52,7 +52,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 1F. Fixes round 3F: `FIXES_ROUND3F.md` (dead code, duplicate logic and bloat). **Do this first, before 3E.** No user-facing feature is removed.
 - [x] 1. Delete what's provably dead (backdrop.rs, `load_report`, unused exports, clippy/machete/knip sweep)
-- [ ] 2. Test-only code (worktest.rs) out of the release build
+- [x] 2. Test-only code (worktest.rs) out of the release build
 - [ ] 3. One resource manager instead of six (idle, loads, ceiling, webview_memory, runtime_state, three reapers)
 - [ ] 4. One event-driven scheduler instead of always-on polling loops (idle CPU ≈ 0 %, threads halved)
 - [ ] 5. One speech runtime: dictation on sherpa-onnx, drop whisper-rs

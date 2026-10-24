@@ -338,6 +338,7 @@ fn kokoro_state() -> super::ModelState {
 }
 
 /// Kokoro's files, downloaded now if missing (CI's peak test).
+#[cfg(feature = "worktest")]
 pub async fn kokoro_fetch() -> Result<(), String> {
     if KOKORO.is_present() {
         return Ok(());

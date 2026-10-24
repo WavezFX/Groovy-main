@@ -23,6 +23,7 @@ mod pc;
 mod browser;
 mod calls;
 mod ceiling;
+#[cfg(feature = "worktest")]
 mod worktest;
 mod identity;
 mod integrations;
@@ -1713,6 +1714,7 @@ pub fn run() {
             models::spawn_idle_reaper();
             speech::spawn_idle_reaper();
             ceiling::start(&handle);
+            #[cfg(feature = "worktest")]
             worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());

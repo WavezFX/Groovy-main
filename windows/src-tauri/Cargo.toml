@@ -19,6 +19,11 @@ default = ["voice"]
 # Building it needs CMake and a C++ compiler (and LLVM/libclang for bindgen);
 # `cargo build --no-default-features` leaves voice out.
 voice = ["dep:whisper-rs"]
+# CI's realistic memory and peak tests (worktest.rs): Groovy does real work by
+# itself and writes a report. Off by default: the release build, the
+# installers and the portable exe don't contain it. CI builds a second exe
+# with `tauri build --no-bundle --features worktest` for those two steps only.
+worktest = []
 
 [dependencies]
 whisper-rs = { version = "0.14", optional = true }

@@ -218,14 +218,31 @@ jobs:
             ~/AppData/Local/Groovy/runtime
           key: windows-models-v2
 
+      # Round 3F item 2: the harness behind these two steps (worktest.rs) is a
+      # cargo feature that is off in everything shipped. It is built into a
+      # separate exe, here, for the two steps below only; the shipped exe is
+      # checked not to contain it.
+      - name: Build the test exe (worktest feature) and check the shipped exe has none of it
+        shell: pwsh
+        run: |
+          $has = { param($path) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains("GROOVY_WORK_TEST") }
+          if (& $has release/groovy.exe) { throw "the shipped groovy.exe contains the work test harness" }
+          npx tauri build --no-bundle --features worktest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force release/test | Out-Null
+          Copy-Item target/release/groovy.exe release/test/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/test/groovy-hook.exe -ErrorAction SilentlyContinue
+          if (-not (& $has release/test/groovy.exe)) { throw "the test exe was built without the work test harness" }
+          "shipped exe: no harness; test exe: harness present"
+
       - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
         shell: pwsh
-        run: ./scripts/work-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
+        run: ./scripts/work-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
       # Round 3D item 7: never over 400 MB, even at peak (sampled every 250 ms).
       - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, OK Groovy, mail)
         shell: pwsh
-        run: ./scripts/peak-test.ps1 -Exe release/groovy.exe -Audio src-tauri/tests/audio
+        run: ./scripts/peak-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
       - name: Save the downloaded models
         if: always() && steps.models-cache.outputs.cache-hit != 'true'
