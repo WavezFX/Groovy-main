@@ -1,6 +1,7 @@
 // Groovy for Windows — app wiring and the commands the island calls.
 
 mod agent_hooks;
+mod loads;
 mod agents;
 mod assistant;
 mod brain_ai;
@@ -244,6 +245,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
 #[tauri::command]
 fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width: f64, height: f64, radius: Option<f64>) {
     shared.gate.set_rect(island::IslandRect { x, y, w: width, h: height });
+    if height > 0.0 {
+        loads::island_visible();
+    }
     glass::shape(&app, x, y, width, height, radius.unwrap_or(0.0));
     // Without the cursor poll the input region is the click-through: it follows the island.
     if !platform::CURSOR_POLL {
@@ -1202,6 +1206,7 @@ fn open_settings_window(app: AppHandle, page: Option<String>) {
 }
 
 pub fn run() {
+    loads::process_started();
     platform::prepare_environment();
     log::install_crash_handler();
     let first_run = settings::first_run();
@@ -1423,6 +1428,7 @@ pub fn run() {
             sounds::custom_sound,
             sounds::reveal_sounds_folder,
             log::reveal_logs_folder,
+            loads::load_report,
             free_memory_now,
             sounds::reload_sounds,
             spotify::spotify_refresh,

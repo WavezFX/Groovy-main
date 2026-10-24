@@ -809,6 +809,7 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     if let Some(dir) = exe.parent() {
         cmd.current_dir(dir);
     }
+    crate::loads::note(crate::loads::Part::LocalLlm, "the built-in model was asked to answer");
     let child = platform::no_console(&mut cmd).spawn().map_err(|e| format!("Couldn't start llama-server: {e}"))?;
     platform::contain(&child);
     log::line(format!("local model starting: {wanted} (ctx {}, {} threads, port {port})", prof.context, prof.threads));

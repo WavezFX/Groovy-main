@@ -250,6 +250,7 @@ fn load() -> Option<Arc<OfflineTts>> {
         max_num_sentences: 1,
         ..Default::default()
     };
+    crate::loads::note(crate::loads::Part::Kokoro, "the offline voice");
     let tts = Arc::new(OfflineTts::create(&config)?);
     crate::log::line(format!("Kokoro loaded in {:?}", started.elapsed()));
     *e = Some(Loaded { tts: tts.clone(), used: Instant::now() });

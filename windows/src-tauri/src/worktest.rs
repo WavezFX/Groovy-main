@@ -35,6 +35,9 @@ pub fn start(app: &AppHandle) {
         let dir = PathBuf::from(dir);
         let t = Instant::now();
         step("models downloaded", t, tauri::async_runtime::block_on(models(&app)));
+        // Round 3D item 9: with every model on disk, none was loaded "just in case".
+        let t = Instant::now();
+        step("nothing loaded at start-up", t, nothing_loaded());
         let t = Instant::now();
         step("dictation", t, dictation(&app, &dir));
         let t = Instant::now();
@@ -50,6 +53,18 @@ pub fn start(app: &AppHandle) {
             crate::log::line(format!("work test: could not write the report: {e}"));
         }
     });
+}
+
+/// No offline engine, local model or helper was loaded before any work asked for one.
+fn nothing_loaded() -> Result<String, String> {
+    use crate::loads::{count, Part};
+    let loaded: Vec<&str> = [Part::OfflineStt, Part::Kokoro, Part::LocalLlm, Part::LocalServer].into_iter().filter(|p| count(*p) > 0).map(|p| p.name()).collect();
+    let visible = crate::loads::report().island_visible_ms.map(|ms| format!("island visible after {ms} ms")).unwrap_or_default();
+    if loaded.is_empty() {
+        Ok(visible)
+    } else {
+        Err(format!("loaded before any work: {}", loaded.join(", ")))
+    }
 }
 
 async fn models(app: &AppHandle) -> Result<String, String> {

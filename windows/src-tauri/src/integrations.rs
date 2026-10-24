@@ -85,6 +85,22 @@ fn enabled(app: &AppHandle, id: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// While the island is closed, a tile can't be seen: its service is asked at
+/// most this often (round 3D item 9: the slowest rate that still works; a
+/// change still arrives within two minutes for its badge and sound).
+pub const CLOSED_EVERY_SECS: u64 = 120;
+
+/// The island is open (taller than the compact bar), so its tiles are on screen.
+fn island_open(app: &AppHandle) -> bool {
+    app.try_state::<crate::Shared>().is_some_and(|s| s.gate.rect.lock().unwrap().h > 60.0)
+}
+
+/// Whether a poll is due: at its own pace while the tiles are seen, else every CLOSED_EVERY_SECS.
+pub fn due(open: bool, since_last: Option<Duration>, every_secs: u64) -> bool {
+    let wait = if open { every_secs } else { every_secs.max(CLOSED_EVERY_SECS) };
+    since_last.is_none_or(|d| d.as_secs() + 1 >= wait)
+}
+
 fn spawn<F, Fut>(app: AppHandle, id: &'static str, delay_secs: u64, every_secs: u64, poll: F)
 where
     F: Fn(AppHandle) -> Fut + Send + 'static,
@@ -93,6 +109,7 @@ where
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_secs(delay_secs)).await;
         let mut ticker = tokio::time::interval(Duration::from_secs(every_secs));
+        let mut last: Option<std::time::Instant> = None;
         loop {
             ticker.tick().await;
             // The ticker keeps its cadence; we just decline to do the work. An
@@ -102,6 +119,10 @@ where
             if PAUSED.load(Ordering::Relaxed) || !enabled(&app, id) {
                 continue;
             }
+            if !due(island_open(&app), last.map(|t| t.elapsed()), every_secs) {
+                continue;
+            }
+            last = Some(std::time::Instant::now());
             poll(app.clone()).await;
         }
     });
@@ -1057,6 +1078,16 @@ fn fmt_value(v: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn closed_island_polls_at_the_slow_rate() {
+        let s = Duration::from_secs;
+        assert!(due(true, None, 30), "the first poll is never held back");
+        assert!(due(true, Some(s(30)), 30), "open: its own pace");
+        assert!(!due(false, Some(s(30)), 30), "closed: not every 30 s");
+        assert!(due(false, Some(s(120)), 30), "closed: every two minutes");
+        assert!(due(false, Some(s(300)), 300), "slow ones keep their own pace");
+    }
 
     #[test]
     fn github_card_data_sends_only_what_is_known() {

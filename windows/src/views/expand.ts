@@ -13,7 +13,7 @@ import { t } from "../i18n/i18n";
 import { clear, h, svg } from "./dom";
 import { ICONS } from "./icons";
 import { SYSTEM_EVERY_MS, bytes, connectAccount, mailTime, remindersBody, speed } from "./panel";
-import { seek, setFlag, togglePlay } from "./spotify";
+import { playOrOpen, seek, setFlag } from "./spotify";
 import { Mail } from "./tiles";
 import { errorText, showError } from "./toast";
 
@@ -45,15 +45,6 @@ function roundButton(path: string, label: string, size: number, icon: number, on
     onclick();
   });
   return b;
-}
-
-/** Play, or open Spotify when it isn't running (as the tile always did). */
-export function playOrOpen() {
-  if (!Spotify.state.running) {
-    void Bridge.spotifyOpen();
-    return;
-  }
-  togglePlay();
 }
 
 function artInto(box: HTMLElement) {

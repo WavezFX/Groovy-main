@@ -39,17 +39,30 @@ for (const scheme of ["dark", "light"]) {
 
 // Round 3D item 4: switching pages in one window, by the sidebar, each under 100 ms.
 const tour = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+// Round 3D item 9: a page's own code is fetched the first time it opens, and only then.
+const LAZY = ["brains", "wardrobe", "islandpage", "system", "memory", "voice", "music", "phone"];
+let round = -1;
+const fetched = [];
+tour.on("request", (r) => {
+  const m = r.url().match(/\/src\/settings\/(\w+)\.ts/);
+  if (m && LAZY.includes(m[1])) fetched.push([round, m[1]]);
+});
 await tour.goto(`${base}/settings.html?page=home`, { waitUntil: "load" });
 await tour.evaluate(() => document.body.classList.add("shown"));
 await tour.waitForTimeout(1500);
 const items = await tour.$$(".hub-item");
-for (let round = 0; round < 2; round++) {
+for (round = 0; round < 2; round++) {
   for (const item of items) {
     await item.click();
     await tour.waitForTimeout(350);
   }
 }
 const switches = await tour.evaluate(() => window.__hubSwitchMs ?? {});
+const at = (r) => fetched.filter(([n]) => n === r).map(([, m]) => m);
+console.log(`page code fetched at start: ${at(-1).join(", ") || "none"}; first visits: ${[...new Set(at(0))].join(", ")}; second visits: ${at(1).join(", ") || "none"}`);
+if (at(-1).length) errors.push(`opening Settings on Home fetched ${at(-1).join(", ")} (they load on their first visit)`);
+for (const m of ["brains", "wardrobe", "islandpage", "system"]) if (!at(0).includes(m)) errors.push(`${m}: its code wasn't fetched on its first visit`);
+if (at(1).length) errors.push(`a second visit fetched ${at(1).join(", ")} again`);
 
 // Left untouched, the window stops drawing (near 0 CPU): no frame asked for in 3 s.
 await tour.mouse.move(990, 890);

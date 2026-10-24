@@ -152,6 +152,7 @@ impl Spotter {
             keywords_buf: Some(KEYWORDS.to_string()),
             ..Default::default()
         };
+        crate::loads::note(crate::loads::Part::WakeWord, "« OK Groovy » is on");
         KeywordSpotter::create(&config).map(|kws| Spotter { kws })
     }
 

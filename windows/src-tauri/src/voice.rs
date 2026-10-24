@@ -241,6 +241,7 @@ fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<S
     *WHISPER_USED.lock().unwrap() = Some(std::time::Instant::now());
     let mut guard = LOADED.lock().unwrap();
     if guard.as_ref().map(|(name, _)| name.as_str()) != Some(model) {
+        crate::loads::note(crate::loads::Part::OfflineStt, "Whisper, for speech on this PC");
         let ctx = WhisperContext::new_with_params(&path.to_string_lossy(), WhisperContextParameters::default())
             .map_err(|e| format!("The speech model couldn't be loaded ({e})."))?;
         *guard = Some((model.to_string(), ctx));

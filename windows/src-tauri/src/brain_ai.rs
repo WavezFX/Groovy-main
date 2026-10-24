@@ -308,6 +308,7 @@ async fn post_to(endpoint: Url, key: Option<&str>, body: &Value, timeout: Durati
 async fn openai_turn(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, who: Who, mut body: Value, timeout: Duration) -> Result<Value, String> {
     match who {
         Who::Local => {
+            crate::loads::note(crate::loads::Part::LocalServer, "a local brain answers this request");
             let l = local(app, s, prefs).await?;
             body["model"] = json!(l.model);
             // Ollama lets the model go when Groovy is quiet (round 3D item 5).

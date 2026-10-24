@@ -28,7 +28,9 @@ import { h, svg, clear } from "./dom";
 import { ICONS } from "./icons";
 import { idleStatus } from "./integrations";
 import { Mail, face, refreshSlowData, upcomingReminder } from "./tiles";
-import { mailGrown, musicGrown, musicStrip, playOrOpen, remindersGrown, systemGrown, type Grown } from "./expand";
+import { once } from "../core/lazy";
+import type { Grown } from "./expand";
+import { playOrOpen } from "./spotify";
 import { showError } from "./toast";
 import type { ViewActions, ViewHost } from "./views";
 
@@ -256,11 +258,15 @@ export function buildHome(actions: ViewActions): ViewHost {
     State.homeExpanded = null;
     State.notify();
   };
-  // Each grown tile is built the first time it opens (round 3D item 9: nothing before it's needed).
+  // The grown tiles' code loads the first time one opens, and each is built
+  // then (round 3D item 9: nothing before it's needed).
+  let expand: typeof import("./expand") | null = null;
+  const loadExpand = once(() => import("./expand").then((m) => (expand = m)));
   const grownTiles = new Map<Expanded | "strip", Grown>();
   const grown = (k: Expanded | "strip"): Grown => {
     let g = grownTiles.get(k);
     if (!g) {
+      const { mailGrown, musicGrown, musicStrip, remindersGrown, systemGrown } = expand!;
       g = k === "music" ? musicGrown(fold)
         : k === "mail" ? mailGrown(fold, () => {
           State.mailFull = !State.mailFull;
@@ -319,7 +325,13 @@ export function buildHome(actions: ViewActions): ViewHost {
   function draw() {
     const declared = sanitizeDeclared(State.settings, State.os);
     const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles;
-    const exp = State.mode === "expanded" ? State.homeExpanded : null;
+    let exp = State.mode === "expanded" ? State.homeExpanded : null;
+    if (exp && !expand) {
+      // Its code is on its way: the tiles stay as they are a moment longer.
+      void loadExpand().then(() => State.notify());
+      exp = null;
+      if (open === null) return;
+    }
     if (exp !== open) {
       if (open) grown(open).shown(false);
       open = exp;

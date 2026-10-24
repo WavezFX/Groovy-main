@@ -417,6 +417,7 @@ pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
     config.model_config.model_type = Some("nemo_transducer".into());
     config.model_config.num_threads = threads();
     let started = Instant::now();
+    crate::loads::note(crate::loads::Part::OfflineStt, "Parakeet, for speech on this PC");
     let r = OfflineRecognizer::create(&config).map(Arc::new);
     match &r {
         Some(_) => crate::log::line(format!("Parakeet loaded in {:?}", started.elapsed())),

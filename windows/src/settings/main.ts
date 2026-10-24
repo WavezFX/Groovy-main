@@ -23,25 +23,7 @@ import { migrateGrownLook } from "../mochi/growth";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
 import { FLOW_PAGE_RENDERERS } from "../hub/pages";
-import { agentsSection } from "./agents";
-import { phoneSection } from "./phone";
-import { voiceSection } from "./voice";
-import { breaksSection } from "./breaks";
-import { assistantSection, prefs as assistantPrefs } from "./assistant";
-import { aiSetupSection } from "./aisetup";
-import { islandPage } from "./islandpage";
-import { brainsPage } from "./brains";
-import { islandSection } from "./island";
-import { modelsSection } from "./models";
-import { ollamaSection } from "./ollama";
-import { memorySection } from "./memory";
-import { tasksSection } from "./tasks";
-import { mailSection } from "./mail";
-import { aboutSection } from "./about";
-import { systemPage, systemSection } from "./system";
-import { wardrobeSection } from "./wardrobe";
-import { musicSection } from "./music";
-import { permissionsSection } from "./permissions";
+import { once } from "../core/lazy";
 import { colorDot } from "./colors";
 import { templatize } from "../hub/template";
 import { savedToast } from "../hub/ui";
@@ -1424,6 +1406,24 @@ function browserSection(): HTMLElement {
 }
 
 /** Reads what the sections show and draws them all. */
+/** Each page's code, loaded when the page first opens (round 3D item 9). */
+const PAGE = {
+  agents: once(() => import("./agents")),
+  phone: once(() => import("./phone")),
+  voice: once(() => import("./voice")),
+  breaks: once(() => import("./breaks")),
+  brains: once(() => Promise.all([import("./brains"), import("./assistant"), import("./aisetup"), import("./models"), import("./ollama")])),
+  island: once(() => Promise.all([import("./islandpage"), import("./island")])),
+  memory: once(() => import("./memory")),
+  tasks: once(() => import("./tasks")),
+  mail: once(() => import("./mail")),
+  about: once(() => import("./about")),
+  system: once(() => import("./system")),
+  wardrobe: once(() => import("./wardrobe")),
+  music: once(() => import("./music")),
+  permissions: once(() => import("./permissions")),
+};
+
 /** Rows (by label) and sections (by title) each page keeps under Advanced (round 3D item 3). */
 const ADVANCED: Partial<Record<GroovyPageId, string[]>> = {
   brains: [N_("Local model"), N_("Voice and dictation"), N_("Online messages per day"), "settings.json", N_("Relay")],
@@ -1486,43 +1486,52 @@ async function render() {
   // above the tabs, and each tab its own sections.
   // Brains as approved (settings/brains.ts): the tab's brains and the Auto
   // order in two columns, then the tab's detailed sections and how he answers.
-  const brains = async (tab: string | undefined): Promise<HTMLElement[]> => [
-    ...(settings.assistant.aiSetup ? [] : [aiSetupSection(settings, () => void save(), () => assistantPrefs(settings))]),
-    await brainsPage(settings, save, tab ?? "cloud", { "anthropic-api-key": hasKey, ...chatKeys }, () => {
-      for (const redraw of declaredViews) redraw();
-    }),
-    h("div", { class: "hub-b-more" },
-      ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
-        : tab === "local" ? [ollamaSection(settings, save), localSection(customKey), modelsSection(settings, () => void save())]
-        : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
-    ),
-    // How he answers is the same whichever brain does: under every tab.
-    assistantSection(settings, () => void save(), toggle, () => hub?.navigate("memory")),
-  ];
+  const brains = async (tab: string | undefined): Promise<HTMLElement[]> => {
+    const [{ brainsPage }, { assistantSection, prefs: assistantPrefs }, { aiSetupSection }, { modelsSection }, { ollamaSection }] = await PAGE.brains();
+    return [
+      ...(settings.assistant.aiSetup ? [] : [aiSetupSection(settings, () => void save(), () => assistantPrefs(settings))]),
+      await brainsPage(settings, save, tab ?? "cloud", { "anthropic-api-key": hasKey, ...chatKeys }, () => {
+        for (const redraw of declaredViews) redraw();
+      }),
+      h("div", { class: "hub-b-more" },
+        ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
+          : tab === "local" ? [ollamaSection(settings, save), localSection(customKey), modelsSection(settings, () => void save())]
+          : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
+      ),
+      // How he answers is the same whichever brain does: under every tab.
+      assistantSection(settings, () => void save(), toggle, () => hub?.navigate("memory")),
+    ];
+  };
   const pages: Record<GroovyPageId, () => HTMLElement[] | Promise<HTMLElement[]>> = {
     home: () => [],
     brains: () => brains(groovyTab),
-    wardrobe: () => [wardrobeSection(settings, () => void save())],
+    wardrobe: async () => [(await PAGE.wardrobe()).wardrobeSection(settings, () => void save())],
     sounds: () => [soundsSection()],
-    island: async () => [await islandPage(settings, () => void save(), () => hub?.redraw(), (p) => hub?.navigate(p), connected), islandSection(settings, () => void save()), activePillsSection(connected)],
-    accounts: () => [mailSection(), integrationsSection(present)],
-    memory: () => [memorySection(settings, () => void save(), toggle)],
-    reminders: () => [tasksSection()],
-    music: () => [musicSection()],
-    calls: () => [voiceSection(settings, () => void save(), toggle, KEY_STORE)],
-    agents: () => [studioSection(), agentsSection(agents)],
-    phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
-    breaks: () => [breaksSection(settings, () => void save())],
+    island: async () => {
+      const [{ islandPage }, { islandSection }] = await PAGE.island();
+      return [await islandPage(settings, () => void save(), () => hub?.redraw(), (p) => hub?.navigate(p), connected), islandSection(settings, () => void save()), activePillsSection(connected)];
+    },
+    accounts: async () => [(await PAGE.mail()).mailSection(), integrationsSection(present)],
+    memory: async () => [(await PAGE.memory()).memorySection(settings, () => void save(), toggle)],
+    reminders: async () => [(await PAGE.tasks()).tasksSection()],
+    music: async () => [(await PAGE.music()).musicSection()],
+    calls: async () => [(await PAGE.voice()).voiceSection(settings, () => void save(), toggle, KEY_STORE)],
+    agents: async () => [studioSection(), (await PAGE.agents()).agentsSection(agents)],
+    phone: async () => [(await PAGE.phone()).phoneSection(settings.phoneLink ?? false, toggle, settings)],
+    breaks: async () => [(await PAGE.breaks()).breaksSection(settings, () => void save())],
     general: () => [setupAgainSection(), generalSection(), shortcutsSection(shortcutReport)],
     browser: () => [browserSection()],
-    permissions: () => [permissionsSection()],
-    system: () => [systemPage(settings, () => void save(), version, () => {
+    permissions: async () => [(await PAGE.permissions()).permissionsSection()],
+    system: async () => {
+      const { systemPage, systemSection } = await PAGE.system();
+      return [systemPage(settings, () => void save(), version, () => {
       // Everything back to how it came, but he stays as grown as he is.
       settings = { ...DEFAULT_SETTINGS, growth: settings.growth, groovyLook: settings.groovyLook };
       void save();
       hub?.redraw();
-    }), systemSection()],
-    about: () => [aboutSection(version)],
+    }), systemSection()];
+    },
+    about: async () => [(await PAGE.about()).aboutSection(version)],
   };
 
   root.append(...(await pages[groovyPage]()));

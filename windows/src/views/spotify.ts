@@ -30,6 +30,15 @@ export function togglePlay() {
   void Bridge.spotifyControl("playPause");
 }
 
+/** Play, or open Spotify when it isn't running (as the tile always did). */
+export function playOrOpen() {
+  if (!Spotify.state.running) {
+    void Bridge.spotifyOpen();
+    return;
+  }
+  togglePlay();
+}
+
 export function seek(seconds: number) {
   const s = Spotify.state;
   const track = s.track;
