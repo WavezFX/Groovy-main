@@ -36,7 +36,37 @@ for (const scheme of ["dark", "light"]) {
   }
   await page.close();
 }
+
+// Round 3D item 4: switching pages in one window, by the sidebar, each under 100 ms.
+const tour = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+await tour.goto(`${base}/settings.html?page=home`, { waitUntil: "load" });
+await tour.evaluate(() => document.body.classList.add("shown"));
+await tour.waitForTimeout(1500);
+const items = await tour.$$(".hub-item");
+for (let round = 0; round < 2; round++) {
+  for (const item of items) {
+    await item.click();
+    await tour.waitForTimeout(350);
+  }
+}
+const switches = await tour.evaluate(() => window.__hubSwitchMs ?? {});
+
+// Left untouched, the window stops drawing (near 0 CPU): no frame asked for in 3 s.
+await tour.mouse.move(990, 890);
+await tour.waitForTimeout(22000);
+const frames = await tour.evaluate(() => new Promise((done) => {
+  let n = 0;
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (fn) => { n++; return raf(fn); };
+  setTimeout(() => done(n), 3000);
+}));
+console.log(`frames asked for while untouched: ${frames}`);
+if (frames > 0) errors.push(`untouched for 22 s, Settings still asked for ${frames} frames in 3 s`);
 await browser.close();
+const slow = Object.entries(switches).filter(([, ms]) => ms >= 100);
+console.log(`page switches (ms): ${Object.entries(switches).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+if (!Object.keys(switches).length) errors.push("no page switch was timed");
+for (const [k, ms] of slow) errors.push(`switching to ${k} took ${ms} ms (100 ms at most)`);
 console.log(`${places.length * 2} screenshots in ${out}`);
 if (errors.length) {
   console.log(errors.join("\n"));

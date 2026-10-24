@@ -40,7 +40,11 @@ function loop(now: number) {
   if (live.size === 0 || document.visibilityState !== "visible") return;
   // Round 3B item 10: full speed only while you use the window; left alone,
   // the drift goes on at a few frames a second, so the GPU rests.
-  const calm = now - lastActivity > CALM_AFTER_MS;
+  const quiet = now - lastActivity;
+  // Round 3D item 4: untouched for a while, it holds still and costs nothing
+  // until the pointer, a key or focus comes back (stir()).
+  if (quiet > STILL_AFTER_MS) return;
+  const calm = quiet > CALM_AFTER_MS;
   if (!calm) frame = requestAnimationFrame(loop);
   else pause = window.setTimeout(() => {
     pause = null;
@@ -50,6 +54,8 @@ function loop(now: number) {
 
 /** Left alone this long, the window draws at a few frames a second. */
 const CALM_AFTER_MS = 3000;
+/** Left alone this long, it stops drawing altogether. */
+export const STILL_AFTER_MS = 20000;
 const CALM_FRAME_MS = 125;
 const AWAY_FRAME_MS = 500;
 let lastActivity = performance.now();

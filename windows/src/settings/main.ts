@@ -1433,20 +1433,30 @@ const ADVANCED: Partial<Record<GroovyPageId, string[]>> = {
 };
 
 async function render() {
-  const status = (await Bridge.hooksStatus()) ?? {
-    installed: false, planRelayInstalled: false, settingsPath: "", hookPath: "", hookReady: false,
-  };
-  const agents = await Bridge.agentHooksList();
-
-  const hasKey = (await Bridge.secretPresent("anthropic-api-key")) ?? false;
-  const shortcutReport = await Bridge.shortcutsStatus();
-
+  // Round 3D item 4: a page asks only for what it shows, all at once, so a
+  // page switch isn't two dozen calls to Rust one after another.
+  const page = groovyPage;
+  const on = (...ids: GroovyPageId[]) => ids.includes(page);
+  const presence = async (list: string[]) =>
+    Object.fromEntries(await Promise.all(list.map(async (k) => [k, (await Bridge.secretPresent(k)) ?? false] as const))) as Record<string, boolean>;
   const keys = [
     "stripe-api-key", "github-token", "vercel-token",
     "n8n-url", "n8n-api-key", "resend-api-key", "notion-api-key", "calcom-api-key",
   ];
-  const present: Record<string, boolean> = {};
-  for (const k of keys) present[k] = (await Bridge.secretPresent(k)) ?? false;
+  const pillKeys = availablePills().flatMap((def) => (def.connect.kind === "key" ? [def.connect.key] : []));
+  const [hooks, agents, hasKey, shortcutReport, present, hookStatus, chatKeys, customKey] = await Promise.all([
+    on("brains") ? Bridge.hooksStatus() : null,
+    on("agents") ? Bridge.agentHooksList() : null,
+    on("brains") ? Bridge.secretPresent("anthropic-api-key").then((v) => v ?? false) : false,
+    on("general") ? Bridge.shortcutsStatus() : null,
+    on("accounts", "island") ? presence([...new Set([...keys, ...pillKeys])]) : ({} as Record<string, boolean>),
+    on("island") ? Bridge.agentHooksStatus() : null,
+    on("brains") ? presence(CLOUD.map((def) => providerDef(def.id).key!)) : ({} as Record<string, boolean>),
+    on("brains") ? Bridge.secretPresent(CUSTOM_SERVER_KEY).then((v) => v ?? false) : false,
+  ]);
+  const status = hooks ?? {
+    installed: false, planRelayInstalled: false, settingsPath: "", hookPath: "", hookReady: false,
+  };
 
   // A main pill this build can run, and no pill declared twice.
   settings = { ...settings, ...sanitizeDeclared(settings) };
@@ -1454,11 +1464,9 @@ async function render() {
   migrateSettingsOutfit(settings);
   // Grove, Blaze and Tide are now their base look fully grown (round 3 item 6).
   if (migrateGrownLook(settings)) void Bridge.saveSettings(settings);
-  const connected: Record<string, boolean> = { ...((await Bridge.agentHooksStatus()) ?? {}) };
+  const connected: Record<string, boolean> = { ...(hookStatus ?? {}) };
   for (const def of availablePills()) {
-    if (def.connect.kind === "key") {
-      connected[def.id] = present[def.connect.key] ?? (await Bridge.secretPresent(def.connect.key)) ?? false;
-    }
+    if (def.connect.kind === "key") connected[def.id] = present[def.connect.key] ?? false;
   }
   /** A chat provider's key was saved or removed: its pill's row says so at once. */
   const keyChanged = (key: string, on: boolean) => {
@@ -1467,12 +1475,6 @@ async function render() {
     }
     for (const redraw of declaredViews) redraw();
   };
-  const chatKeys: Record<string, boolean> = {};
-  for (const def of CLOUD) {
-    const key = providerDef(def.id).key!;
-    chatKeys[key] = (await Bridge.secretPresent(key)) ?? false;
-  }
-  const customKey = (await Bridge.secretPresent(CUSTOM_SERVER_KEY)) ?? false;
 
   declaredViews.length = 0;
   localRedraw = null;

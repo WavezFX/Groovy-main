@@ -211,6 +211,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     place = { page: def.id, tab };
     keep();
     for (const [id, el] of items) el.classList.toggle("on", id === def.id);
+    const started = performance.now();
     const token = ++rendering;
     const page_ = h("div", { class: "hub-page" });
     const bar = tab ? tabBar(def.id, tab) : null;
@@ -241,6 +242,11 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     scroll.append(page_);
     scroll.scrollTop = 0;
     if (find) highlight(page_, find);
+    // Round 3D item 4: how long a switch took, up to the frame that shows it (CI reads these).
+    requestAnimationFrame(() => {
+      const times = ((window as unknown as { __hubSwitchMs?: Record<string, number> }).__hubSwitchMs ??= {});
+      times[def.id + (tab ? `:${tab}` : "")] = Math.round(performance.now() - started);
+    });
   }
 
   // ── The sidebar (docs/design/settings-v2/Sidebar) ──
