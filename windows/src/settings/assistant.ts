@@ -68,7 +68,7 @@ export function prefs(settings: Settings): AssistantPrefs {
   return { ...DEFAULT_ASSISTANT, ...(settings.assistant ?? {}) };
 }
 
-export function assistantSection(settings: Settings, save: () => void, toggle: Toggle): HTMLElement {
+export function assistantSection(settings: Settings, save: () => void, _toggle: Toggle, openMemory?: () => void): HTMLElement {
   const p = prefs(settings);
   settings.assistant = p;
   const set = <K extends keyof AssistantPrefs>(key: K, value: AssistantPrefs[K]) => {
@@ -129,12 +129,10 @@ export function assistantSection(settings: Settings, save: () => void, toggle: T
     h("div", { class: "row" }, h("label", { text: t("Voice and dictation") }), select(BRAINS, p.brain, (v) => set("brain", v))),
     h("div", { class: "hint", text: t("What answers « OK Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.") }),
     h("div", { class: "row" }, h("label", { text: t("Online messages per day") }), limit, h("span", { class: "hint", text: t("0 = no limit") })),
-    h(
-      "div",
-      { class: "row" },
-      h("label", { text: t("Remember things") }),
-      toggle(p.memoryEnabled, (on) => set("memoryEnabled", on)),
-      h("span", { class: "hint", text: t("Say “remember that…” in the chat. Managed in Memory below.") }),
-    ),
+    // Round 3D item 3: one place for each setting. "Remember things" lives in Memory.
+    openMemory ? h("div", { class: "row" },
+      h("label", { text: t("What he remembers") }),
+      h("button", { text: t("Memory →"), onclick: openMemory }),
+    ) : null,
   );
 }

@@ -337,6 +337,15 @@ fn open_in_vscode(path: Option<String>) -> bool {
     false
 }
 
+/// Settings → System → Free memory now: lets go of the speech model and the
+/// built-in local model at once; they load again the next time they are used.
+#[tauri::command]
+fn free_memory_now() {
+    speech::unload();
+    models::models_stop();
+    log::line("Memory freed from Settings");
+}
+
 /// "Open terminal": brings forward the terminal or editor window the session
 /// runs in, when it was found (see session_window.rs); otherwise opens the
 /// folder in VS Code, as before.
@@ -1401,6 +1410,8 @@ pub fn run() {
             sounds::custom_sounds,
             sounds::custom_sound,
             sounds::reveal_sounds_folder,
+            log::reveal_logs_folder,
+            free_memory_now,
             sounds::reload_sounds,
             spotify::spotify_refresh,
             spotify::spotify_control,
@@ -1530,6 +1541,7 @@ pub fn run() {
             speech::tts::tts_audio,
             speech::tts::tts_status,
             speech::tts::fish_test,
+            speech::tts::kokoro_preview,
             speech::tts::kokoro_download,
             speech::tts::kokoro_remove,
             okgroovy::okgroovy_test,

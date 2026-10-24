@@ -1470,6 +1470,8 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
   --err-ink: #b91c1c;
   --warn-ink: #92400e;
   --track: rgba(0, 0, 0, 0.18);
+  /* The text colour is worked out on <html> from the dark tokens: set it again here. */
+  color: var(--hub-text);
   background: #e9ebef;
 }
 :root[data-theme="light"] .hub-side,
@@ -1485,6 +1487,173 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
 :root[data-theme="light"] .hub-t-status.error,
 :root:not([data-theme="dark"]) body.light .hub-t-status.error { color: #b91c1c; }
 
+/* ── Round 3D item 3: the Groovy pages on the template (hub/template.ts) ──
+   A section is a small uppercase label over a card; each block in it is a
+   row of the card, split by hairlines; rows are at least 56 px tall with the
+   label (and its description) on the left and the controls on the right. */
+#settings-root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+section.hub-t-legacy {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  gap: 0;
+}
+section.hub-t-legacy > h2 {
+  font: 700 10.5px var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--hub-muted);
+  margin: 0 0 8px;
+}
+section.hub-t-legacy > :not(h2) {
+  background: var(--v2-card, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--v2-edge, rgba(255, 255, 255, 0.07));
+  border-top-color: transparent;
+  box-shadow: inset 0 1px 0 var(--v2-hair, rgba(255, 255, 255, 0.06));
+  padding: 14px 18px;
+  margin: 0;
+}
+section.hub-t-legacy > :first-child:not(h2),
+section.hub-t-legacy > h2 + * {
+  border-top-color: var(--v2-edge, rgba(255, 255, 255, 0.07));
+  box-shadow: none;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+section.hub-t-legacy > :last-child {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+section.hub-t-legacy .row {
+  min-height: 36px;
+  gap: 14px;
+}
+section.hub-t-legacy .row > label,
+section.hub-t-legacy .row > .hub-t-text {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--hub-text);
+  font-size: 14px;
+}
+section.hub-t-legacy .row > .hub-t-text label,
+section.hub-t-legacy .row > label {
+  color: var(--hub-text);
+  font: 600 14px var(--font);
+}
+section.hub-t-legacy .hint {
+  font-size: 12px;
+  color: var(--v2-desc, #8c9691);
+}
+section.hub-t-legacy .hub-t-detail {
+  display: block;
+  margin-top: 2px;
+}
+.hub-t-info {
+  position: relative;
+  margin-left: 6px;
+  color: var(--hub-secondary);
+  cursor: help;
+  font-size: 13px;
+  border-radius: 50%;
+}
+.hub-t-info > .hub-t-tip {
+  position: absolute;
+  z-index: 20;
+  left: -8px;
+  top: calc(100% + 6px);
+  width: max-content;
+  max-width: 340px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--menu);
+  border: 1px solid var(--hub-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: var(--hub-body);
+  font: 400 12px/1.45 var(--font);
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity var(--motion-small, 180ms), transform var(--motion-small, 180ms);
+}
+.hub-t-info:hover > .hub-t-tip,
+.hub-t-info:focus-visible > .hub-t-tip,
+.hub-t-info:focus > .hub-t-tip {
+  opacity: 1;
+  transform: none;
+}
+.hub-t-more > summary,
+.hub-t-advanced > summary {
+  cursor: pointer;
+  color: var(--hub-secondary);
+  font-size: 12px;
+  list-style-position: inside;
+}
+.hub-t-more > .hint {
+  margin-top: 8px;
+}
+.hub-t-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hub-t-advanced > summary {
+  font: 600 12px var(--font);
+  padding: 4px;
+}
+.hub-t-advanced[open] > summary {
+  margin-bottom: 8px;
+}
+.hub-t-advanced > section + section {
+  margin-top: 16px;
+}
+/* The band is dark in both themes: its words stay light. */
+.hub-hero h1 { color: #f5f6f8; }
+.hub-hero p { color: rgba(245, 246, 248, 0.72); }
+/* A status line with nothing to say yet is not a blank row. */
+section.hub-t-legacy > :empty { display: none; }
+
+/* The design's colours, dark (as approved) and their light twins. */
+body.hub-window {
+  --v2-card: rgba(255, 255, 255, 0.04);
+  --v2-edge: rgba(255, 255, 255, 0.07);
+  --v2-hair: rgba(255, 255, 255, 0.06);
+  --v2-btn: rgba(255, 255, 255, 0.06);
+  --v2-btn-edge: rgba(255, 255, 255, 0.12);
+  --v2-tab-on: rgba(255, 255, 255, 0.1);
+  --v2-switch-off: rgba(255, 255, 255, 0.16);
+  --v2-field: #14181b;
+  --v2-desc: #8c9691;
+  --v2-icon: #c4cbc7;
+  --v2-link: #7ff0a4;
+  --v2-link-hover: #b5f7cb;
+}
+:root[data-theme="light"] body.hub-window,
+:root:not([data-theme="dark"]) body.light.hub-window {
+  --hub-ground: #f3f5f4;
+  --hub-side: #e9edeb;
+  --hub-text: #15191a;
+  --hub-secondary: #4d5753;
+  --hub-muted: #6b746f;
+  --v2-card: rgba(0, 0, 0, 0.03);
+  --v2-edge: rgba(0, 0, 0, 0.08);
+  --v2-hair: rgba(0, 0, 0, 0.07);
+  --v2-btn: rgba(0, 0, 0, 0.04);
+  --v2-btn-edge: rgba(0, 0, 0, 0.14);
+  --v2-tab-on: rgba(0, 0, 0, 0.08);
+  --v2-switch-off: rgba(0, 0, 0, 0.2);
+  --v2-field: #ffffff;
+  --v2-desc: #5d6762;
+  --v2-icon: #3a423e;
+  --v2-link: #0f8a3b;
+  --v2-link-hover: #0b6b2d;
+}
 /* ── Settings v2: the page template (round 3D item 2), as approved in
    docs/design/settings-v2: header, tabs, cards, rows, buttons, pills,
    switches and fields. The same values for Groovy's own sections and the
@@ -1492,10 +1661,10 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
 .hub-scroll { padding: 32px 40px; box-sizing: border-box; }
 .hub-page { display: flex; flex-direction: column; gap: 20px; max-width: none; margin: 0; }
 .hub-page #settings-root { gap: 20px; }
-.hub-page > div { display: flex; flex-direction: column; gap: 20px; }
+.hub-page > div:not(.hub-tabs) { display: flex; flex-direction: column; gap: 20px; }
 .hub-head { display: flex; align-items: flex-start; gap: 16px; }
 .hub-head-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
-.hub-crumb { font-size: 12px; color: #7e8883; }
+.hub-crumb { font-size: 12px; color: var(--hub-muted); }
 .hub-head h1 { margin: 0; font: 700 26px/1.25 var(--font); color: var(--hub-text); letter-spacing: 0; }
 .hub-head p { margin: 0; font-size: 13.5px; color: var(--hub-secondary); }
 .hub-head-actions { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; padding-top: 18px; }
@@ -1508,7 +1677,7 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
   margin: 0;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--v2-card);
   align-self: flex-start;
   flex-wrap: wrap;
 }
@@ -1522,7 +1691,7 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
   font: 600 13.5px var(--font);
   margin: 0;
 }
-.hub-tab.on { background: rgba(255, 255, 255, 0.1); color: var(--hub-text); border: 0; }
+.hub-tab.on { background: var(--v2-tab-on); color: var(--hub-text); border: 0; }
 .hub-tab:hover:not(.on) { color: var(--hub-text); }
 
 /* Group labels and cards. */
@@ -1530,12 +1699,12 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
   font: 700 10.5px var(--font);
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #7e8883;
+  color: var(--hub-muted);
   margin: 0;
 }
 .hub-card, .hub-t-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--v2-card);
+  border: 1px solid var(--v2-edge);
   border-radius: 16px;
   box-shadow: none;
 }
@@ -1546,31 +1715,31 @@ body.hub-window :is(button, input, select, textarea, summary, [tabindex]):focus-
   gap: 14px;
   box-sizing: border-box;
 }
-.hub-t-row + .hub-t-row, .hub-card > .hub-row + .hub-row { border-top: 1px solid rgba(255, 255, 255, 0.06); }
-.hub-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 0; }
+.hub-t-row + .hub-t-row, .hub-card > .hub-row + .hub-row { border-top: 1px solid var(--v2-hair); }
+.hub-divider { height: 1px; background: var(--v2-hair); margin: 0; }
 .hub-row .title, .hub-t-name, .hub-row-title { font: 600 14px var(--font); color: var(--hub-text); }
-.hub-row .detail, .hub-t-detail { font-size: 12px; color: #8c9691; }
+.hub-row .detail, .hub-t-detail { font-size: 12px; color: var(--v2-desc); }
 
 /* Buttons: .btn and .btn-p of the design. */
 .hub-btn, .hub-t-btn {
   height: 32px;
   padding: 0 14px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: #eef3f0;
+  border: 1px solid var(--v2-btn-edge);
+  background: var(--v2-btn);
+  color: var(--hub-text);
   font: 600 13px var(--font);
 }
-.hub-btn:hover:not(:disabled), .hub-t-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.hub-btn:hover:not(:disabled), .hub-t-btn:hover:not(:disabled) { background: var(--v2-tab-on); }
 .hub-btn.primary, .hub-t-btn.primary { background: var(--hub-accent); border-color: var(--hub-accent); color: var(--hub-on-accent); }
 .hub-btn.primary:hover:not(:disabled), .hub-t-btn.primary:hover:not(:disabled) { background: var(--hub-accent); filter: brightness(1.08); }
 .hub-btn.danger, .hub-t-btn.danger { background: rgba(255, 90, 90, 0.1); border-color: rgba(255, 110, 110, 0.35); color: #ff8b8b; }
 .hub-t-btn.subtle { background: transparent; border-color: transparent; color: var(--hub-secondary); }
-.hub-icon { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: transparent; color: #c4cbc7; }
+.hub-icon { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--v2-tab-on); background: transparent; color: var(--v2-icon); }
 
 /* Status pills: Connected / Not set up / needs you / error. */
 .hub-t-status { font: 700 11.5px var(--font); border-radius: 10px; padding: 3px 9px; white-space: nowrap; }
-.hub-t-status.connected { background: rgba(70, 235, 120, 0.15); color: #7ff0a4; }
+.hub-t-status.connected { background: rgba(70, 235, 120, 0.15); color: var(--v2-link); }
 .hub-t-status.unset { background: rgba(255, 255, 255, 0.08); color: #9aa59f; }
 .hub-t-status.warn { background: rgba(245, 184, 75, 0.16); color: #f5c66b; }
 .hub-t-status.error { background: rgba(255, 90, 90, 0.16); color: #ff8b8b; }
@@ -1581,7 +1750,7 @@ body.hub-window .switch {
   height: 24px;
   flex: 0 0 40px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--v2-switch-off);
   border: 0;
 }
 body.hub-window .switch.on { background: var(--hub-accent); }
@@ -1592,29 +1761,189 @@ body.hub-window .switch.on::after { transform: translateX(16px); }
 body.hub-window select, .hub-select {
   height: 34px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #14181b;
-  color: #eef3f0;
+  border: 1px solid var(--v2-btn-edge);
+  background: var(--v2-field);
+  color: var(--hub-text);
   font: 13px var(--font);
   padding: 0 10px;
 }
 body.hub-window input[type="text"], body.hub-window input[type="password"], body.hub-window input[type="email"], body.hub-window input[type="url"], body.hub-window input[type="number"], .hub-t-input {
   height: 36px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #14181b;
-  color: #eef3f0;
+  border: 1px solid var(--v2-btn-edge);
+  background: var(--v2-field);
+  color: var(--hub-text);
   font: 14px var(--font);
   padding: 0 12px;
   box-sizing: border-box;
 }
 body.hub-window input[type="range"] { accent-color: var(--hub-accent); }
-body.hub-window a { color: #7ff0a4; }
-body.hub-window a:hover { color: #b5f7cb; }
-.hub-segmented { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 0; }
+body.hub-window a { color: var(--v2-link); }
+body.hub-window a:hover { color: var(--v2-link-hover); }
+.hub-segmented { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--v2-card); border: 0; }
 .hub-segmented button { height: 32px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: var(--hub-secondary); font: 600 13px var(--font); }
-.hub-segmented button.on { background: rgba(255, 255, 255, 0.1); color: var(--hub-text); }
+.hub-segmented button.on { background: var(--v2-tab-on); color: var(--hub-text); }
 .hub-panel { margin: 0; border: 0; border-radius: 0; background: var(--hub-ground); }
 .hub-card { padding: 0; gap: 0; }
-.hub-card > :not(.hub-row):not(.hub-divider):not(:empty) { margin: 14px 18px; }
+.hub-card:not([class*="hub-b-"]):not([class*="hub-home-"]):not([class*="hub-i-"]):not([class*="hub-s-"]) > :not(.hub-row):not(.hub-divider):not(:empty) { margin: 14px 18px; }
 .hub-btn, .hub-t-btn, .hub-tab, .hub-segmented button { white-space: nowrap; }
+
+/* ── Brains (docs/design/settings-v2/Brains, round 3D item 3) ── */
+.hub-b-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.hub-b-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hub-b-aside-label { padding-top: 12px; }
+.hub-b-list { display: flex; flex-direction: column; padding: 0; }
+.hub-b-row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 18px; }
+.hub-b-list > * + * { border-top: 1px solid var(--v2-hair); }
+.hub-b-item { display: flex; flex-direction: column; }
+.hub-b-panel { padding: 0 18px 16px 68px; }
+.hub-b-mono { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font: 800 14px var(--font); color: #0a0c0e; flex: 0 0 36px; }
+.hub-b-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.hub-b-name { font: 600 14px var(--font); color: var(--hub-text); }
+.hub-b-detail { font-size: 12px; color: var(--v2-desc); }
+.hub-b-router { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-style: dashed; }
+.hub-b-order { display: flex; flex-direction: column; padding: 6px; }
+.hub-b-step { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 10px; border-radius: 10px; }
+.hub-b-step .hub-b-name { flex: 1 1 auto; }
+.hub-b-n { width: 24px; height: 24px; border-radius: 12px; background: var(--hub-accent-soft); color: var(--v2-link); font: 800 12px var(--font); display: flex; align-items: center; justify-content: center; flex: 0 0 24px; }
+.hub-b-kind { font-size: 12px; color: var(--v2-desc); }
+.hub-b-step .hub-icon:disabled { opacity: 0.35; }
+.hub-b-jobs { display: flex; flex-direction: column; }
+.hub-b-jobs > * + * { border-top: 1px solid var(--v2-hair); }
+.hub-b-more { display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 980px) { .hub-b-grid { grid-template-columns: minmax(0, 1fr); } }
+.hub-b-router { flex-direction: row; }
+.hub-b-grid [hidden] { display: none !important; }
+
+/* ── Home (docs/design/settings-v2/Main, round 3D item 3) ── */
+.hub-home-version { font-size: 12px; color: var(--v2-desc); align-self: flex-end; }
+.hub-home-him { display: flex; flex-direction: row; align-items: center; gap: 28px; padding: 24px 28px; }
+.hub-home-portrait { width: 150px; height: 150px; flex: 0 0 150px; display: grid; place-items: center; filter: drop-shadow(0 0 18px var(--hub-accent-soft)); }
+.hub-home-him-text { display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; min-width: 0; }
+.hub-home-him-head { display: flex; flex-direction: column; gap: 4px; }
+.hub-home-title { font: 700 22px var(--font); color: var(--hub-text); }
+.hub-home-line { font-size: 13.5px; color: var(--hub-secondary); }
+.hub-home-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.hub-home-tile { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--v2-card); }
+.hub-home-tile-value { font: 600 14px var(--font); color: var(--hub-text); }
+.hub-home-tile-detail { font-size: 12px; color: var(--v2-desc); }
+.hub-home-of { color: var(--v2-desc); font-weight: 500; }
+.hub-home-bar { height: 6px; border-radius: 3px; background: var(--v2-hair); overflow: hidden; margin-top: 2px; }
+.hub-home-bar i { display: block; height: 6px; background: var(--hub-accent); border-radius: 3px; transform-origin: left center; }
+.hub-home-him > .hub-btn, .hub-home-him > .hub-t-btn { align-self: flex-start; }
+.hub-home-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.hub-home-col { display: flex; flex-direction: column; gap: 8px; }
+.hub-home-row { display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; }
+.hub-home-dot { width: 8px; height: 8px; border-radius: 4px; flex: 0 0 8px; }
+.hub-home-jumps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.hub-home-jump { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; text-align: left; color: var(--hub-text); cursor: pointer; }
+.hub-home-jump:hover { background: var(--v2-btn); }
+.hub-home-jump-name { font: 700 14px var(--font); }
+@media (max-width: 980px) { .hub-home-two, .hub-home-tiles { grid-template-columns: minmax(0, 1fr); } .hub-home-jumps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Speaking (docs/design/settings-v2/Voice, round 3D item 3) ── */
+.hub-v-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.hub-v-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; text-align: left; color: var(--hub-text); background: var(--v2-card); border: 1px solid var(--v2-edge); cursor: pointer; font: inherit; }
+.hub-v-card.on { background: var(--hub-accent-soft); border: 1.5px solid var(--hub-accent); }
+.hub-v-card-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.hub-v-name { font: 700 15px var(--font); }
+.hub-v-play { width: 32px; height: 32px; border-radius: 16px; background: var(--v2-tab-on); display: flex; align-items: center; justify-content: center; color: var(--hub-text); }
+.hub-v-play:hover { filter: brightness(1.3); }
+.hub-v-wave { display: flex; gap: 2px; align-items: center; height: 22px; }
+.hub-v-wave span { width: 3px; border-radius: 2px; background: var(--v2-switch-off); }
+.hub-v-card.on .hub-v-wave span { background: var(--hub-accent); }
+.hub-v-desc { font-size: 12px; color: var(--hub-secondary); }
+.hub-v-wake { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; }
+.hub-v-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.hub-v-chip { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 15px; background: var(--v2-edge); font: 600 13px var(--font); }
+.hub-v-chip.add { background: transparent; border: 1px dashed var(--v2-btn-edge); color: var(--hub-secondary); }
+.hub-home-row input[type="range"] { width: 180px; }
+.hub-v-fish[hidden] { display: none; }
+@media (max-width: 980px) { .hub-v-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Character & wardrobe (docs/design/settings-v2/Groovy, round 3D item 3) ── */
+section.hub-w, section.hub-w > * { background: none; border: 0; padding: 0; box-shadow: none; }
+.hub-w { display: flex; flex-direction: column; gap: 20px; }
+.hub-w-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+.hub-w-left { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px; }
+.hub-w-stage-box { width: 100%; height: 250px; border-radius: 14px; background: rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; }
+.hub-w-stage-box canvas { width: 200px; height: 200px; cursor: pointer; background: none; border: 0; box-shadow: none; }
+.hub-w .studio-growth { flex-direction: column; align-items: stretch; }
+.hub-w-seg { display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: var(--v2-card); }
+.hub-w-seg button { height: 34px; padding: 0 16px; border-radius: 9px; border: 0; background: transparent; color: var(--hub-secondary); font: 600 13.5px var(--font); }
+.hub-w-seg button.on { background: var(--v2-tab-on); color: var(--hub-text); }
+.studio-growth { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.hub-w-growth-head { display: flex; justify-content: space-between; font-size: 12.5px; }
+.hub-w-growth-name { font-weight: 600; }
+.hub-w-stages { display: grid; gap: 6px; }
+.hub-w-stage { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.hub-w-stage span { height: 6px; width: 100%; border-radius: 3px; background: var(--v2-tab-on); }
+.hub-w-stage.on span { background: var(--hub-accent); }
+.hub-w-stage small { font-size: 10.5px; color: var(--v2-desc); }
+.hub-w-right { display: flex; flex-direction: column; gap: 10px; }
+.hub-w-bar { display: flex; align-items: center; justify-content: space-between; }
+.hub-w-remove { height: 34px; padding: 0 16px; border-radius: 9px; background: transparent; color: var(--hub-secondary); border: 1px solid var(--v2-btn-edge); font: 600 13.5px var(--font); }
+.hub-w-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+.hub-w-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 92px; border-radius: 12px; background: var(--v2-card); border: 1px solid var(--v2-hair); color: var(--hub-text); font: 600 12.5px var(--font); text-align: center; padding: 0 6px; }
+.hub-w-item.on { background: var(--hub-accent-soft); border: 1.5px solid var(--hub-accent); }
+.hub-w-item.locked { opacity: 0.55; border-style: dashed; }
+.hub-w-item .fav { position: absolute; top: 4px; right: 6px; font-size: 12px; background: none; border: 0; color: var(--hub-secondary); padding: 0; }
+.hub-w-item .fav.on { color: #f5c66b; }
+.hub-w-more { display: flex; flex-direction: column; gap: 8px; }
+.hub-w-pad, .hub-w-find { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 980px) { .hub-w-grid { grid-template-columns: minmax(0, 1fr); } }
+.hub-w-item { width: 100%; box-sizing: border-box; }
+
+/* ── Settings v2: Island → Layout & tiles (round 3D item 3) ── */
+.hub-i { display: flex; flex-direction: column; gap: 20px; }
+.hub-i-preview { display: flex; align-items: center; justify-content: center; min-height: 130px; padding: 14px; border-radius: 16px;
+  background: linear-gradient(105deg, #12364a 0%, #2a2a55 45%, #4a2f4f 70%, #5a4520 100%); }
+.hub-i-island { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 22px; border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(18px); max-width: 100%; overflow: hidden; }
+.hub-i-face { width: 54px; height: 54px; flex: none; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,.08); }
+.hub-i-words { display: flex; flex-direction: column; gap: 2px; min-width: 150px; margin-right: 14px; }
+.hub-i-up { font: 700 10px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--hub-accent, #46EB78); }
+.hub-i-words .hub-b-name { color: #fff; }
+.hub-i-words .hub-b-detail { color: rgba(255,255,255,.7); }
+.hub-i-mini { width: 54px; height: 54px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 12px; background: rgba(255,255,255,.1); }
+.hub-i-mini span { width: 16px; height: 16px; border-radius: 5px; }
+.hub-i-mini small { font: 600 9.5px var(--font); color: rgba(255,255,255,.85); max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-i-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px; }
+button.hub-i-tile { width: 100%; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; height: 70px; padding: 11px;
+  border-radius: 12px; border: 1px solid var(--v2-edge); background: var(--v2-btn); color: var(--hub-text); font: 600 13px var(--font); text-align: left; cursor: pointer; }
+button.hub-i-tile:not(.on) { background: transparent; border-style: dashed; color: var(--hub-secondary); }
+.hub-i-tile:not(.on) .hub-i-swatch { opacity: .45; }
+.hub-i-tile:disabled { cursor: default; }
+.hub-i-tile:focus-visible { outline: 2px solid var(--hub-accent, #46EB78); outline-offset: 2px; }
+.hub-i-swatch { width: 18px; height: 18px; border-radius: 5px; }
+.hub-i-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-i-gap { margin-top: 12px; }
+.hub-i-account { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 0 16px; }
+.hub-i-account + .hub-i-account, .hub-i-account + .hub-i-connect { border-top: 1px solid var(--v2-hair); }
+.hub-i-acc-swatch { width: 30px; height: 30px; flex: none; border-radius: 8px; }
+.hub-i-account .hub-b-text { flex: 1; min-width: 0; }
+.hub-i-connect { padding: 12px 16px; }
+.hub-i-connect button.hub-btn { width: 100%; }
+.hub-i select { height: 34px; }
+@media (max-width: 860px) { .hub-i-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Settings v2: App → System (round 3D item 3) ── */
+.hub-s { display: flex; flex-direction: column; gap: 20px; }
+.hub-s-actions { display: flex; justify-content: flex-end; }
+.hub-s-actions:empty { display: none; }
+.hub-s-mem { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.hub-s-big { display: flex; align-items: baseline; gap: 10px; }
+.hub-s-big strong { font: 700 36px var(--font); letter-spacing: -.01em; color: var(--hub-text); }
+.hub-s-big span { font: 500 13.5px var(--font); color: var(--v2-desc, #9AA59F); }
+.hub-s-bar { position: relative; height: 14px; border-radius: 7px; background: var(--v2-btn); overflow: visible; margin-top: 8px; }
+.hub-s-bar i { position: absolute; inset: 0; border-radius: 7px; background: var(--hub-accent, #46EB78); transform-origin: left; }
+.hub-s-bar i.warn { background: #F5C66B; }
+.hub-s-bar b { position: absolute; top: -6px; bottom: -6px; width: 2px; border-radius: 1px; }
+.hub-s-idle { background: #F5B84B; transform: translateX(-1px); }
+.hub-s-limit { right: 0; background: #F0506E; }
+.hub-s-scale { display: flex; font: 500 12px var(--font); color: var(--v2-desc, #9AA59F); }
+.hub-s-scale .hub-s-mid { margin-left: auto; margin-right: 128px; }
+.hub-s-state { font: 700 13px var(--font); color: #7FF0A4; }
+.hub-s-state.warn { color: #F5C66B; }
+.hub-s-danger .hub-b-name { color: #FF7A8A; }

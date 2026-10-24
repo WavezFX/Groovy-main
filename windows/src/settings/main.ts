@@ -4,8 +4,6 @@
 // pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
 import { installErrorReporting, showError } from "../views/toast";
-import { AUTO_CLOSE_CHOICES, CLICK_AWAY, nearestChoice } from "../core/autoclose";
-import { glassStrength } from "../core/glass";
 import "./settings.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
@@ -31,17 +29,21 @@ import { voiceSection } from "./voice";
 import { breaksSection } from "./breaks";
 import { assistantSection, prefs as assistantPrefs } from "./assistant";
 import { aiSetupSection } from "./aisetup";
+import { islandPage } from "./islandpage";
+import { brainsPage } from "./brains";
 import { islandSection } from "./island";
 import { modelsSection } from "./models";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
 import { mailSection } from "./mail";
 import { aboutSection } from "./about";
-import { systemSection } from "./system";
+import { systemPage, systemSection } from "./system";
 import { wardrobeSection } from "./wardrobe";
 import { musicSection } from "./music";
 import { permissionsSection } from "./permissions";
 import { colorDot } from "./colors";
+import { templatize } from "../hub/template";
+import { savedToast } from "../hub/ui";
 import { renderDiff, statusDot } from "./parts";
 import {
   LANGUAGES, N_, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
@@ -58,7 +60,7 @@ let version = "";
 const windowRoot = document.getElementById("hub")!;
 /** Where the page being shown draws its sections. */
 let root: HTMLElement = windowRoot;
-let hub: { redraw(): void; current(): PageId } | null = null;
+let hub: { redraw(): void; current(): PageId; navigate(page: string, tab?: string): void } | null = null;
 /** The Groovy page being shown. */
 let groovyPage: GroovyPageId = "home";
 /** The tab of a merged page being shown (Brains: cloud, subscriptions, local). */
@@ -66,6 +68,7 @@ let groovyTab: string | undefined;
 
 async function save() {
   await Bridge.saveSettings(settings);
+  savedToast();
 }
 
 /** A colour was picked for a pill's Groovy (see ./colors.ts): the island follows. */
@@ -975,24 +978,6 @@ function soundsSection(): HTMLElement {
 
 function generalSection(): HTMLElement {
 
-  // Round 3C item 2: hovering opens it (the default), or a click does.
-  const openOnHover = h("select", {}) as HTMLSelectElement;
-  openOnHover.append(h("option", { value: "hover", text: t("Open on hover") }), h("option", { value: "click", text: t("Open on click") }));
-  openOnHover.value = settings.openOnHover === false ? "click" : "hover";
-  openOnHover.addEventListener("change", () => {
-    settings.openOnHover = openOnHover.value === "hover";
-    void save();
-  });
-
-  const autoClose = h("select", {},
-    ...AUTO_CLOSE_CHOICES.map((c) => h("option", { value: String(c), text: c === 0 ? t("When I leave") : c === CLICK_AWAY ? t("When I click away") : t("{seconds} s after I leave", { seconds: c }) })),
-  ) as HTMLSelectElement;
-  autoClose.value = String(nearestChoice(settings.autoCloseInterval));
-  autoClose.addEventListener("change", () => {
-    settings.autoCloseInterval = nearestChoice(Number(autoClose.value));
-    void save();
-  });
-
   // Where the island sits along the top of the screen (dragging it does the same).
   const position = h("input", { type: "range", min: "0", max: "100", step: "1", value: "50" }) as HTMLInputElement;
   void Bridge.islandTrack().then((track) => {
@@ -1031,15 +1016,6 @@ function generalSection(): HTMLElement {
     "section",
     {},
     h("h2", {}, h("span", { text: t("General") })),
-    h("div", { class: "row" },
-      h("label", { text: t("The island opens") }),
-      openOnHover,
-    ),
-    h("div", { class: "hint", text: t("On hover: resting the pointer on the island opens it, and it folds again after the close timing below. Never while a full-screen app or game is in front.") }),
-    h("div", { class: "row" },
-      h("label", { text: t("Auto-close") }),
-      autoClose,
-    ),
     h("div", { class: "row" },
       h("label", { text: t("Island lives on") }),
       screen,
@@ -1446,39 +1422,16 @@ function browserSection(): HTMLElement {
   );
 }
 
-function appearanceSection(): HTMLElement {
-  const style = h("select", {}) as HTMLSelectElement;
-  for (const [value, label] of [["glass", t("Glass")], ["solid", t("Solid")]] as const) {
-    style.append(h("option", { value, text: label }));
-  }
-  style.value = settings.islandStyle === "solid" ? "solid" : "glass";
-  // Glass strength (round 3B item 1b): how much tint; Solid stays opaque.
-  const strength = h("select", {}) as HTMLSelectElement;
-  for (const [value, label] of [["clear", t("Clear glass")], ["balanced", t("Balanced")], ["frosted", t("Frosted glass")]] as const) {
-    strength.append(h("option", { value, text: label }));
-  }
-  strength.value = glassStrength(settings.glassStrength);
-  strength.disabled = style.value === "solid";
-  strength.addEventListener("change", () => {
-    settings.glassStrength = glassStrength(strength.value);
-    void save();
-  });
-  style.addEventListener("change", () => {
-    settings.islandStyle = style.value === "solid" ? "solid" : "glass";
-    strength.disabled = style.value === "solid";
-    void save();
-  });
-  return h(
-    "section",
-    {},
-    h("h2", {}, h("span", { text: t("Appearance") })),
-    h("div", { class: "row" }, h("label", { text: t("Island style") }), style),
-    h("div", { class: "row" }, h("label", { text: t("Glass strength") }), strength),
-    h("div", { class: "hint", text: t("Glass lets your wallpaper show through, drawn by Windows itself. Groovy uses Solid on its own while Windows' transparency effects are off or battery saver is on.") }),
-  );
-}
-
 /** Reads what the sections show and draws them all. */
+/** Rows (by label) and sections (by title) each page keeps under Advanced (round 3D item 3). */
+const ADVANCED: Partial<Record<GroovyPageId, string[]>> = {
+  brains: [N_("Local model"), N_("Voice and dictation"), N_("Online messages per day"), "settings.json", N_("Relay")],
+  calls: [N_("Voice engine"), N_("Recognition"), N_("Instant voice"), N_("Server"), N_("Room"), N_("API key"), N_("API secret"), N_("While listening, show"), N_("Free memory after")],
+  general: [N_("Run setup again"), N_("Island lives on"), N_("Position along the top")],
+  memory: [N_("Keep them for")],
+  island: [N_("Main tool")],
+};
+
 async function render() {
   const status = (await Bridge.hooksStatus()) ?? {
     installed: false, planRelayInstalled: false, settingsPath: "", hookPath: "", hookReady: false,
@@ -1528,21 +1481,27 @@ async function render() {
 
   // Round 3D item 1: one place for each setting; Brains shows its Auto order
   // above the tabs, and each tab its own sections.
-  const brains = (tab: string | undefined): HTMLElement[] => [
-    aiSetupSection(settings, () => void save(), () => assistantPrefs(settings)),
-    assistantSection(settings, () => void save(), toggle),
-    // The shell puts the Cloud / Subscriptions / On this PC tabs here.
-    h("div", { class: "hub-tab-slot" }),
-    ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
-      : tab === "local" ? [localSection(customKey), modelsSection(settings, () => void save())]
-      : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
+  // Brains as approved (settings/brains.ts): the tab's brains and the Auto
+  // order in two columns, then the tab's detailed sections and how he answers.
+  const brains = async (tab: string | undefined): Promise<HTMLElement[]> => [
+    ...(settings.assistant.aiSetup ? [] : [aiSetupSection(settings, () => void save(), () => assistantPrefs(settings))]),
+    await brainsPage(settings, save, tab ?? "cloud", { "anthropic-api-key": hasKey, ...chatKeys }, () => {
+      for (const redraw of declaredViews) redraw();
+    }),
+    h("div", { class: "hub-b-more" },
+      ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
+        : tab === "local" ? [localSection(customKey), modelsSection(settings, () => void save())]
+        : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
+    ),
+    // How he answers is the same whichever brain does: under every tab.
+    assistantSection(settings, () => void save(), toggle, () => hub?.navigate("memory")),
   ];
-  const pages: Record<GroovyPageId, () => HTMLElement[]> = {
+  const pages: Record<GroovyPageId, () => HTMLElement[] | Promise<HTMLElement[]>> = {
     home: () => [],
     brains: () => brains(groovyTab),
     wardrobe: () => [wardrobeSection(settings, () => void save())],
     sounds: () => [soundsSection()],
-    island: () => [islandSection(settings, () => void save()), activePillsSection(connected)],
+    island: async () => [await islandPage(settings, () => void save(), () => hub?.redraw(), (p) => hub?.navigate(p), connected), islandSection(settings, () => void save()), activePillsSection(connected)],
     accounts: () => [mailSection(), integrationsSection(present)],
     memory: () => [memorySection(settings, () => void save(), toggle)],
     reminders: () => [tasksSection()],
@@ -1551,14 +1510,20 @@ async function render() {
     agents: () => [studioSection(), agentsSection(agents)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],
-    general: () => [setupAgainSection(), appearanceSection(), generalSection(), shortcutsSection(shortcutReport)],
+    general: () => [setupAgainSection(), generalSection(), shortcutsSection(shortcutReport)],
     browser: () => [browserSection()],
     permissions: () => [permissionsSection()],
-    system: () => [systemSection()],
+    system: () => [systemPage(settings, () => void save(), version, () => {
+      // Everything back to how it came, but he stays as grown as he is.
+      settings = { ...DEFAULT_SETTINGS, growth: settings.growth, groovyLook: settings.groovyLook };
+      void save();
+      hub?.redraw();
+    }), systemSection()],
     about: () => [aboutSection(version)],
   };
 
-  root.append(...pages[groovyPage]());
+  root.append(...(await pages[groovyPage]()));
+  templatize(root, ADVANCED[groovyPage] ?? []);
   if (groovyPage === "general") {
     root.append(h("div", {
       class: "hint",

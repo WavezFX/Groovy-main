@@ -129,6 +129,12 @@ export interface AssistantPrefs {
   /** Days; 0 = keep forever. */
   historyRetentionDays: number;
   performanceProfile: "lightweight" | "balanced" | "performance";
+  /** The Auto order set in Brains, by brain id (assistant.rs). Empty: the built-in order. */
+  brainOrder: string[];
+  /** On a usage limit the next brain answers; off: Groovy stops and says so. */
+  switchOnLimit: boolean;
+  /** Who does each job ("writing", "commands"); missing or "auto": the Auto order. */
+  jobBrains: Record<string, string>;
 }
 
 export const DEFAULT_ASSISTANT: AssistantPrefs = {
@@ -150,6 +156,9 @@ export const DEFAULT_ASSISTANT: AssistantPrefs = {
   historyEnabled: true,
   historyRetentionDays: 90,
   performanceProfile: "balanced",
+  brainOrder: [],
+  switchOnLimit: true,
+  jobBrains: {},
 };
 
 export interface Settings {
@@ -275,6 +284,8 @@ export interface Settings {
   searchEngine: string;
   /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
   growth: unknown;
+  /** Groovy's own Do not disturb: no sounds, no notification or recap pop-ups. */
+  doNotDisturb: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -335,6 +346,7 @@ export const DEFAULT_SETTINGS: Settings = {
   browser: "default",
   searchEngine: "duckduckgo",
   growth: {},
+  doNotDisturb: false,
 };
 
 type Listener = () => void;

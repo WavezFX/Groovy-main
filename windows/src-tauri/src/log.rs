@@ -21,6 +21,15 @@ pub fn voice_dir() -> std::path::PathBuf {
     settings::local_dir().join("logs")
 }
 
+/// Settings → System → Logs: opens the folder with groovy.log and logs\voice.log.
+#[tauri::command]
+pub fn reveal_logs_folder() -> Result<(), String> {
+    let dir = settings::local_dir();
+    platform::ensure_private_dir(&dir).map_err(|e| e.to_string())?;
+    platform::reveal_folder(&dir.to_string_lossy());
+    Ok(())
+}
+
 fn append(dir: &std::path::Path, name: &str, message: &str) {
     let t = platform::local_time();
     let stamp = format!(

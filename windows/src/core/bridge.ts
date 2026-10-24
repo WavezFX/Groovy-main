@@ -20,7 +20,7 @@ export const IS_TAURI =
  * to the caller.
  */
 const USER_ACTIONS = new Set([
-  "save_settings", "open_url", "reveal_sounds_folder", "reload_sounds", "open_in_vscode", "open_session",
+  "save_settings", "open_url", "reveal_sounds_folder", "reveal_logs_folder", "free_memory_now", "reload_sounds", "open_in_vscode", "open_session",
   "open_claude_desktop", "open_file_in_vscode", "quit_app", "open_settings_window", "approval_decision",
   "approval_answer", "approval_decline", "models_cancel_download", "models_stop", "models_reveal_folder",
   "open_studio_window", "studio_stop", "music_control", "music_seek", "music_volume", "music_set_mode",
@@ -469,6 +469,8 @@ export const Bridge = {
   /** The user's file for one sound, as raw bytes. */
   customSound: (name: string) => call<ArrayBuffer>("custom_sound", { name }),
   revealSoundsFolder: () => call<void>("reveal_sounds_folder"),
+  revealLogsFolder: () => call<void>("reveal_logs_folder"),
+  freeMemoryNow: () => call<void>("free_memory_now"),
   /** Tells the island to read the sounds folder again ("sounds-changed"). */
   reloadSounds: () => call<void>("reload_sounds"),
 

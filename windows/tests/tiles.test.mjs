@@ -108,3 +108,20 @@ test("only removing a service's tile turns it off: a preset or the mail apps nev
   // A new service tile turns it on.
   assert.deepEqual(keptServices(["integration_neon"], on), ["integration_neon", ...on]);
 });
+
+// Round 3D item 3: Island → Layout & tiles shows or hides a tile with one tap.
+import { toggled } from "../src/settings/islandpage.ts";
+import { currentTiles as tilesNow, tile as makeTile } from "../src/core/tiles.ts";
+
+test("a tile on the Layout & tiles page turns on and off, its service with it", () => {
+  const settings = structuredClone(DEFAULT_SETTINGS);
+  const before = tilesNow(settings);
+  const github = { tile: makeTile("service", "integration_github"), name: "GitHub", color: "#fff" };
+  const on = toggled(settings, before, github, true);
+  assert.ok(on.tiles.tiles.some((x) => tileService(x) === "integration_github"));
+  assert.ok(on.active.includes("integration_github"));
+  assert.equal(on.tiles.preset, "custom");
+  const off = toggled({ ...settings, islandTiles: on.tiles, activeIntegrations: on.active }, on.tiles, github, false);
+  assert.ok(!off.tiles.tiles.some((x) => tileService(x) === "integration_github"));
+  assert.ok(!off.active.includes("integration_github"));
+});

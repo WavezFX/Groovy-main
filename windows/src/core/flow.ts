@@ -51,6 +51,10 @@ export interface FlowPrefs {
   /** Fish Audio's voice id (its `reference_id`) and model; the key is in the OS store. */
   fishVoice: string;
   fishModel: string;
+  /** Who speaks first (Settings → Speaking): Fish Audio, Kokoro on this PC, or Windows' voice. */
+  voicePick: "fish" | "kokoro" | "system";
+  /** How fast Fish Audio and Kokoro speak, 0.5–2.0. */
+  voiceSpeed: number;
   /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
   cloudSpeech: boolean;
   /** Learn names and models from corrections made within a minute. */
@@ -294,6 +298,8 @@ export const FlowBridge = {
   /** Fish Audio alone, so its own error shows; throws why it couldn't. */
   fishTest: () => callOrThrow<TtsAudio>("fish_test"),
   kokoroDownload: () => call<void>("kokoro_download"),
+  /** Kokoro's voice for a Speaking card. */
+  kokoroPreview: (gender: "female" | "male") => callOrThrow<TtsAudio>("kokoro_preview", { gender }),
   kokoroRemove: () => call<void>("kokoro_remove"),
   /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
   okStatus: () => call<OkStatus>("okgroovy_status"),

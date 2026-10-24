@@ -237,6 +237,32 @@ jobs:
       - name: Front-end tests
         run: npm test
 
+      # Round 3D item 3: every Settings page and tab, dark and light, for the
+      # owner to look through (download "settings-screens" from the run page).
+      - name: Settings screenshots (every page, dark and light)
+        shell: pwsh
+        run: |
+          npm i --no-save playwright-core@1.48.2
+          $vite = Start-Process -PassThru -NoNewWindow -FilePath cmd.exe -ArgumentList "/c", "npx", "vite", "--port", "1420", "--strictPort", "--host", "127.0.0.1"
+          $up = $false
+          for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing http://127.0.0.1:1420/settings.html | Out-Null; $up = $true } catch { Start-Sleep 1 }
+          }
+          if (-not $up) { taskkill /PID $vite.Id /T /F | Out-Null; throw "The page server didn't start" }
+          node --import ./tests/setup.mjs scripts/settings-screens.mjs http://127.0.0.1:1420 settings-screens
+          $code = $LASTEXITCODE
+          taskkill /PID $vite.Id /T /F | Out-Null
+          exit $code
+
+      - name: Upload the Settings screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: settings-screens
+          path: windows/settings-screens/
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Rust tests
         shell: pwsh
         run: |

@@ -20,6 +20,8 @@ test("the assistant defaults are the ones assistant.rs has", () => {
     const raw = m[2];
     const value = raw.startsWith('"') ? raw.slice(1, raw.indexOf('"', 1))
       : raw === "String::new()" ? ""
+      : raw === "Vec::new()" ? []
+      : /BTreeMap::new\(\)$/.test(raw) ? {}
       : raw === "true" || raw === "false" ? raw === "true"
       : Number(raw);
     assert.deepEqual(DEFAULT_ASSISTANT[key], value, key);

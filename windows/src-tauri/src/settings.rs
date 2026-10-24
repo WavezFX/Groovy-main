@@ -182,6 +182,9 @@ pub struct Settings {
     pub growth: Value,
     /// The integrations a key is stored for were turned back on once (round 3B item 7).
     pub integrations_restored: bool,
+    /// Groovy's own Do not disturb (Home, round 3D item 3): no sounds and no
+    /// notification or recap pop-ups; questions from agents still come through.
+    pub do_not_disturb: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -283,6 +286,7 @@ impl Default for Settings {
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
             integrations_restored: false,
+            do_not_disturb: false,
         }
     }
 }
@@ -668,7 +672,10 @@ mod tests {
     "memoryEnabled": false,
     "historyEnabled": false,
     "historyRetentionDays": 7,
-    "performanceProfile": "lightweight"
+    "performanceProfile": "lightweight",
+    "brainOrder": ["google", "anthropic"],
+    "switchOnLimit": false,
+    "jobBrains": { "writing": "google" }
   },
   "wardrobe": {
     "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["sunglasses"] },
@@ -688,7 +695,8 @@ mod tests {
   "browser": "duckduckgo",
   "searchEngine": "google",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
-  "integrationsRestored": true
+  "integrationsRestored": true,
+  "doNotDisturb": true
 }"##;
 
     fn custom() -> Value {
@@ -1322,6 +1330,7 @@ mod tests {
                 "searchEngine",
                 "growth",
                 "integrationsRestored",
+                "doNotDisturb",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

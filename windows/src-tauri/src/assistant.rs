@@ -53,6 +53,17 @@ pub struct AssistantPrefs {
     pub history_retention_days: u32,
     /// lightweight | balanced | performance
     pub performance_profile: String,
+    /// The Auto order the user set in Brains (round 3D item 3), by brain id:
+    /// anthropic, google, openai, openrouter, claude-code, codex. Empty: the
+    /// built-in order. The model on this PC always stays last.
+    pub brain_order: Vec<String>,
+    /// "Switch when a limit is hit": on a usage limit the next brain answers.
+    /// Off: Groovy stops and says the limit is reached.
+    pub switch_on_limit: bool,
+    /// Who does each job, by job ("chat" is the chat's own picker; "writing":
+    /// Flow's clean-up, the notes' and calls' summaries; "commands": « OK Groovy »).
+    /// A brain id puts that brain first for the job; missing or "auto": the Auto order.
+    pub job_brains: std::collections::BTreeMap<String, String>,
 }
 
 impl Default for AssistantPrefs {
@@ -76,6 +87,9 @@ impl Default for AssistantPrefs {
             history_enabled: true,
             history_retention_days: 90,
             performance_profile: "balanced".into(),
+            brain_order: Vec::new(),
+            switch_on_limit: true,
+            job_brains: std::collections::BTreeMap::new(),
         }
     }
 }

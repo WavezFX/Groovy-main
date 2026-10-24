@@ -164,8 +164,11 @@ class SoundEngine {
     this.enabled = on;
   }
 
+  /** Do not disturb (Settings → Home): silent until it is turned off. */
+  quiet = false;
+
   play(name: SoundName | string) {
-    if (!this.enabled) return;
+    if (!this.enabled || this.quiet) return;
     const buf = this.buffers.get(name);
     if (!buf) return;
     this.cancelIdle();

@@ -12,7 +12,7 @@ import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
-import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { MAX_STAGE, parseGrowth, progressLine, shownStage } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
@@ -25,6 +25,9 @@ const SLOT_LABELS: Record<Slot, string> = {
   face: N_("Face"),
   neck: N_("Neck"),
 };
+
+/** The growth bar's marks: when each stage comes (docs/design/settings-v2/Groovy). */
+const STAGE_MARKS = [N_("Seed"), N_("1 d"), N_("3 d"), N_("1 wk"), N_("2 wk"), N_("1 mo"), N_("6 mo")];
 
 const COLOR_FIELDS: [keyof Pick<Appearance, "body" | "body2" | "glow" | "eyes">, string, string][] = [
   ["body", N_("Body"), "#f6fbf8"],
@@ -59,7 +62,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   };
 
   // ── Live preview ──
-  const PREVIEW = 132;
+  const PREVIEW = 200;
   const preview = h("canvas", { class: "studio-preview", width: PREVIEW, height: PREVIEW, "aria-label": t("Preview") }) as HTMLCanvasElement;
   const engine = new BotEngine();
   let last = performance.now();
@@ -102,7 +105,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   // ── Looks ──
   const looks = h("div", { class: "studio-grid" });
   // How far he has grown, and which stage reached to show (round 3 item 6).
-  const growthRow = h("div", { class: "row studio-growth" });
+  const growthRow = h("div", { class: "studio-growth" });
   // ── Head, Face, Neck ──
   const slots = h("div", { class: "stack" });
   const colours = h("div", { class: "stack" });
@@ -126,26 +129,41 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   // Drawn once, then copied (round 3B item 4: the wardrobe lagged).
   const iconCanvas = (sel: Outfit, size = 30) => spriteCanvas(itemSprite(sel, size, Math.min(2, window.devicePixelRatio || 1)), size);
 
+  // The look (Night, Ember, Frost) and how far he has grown (docs/design/settings-v2/Groovy).
+  const lookSeg = h("div", { class: "hub-w-seg", role: "radiogroup", "aria-label": t("Look") });
   function drawLooks() {
     clear(looks);
+    clear(lookSeg);
     const current = parseSkin(settings.groovyLook);
     const g = parseGrowth(settings.growth);
     const shown = shownStage(g);
-    // The stages he has already passed, as small pictures: to look at, not to pick
-    // (he always shows the stage he has grown to, round 3B item 5).
-    growthRow.replaceChildren(h("span", { class: "hint", text: progressLine(g) }));
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    for (let i = 0; i <= g.reached; i++) {
-      const pic = spriteCanvas(lookSprite(current, i, 22, dpr), 22);
-      pic.className = i === g.reached ? "studio-stage now" : "studio-stage";
-      pic.title = t("Stage {n}", { n: i });
-      pic.setAttribute("aria-hidden", "true");
-      growthRow.append(pic);
-    }
     for (const look of SKINS) {
+      const b = h("button", { class: look === current ? "on" : "", type: "button", role: "radio", "aria-checked": String(look === current), text: t(SKIN_KEYS[look]) });
+      b.addEventListener("click", () => {
+        chooseLook(settings, look);
+        save();
+        drawAll();
+      });
+      lookSeg.append(b);
+    }
+    // The stages: Seed, 1 d, 3 d… each lit once reached.
+    const marks = h("div", { class: "hub-w-stages", style: `grid-template-columns:repeat(${MAX_STAGE + 1},minmax(0,1fr))` });
+    for (let i = 0; i <= MAX_STAGE; i++) {
+      marks.append(h("div", { class: i <= shown ? "hub-w-stage on" : "hub-w-stage" }, h("span", {}), h("small", { text: t(STAGE_MARKS[i] ?? "") })));
+    }
+    growthRow.replaceChildren(
+      h("div", { class: "hub-w-growth-head" },
+        h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[current]) }) }),
+        h("span", { class: "hub-b-detail", text: t("Stage {n} of {max}", { n: shown, max: MAX_STAGE }) })),
+      marks,
+      h("span", { class: "hub-b-detail", text: progressLine(g) }),
+    );
+    // Favourite looks, as before, for the search.
+    for (const look of SKINS) {
+      if (!query && !favouritesOnly) break;
       if (!matches(look, SKIN_KEYS[look])) continue;
       const portrait = spriteCanvas(lookSprite(look, shown, 34, Math.min(2, window.devicePixelRatio || 1)), 34);
-      const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), h("span", { class: "hint", text: t("grows into {name}", { name: t(GROWS_INTO[look]) }) }), star(look)) as HTMLButtonElement;
+      const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), star(look)) as HTMLButtonElement;
       b.addEventListener("click", () => {
         chooseLook(settings, look);
         save();
@@ -155,38 +173,44 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     }
   }
 
+  // Head / Face / Neck as tabs over one grid of items, as approved.
+  let slotShown: Slot = SLOTS[0];
+  const slotTabs = h("div", { class: "hub-w-seg", role: "tablist", "aria-label": t("Wardrobe") });
   function drawSlots() {
     clear(slots);
+    clear(slotTabs);
     const worn = wornOf(prefs.appearance.layers);
     for (const slot of SLOTS) {
-      const row = h("div", { class: "studio-grid" });
-      const items = ACCESSORIES.filter((o) => SLOT_OF[o] === slot && matches(o, OUTFIT_KEYS[o]));
-      if (items.length === 0) continue;
-      // This slot's None: empties it, the others stay.
-      const empty = !worn.some((w) => w !== "none" && SLOT_OF[w] === slot);
-      const none = h("button", { class: empty ? "studio-item on" : "studio-item", title: `${t(SLOT_LABELS[slot])} · ${t("None")}`, "aria-pressed": empty }, iconCanvas("none"), h("span", { text: t("None") })) as HTMLButtonElement;
-      none.addEventListener("click", () => {
-        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: clearSlot(prefs.appearance.layers, slot) } };
-        commit();
+      const b = h("button", { class: slot === slotShown ? "on" : "", type: "button", role: "tab", "aria-selected": String(slot === slotShown), text: t(SLOT_LABELS[slot]) });
+      b.addEventListener("click", () => {
+        slotShown = slot;
+        drawSlots();
       });
-      row.append(none);
-      for (const item of items) {
-        const on = worn.includes(item);
-        const b = h("button", {
-          class: on ? "studio-item on" : "studio-item",
-          title: t(OUTFIT_KEYS[item]),
-          "aria-pressed": on,
-        }, iconCanvas(item), h("span", { text: t(OUTFIT_KEYS[item]) }), star(item)) as HTMLButtonElement;
-        b.addEventListener("click", () => {
-          const next = wear(prefs.appearance.layers, item);
-          prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
-          commit();
-          if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: t(OUTFIT_KEYS[item]) }));
-        });
-        row.append(b);
-      }
-      slots.append(h("div", { class: "subhead", text: t(SLOT_LABELS[slot]) }), row);
+      slotTabs.append(b);
     }
+    const grid = h("div", { class: "hub-card hub-w-items" });
+    const items = ACCESSORIES.filter((o) => SLOT_OF[o] === slotShown && matches(o, OUTFIT_KEYS[o]));
+    // This slot's None: empties it, the others stay.
+    const empty = !worn.some((w) => w !== "none" && SLOT_OF[w] === slotShown);
+    const none = h("button", { class: empty ? "hub-w-item on" : "hub-w-item", type: "button", "aria-pressed": String(empty) }, iconCanvas("none", 34), h("span", { text: t("None") })) as HTMLButtonElement;
+    none.addEventListener("click", () => {
+      prefs = { ...prefs, appearance: { ...prefs.appearance, layers: clearSlot(prefs.appearance.layers, slotShown) } };
+      commit();
+    });
+    grid.append(none);
+    for (const item of items) {
+      const on = worn.includes(item);
+      const b = h("button", { class: on ? "hub-w-item on" : "hub-w-item", type: "button", title: t(OUTFIT_KEYS[item]), "aria-pressed": String(on) },
+        iconCanvas(item, 34), h("span", { text: t(OUTFIT_KEYS[item]) }), star(item)) as HTMLButtonElement;
+      b.addEventListener("click", () => {
+        const next = wear(prefs.appearance.layers, item);
+        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
+        commit();
+        if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: t(OUTFIT_KEYS[item]) }));
+      });
+      grid.append(b);
+    }
+    slots.append(grid);
   }
 
   function drawColours() {
@@ -305,29 +329,27 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   });
 
   drawAll();
+  removeAll.className = "hub-w-remove";
+  const stage = h("div", { class: "hub-w-stage-box" }, preview);
   return h(
     "section",
-    { id: "wardrobe" },
-    h("h2", {}, h("span", { text: t("Wardrobe Studio") })),
+    { id: "wardrobe", class: "hub-w", "data-own": "" },
     message,
-    h(
-      "div",
-      { class: "studio" },
-      h("div", { class: "studio-side" }, preview, h("div", { class: "hint", text: t("Click him to say hi.") }), random, reset),
-      h(
-        "div",
-        { class: "studio-main" },
-        h("div", { class: "row" }, search, favToggle),
-        h("div", { class: "subhead", text: t("Look") }),
-        looks,
-        growthRow,
-        h("div", { class: "row" }, h("div", { class: "subhead", style: "flex:1", text: t("Wardrobe") }), removeAll),
+    h("div", { class: "hub-w-grid" },
+      h("div", { class: "hub-card hub-w-left", "aria-label": t("Look and growth") }, stage, lookSeg, growthRow),
+      h("div", { class: "hub-w-right", "aria-label": t("Wardrobe") },
+        h("div", { class: "hub-w-bar" }, slotTabs, removeAll),
         slots,
-        h("div", { class: "subhead", text: t("Colours") }),
-        colours,
-        h("div", { class: "subhead", text: t("Presets") }),
-        presets,
       ),
+    ),
+    h("div", { class: "hub-w-more" },
+      h("span", { class: "hub-label", text: t("Find") }),
+      h("div", { class: "hub-card hub-w-find" }, h("div", { class: "row" }, search, favToggle), looks),
+      h("span", { class: "hub-label", text: t("Colours") }),
+      h("div", { class: "hub-card hub-w-pad" }, colours),
+      h("span", { class: "hub-label", text: t("Presets") }),
+      h("div", { class: "hub-card hub-w-pad" }, presets),
+      h("div", { class: "row" }, random, reset, h("span", { class: "hint", text: t("Click him to say hi.") })),
     ),
   );
 }

@@ -7,7 +7,9 @@ import { t } from "../../i18n/i18n";
 import { Bridge, onEvent } from "../../core/bridge";
 import { FlowBridge, type FlowPrefs, type OkTestStep, type VoiceOutput } from "../../core/flow";
 import type { HubContext } from "../shell";
-import { button, card, divider, label, row, segmented, toggle } from "../ui";
+import { button, card, divider, label, row, segmented, select, toggle } from "../ui";
+import { showError } from "../../views/toast";
+import { speak } from "../../voice/speak";
 import { modelsControl } from "./flowsettings";
 
 const ELEVEN = "elevenlabs-api-key";
@@ -193,13 +195,105 @@ function privacyCard(): HTMLElement {
 }
 
 /** Voice → Speaking (round 3D item 1): his voice (Fish Audio, Kokoro, the test) and how he answers. */
+/** A Speaking card's waveform: still bars, the selected one in the accent. */
+function wave(seed: number): HTMLElement {
+  const w = h("div", { class: "hub-v-wave", "aria-hidden": "true" });
+  for (let k = 0; k < 22; k++) w.append(h("span", { style: `height:${6 + Math.round(14 * Math.abs(Math.sin((k + seed) * 0.9)))}px` }));
+  return w;
+}
+
+/**
+ * Voice → Speaking (docs/design/settings-v2/Voice, round 3D item 3): pick
+ * his voice from four cards, then Delivery (speed, the offline voice, the
+ * Fish Audio account) and Listening (wake words, microphone, recognition).
+ */
 export async function speakingPage(page: HTMLElement, ctx: HubContext) {
   const status = await ctx.refresh();
   const prefs = status.prefs;
-  page.append(ctx.hero("speaking", t("Speaking"), t("How Groovy sounds when he answers out loud.")));
-  page.append(label(t("Groovy's voice")));
-  page.append(groovyVoiceCard(ctx, prefs));
-  page.append(label(t("Answers")));
+  const tts = await FlowBridge.ttsStatus();
+  page.append(ctx.hero("speaking", t("Speaking"), null));
+
+  // ── The four voices ──
+  const fishReady = !!tts?.fishKey && !!prefs.fishVoice;
+  const kokoroReady = tts?.kokoro.state === "ready";
+  const play = (audio: Promise<{ mime: string; data: string }>) =>
+    audio.then((a) => void new Audio(`data:${a.mime};base64,${a.data}`).play(), (e: unknown) => showError(e));
+  type Card = { id: string; name: string; desc: string; seed: number; selected: boolean; pick: () => void; preview: () => void };
+  const cards: Card[] = [
+    { id: "fish", name: "Fish Audio", desc: fishReady ? t("Fish Audio · your pick") : t("Fish Audio · add your key below"), seed: 7,
+      selected: prefs.voicePick === "fish" || !prefs.voicePick,
+      pick: () => void ctx.setPrefs((p) => (p.voicePick = "fish")).then(() => ctx.navigate("speaking")),
+      preview: () => (fishReady ? void play(FlowBridge.fishTest()) : (fishBox.hidden = false)) },
+    { id: "kokoro-female", name: t("Heart"), desc: t("Kokoro · offline"), seed: 3,
+      selected: prefs.voicePick === "kokoro" && prefs.voiceGender !== "male",
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "female"; }).then(() => ctx.navigate("speaking")),
+      preview: () => void play(FlowBridge.kokoroPreview("female")) },
+    { id: "kokoro-male", name: t("Michael"), desc: t("Kokoro · offline"), seed: 11,
+      selected: prefs.voicePick === "kokoro" && prefs.voiceGender === "male",
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "male"; }).then(() => ctx.navigate("speaking")),
+      preview: () => void play(FlowBridge.kokoroPreview("male")) },
+    { id: "system", name: t("Windows"), desc: t("System voice · built in"), seed: 5,
+      selected: prefs.voicePick === "system",
+      pick: () => void ctx.setPrefs((p) => (p.voicePick = "system")).then(() => ctx.navigate("speaking")),
+      preview: () => void speak(t("Hi, I'm Groovy. This is how I sound.")) },
+  ];
+  const grid = h("div", { class: "hub-v-cards" });
+  for (const c of cards) {
+    const playBtn = h("span", { class: "hub-v-play", role: "button", tabindex: "0", "aria-label": t("Play {name}", { name: c.name }) });
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+    playBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      c.preview();
+    });
+    const card_ = h("button", { class: c.selected ? "hub-v-card on" : "hub-v-card", type: "button", "aria-pressed": String(c.selected), onclick: c.pick },
+      h("div", { class: "hub-v-card-top" }, h("span", { class: "hub-v-name", text: c.name }), playBtn),
+      wave(c.seed),
+      h("span", { class: "hub-v-desc", text: c.desc }),
+    );
+    grid.append(card_);
+  }
+  page.append(h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t("Voice") }), grid));
+
+  // ── Delivery ──
+  const speed = h("input", { type: "range", min: "0.5", max: "2", step: "0.05", value: String(prefs.voiceSpeed || 1), "aria-label": t("Speed") }) as HTMLInputElement;
+  const speedLine = h("span", { class: "hub-b-detail", text: `${(prefs.voiceSpeed || 1).toFixed(2)}×` });
+  speed.addEventListener("input", () => (speedLine.textContent = `${Number(speed.value).toFixed(2)}×`));
+  speed.addEventListener("change", () => void ctx.setPrefs((p) => (p.voiceSpeed = Number(speed.value))));
+  const offline = h("select", { "aria-label": t("Offline voice") }) as HTMLSelectElement;
+  for (const [id, text] of [["female", `Kokoro · ${t("Heart")}`], ["male", `Kokoro · ${t("Michael")}`]]) offline.append(h("option", { value: id, text }));
+  offline.value = prefs.voiceGender === "male" ? "male" : "female";
+  offline.addEventListener("change", () => void ctx.setPrefs((p) => (p.voiceGender = offline.value as "female" | "male")));
+  const kokoroLine = kokoroReady ? t("Used when Fish Audio can't answer") : t("Kokoro isn't downloaded yet");
+  const kokoroGet = kokoroReady ? offline : button(t("Download ({mb} MB)", { mb: String(tts?.kokoroMb ?? 0) }), () => void FlowBridge.kokoroDownload().then(() => ctx.navigate("speaking")), "primary", true);
+  const fishBox = groovyVoiceCard(ctx, prefs);
+  fishBox.classList.add("hub-v-fish");
+  fishBox.hidden = true;
+  const usage = tts?.fishKey ? t("About £{gbp} this month", { gbp: tts.monthGbp.toFixed(2) }) : t("No key yet");
+  const manage = button(t("Manage"), () => (fishBox.hidden = !fishBox.hidden));
+  const delivery = h("div", { class: "hub-card hub-b-list" },
+    homeRowV(t("Speed"), speedLine, speed),
+    homeRowV(t("Offline voice"), h("span", { class: "hub-b-detail", text: kokoroLine }), kokoroGet),
+    homeRowV(t("Fish Audio account"), h("span", { class: "hub-b-detail", text: usage }), manage),
+  );
+
+  // ── Listening ──
+  const chips = h("div", { class: "hub-v-chips" }, h("span", { class: "hub-v-chip", text: "OK Groovy" }), h("span", { class: "hub-v-chip", text: "Hey Groovy" }));
+  const mics: [string, string][] = [["", t("System default")], ...status.mics.map((m): [string, string] => [m.name, m.name])];
+  if (prefs.mic && !mics.some(([id]) => id === prefs.mic)) mics.push([prefs.mic, prefs.mic]);
+  const mic = select(mics, prefs.mic, (m) => void ctx.setPrefs((p) => (p.mic = m)));
+  const recognition = prefs.cloudSpeech ? t("Cloud first · small offline model as backup") : t("On this PC only");
+  const listening = h("div", { class: "hub-card hub-b-list" },
+    h("div", { class: "hub-v-wake" }, h("span", { class: "hub-b-name", text: t("Wake words") }), chips),
+    homeRowV(t("Microphone"), h("span", { class: "hub-b-detail", text: t("The one Groovy listens to") }), mic),
+    homeRowV(t("Speech recognition"), h("span", { class: "hub-b-detail", text: recognition }), button(t("Change"), () => ctx.navigate("dictation", "flowsettings"))),
+  );
+  page.append(h("div", { class: "hub-home-two" },
+    h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t("Delivery") }), delivery),
+    h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t("Listening") }), listening),
+  ));
+  page.append(fishBox);
+
+  // ── How answers are spoken (kept from before) ──
   const outputs: [VoiceOutput, string][] = [["system", t("System voice")], ["elevenlabs", "ElevenLabs"], ["off", t("Text only")]];
   const answers = card(
     row(t("Groovy answers out loud"), null, segmented(outputs, prefs.voiceOutput, (v) => void ctx.setPrefs((p) => (p.voiceOutput = v)).then(() => ctx.navigate("speaking")))),
@@ -212,5 +306,10 @@ export async function speakingPage(page: HTMLElement, ctx: HubContext) {
       row(t("ElevenLabs key"), null, elevenKey()),
     );
   }
-  page.append(answers);
+  page.append(label(t("Answers")), answers);
+}
+
+/** A row of a design card: name and line on the left, the control on the right. */
+function homeRowV(name: string, detail: HTMLElement | null, control: HTMLElement): HTMLElement {
+  return h("div", { class: "hub-home-row" }, h("div", { class: "hub-b-text" }, h("span", { class: "hub-b-name", text: name }), detail), control);
 }

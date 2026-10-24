@@ -6,11 +6,11 @@ import { Bridge } from "../../core/bridge";
 import { FlowBridge } from "../../core/flow";
 import { parseGrowth, progressLine, shownStage } from "../../mochi/growth";
 import { lookSprite, spriteCanvas } from "../../mochi/sprites";
-import { GROWS_INTO, SKIN_KEYS, parseSkin } from "../../mochi/skins";
+import { GROWS_INTO, parseSkin } from "../../mochi/skins";
 import { t } from "../../i18n/i18n";
 import { h } from "../../views/dom";
 import type { HubContext } from "../shell";
-import { btn, emptyState, group, setting, toggle } from "../ui";
+import { btn, emptyState, keyLabel, toggle } from "../ui";
 
 export interface Warning {
   text: string;
@@ -35,46 +35,105 @@ export function warnings(input: {
   return out;
 }
 
-const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
+
+/** "Claude", "Gemini"… with where it runs, for "Thinking with". */
+function brainKind(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("code") || n.includes("codex")) return t("subscription");
+  if (n.includes("local") || n.includes("ollama") || n.includes("pc")) return t("this PC");
+  return t("cloud");
+}
+
+function tile(labelText: string, value: HTMLElement | string, detail: HTMLElement | string | null): HTMLElement {
+  return h("div", { class: "hub-home-tile" },
+    h("span", { class: "hub-label", text: labelText }),
+    typeof value === "string" ? h("span", { class: "hub-home-tile-value", text: value }) : value,
+    detail ? (typeof detail === "string" ? h("span", { class: "hub-home-tile-detail", text: detail }) : detail) : null,
+  );
+}
+
+/** A row of a Home card: a dot (Needs attention) or nothing, the words, the control. */
+function homeRow(name: string, detail: string | null, control: HTMLElement, dot?: string): HTMLElement {
+  return h("div", { class: "hub-home-row" },
+    dot ? h("span", { class: "hub-home-dot", style: `background:${dot}` }) : null,
+    h("div", { class: "hub-b-text" }, h("span", { class: "hub-b-name", text: name }), detail ? h("span", { class: "hub-b-detail", text: detail }) : null),
+    control,
+  );
+}
 
 export async function homePage(page: HTMLElement, ctx: HubContext) {
   const [status, boot, quick, sys] = await Promise.all([ctx.refresh(), Bridge.boot(), FlowBridge.quickStatus(), Bridge.systemStatus()]);
   const settings = boot?.settings;
-  const name = "Groovy";
-  page.append(ctx.hero("home", t("Home"), t("Groovy at a glance, and anything that needs you.")));
+  const version = h("span", { class: "hub-home-version", text: boot?.version ? `Groovy ${boot.version}` : "Groovy" });
+  page.append(ctx.hero("home", t("Home"), null, [version]));
 
-  // ── Him ──
+  // ── Him: his look, how far he has grown, and what runs him ──
   const look = parseSkin(settings?.groovyLook);
   const g = parseGrowth(settings?.growth);
   const portrait = h("span", { class: "hub-home-portrait" });
-  requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(g), 56, Math.min(2, window.devicePixelRatio || 1)), 56)));
-  page.append(group(null,
-    h("div", { class: "hub-t-row hub-home-him" }, portrait, h("div", { class: "hub-t-text" },
-      h("div", { class: "hub-home-name", text: name }),
-      h("div", { class: "hub-t-detail", text: `${t(SKIN_KEYS[look])} → ${t(GROWS_INTO[look])} · ${progressLine(g)}` }),
-    ), btn(t("Wardrobe"), () => ctx.navigate("wardrobe"))),
+  requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(g), 150, Math.min(2, window.devicePixelRatio || 1)), 150)));
+  const ready = (quick?.ai ?? []).filter((x) => x.state === "ready");
+  const thinking = ready[0]
+    ? tile(t("Thinking with"), `${ready[0].name} · ${brainKind(ready[0].name)}`, ready.length > 1 ? t("Falls back to {list}", { list: ready.slice(1, 3).map((x) => x.name).join(t(", then ")) }) : null)
+    : tile(t("Thinking with"), t("No AI yet"), t("Set one up in Brains"));
+  const voice = quick?.voice ?? "system";
+  const speaking = tile(t("Speaking with"),
+    voice === "fish" ? "Fish Audio" : voice === "kokoro" ? t("Kokoro · offline") : t("System voice"),
+    voice === "fish" ? t("Kokoro offline if needed") : null);
+  const used = sys ? sys.groovyMemory / (1024 * 1024) : 0;
+  const memValue = h("span", { class: "hub-home-tile-value" }, `${Math.round(used)} MB `, h("span", { class: "hub-home-of", text: t("of 400 MB limit") }));
+  const memBar = h("div", { class: "hub-home-bar" }, h("i", { style: `transform:scaleX(${Math.min(1, used / 400).toFixed(3)})` }));
+  page.append(h("div", { class: "hub-card hub-home-him", "aria-label": "Groovy" },
+    portrait,
+    h("div", { class: "hub-home-him-text" },
+      h("div", { class: "hub-home-him-head" },
+        h("div", { class: "hub-home-title", text: t("Groovy is growing into {next}", { next: t(GROWS_INTO[look]) }) }),
+        h("div", { class: "hub-home-line", text: progressLine(g) }),
+      ),
+      h("div", { class: "hub-home-tiles" }, thinking, speaking, tile(t("Memory"), memValue, memBar)),
+    ),
+    btn(t("Wardrobe"), () => ctx.navigate("wardrobe")),
   ));
 
-  // ── Brain, voice, memory ──
-  const ready = quick?.ai.find((a) => a.state === "ready") ?? null;
+  // ── Quick toggles · Needs attention ──
+  const flip = (on: boolean, change: (v: boolean) => void) => toggle(on, change);
+  const s = settings;
+  const toggles = h("div", { class: "hub-card hub-b-list" },
+    homeRow("OK Groovy", t("Listen for the wake word"), flip(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
+    homeRow(t("Dictation"), t("Hold {key} to talk", { key: keyLabel(status.prefs.key, status.platform) }), flip(status.prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
+    homeRow(t("Do not disturb"), t("No toasts or sounds"), flip(!!s?.doNotDisturb, (on) => {
+      if (!s) return;
+      s.doNotDisturb = on;
+      void Bridge.saveSettings(s);
+    })),
+    homeRow(t("Open island on hover"), t("Otherwise open on click"), flip(s?.openOnHover !== false, (on) => {
+      if (!s) return;
+      s.openOnHover = on;
+      void Bridge.saveSettings(s);
+    })),
+  );
   const ok = quick?.ok;
-  const speechReady = status.models.parakeet.state === "ready";
-  page.append(group(t("Now"),
-    setting(t("Brain"), ready ? t("{name} answers.", { name: ready.name }) : t("No AI yet."), btn(t("Brains"), () => ctx.navigate("brains"), "subtle")),
-    setting(t("Voice"), ok?.on ? (ok.listening ? t("Listening for « OK Groovy ».") : t("« OK Groovy » is on, not listening yet.")) : t("« OK Groovy » is off."), btn(t("Listening"), () => ctx.navigate("listening"), "subtle")),
-    setting(t("Memory use"), sys ? t("Groovy uses {mb} of {total}.", { mb: mb(sys.groovyMemory), total: mb(sys.memoryTotal) }) : "…", btn(t("System"), () => ctx.navigate("system"), "subtle")),
+  const speechReady = status.models.parakeet.state === "ready" || status.engineReady;
+  const list = warnings({ aiReady: ready.length > 0, okOn: !!ok?.on, micError: ok?.micError ?? null, speechReady, dictationOn: status.prefs.enabled });
+  const attention = h("div", { class: "hub-card hub-b-list" }, ...(list.length
+    ? list.map((w, i) => homeRow(w.text, null, btn(w.fix, () => ctx.navigate(w.page, w.tab), i === 0 ? "primary" : "secondary"), i === 0 ? "#F5B84B" : "#7FD4FF"))
+    : [emptyState("check", t("Nothing needs you. All set."))]));
+  page.append(h("div", { class: "hub-home-two" },
+    h("div", { class: "hub-home-col", "aria-label": t("Quick toggles") }, h("span", { class: "hub-label", text: t("Quick toggles") }), toggles),
+    h("div", { class: "hub-home-col", "aria-label": t("Needs attention") }, h("span", { class: "hub-label", text: t("Needs attention") }), attention),
   ));
 
-  // ── Quick toggles ──
-  page.append(group(t("Quick toggles"),
-    setting("« OK Groovy »", null, toggle(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
-    setting(t("Dictation"), null, toggle(status.prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
-    setting(t("Do not disturb"), t("Windows' own Focus: notifications wait."), btn(t("Open"), () => void Bridge.pcDo("dnd", null, null).catch(() => {}))),
+  // ── Jump to ──
+  const jump = (page_: string, name: string, line: string) =>
+    h("button", { class: "hub-card hub-home-jump", type: "button", onclick: () => ctx.navigate(page_) },
+      h("span", { class: "hub-home-jump-name", text: name }), h("span", { class: "hub-b-detail", text: line }));
+  page.append(h("div", { class: "hub-home-col", "aria-label": t("Jump to") },
+    h("span", { class: "hub-label", text: t("Jump to") }),
+    h("div", { class: "hub-home-jumps" },
+      jump("brains", t("Brains"), t("Cloud, subscriptions, on this PC")),
+      jump("speaking", t("Voice"), t("How he sounds and listens")),
+      jump("island", t("Island"), t("Tiles, glass and accounts")),
+      jump("system", t("System"), t("Memory, CPU and logs")),
+    ),
   ));
-
-  // ── Needs you ──
-  const list = warnings({ aiReady: !!ready, okOn: !!ok?.on, micError: ok?.micError ?? null, speechReady, dictationOn: status.prefs.enabled });
-  page.append(group(t("Needs you"), ...(list.length
-    ? list.map((w, i) => setting(w.text, null, btn(w.fix, () => ctx.navigate(w.page, w.tab), i === 0 ? "primary" : "secondary")))
-    : [emptyState("check", t("Nothing needs you. All set."))])));
 }

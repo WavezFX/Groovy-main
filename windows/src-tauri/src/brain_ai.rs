@@ -155,12 +155,50 @@ pub async fn ai_clis() -> Clis {
 }
 
 fn current_order(s: &Settings) -> Vec<Who> {
+    current_order_for(s, "")
+}
+
+/// The order for one job ("writing", "commands"): the job's own brain first
+/// when one was chosen, then the Auto order.
+fn current_order_for(s: &Settings, job: &str) -> Vec<Who> {
     let prefs = s.assistant.clone().sanitised();
     let mut v = order(&prefs, &s.chat_provider, has_key, |t| cli_path(t).is_some());
     if !local_configured(s, &prefs) {
         v.retain(|w| *w != Who::Local);
     }
+    arrange(v, &prefs.brain_order, prefs.job_brains.get(job).map(String::as_str))
+}
+
+impl Who {
+    /// The id the Brains page uses for it.
+    pub fn id(&self) -> &'static str {
+        match self {
+            Who::Local => "local",
+            Who::Claude => "anthropic",
+            Who::Cloud(c) | Who::Cli(c) => c,
+        }
+    }
+}
+
+/// The user's Auto order (Brains), then the job's own brain first. Brains not
+/// in the order keep their place after those that are; this PC stays last.
+pub fn arrange(mut v: Vec<Who>, user_order: &[String], job_first: Option<&str>) -> Vec<Who> {
+    if !user_order.is_empty() {
+        let rank = |w: &Who| user_order.iter().position(|id| id == w.id()).unwrap_or(user_order.len());
+        v.sort_by_key(|w| (*w == Who::Local, rank(w)));
+    }
+    if let Some(id) = job_first.filter(|id| *id != "auto") {
+        if let Some(i) = v.iter().position(|w| w.id() == id) {
+            let w = v.remove(i);
+            v.insert(0, w);
+        }
+    }
     v
+}
+
+/// After a failed brain: whether the next one may answer.
+fn may_switch(prefs: &AssistantPrefs, err: &str) -> bool {
+    prefs.switch_on_limit || !is_limit(err)
 }
 
 /// Who answers first right now, by name: "Gemini", "Claude", "Local"…
@@ -363,7 +401,7 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
     let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
-    for who in current_order(&s) {
+    for who in current_order_for(&s, "writing") {
         let r = match who {
             Who::Claude => crate::claude::complete(CLAUDE_FAST, system, user, max_tokens, timeout).await,
             Who::Cli(tool) => cli_complete(tool, format!("{system}\n\n{user}"), timeout).await,
@@ -383,7 +421,11 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
             Ok(t) => return Ok(t),
             Err(e) => {
                 crate::log::line(format!("brain ({who:?}): {e}"));
+                let stop = !may_switch(&prefs, &e);
                 last = e;
+                if stop {
+                    break;
+                }
             }
         }
     }
@@ -397,7 +439,7 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
     let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
-    for who in current_order(&s) {
+    for who in current_order_for(&s, "commands") {
         let r = match who {
             Who::Claude => crate::claude::voice_turn(CLAUDE_FAST, system, messages, tools).await,
             Who::Cli(tool) => cli_complete(tool, as_prompt(system, messages), Duration::from_secs(90))
@@ -417,7 +459,11 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
             Ok(v) => return Ok(v),
             Err(e) => {
                 crate::log::line(format!("brain ({who:?}): {e}"));
+                let stop = !may_switch(&prefs, &e);
                 last = e;
+                if stop {
+                    break;
+                }
             }
         }
     }
@@ -531,6 +577,27 @@ pub fn from_openai(v: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_users_order_and_a_jobs_brain_rearrange_but_this_pc_stays_last() {
+        let base = vec![Who::Claude, Who::Cloud("google"), Who::Cloud("openai"), Who::Local];
+        let order = vec!["openai".to_string(), "anthropic".into(), "local".into(), "google".into()];
+        assert_eq!(arrange(base.clone(), &order, None), vec![Who::Cloud("openai"), Who::Claude, Who::Cloud("google"), Who::Local]);
+        assert_eq!(arrange(base.clone(), &[], None), base, "no order: as built");
+        assert_eq!(arrange(base.clone(), &[], Some("google"))[0], Who::Cloud("google"), "the job's brain first");
+        assert_eq!(arrange(base.clone(), &[], Some("auto")), base);
+        assert_eq!(arrange(base.clone(), &[], Some("codex")), base, "a brain this PC hasn't is ignored");
+    }
+
+    #[test]
+    fn a_limit_stops_the_switching_only_when_asked() {
+        let mut p = AssistantPrefs::default();
+        assert!(p.switch_on_limit, "on by default");
+        assert!(may_switch(&p, "HTTP 429: quota"));
+        p.switch_on_limit = false;
+        assert!(!may_switch(&p, "HTTP 429: quota"));
+        assert!(may_switch(&p, "connection refused"), "other failures still fall through");
+    }
 
     #[test]
     fn a_limit_is_told_apart_from_other_failures() {

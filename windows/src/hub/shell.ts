@@ -49,7 +49,7 @@ export interface HubOptions {
 const DEFAULT_STATUS: FlowStatus = {
   prefs: {
     enabled: false, key: "right_ctrl", mic: "", keepDays: 30, cleanup: false,
-    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", speechSetupDone: false, openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female", fishVoice: "", fishModel: "s2-pro", cloudSpeech: true, learnWords: true,
+    defaultStyle: "natural", summaryEngine: "ai", engine: "parakeet", speechSetupDone: false, openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female", fishVoice: "", fishModel: "s2-pro", voicePick: "fish", voiceSpeed: 1, cloudSpeech: true, learnWords: true,
   },
   models: { parakeet: { state: "missing" }, downloadMb: 700 },
   keys: "ok",
@@ -152,8 +152,10 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
   light?.addEventListener?.("change", theme);
   const saved = recall();
   // Opened on a page (lib.rs show_hub: settings.html?page=…), else where it was left, else Home.
-  let place: Place = resolvePage(new URLSearchParams(location.search).get("page"))
+  const asked = new URLSearchParams(location.search);
+  let place: Place = resolvePage(asked.get("page"))
     ?? resolvePage(saved.page) ?? { page: "home" };
+  if (asked.get("tab")) place.tab = asked.get("tab")!;
   if (!place.tab && saved.page === place.page && saved.tab) place.tab = saved.tab;
   let status: FlowStatus = (await FlowBridge.status()) ?? DEFAULT_STATUS;
   const items = new Map<PageId, HTMLElement>();
@@ -361,6 +363,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
   return {
     redraw: () => void show(place),
     current: () => place.page,
+    navigate: (page: string, tab?: string) => void ctx.navigate(page, tab),
   };
 }
 

@@ -257,6 +257,9 @@ const NOT_TEXT = new Set([
   "unknown", // a CI state
   "Resend", // the service's name (the Mac's "Resend" is a button: send again)
   "Stop", // Claude Code's hook event (the Mac's "Stop" is a button)
+  "commands", // a brain job id (assistant.rs job_brains)
+  "cloud", // a brain kind id (aisetup.ts, main.ts)
+  "subscription", // a brain kind id (aisetup.ts)
 ]);
 
 test("no known user-facing English literal outside t() in the views and settings", () => {

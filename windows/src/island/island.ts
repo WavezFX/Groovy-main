@@ -395,6 +395,7 @@ export class Island {
       toggleSound: () => {
         State.settings.soundEnabled = !State.settings.soundEnabled;
         Sound.setEnabled(State.settings.soundEnabled);
+    Sound.quiet = !!State.settings.doNotDisturb;
         void Bridge.saveSettings(State.settings);
         State.notify();
       },
@@ -684,6 +685,8 @@ export class Island {
 
   /** Alert from the hook server: open on this view. Pinned alerts never auto-close. */
   alert(view: IslandViewName) {
+    // Do not disturb: notifications and the recap wait; agents' questions don't.
+    if (State.settings.doNotDisturb && (view === "notify" || view === "recap")) return;
     this.fsm.pinned = State.isPinned;
     this.fsm.forceHome();
     this.expand(view);
@@ -1623,6 +1626,7 @@ export class Island {
   /** Applies settings coming from Rust at boot. */
   applySettings() {
     Sound.setEnabled(State.settings.soundEnabled);
+    Sound.quiet = !!State.settings.doNotDisturb;
     Sound.setVolume(State.settings.soundVolume);
     Sound.setFlavor(flavorOf(parseSkin(State.settings.groovyLook)));
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;

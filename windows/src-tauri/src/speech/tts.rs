@@ -80,7 +80,7 @@ impl FishError {
 }
 
 /// One Fish Audio request: the MP3, read as it streams in.
-pub async fn fish_request(url: &str, key: &str, voice: &str, model: &str, text: &str) -> Result<Vec<u8>, FishError> {
+pub async fn fish_request(url: &str, key: &str, voice: &str, model: &str, text: &str, speed: f32) -> Result<Vec<u8>, FishError> {
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(8))
         .timeout(Duration::from_secs(30))
@@ -90,7 +90,7 @@ pub async fn fish_request(url: &str, key: &str, voice: &str, model: &str, text: 
         .post(url)
         .bearer_auth(key)
         .header("model", model)
-        .json(&json!({ "text": text, "reference_id": voice, "format": "mp3", "latency": "balanced" }))
+        .json(&json!({ "text": text, "reference_id": voice, "format": "mp3", "latency": "balanced", "prosody": { "speed": speed } }))
         .send()
         .await
         .map_err(|_| FishError::Offline)?;
@@ -126,15 +126,24 @@ struct Prefs {
     voice: String,
     model: String,
     gender: String,
+    /// Who speaks first (Settings → Speaking): "fish", "kokoro" or "system".
+    pick: String,
+    /// 0.5–2.0, every voice.
+    speed: f32,
 }
 
 fn prefs(app: &AppHandle) -> Prefs {
     crate::flow::get(app)
         .map(|f| {
             let p = &f.store.lock().unwrap().prefs;
-            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone() }
+            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone(), pick: p.voice_pick.clone(), speed: clamp_speed(p.voice_speed) }
         })
-        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into() })
+        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into(), pick: "fish".into(), speed: 1.0 })
+}
+
+/// A speed the voices accept: 0.5–2.0, 1.0 for anything else.
+pub fn clamp_speed(v: f32) -> f32 {
+    if v.is_finite() && v > 0.0 { v.clamp(0.5, 2.0) } else { 1.0 }
 }
 
 fn fish_model(model: &str) -> &str {
@@ -147,13 +156,13 @@ fn fish_model(model: &str) -> &str {
 
 /// Fish Audio with this key and voice: the chosen model, then the default
 /// model if the chosen one is refused.
-fn fish(key: &str, voice: &str, model: &str, text: &str) -> Result<Vec<u8>, FishError> {
+fn fish(key: &str, voice: &str, model: &str, text: &str, speed: f32) -> Result<Vec<u8>, FishError> {
     let model = fish_model(model);
-    let first = tauri::async_runtime::block_on(fish_request(FISH_URL, key, voice, model, text));
+    let first = tauri::async_runtime::block_on(fish_request(FISH_URL, key, voice, model, text, speed));
     match first {
         Err(FishError::Refused(_)) if model != FISH_DEFAULT_MODEL => {
             crate::log::line(format!("voice: Fish Audio refused {model}, trying {FISH_DEFAULT_MODEL}"));
-            tauri::async_runtime::block_on(fish_request(FISH_URL, key, voice, FISH_DEFAULT_MODEL, text))
+            tauri::async_runtime::block_on(fish_request(FISH_URL, key, voice, FISH_DEFAULT_MODEL, text, speed))
         }
         other => other,
     }
@@ -166,9 +175,14 @@ pub fn synthesize(app: &AppHandle, text: &str) -> Option<Audio> {
         return None;
     }
     let p = prefs(app);
+    // The system voice picked: the page says it with Windows' own voice.
+    if p.pick == "system" {
+        return None;
+    }
     let resting = fish_state().lock().unwrap().rest_until.is_some_and(|t| Instant::now() < t);
-    if let (Some(key), false, false) = (crate::secrets::get(FISH_KEY), p.voice.is_empty(), resting) {
-        match fish(&key, &p.voice, &p.model, text) {
+    let fish_first = p.pick != "kokoro";
+    if let (Some(key), false, false, true) = (crate::secrets::get(FISH_KEY), p.voice.is_empty(), resting, fish_first) {
+        match fish(&key, &p.voice, &p.model, text, p.speed) {
             Ok(bytes) => {
                 record_usage(text.chars().count() as u64);
                 fish_state().lock().unwrap().note = None;
@@ -185,7 +199,7 @@ pub fn synthesize(app: &AppHandle, text: &str) -> Option<Audio> {
             }
         }
     }
-    kokoro(text, &p.gender).map(|bytes| Audio { mime: "audio/wav", bytes, provider: "kokoro" })
+    kokoro_at(text, &p.gender, p.speed).map(|bytes| Audio { mime: "audio/wav", bytes, provider: "kokoro" })
 }
 
 // ── Kokoro ────────────────────────────────────────────────────────────────────
@@ -256,10 +270,10 @@ fn load() -> Option<Arc<OfflineTts>> {
     Some(tts)
 }
 
-/// Kokoro's WAV for `text`, if Kokoro is downloaded.
-pub fn kokoro(text: &str, gender: &str) -> Option<Vec<u8>> {
+/// Kokoro's WAV for `text` at a speed (Settings → Speaking), if Kokoro is downloaded.
+pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     let tts = load()?;
-    let config = GenerationConfig { sid: kokoro_speaker(gender), speed: 1.0, ..Default::default() };
+    let config = GenerationConfig { sid: kokoro_speaker(gender), speed: clamp_speed(speed), ..Default::default() };
     let audio = tts.generate_with_config(text, &config, None::<fn(&[f32], f32) -> bool>)?;
     let samples = audio.samples();
     (!samples.is_empty()).then(|| super::cloud::wav_at(samples, audio.sample_rate().max(1) as u32))
@@ -391,6 +405,22 @@ pub async fn tts_audio(app: AppHandle, text: String) -> Option<TtsAudio> {
     tauri::async_runtime::spawn_blocking(move || synthesize(&app, &text).map(TtsAudio::from)).await.ok().flatten()
 }
 
+/// Settings → Speaking: Kokoro's voice for that card, at the chosen speed.
+#[tauri::command]
+pub async fn kokoro_preview(app: AppHandle, gender: String) -> Result<TtsAudio, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = prefs(&app);
+        if !KOKORO.is_present() {
+            return Err(t("Download Kokoro first."));
+        }
+        let text = t("Hi, I'm Groovy. This is how I sound.");
+        let bytes = kokoro_at(&text, &gender, p.speed).ok_or_else(|| t("Kokoro didn't speak."))?;
+        Ok(TtsAudio::from(Audio { mime: "audio/wav", bytes, provider: "kokoro" }))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Settings → Voice → Test voice: Fish Audio alone, so its own error shows.
 #[tauri::command]
 pub async fn fish_test(app: AppHandle) -> Result<TtsAudio, String> {
@@ -401,7 +431,7 @@ pub async fn fish_test(app: AppHandle) -> Result<TtsAudio, String> {
             return Err(t("Add the voice ID first."));
         }
         let text = t("Hi, I'm Groovy. This is how I sound.");
-        let bytes = fish(&key, &p.voice, &p.model, &text).map_err(|e| e.note())?;
+        let bytes = fish(&key, &p.voice, &p.model, &text, p.speed).map_err(|e| e.note())?;
         record_usage(text.chars().count() as u64);
         fish_state().lock().unwrap().note = None;
         Ok(TtsAudio::from(Audio { mime: "audio/mpeg", bytes, provider: "fish" }))
@@ -456,6 +486,15 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_speed_stays_in_what_the_voices_take() {
+        assert_eq!(clamp_speed(1.05), 1.05);
+        assert_eq!(clamp_speed(9.0), 2.0);
+        assert_eq!(clamp_speed(0.1), 0.5);
+        assert_eq!(clamp_speed(f32::NAN), 1.0);
+        assert_eq!(clamp_speed(0.0), 1.0, "an old prefs file without the speed");
+    }
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
@@ -499,7 +538,7 @@ mod tests {
     #[test]
     fn fish_audio_streams_the_mp3_with_the_key_only_in_the_header() {
         let (url, server) = mock(200, b"ID3-fake-mp3-bytes");
-        let got = tauri::async_runtime::block_on(fish_request(&url, "secret-key-123", "voice-abc", "s2-pro", "Hello there."));
+        let got = tauri::async_runtime::block_on(fish_request(&url, "secret-key-123", "voice-abc", "s2-pro", "Hello there.", 1.0));
         assert_eq!(got.unwrap(), b"ID3-fake-mp3-bytes");
         let req = server.join().unwrap();
         let lower = req.to_ascii_lowercase();
@@ -514,7 +553,7 @@ mod tests {
     fn refusals_say_why_without_the_key_and_limits_rest_fish_audio() {
         for (status, want) in [(401, FishError::Key), (402, FishError::NoCredit), (429, FishError::Limit), (400, FishError::Refused(400))] {
             let (url, server) = mock(status, b"{}");
-            let got = tauri::async_runtime::block_on(fish_request(&url, "secret-key-123", "v", "s1", "Hi."));
+            let got = tauri::async_runtime::block_on(fish_request(&url, "secret-key-123", "v", "s1", "Hi.", 1.0));
             server.join().unwrap();
             let err = got.unwrap_err();
             assert_eq!(err, want);
@@ -524,7 +563,7 @@ mod tests {
         assert!(FishError::NoCredit.rests() && FishError::Limit.rests());
         assert!(!FishError::Key.rests() && !FishError::Offline.rests());
         let closed = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap();
-        let offline = tauri::async_runtime::block_on(fish_request(&format!("http://{closed}/v1/tts"), "k", "v", "s1", "Hi."));
+        let offline = tauri::async_runtime::block_on(fish_request(&format!("http://{closed}/v1/tts"), "k", "v", "s1", "Hi.", 1.0));
         assert_eq!(offline.unwrap_err(), FishError::Offline);
     }
 
@@ -569,7 +608,7 @@ mod with_models {
         tauri::async_runtime::block_on(super::super::fetch_set(&client, &super::KOKORO, &mut done, &mut |_| {})).expect("download");
         assert!(super::KOKORO.is_present());
         let started = std::time::Instant::now();
-        let wav = super::kokoro("Hi, I'm Groovy. It's 9:05, and the Asus VivoBook S14 is charging.", "female").expect("Kokoro speaks");
+        let wav = super::kokoro_at("Hi, I'm Groovy. It's 9:05, and the Asus VivoBook S14 is charging.", "female", 1.0).expect("Kokoro speaks");
         println!("Kokoro: {} bytes of WAV in {:?}", wav.len(), started.elapsed());
         assert!(wav.len() > 44 + 24_000 * 2, "at least a second of audio");
         std::fs::write(super::KOKORO.dir().join("kokoro-test.wav"), &wav).unwrap();
