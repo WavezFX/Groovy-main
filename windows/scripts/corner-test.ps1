@@ -1,6 +1,7 @@
 # Checks that nothing but the rounded island is drawn (FIXES_ROUND3B item 1:
 # the "grey square"). Paints the desktop a bright solid colour, starts Groovy
-# held open on a layout (GROOVY_SMOKE_VIEW: "home" is F, "player" is E),
+# held open on a layout (GROOVY_SMOKE_VIEW: "home" is the tiles, "player" the
+# Spotify tile grown to 4, at the island's grown size),
 # photographs its window, and fails if a bottom corner — outside the island's
 # rounded corners — is anything but the desktop colour. Then (round 3C item 1)
 # it puts a black-and-white text page behind the island and fails if that text

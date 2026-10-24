@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CELLS_E, CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, cellsUnderPlayer, nextMeeting, pagesOf, upNext,
+  CELLS_E, CELLS_F, MEETING_WINDOW_MIN, PLAYER_HOLD_MS, PlayerHold, expandedLayout, expandsTo, nextMeeting, pagesOf, upNext,
 } from "../src/core/home.ts";
 import { tile } from "../src/core/tiles.ts";
 
@@ -58,7 +58,6 @@ test("eight cells a page, one row of four under the player, the add tile last", 
   const more = pagesOf([...cells, tile("mail")], CELLS_F, "+");
   assert.deepEqual(more.map((p) => p.length), [8, 1]);
   assert.deepEqual(pagesOf(cells, CELLS_E, "+").map((p) => p.length), [4, 4]);
-  assert.deepEqual(cellsUnderPlayer([tile("music"), tile("mail")]).map((c) => c.id), ["mail"]);
 });
 
 test("the player shows at once and folds 1.5 s after the music stops", () => {
@@ -73,4 +72,22 @@ test("the player shows at once and folds 1.5 s after the music stops", () => {
   assert.equal(hold.update(false, 5000 + PLAYER_HOLD_MS - 1), true);
   assert.equal(hold.update(false, 5000 + PLAYER_HOLD_MS), false);
   assert.equal(hold.wait(20_000), null);
+});
+
+test("a tile grows out of its spot (round 3D item 8): Spotify to 4, Mail and This PC to 6, Mail to all 8", () => {
+  const others = ["a", "b", "c", "d", "e", "f", "g"];
+  const music = expandedLayout("music", others, true, false);
+  assert.deepEqual(music.panel, { col: "1 / span 2", row: "1 / span 2" });
+  assert.equal(music.strip, null);
+  assert.deepEqual(music.cells.map((c) => [c.tile, c.spot.col, c.spot.row]), [["a", "3", "1"], ["b", "4", "1"], ["c", "3", "2"], ["d", "4", "2"]], "the other four stay visible");
+  const mail = expandedLayout("mail", others, true, false);
+  assert.deepEqual(mail.panel.col, "1 / span 3");
+  assert.deepEqual(mail.strip, { col: "4", row: "1 / span 2" }, "the music strip while music plays");
+  assert.equal(mail.cells.length, 0);
+  const quiet = expandedLayout("system", others, false, false);
+  assert.deepEqual(quiet.cells.map((c) => [c.tile, c.spot.col, c.spot.row]), [["a", "4", "1"], ["b", "4", "2"]], "two tiles when nothing plays");
+  const full = expandedLayout("mail", others, true, true);
+  assert.deepEqual([full.panel.col, full.strip, full.cells.length], ["1 / span 4", null, 0], "All 8");
+  assert.equal(expandedLayout("system", others, true, true).panel.col, "1 / span 3", "only Mail takes all 8");
+  assert.deepEqual(["music", "mail", "system", "reminders", "service"].map((kind) => expandsTo(tile(kind))), ["music", "mail", "system", "reminders", null]);
 });

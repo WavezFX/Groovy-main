@@ -25,8 +25,7 @@ export type IslandViewName =
   | "settings"
   | "greeting"
   | "recap"
-  | "wardrobe"
-  | "panel";
+  | "wardrobe";
 
 export type BotStateName =
   | "idle"
@@ -104,15 +103,18 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   // The normal state (round 3, mockups MixF/MixE): "Up next" with Groovy in the
   // left card, the tiles (or the player) in the right one. Cards 152 high.
   home: { height: 236, botX: 55, botY: 136, botDiameter: 50, agentMode: "none" },
-  // A tile opened in the island (round 3C item 4): one wide card over the
-  // whole island, Groovy out of the way while the task is done.
-  panel: { height: 268, botX: 320, botY: 90, botDiameter: 0, agentMode: "none" },
   notify: { height: 160, botX: 60, botY: null, botDiameter: 52, agentMode: "none" },
 };
 
 // The upload views above are only the fallback geometry. Once a file is actually
 // dropped the whole sequence — Groovy included — is drawn by src/upload, which
 // owns its own constants (USC) straight from UploadSequenceEngine.swift.
+
+/**
+ * The island while a tile is grown (round 3D item 8): wider and taller, so
+ * the grown tile has the design's room (its tile area about 360 × 200).
+ */
+export const HOME_GROWN = { w: 700, h: 300 } as const;
 
 /** The question view with options to pick from: room for two rows of them. */
 export const QUESTION_PICKER_H = 200;

@@ -21,7 +21,6 @@ import { Bridge } from "../core/bridge";
 import { buildRecap } from "./recap";
 import { buildWardrobe } from "./wardrobe";
 import { buildSpotifyCard } from "./spotify";
-import { buildPanel } from "./panel";
 import { SPOTIFY_ID } from "../core/spotify";
 import type { Accessory, Outfit } from "../mochi/wardrobe";
 import type { Slot } from "../mochi/appearance";
@@ -877,7 +876,6 @@ export function buildViews(
   map.set("recap", buildRecap(actions));
   map.set("wardrobe", buildWardrobe(actions));
   map.set("home", buildHome(actions));
-  map.set("panel", buildPanel(actions));
   map.set("notify", buildNotify((v) => actions.setView(v), () => actions.collapse()));
   // Not in the Windows v1: sending a file by email, window attach + web result.
   map.set("mail", buildPlaceholder(tl("Sending by email isn't in this version."), ""));

@@ -516,6 +516,11 @@ export const Bridge = {
   mailDisconnect: (id: number) => callOrThrow<void>("mail_disconnect", { id }),
   mailAct: (account: number, id: string, action: "read" | "archive") => callOrThrow<void>("mail_act", { account, id, action }),
   mailOpenMessage: (account: number, id: string) => callOrThrow<void>("mail_open_message", { account, id }),
+  /** One message's text, read when it's opened in the island (never kept). */
+  mailRead: (account: number, id: string) => callOrThrow<{ from: string; subject: string; text: string }>("mail_read", { account, id }),
+  mailReply: (account: number, id: string, text: string) => callOrThrow<void>("mail_reply", { account, id, text }),
+  /** "Groovy, polish it": the draft rewritten by the writing brain. */
+  mailPolish: (text: string) => callOrThrow<string>("mail_polish", { text }),
   mailOauthReady: () => call<{ google: boolean; microsoft: boolean }>("mail_oauth_ready"),
   mailOauthConfigure: (provider: "gmail" | "outlook", clientId: string, clientSecret: string) =>
     callOrThrow<void>("mail_oauth_configure", { provider, clientId, clientSecret }),

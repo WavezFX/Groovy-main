@@ -30,7 +30,7 @@ export function togglePlay() {
   void Bridge.spotifyControl("playPause");
 }
 
-function seek(seconds: number) {
+export function seek(seconds: number) {
   const s = Spotify.state;
   const track = s.track;
   if (!s.running || !track || isAd(track)) return;
@@ -40,7 +40,7 @@ function seek(seconds: number) {
   void Bridge.spotifyControl("seek", target);
 }
 
-function setFlag(which: "shuffle" | "repeat", on: boolean) {
+export function setFlag(which: "shuffle" | "repeat", on: boolean) {
   if (!Spotify.state.running) return;
   Spotify.state = { ...Spotify.state, [which]: on };
   State.notify();

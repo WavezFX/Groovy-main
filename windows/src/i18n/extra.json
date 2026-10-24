@@ -15868,39 +15868,6 @@
    "ru": "Не беспокоить",
    "id": "Jangan ganggu"
   },
-  "Disk {mount}": {
-   "zh-Hans": "磁盘 {mount}",
-   "hi": "डिस्क {mount}",
-   "es": "Disco {mount}",
-   "ar": "القرص {mount}",
-   "fr": "Disque {mount}",
-   "bn": "ডিস্ক {mount}",
-   "pt-BR": "Disco {mount}",
-   "ru": "Диск {mount}",
-   "id": "Disk {mount}"
-  },
-  "{n} free": {
-   "zh-Hans": "可用 {n}",
-   "hi": "{n} खाली",
-   "es": "{n} libres",
-   "ar": "{n} متاح",
-   "fr": "{n} libres",
-   "bn": "{n} খালি",
-   "pt-BR": "{n} livres",
-   "ru": "свободно {n}",
-   "id": "{n} kosong"
-  },
-  "Network": {
-   "zh-Hans": "网络",
-   "hi": "नेटवर्क",
-   "es": "Red",
-   "ar": "الشبكة",
-   "fr": "Réseau",
-   "bn": "নেটওয়ার্ক",
-   "pt-BR": "Rede",
-   "ru": "Сеть",
-   "id": "Jaringan"
-  },
   "Top apps by memory": {
    "zh-Hans": "占用内存最多的应用",
    "hi": "सबसे ज़्यादा मेमोरी वाले ऐप",
@@ -16187,28 +16154,6 @@
    "ru": "Groovy читает только отправителя, тему и короткий фрагмент новых писем, никогда целиком, и только с самих почтовых сервисов. Пароли и входы хранятся в диспетчере учётных данных Windows. Отключение удаляет их и всё прочитанное.",
    "id": "Groovy hanya membaca pengirim, subjek, dan pratinjau singkat email terbaru, tidak pernah pesan utuh, dan hanya dari layanan email itu sendiri. Kata sandi dan login disimpan di Windows Credential Manager. Memutuskan akun menghapusnya beserta semua yang dibaca."
   },
-  "{n} unread": {
-   "zh-Hans": "{n} 封未读",
-   "hi": "{n} अपठित",
-   "es": "{n} sin leer",
-   "ar": "{n} غير مقروءة",
-   "fr": "{n} non lus",
-   "bn": "{n}টি অপঠিত",
-   "pt-BR": "{n} não lidos",
-   "ru": "непрочитанных: {n}",
-   "id": "{n} belum dibaca"
-  },
-  "All read": {
-   "zh-Hans": "全部已读",
-   "hi": "सब पढ़ लिया",
-   "es": "Todo leído",
-   "ar": "كلها مقروءة",
-   "fr": "Tout est lu",
-   "bn": "সব পড়া হয়েছে",
-   "pt-BR": "Tudo lido",
-   "ru": "Всё прочитано",
-   "id": "Semua sudah dibaca"
-  },
   "(no subject)": {
    "zh-Hans": "（无主题）",
    "hi": "(कोई विषय नहीं)",
@@ -16219,17 +16164,6 @@
    "pt-BR": "(sem assunto)",
    "ru": "(без темы)",
    "id": "(tanpa subjek)"
-  },
-  "Mark read": {
-   "zh-Hans": "标为已读",
-   "hi": "पढ़ा हुआ मार्क करें",
-   "es": "Marcar como leído",
-   "ar": "تعليم كمقروء",
-   "fr": "Marquer comme lu",
-   "bn": "পড়া হিসেবে চিহ্নিত করুন",
-   "pt-BR": "Marcar como lido",
-   "ru": "Отметить прочитанным",
-   "id": "Tandai dibaca"
   },
   "Archive": {
    "zh-Hans": "归档",
@@ -18925,6 +18859,226 @@
    "pt-BR": "Neste PC: primeiro o Ollama, depois o LM Studio, depois o modelo do próprio Groovy.",
    "ru": "На этом ПК: сначала Ollama, затем LM Studio, затем собственная модель Groovy.",
    "id": "Di PC ini: Ollama dulu, lalu LM Studio, lalu model milik Groovy sendiri."
+  },
+  "the browser": {
+   "zh-Hans": "浏览器",
+   "hi": "ब्राउज़र",
+   "es": "el navegador",
+   "ar": "المتصفح",
+   "fr": "le navigateur",
+   "bn": "ব্রাউজার",
+   "pt-BR": "o navegador",
+   "ru": "браузере",
+   "id": "peramban"
+  },
+  "6 tiles": {
+   "zh-Hans": "6 格",
+   "hi": "6 टाइलें",
+   "es": "6 mosaicos",
+   "ar": "6 بلاطات",
+   "fr": "6 tuiles",
+   "bn": "৬ টাইল",
+   "pt-BR": "6 blocos",
+   "ru": "6 плиток",
+   "id": "6 ubin"
+  },
+  "All 8": {
+   "zh-Hans": "全部 8 格",
+   "hi": "सभी 8",
+   "es": "Los 8",
+   "ar": "الـ8 كلها",
+   "fr": "Les 8",
+   "bn": "সব ৮টি",
+   "pt-BR": "Todos os 8",
+   "ru": "Все 8",
+   "id": "Semua 8"
+  },
+  "Change mail size": {
+   "zh-Hans": "更改邮件大小",
+   "hi": "मेल का आकार बदलें",
+   "es": "Cambiar el tamaño del correo",
+   "ar": "تغيير حجم البريد",
+   "fr": "Changer la taille du courrier",
+   "bn": "মেলের আকার বদলান",
+   "pt-BR": "Mudar o tamanho do e-mail",
+   "ru": "Изменить размер почты",
+   "id": "Ubah ukuran email"
+  },
+  "Inbox · {n} unread": {
+   "zh-Hans": "收件箱 · {n} 封未读",
+   "hi": "इनबॉक्स · {n} अपठित",
+   "es": "Bandeja · {n} sin leer",
+   "ar": "البريد الوارد · {n} غير مقروءة",
+   "fr": "Boîte de réception · {n} non lus",
+   "bn": "ইনবক্স · {n}টি অপঠিত",
+   "pt-BR": "Caixa de entrada · {n} não lidos",
+   "ru": "Входящие · {n} непрочитанных",
+   "id": "Kotak masuk · {n} belum dibaca"
+  },
+  "Open in {app}": {
+   "zh-Hans": "在 {app} 中打开",
+   "hi": "{app} में खोलें",
+   "es": "Abrir en {app}",
+   "ar": "فتح في {app}",
+   "fr": "Ouvrir dans {app}",
+   "bn": "{app}-এ খুলুন",
+   "pt-BR": "Abrir no {app}",
+   "ru": "Открыть в {app}",
+   "id": "Buka di {app}"
+  },
+  "Reply to {name}": {
+   "zh-Hans": "回复 {name}",
+   "hi": "{name} को जवाब दें",
+   "es": "Responder a {name}",
+   "ar": "الرد على {name}",
+   "fr": "Répondre à {name}",
+   "bn": "{name}-কে উত্তর দিন",
+   "pt-BR": "Responder a {name}",
+   "ru": "Ответить {name}",
+   "id": "Balas ke {name}"
+  },
+  "Groovy, polish it": {
+   "zh-Hans": "Groovy，帮我润色",
+   "hi": "Groovy, इसे निखारो",
+   "es": "Groovy, mejóralo",
+   "ar": "Groovy، حسّنه",
+   "fr": "Groovy, peaufine-le",
+   "bn": "Groovy, এটা গুছিয়ে দাও",
+   "pt-BR": "Groovy, dá um polimento",
+   "ru": "Groovy, отшлифуй",
+   "id": "Groovy, rapikan"
+  },
+  "Sent": {
+   "zh-Hans": "已发送",
+   "hi": "भेजा गया",
+   "es": "Enviado",
+   "ar": "أُرسلت",
+   "fr": "Envoyé",
+   "bn": "পাঠানো হয়েছে",
+   "pt-BR": "Enviado",
+   "ru": "Отправлено",
+   "id": "Terkirim"
+  },
+  "Polishing…": {
+   "zh-Hans": "正在润色…",
+   "hi": "निखार रहा है…",
+   "es": "Mejorando…",
+   "ar": "جارٍ التحسين…",
+   "fr": "Peaufinage…",
+   "bn": "গুছিয়ে দিচ্ছে…",
+   "pt-BR": "Polindo…",
+   "ru": "Шлифую…",
+   "id": "Merapikan…"
+  },
+  "Disk": {
+   "zh-Hans": "磁盘",
+   "hi": "डिस्क",
+   "es": "Disco",
+   "ar": "القرص",
+   "fr": "Disque",
+   "bn": "ডিস্ক",
+   "pt-BR": "Disco",
+   "ru": "Диск",
+   "id": "Disk"
+  },
+  "Controls": {
+   "zh-Hans": "控制",
+   "hi": "नियंत्रण",
+   "es": "Controles",
+   "ar": "عناصر التحكم",
+   "fr": "Commandes",
+   "bn": "নিয়ন্ত্রণ",
+   "pt-BR": "Controles",
+   "ru": "Управление",
+   "id": "Kontrol"
+  },
+  "Battery {pct}%": {
+   "zh-Hans": "电池 {pct}%",
+   "hi": "बैटरी {pct}%",
+   "es": "Batería {pct} %",
+   "ar": "البطارية {pct}%",
+   "fr": "Batterie {pct} %",
+   "bn": "ব্যাটারি {pct}%",
+   "pt-BR": "Bateria {pct}%",
+   "ru": "Батарея {pct}%",
+   "id": "Baterai {pct}%"
+  },
+  "Connect this account again to send replies from Groovy.": {
+   "zh-Hans": "请重新连接此账户，以便从 Groovy 发送回复。",
+   "hi": "Groovy से जवाब भेजने के लिए यह खाता फिर से जोड़ें।",
+   "es": "Vuelve a conectar esta cuenta para responder desde Groovy.",
+   "ar": "اربط هذا الحساب من جديد لإرسال الردود من Groovy.",
+   "fr": "Reconnectez ce compte pour répondre depuis Groovy.",
+   "bn": "Groovy থেকে উত্তর পাঠাতে অ্যাকাউন্টটি আবার যুক্ত করুন।",
+   "pt-BR": "Conecte esta conta de novo para responder pelo Groovy.",
+   "ru": "Подключите аккаунт заново, чтобы отвечать из Groovy.",
+   "id": "Hubungkan akun ini lagi untuk membalas dari Groovy."
+  },
+  "That message is no longer in the inbox.": {
+   "zh-Hans": "该邮件已不在收件箱中。",
+   "hi": "वह संदेश अब इनबॉक्स में नहीं है।",
+   "es": "Ese mensaje ya no está en la bandeja.",
+   "ar": "لم تعد هذه الرسالة في البريد الوارد.",
+   "fr": "Ce message n'est plus dans la boîte de réception.",
+   "bn": "বার্তাটি আর ইনবক্সে নেই।",
+   "pt-BR": "Essa mensagem não está mais na caixa de entrada.",
+   "ru": "Этого письма больше нет во входящих.",
+   "id": "Pesan itu sudah tidak ada di kotak masuk."
+  },
+  "Write the reply first.": {
+   "zh-Hans": "请先写好回复。",
+   "hi": "पहले जवाब लिखें।",
+   "es": "Escribe primero la respuesta.",
+   "ar": "اكتب الرد أولًا.",
+   "fr": "Écrivez d'abord la réponse.",
+   "bn": "আগে উত্তরটি লিখুন।",
+   "pt-BR": "Escreva a resposta primeiro.",
+   "ru": "Сначала напишите ответ.",
+   "id": "Tulis balasannya dulu."
+  },
+  "That message has no address to answer.": {
+   "zh-Hans": "该邮件没有可回复的地址。",
+   "hi": "उस संदेश में जवाब देने का कोई पता नहीं है।",
+   "es": "Ese mensaje no tiene una dirección a la que responder.",
+   "ar": "لا يحتوي هذا البريد على عنوان للرد.",
+   "fr": "Ce message n'a pas d'adresse à laquelle répondre.",
+   "bn": "বার্তাটিতে উত্তর দেওয়ার ঠিকানা নেই।",
+   "pt-BR": "Essa mensagem não tem endereço para responder.",
+   "ru": "У этого письма нет адреса для ответа.",
+   "id": "Pesan itu tidak punya alamat untuk dibalas."
+  },
+  "That address can't be written to.": {
+   "zh-Hans": "无法向该地址发送。",
+   "hi": "उस पते पर नहीं लिखा जा सकता।",
+   "es": "No se puede escribir a esa dirección.",
+   "ar": "لا يمكن الكتابة إلى هذا العنوان.",
+   "fr": "Impossible d'écrire à cette adresse.",
+   "bn": "ওই ঠিকানায় লেখা যায় না।",
+   "pt-BR": "Não é possível escrever para esse endereço.",
+   "ru": "На этот адрес нельзя написать.",
+   "id": "Alamat itu tidak bisa dikirimi."
+  },
+  "The mail server answered something unexpected.": {
+   "zh-Hans": "邮件服务器的回应出乎意料。",
+   "hi": "मेल सर्वर ने कुछ अप्रत्याशित जवाब दिया।",
+   "es": "El servidor de correo respondió algo inesperado.",
+   "ar": "أجاب خادم البريد بشيء غير متوقع.",
+   "fr": "Le serveur de courrier a répondu quelque chose d'inattendu.",
+   "bn": "মেল সার্ভার অপ্রত্যাশিত উত্তর দিয়েছে।",
+   "pt-BR": "O servidor de e-mail respondeu algo inesperado.",
+   "ru": "Почтовый сервер ответил что-то неожиданное.",
+   "id": "Server email menjawab sesuatu yang tak terduga."
+  },
+  "{host} doesn't offer a secure connection.": {
+   "zh-Hans": "{host} 不提供安全连接。",
+   "hi": "{host} सुरक्षित कनेक्शन नहीं देता।",
+   "es": "{host} no ofrece una conexión segura.",
+   "ar": "لا يوفّر {host} اتصالًا آمنًا.",
+   "fr": "{host} ne propose pas de connexion sécurisée.",
+   "bn": "{host} নিরাপদ সংযোগ দেয় না।",
+   "pt-BR": "{host} não oferece conexão segura.",
+   "ru": "{host} не поддерживает защищённое соединение.",
+   "id": "{host} tidak menyediakan koneksi aman."
   }
  }
 }

@@ -15,7 +15,7 @@ import { h } from "./dom";
 import { icon } from "../hub/ui";
 import { Notices, noticeIcon } from "../island/live";
 import type { ViewHost } from "./views";
-import type { PanelName } from "./panel";
+import type { Expanded } from "../core/home";
 
 /** A new mail from Windows' notification feed (island_tiles.rs). */
 export interface MailNote {
@@ -76,10 +76,11 @@ export function forgetSlowData() {
   systemAt = 0;
 }
 
-/** Opens a tile into its panel in the island (round 3C item 4). */
-function openPanel(name: PanelName, setView: (v: IslandViewName) => void) {
-  State.panel = name;
-  setView("panel");
+/** Grows a tile in place on the island's tiles (round 3D item 8). */
+function openPanel(name: Expanded, setView: (v: IslandViewName) => void) {
+  State.homeExpanded = name;
+  if (State.view !== "home") setView("home");
+  else State.notify();
 }
 
 function initial(label: string): string {
@@ -156,7 +157,7 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         sub: s.track ? s.track.artist : s.installed || s.running ? t("Play something in the Spotify app and it appears here") : t("Get Spotify"),
         // Opens Spotify, or its Microsoft Store page when it isn't installed (spotify.rs).
         // The full player in the island; it offers Spotify itself when there's nothing to play.
-        open: () => openPanel("spotify", setView),
+        open: () => openPanel("music", setView),
       };
     }
     case "agents": {

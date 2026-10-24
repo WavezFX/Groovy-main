@@ -1,5 +1,5 @@
 # The frame-time test (FIXES_ROUND3B item 8b). Starts Groovy with
-# GROOVY_SMOKE_VIEW=frames: the island goes F → E → the detail card → quick
+# GROOVY_SMOKE_VIEW=frames: the island goes F → E → grown tiles → the detail card → quick
 # settings → the wardrobe → F, timing every frame, and writes
 # %LOCALAPPDATA%\Groovy\frame-test.json. Fails when more than 5% of frames
 # take over 20 ms or any frame over 50 ms. Prints Groovy's CPU (all its

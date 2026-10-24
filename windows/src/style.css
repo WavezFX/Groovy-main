@@ -3417,108 +3417,179 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
   background: #fff;
 }
 
-/* While music plays: the wide player on top, one row of tiles under it. */
-.home-player {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  top: 8px;
-  height: 62px;
+@media (prefers-reduced-motion: reduce) {
+  .home-grid {
+    transition: none;
+  }
+}
+
+/* ── Tiles that expand (round 3D item 8, docs/design/settings-v2/IslandTiles):
+   a tile grows out of its own spot inside the 4 × 2 grid, the others slide
+   aside (views/home.ts animates both with the motion module's timings). ── */
+.home-right.grown .home-grid { gap: 8px; }
+.home-dots[hidden] { display: none; }
+.grow-panel {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 0 8px;
-  border-radius: 11px;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  padding: 10px 11px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(-12px) scale(0.98);
-  pointer-events: none;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--ink);
+  overflow: hidden;
 }
-.home-right.playing .home-player {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-/* Round 3B item 2: the grid only slides; its second row goes under the card's edge. */
-.home-right.playing .home-grid {
-  transform: translateY(68px);
-}
-.home-art {
-  flex: 0 0 46px;
-  height: 46px;
-  border-radius: 8px;
+.grow-music, .grow-strip { background: rgba(30, 215, 96, 0.16); border-color: rgba(30, 215, 96, 0.35); }
+.grow-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.grow-title { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow-status { font-size: 11px; color: rgba(255, 255, 255, 0.72); white-space: nowrap; }
+.grow-back {
+  height: 28px;
+  padding: 0 10px 0 6px;
+  border-radius: 14px;
+  border: 0;
   background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  flex: none;
+}
+.grow-back svg { fill: none; stroke: currentColor; }
+.grow-back.grow-size { padding: 0 10px; }
+.grow-back:hover, .grow-round:hover, .grow-btn:hover { filter: brightness(1.15); }
+.grow-body { display: flex; flex-direction: column; gap: 4px; min-height: 0; flex: 1 1 auto; overflow: hidden; }
+.grow-body[hidden] { display: none; }
+.grow-note { font-size: 11px; color: rgba(255, 255, 255, 0.75); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.grow-note:empty { display: none; }
+.grow-empty { font-size: 12px; color: rgba(255, 255, 255, 0.7); padding: 6px 2px; }
+.grow-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.grow-btn {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 9px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.grow-btn.primary { background: #fff; color: #111; }
+.grow-btn.send { background: #46eb78; color: #08210f; }
+.grow-btn:disabled { opacity: 0.5; cursor: default; }
+.grow-round {
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+}
+.grow-round svg { fill: currentColor; }
+.grow-round.main { background: #fff; color: #111; }
+.grow-round.flag { background: transparent; color: rgba(255, 255, 255, 0.55); }
+.grow-round.flag.on { color: #1ed760; }
+
+/* Spotify, 2 × 2 */
+.grow-now { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.grow-art {
+  flex: 0 0 48px;
+  height: 48px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #f59e0b, #db2777);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
-.home-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.home-art svg {
-  fill: currentColor;
-  opacity: 0.7;
-}
-.home-player-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.home-player-text b,
-.home-player-text > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.home-player-text b {
-  font-size: 12px;
-}
-.home-player-text > span {
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.78);
-}
-.home-progress {
+.grow-art.small { flex-basis: 44px; width: 44px; height: 44px; }
+.grow-art img { width: 100%; height: 100%; object-fit: cover; }
+.grow-art svg { fill: #fff; opacity: 0.8; }
+.grow-song { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.grow-song b { font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow-song span { font-size: 11px; color: #cdefd8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow-scrub { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; cursor: pointer; flex: none; }
+.grow-scrub i { display: block; height: 100%; background: #fff; transform-origin: left center; transform: scaleX(0); }
+.grow-controls { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1 1 auto; }
+.grow-foot { display: flex; align-items: center; gap: 2px; }
+.grow-gap { flex: 1 1 auto; }
+
+/* The music strip in the fourth column */
+.grow-strip { align-items: center; justify-content: space-between; padding: 9px 5px; gap: 4px; }
+.grow-strip-title { font-size: 10.5px; font-weight: 800; text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.grow-strip-ctl { display: flex; gap: 5px; }
+
+/* Mail */
+.grow-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 9px;
+  width: 100%;
+  padding: 5px 7px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  flex: none;
 }
-.home-time {
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.7);
-}
-.home-track {
+.grow-row:hover { background: rgba(255, 255, 255, 0.08); }
+.grow-avatar { flex: 0 0 26px; height: 26px; border-radius: 13px; color: #111; font-size: 11.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.grow-row-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.grow-row-top { display: flex; gap: 8px; }
+.grow-row-top b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.grow-row-text > span:last-child { font-size: 11.5px; color: rgba(255, 255, 255, 0.78); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow-row.unread .grow-row-top b::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 3px; background: #4c8df6; vertical-align: middle; }
+.grow-time { font-size: 11px; color: rgba(255, 255, 255, 0.7); white-space: nowrap; }
+.grow-subject { font-size: 13px; font-weight: 800; }
+.grow-text { font-size: 12px; line-height: 1.45; color: #d5dbd8; overflow: auto; white-space: pre-wrap; flex: 1 1 auto; min-height: 0; }
+.grow-label { font-size: 11.5px; color: #d5dbd8; }
+.grow-reply {
   flex: 1 1 auto;
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
-  overflow: hidden;
+  min-height: 0;
+  resize: none;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 8px;
 }
-.home-track i {
-  display: block;
-  height: 100%;
-  background: #fff;
-  transform-origin: left center;
-  transform: scaleX(0);
-}
-.home-player-ctl {
-  flex: 0 0 auto;
-  gap: 4px;
-}
+.grow-reply:focus { outline: 2px solid rgba(70, 235, 120, 0.6); outline-offset: 0; }
 
-@media (prefers-reduced-motion: reduce) {
-  .home-grid,
-  .home-player {
-    transition: none;
-  }
-}
+/* This PC */
+.grow-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; }
+.grow-meter { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.grow-meter-top { display: flex; justify-content: space-between; gap: 6px; font-size: 11.5px; }
+.grow-meter-top span { color: #d5dbd8; white-space: nowrap; }
+.grow-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.grow-bar i { display: block; height: 100%; border-radius: 3px; transform-origin: left center; }
+.grow-sub { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #b9c2bd; margin-top: 3px; }
+.grow-hog { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.grow-hog b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow-hog span { color: #d5dbd8; }
+.grow-hog .grow-btn { height: 24px; padding: 0 10px; }
+.grow-pc-controls { gap: 6px; }
+.grow-slider, .grow-onoff { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.grow-slider span, .grow-onoff span { flex: 0 0 76px; }
+.grow-slider input { flex: 1 1 auto; }
+
+/* Reminders reuse the panel's list inside the grown tile. */
+.grow-reminders .panel-reminders { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
 
 /* ── Glass (round 3 item 2c, round 3B item 1b, round 3C item 1): frosted.
    Windows blurs what is behind (Windows 11's host backdrop, clipped to the
@@ -3883,37 +3954,22 @@ body.live-on .plan-pills {
 }
 
 /* ── A tile opened in the island (round 3C item 4) ─────────────────────────── */
-.panel-view { padding-top: 2px; }
-.panel-card {
-  height: 100%;
-  border-radius: 15px;
-  background: var(--card);
-  border: 1px solid var(--hairline);
-  display: flex;
-  flex-direction: column;
-  padding: 8px 14px 6px;
-  min-height: 0;
-}
+
+
 /* It grows out of the tile grid, with the island's own unfold timing. */
-.panel-card.unfold { animation: panel-unfold var(--motion-unfold) var(--ease-out); transform-origin: 75% 40%; }
-@keyframes panel-unfold {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: none; }
-}
-.panel-head { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
-.panel-back, .panel-icon, .panel-tick {
+
+
+
+ .panel-icon, .panel-tick {
   min-width: 32px; height: 32px; border: 0; border-radius: 999px;
   background: transparent; color: var(--ink);
   display: inline-flex; align-items: center; justify-content: center;
 }
-.panel-back:hover, .panel-icon:hover { background: rgba(255, 255, 255, 0.07); }
-.panel-title { font: 600 14px var(--font); color: var(--ink); }
-.panel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px 0; }
-.panel-deep {
-  align-self: flex-end; border: 0; background: transparent; color: var(--dim);
-  font: 500 12px var(--font); padding: 4px 2px;
-}
-.panel-deep:hover { color: var(--ink); }
+ .panel-icon:hover { background: rgba(255, 255, 255, 0.07); }
+
+
+
+
 .panel-list { display: flex; flex-direction: column; gap: 2px; }
 .panel-row {
   display: flex; align-items: center; gap: 8px; min-height: 32px;
@@ -3931,7 +3987,7 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
   content: ""; width: 16px; height: 16px; border-radius: 999px; border: 1.6px solid var(--dim);
 }
 .panel-tick:hover::before { border-color: var(--green); background: rgba(34, 197, 94, 0.25); }
-.panel-empty, .panel-sub { color: var(--dim); font: 12.5px var(--font); padding: 6px 2px; }
+.panel-empty{ color: var(--dim); font: 12.5px var(--font); padding: 6px 2px; }
 .panel-add { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
 .panel-input, .panel-when {
   flex: 1 1 auto; min-width: 0; height: 32px; border-radius: 9px; padding: 0 10px;
@@ -3941,30 +3997,28 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
 .panel-when { display: none; flex: 0 0 186px; color-scheme: dark; }
 .panel-when.shown { display: block; }
 .panel-hint { color: var(--amber); font: 12px var(--font); min-height: 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.panel-system .panel-hint { color: var(--ink); }
-.panel-stats { display: flex; gap: 14px; flex-wrap: wrap; padding: 2px 2px 6px; }
-.panel-stat { display: flex; flex-direction: column; font: 12px var(--font); color: var(--dim); }
-.panel-stat b { color: var(--ink); font: 600 13px var(--font); }
-.panel-split { display: flex; gap: 14px; }
-.panel-controls { flex: 0 0 316px; display: flex; flex-direction: column; gap: 3px; }
-.panel-toggles { display: flex; gap: 12px; }
-.panel-toggle span { flex: 0 0 auto; }
-.panel-dnd { align-self: flex-start; }
-.panel-hogs { flex: 1 1 auto; min-width: 0; }
-.panel-slider, .panel-toggle { display: flex; align-items: center; gap: 8px; font: 12.5px var(--font); color: var(--ink); }
-.panel-slider span { flex: 0 0 82px; }
-.panel-slider input { flex: 1 1 auto; }
-.panel-toggle .btn, .panel-hogs .btn, .panel-hint .btn { padding: 5px 11px; }
-.panel-mail b { flex: 0 0 auto; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel-connect { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.panel-spotify { height: 100%; }
-@media (prefers-reduced-motion: reduce) {
-  .panel-card.unfold { animation: none; }
-}
-.panel-account { display: flex; gap: 8px; align-items: baseline; padding-bottom: 2px; }
-.panel-account span:first-child { color: var(--ink); font-weight: 600; }
-.panel-warn { color: var(--amber); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel-mail .panel-text b { font-weight: 500; max-width: 150px; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; }
-.panel-mail .panel-text span { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
-.panel-mail.unread .panel-text b { font-weight: 700; }
-.panel-mail.unread .panel-text span { color: var(--ink); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+ .panel-hint .btn { padding: 5px 11px; }
+
+
+
+
+
+
+
+
+
+
+

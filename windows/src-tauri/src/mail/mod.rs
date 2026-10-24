@@ -3,7 +3,9 @@
 // IMAP server (address + app password). Groovy reads only the newest
 // messages' sender, subject and snippet, counts the unread, and can mark one
 // read or archive it. It checks every few minutes while an account is
-// connected, and never otherwise.
+// connected, and never otherwise. Round 3D item 8: a message's text is read
+// only when the user opens it in the island (never cached or logged), and a
+// reply goes out only when they press Send (Gmail API, Graph, or SMTP).
 //
 // Privacy: the only network calls are to the mail providers. Passwords and
 // refresh tokens live in Windows Credential Manager (`mail-account-<id>`);
@@ -11,8 +13,10 @@
 // stays in memory. Disconnecting deletes all three.
 
 pub mod api;
+pub mod body;
 pub mod imap;
 pub mod oauth;
+pub mod smtp;
 pub mod text;
 
 use std::collections::{HashMap, HashSet};
@@ -407,6 +411,86 @@ pub async fn mail_act(app: AppHandle, account: i64, id: String, action: String) 
     };
     let _ = app.emit("mail-inboxes", &changed);
     Ok(())
+}
+
+/// One message opened in the island's Mail tile (round 3D item 8).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Opened {
+    pub from: String,
+    pub subject: String,
+    pub text: String,
+}
+
+/// Reads one message's text, for the user who opened it. It isn't kept or
+/// logged, and the message isn't marked read by reading it here.
+#[tauri::command]
+pub async fn mail_read(account: i64, id: String) -> Result<Opened, String> {
+    let a = find(account)?;
+    let (from, subject, text) = match a.kind.as_str() {
+        "gmail" => api::gmail_read(&access_token(&a).await?, &id).await?,
+        "outlook" => api::graph_read(&access_token(&a).await?, &id).await?,
+        _ => {
+            let uid: u32 = id.parse().map_err(|_| "bad message id".to_string())?;
+            let mut s = imap_session(&a).await?;
+            s.inbox().await?;
+            let raw = s.whole(uid).await;
+            s.logout().await;
+            let raw = raw?;
+            let headers = raw.split("\r\n\r\n").next().unwrap_or("");
+            (
+                text::sender_name(&text::header(headers, "From").unwrap_or_default()),
+                text::header(headers, "Subject").unwrap_or_default(),
+                body::readable(raw.as_bytes()),
+            )
+        }
+    };
+    Ok(Opened { from, subject, text })
+}
+
+/// Sends the reply the user wrote (and pressed Send on), from the account it came to.
+#[tauri::command]
+pub async fn mail_reply(account: i64, id: String, text: String) -> Result<(), String> {
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err(t("Write the reply first."));
+    }
+    let a = find(account)?;
+    match a.kind.as_str() {
+        "gmail" => api::gmail_reply(&access_token(&a).await?, &a.email, &id, &text).await?,
+        "outlook" => api::graph_reply(&access_token(&a).await?, &id, &text).await?,
+        _ => {
+            let uid: u32 = id.parse().map_err(|_| "bad message id".to_string())?;
+            let mut s = imap_session(&a).await?;
+            s.inbox().await?;
+            let headers = s.headers(uid).await;
+            s.logout().await;
+            let original = body::original(&headers?);
+            if original.to.is_empty() {
+                return Err(t("That message has no address to answer."));
+            }
+            let message = body::reply_message(&a.email, &original, &text, &body::date_now(), &body::new_id(&a.email));
+            let password = crate::secrets::get_internal(&secret_key(a.id)).ok_or_else(|| t("The account needs to be connected again."))?;
+            let (host, port) = smtp::server_for(&a.kind, &a.host);
+            smtp::send(&host, port, &a.username, &password, &a.email, &original.to, &message).await?;
+        }
+    }
+    crate::log::line(format!("mail: account {account} sent a reply"));
+    Ok(())
+}
+
+/// "Groovy, polish it": the reply rewritten by the brain doing the writing job
+/// (Brains → Model per job), in the language it was written in.
+#[tauri::command]
+pub async fn mail_polish(text: String) -> Result<String, String> {
+    let draft = text.trim();
+    if draft.is_empty() {
+        return Err(t("Write the reply first."));
+    }
+    let system = "You polish a short email reply. Keep its meaning, its language and its tone; fix grammar and spelling; make it clear and friendly. Keep it about as long. Answer with the reply text only: no subject, no greeting or signature that wasn't there, no notes.";
+    let out = crate::brain_ai::complete(system, draft, 600, Duration::from_secs(30)).await?;
+    let out = out.trim().trim_matches('"').trim().to_string();
+    Ok(if out.is_empty() { draft.to_string() } else { out })
 }
 
 /// Opens it in the account's web mail (the browser chosen in Settings → Browser).

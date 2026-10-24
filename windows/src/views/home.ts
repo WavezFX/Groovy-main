@@ -1,20 +1,25 @@
 // The island's normal state (FIXES_ROUND3 item 2, mockups MixF and MixE in
 // docs/design/island-round3): "Up next" with Groovy on the left — the one
 // thing that matters now and the Dictate, Call and Record buttons — and the
-// tiles on the right, four by two, with pages when there are more. While
-// music plays, the right card turns into a wide player over one row of tiles,
-// and folds back 1.5 s after it stops. Only transform and opacity move: the
-// grid keeps its two rows and slides under the player (no layout change mid-way).
+// tiles on the right, four by two, with pages when there are more.
+//
+// Round 3D item 8 (docs/design/settings-v2/IslandTiles): a tile grows out of
+// its own spot while the others slide aside. Spotify takes 4 tiles; Mail,
+// This PC and Reminders take 6 with the music strip beside them while music
+// plays (held 1.5 s after it stops, so a skip doesn't flicker); Mail can take
+// all 8. Back, Esc or a click away folds it (island.ts). Only transform,
+// opacity and clip-path move.
 
 import { Bridge } from "../core/bridge";
 import { FlowBridge } from "../core/flow";
 import { readPulse } from "../core/github";
 import {
-  CELLS_E, CELLS_F, PlayerHold, cellsUnderPlayer, pagesOf, upNext, type Meeting, type UpNext, type UpNextInput,
+  CELLS_F, PlayerHold, expandedLayout, expandsTo, pagesOf, upNext, type Expanded, type Meeting, type UpNext, type UpNextInput,
 } from "../core/home";
+import { EASE_OUT, MOTION, duration } from "../core/motion";
 import type { IslandViewName } from "../core/layout";
 import { pillDefinition, sanitizeDeclared } from "../core/pills";
-import { Spotify, currentArtwork, formatTime, isAd, spotifyPosition } from "../core/spotify";
+import { Spotify } from "../core/spotify";
 import { State } from "../core/state";
 import { currentTiles, tile as makeTile, withServices, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
@@ -23,7 +28,7 @@ import { h, svg, clear } from "./dom";
 import { ICONS } from "./icons";
 import { idleStatus } from "./integrations";
 import { Mail, face, refreshSlowData, upcomingReminder } from "./tiles";
-import { togglePlay } from "./spotify";
+import { mailGrown, musicGrown, musicStrip, playOrOpen, remindersGrown, systemGrown, type Grown } from "./expand";
 import { showError } from "./toast";
 import type { ViewActions, ViewHost } from "./views";
 
@@ -143,29 +148,35 @@ function iconBtn(path: string, label: string, onclick: () => void, cls = ""): HT
   return b;
 }
 
-function playPause() {
-  if (!Spotify.state.running) {
-    // Nothing to play in yet: open Spotify (or its Store page).
-    void Bridge.spotifyOpen();
-    return;
-  }
-  togglePlay();
-}
-
-/** The Spotify tile while nothing plays: its mark and ⏮ ▶ ⏭, all working. */
+/** The Spotify tile: its mark and ⏮ ▶ ⏭, all working; anywhere else grows it to 4. */
 function musicCell(): HTMLElement {
   const playing = Spotify.state.playing;
-  return h("div", { class: "home-cell music", title: "Spotify" },
+  const song = Spotify.state.track?.title;
+  const cell = h("div", { class: "home-cell music", title: song ? `Spotify — ${song}` : "Spotify", role: "button", tabindex: "0" },
     h("div", { class: "home-cell-head" }, h("span", { class: "home-mark", style: "background:#1DB954" }), h("b", { text: "Spotify" })),
     h("div", { class: "home-music-ctl" },
       iconBtn(ICONS.backward, t("Previous"), () => void Bridge.spotifyControl("previous")),
-      iconBtn(playing ? ICONS.pause : ICONS.play, playing ? t("Pause") : t("Play"), playPause, "main"),
+      iconBtn(playing ? ICONS.pause : ICONS.play, playing ? t("Pause") : t("Play"), playOrOpen, "main"),
       iconBtn(ICONS.forward, t("Next"), () => void Bridge.spotifyControl("next")),
     ),
   );
+  cell.addEventListener("click", () => grow("music"));
+  return cell;
+}
+
+/** Grows a tile in place (round 3D item 8); only one at a time. */
+function grow(kind: Expanded) {
+  State.homeExpanded = kind;
+  State.notify();
 }
 
 function cell(tile: Tile, setView: (v: IslandViewName) => void): HTMLElement {
+  const el = cellBody(tile, setView);
+  el.dataset.key = tile === ADD ? "+" : tile.id;
+  return el;
+}
+
+function cellBody(tile: Tile, setView: (v: IslandViewName) => void): HTMLElement {
   if (tile === ADD) {
     return h("button", { class: "home-cell add", title: t("Add a tile"), "aria-label": t("Add a tile"), onclick: () => void Bridge.openSettingsWindow("island") }, svg(ICONS.plus, 20));
   }
@@ -227,96 +238,146 @@ export function buildHome(actions: ViewActions): ViewHost {
     }
   });
 
-  // Right: the player (while music plays) over the tiles, with page dots.
-  const art = h("div", { class: "home-art" });
-  const pTitle = h("b", {});
-  const pArtist = h("span", {});
-  const bar = h("i", {});
-  const elapsed = h("span", { class: "home-time" });
-  const total = h("span", { class: "home-time" });
-  const playBtn = iconBtn(ICONS.play, t("Play"), playPause, "main");
-  const player = h("div", { class: "home-player", role: "button", title: t("Open Spotify") },
-    art,
-    h("div", { class: "home-player-text" }, pTitle, pArtist, h("div", { class: "home-progress" }, elapsed, h("div", { class: "home-track" }, bar), total)),
-    h("div", { class: "home-player-ctl" },
-      iconBtn(ICONS.backward, t("Previous"), () => void Bridge.spotifyControl("previous")),
-      playBtn,
-      iconBtn(ICONS.forward, t("Next"), () => void Bridge.spotifyControl("next")),
-    ),
-  );
-  player.addEventListener("click", () => {
-    if (!Spotify.state.source || Spotify.state.source === "Spotify") void Bridge.spotifyOpen();
-  });
+  // Right: the tiles, with page dots, or one of them grown (round 3D item 8).
   const grid = h("div", { class: "home-grid" });
   const dots = h("div", { class: "home-dots" });
-  const right = h("div", { class: "home-card home-right" }, player, grid, dots);
+  const right = h("div", { class: "home-card home-right" }, grid, dots);
   let page = 0;
   let pageCount = 1;
   right.addEventListener("wheel", (e) => {
-    if (pageCount < 2) return;
+    if (pageCount < 2 || State.homeExpanded) return;
     e.preventDefault();
     page = (page + (e.deltaY > 0 || e.deltaX > 0 ? 1 : pageCount - 1)) % pageCount;
     lastGrid = "";
     draw();
   }, { passive: false });
 
+  const fold = () => {
+    State.homeExpanded = null;
+    State.notify();
+  };
+  // Each grown tile is built the first time it opens (round 3D item 9: nothing before it's needed).
+  const grownTiles = new Map<Expanded | "strip", Grown>();
+  const grown = (k: Expanded | "strip"): Grown => {
+    let g = grownTiles.get(k);
+    if (!g) {
+      g = k === "music" ? musicGrown(fold)
+        : k === "mail" ? mailGrown(fold, () => {
+          State.mailFull = !State.mailFull;
+          State.notify();
+        })
+        : k === "system" ? systemGrown(fold)
+        : k === "reminders" ? remindersGrown(fold)
+        : musicStrip();
+      grownTiles.set(k, g);
+    }
+    return g;
+  };
+
   const hold = new PlayerHold();
   let holdTimer: number | null = null;
   let progressAt = 0;
   let lastGrid = "";
   let lastLayout = "";
-  let lastPlayer = "";
+  let open: Expanded | null = null;
+  let stripOn = false;
+  // Its own key, so a data refresh doesn't rebuild a grown tile (a reply being typed keeps its focus).
+  let lastGrown = "";
 
-  function drawPlayer() {
-    const s = Spotify.state;
-    const track = s.track;
-    const key = `${track?.id}|${s.playing}|${s.source}|${currentArtwork() ? 1 : 0}`;
-    if (key === lastPlayer) return;
-    lastPlayer = key;
-    pTitle.textContent = track?.title ?? "";
-    const source = s.source && s.source !== "Spotify" ? s.source : "";
-    pArtist.textContent = [isAd(track) ? t("Advertisement") : track?.artist ?? "", source].filter(Boolean).join(" · ");
-    const cover = currentArtwork();
-    clear(art);
-    if (cover) art.append(h("img", { src: cover, alt: "" }));
-    else art.append(svg(ICONS.musicNote, 16));
-    playBtn.replaceChildren(svg(s.playing ? ICONS.pause : ICONS.play, 11));
-    playBtn.title = s.playing ? t("Pause") : t("Play");
-    player.title = source ? source : t("Open Spotify");
+  /** Where each tile was, so the move to where it is now can be animated. */
+  function spots(): Map<string, DOMRect> {
+    const m = new Map<string, DOMRect>();
+    for (const c of Array.from(grid.children) as HTMLElement[]) if (c.dataset.key) m.set(c.dataset.key, c.getBoundingClientRect());
+    return m;
   }
 
-  function drawProgress(now: number) {
-    const s = Spotify.state;
-    const d = s.track?.duration ?? 0;
-    const p = spotifyPosition(s, now);
-    bar.style.transform = `scaleX(${d > 0 ? Math.min(1, p / d) : 0})`;
-    elapsed.textContent = formatTime(p);
-    total.textContent = d > 0 ? formatTime(d) : "";
+  /** Tiles slide from where they were; a grown tile opens out of its own spot. */
+  function slide(before: Map<string, DOMRect>) {
+    const ms = duration(MOTION.unfold);
+    for (const c of Array.from(grid.children) as HTMLElement[]) {
+      const was = c.dataset.key ? before.get(c.dataset.key) : undefined;
+      if (!was || typeof c.animate !== "function") continue;
+      const now = c.getBoundingClientRect();
+      if (!now.width || !now.height) continue;
+      if (now.width > was.width + 1 || now.height > was.height + 1) {
+        // Grows: revealed from the tile's own box outwards.
+        const inset = `inset(${was.top - now.top}px ${now.right - was.right}px ${now.bottom - was.bottom}px ${was.left - now.left}px round 12px)`;
+        c.animate([{ clipPath: inset }, { clipPath: "inset(0px 0px 0px 0px round 14px)" }], { duration: ms, easing: EASE_OUT });
+      } else if (Math.abs(was.left - now.left) > 1 || Math.abs(was.top - now.top) > 1 || now.width < was.width - 1) {
+        c.animate([{ transform: `translate(${was.left - now.left}px, ${was.top - now.top}px)`, opacity: 0.6 }, { transform: "none", opacity: 1 }], { duration: ms, easing: EASE_OUT });
+      }
+    }
+  }
+
+  function place(el: HTMLElement, spot: { col: string; row: string }, key: string): HTMLElement {
+    el.style.gridColumn = spot.col;
+    el.style.gridRow = spot.row;
+    el.dataset.key = key;
+    return el;
   }
 
   function draw() {
-    const playing = right.classList.contains("playing");
     const declared = sanitizeDeclared(State.settings, State.os);
-    let cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles;
-    if (playing) cells = cellsUnderPlayer(cells);
-    const pages = pagesOf(cells, playing ? CELLS_E : CELLS_F, ADD);
+    const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles;
+    const exp = State.mode === "expanded" ? State.homeExpanded : null;
+    if (exp !== open) {
+      if (open) grown(open).shown(false);
+      open = exp;
+      if (open) grown(open).shown(true);
+    }
+    const playing = hold.update(Spotify.state.playing && !!Spotify.state.track, Date.now());
+    right.classList.toggle("grown", !!exp);
+    if (exp) {
+      const tile = cells.find((c) => expandsTo(c) === exp);
+      const others = cells.filter((c) => c !== tile);
+      const lay = expandedLayout(exp, others, playing && exp !== "music", State.mailFull);
+      if (!!lay.strip !== stripOn) {
+        stripOn = !!lay.strip;
+        grown("strip").shown(stripOn);
+      }
+      const key = `${exp}|${State.mailFull}|${stripOn}|${lay.cells.map((c) => `${c.tile.id}:${c.tile.kind === "service" ? serviceLine(c.tile.target).text : c.tile.kind === "music" ? Spotify.state.playing : face(c.tile, actions.setView).sub}`).join("|")}`;
+      if (key !== lastGrown) {
+        lastGrown = key;
+        lastGrid = "grown";
+        lastLayout = "";
+        const before = spots();
+        clear(grid);
+        grid.append(place(grown(exp).el, lay.panel, tile?.id ?? exp));
+        if (lay.strip) grid.append(place(grown("strip").el, lay.strip, "strip"));
+        for (const c of lay.cells) grid.append(place(cell(c.tile, actions.setView), c.spot, c.tile.id));
+        slide(before);
+      }
+      grown(exp).sync?.();
+      if (stripOn) grown("strip").sync?.();
+      dots.hidden = true;
+      return;
+    }
+    if (stripOn) {
+      stripOn = false;
+      grown("strip").shown(false);
+    }
+    const pages = pagesOf(cells, CELLS_F, ADD);
     pageCount = pages.length;
     page = Math.min(page, pageCount - 1);
     const faces = pages[page].map((c) => (c === ADD ? "+" : c.kind === "service" ? `${c.id}:${serviceLine(c.target).text}` : c.kind === "music" ? `music:${Spotify.state.playing}` : `${c.id}:${face(c, actions.setView).sub}`));
-    const key = `${playing}|${page}/${pageCount}|${faces.join("|")}`;
+    const key = `${page}/${pageCount}|${faces.join("|")}`;
     if (key === lastGrid) return;
+    const folding = lastGrown !== "";
+    lastGrown = "";
     lastGrid = key;
+    const before = folding ? spots() : new Map<string, DOMRect>();
     // The tiles themselves changed (not just their text): they grow in (round 3B item 8).
-    const layout = `${playing}|${page}|${pages[page].map((c) => (c === ADD ? "+" : c.id)).join(",")}`;
-    if (layout !== lastLayout) {
-      lastLayout = layout;
+    const layout = `${page}|${pages[page].map((c) => (c === ADD ? "+" : c.id)).join(",")}`;
+    if (layout !== lastLayout && !folding) {
       grid.classList.remove("entering");
       void grid.offsetWidth;
       grid.classList.add("entering");
       window.setTimeout(() => grid.classList.remove("entering"), 500);
     }
+    lastLayout = layout;
     clear(grid);
     for (const c of pages[page]) grid.append(cell(c, actions.setView));
+    if (folding) slide(before);
     clear(dots);
     dots.hidden = pageCount < 2;
     for (let i = 0; i < pageCount; i++) {
@@ -347,12 +408,6 @@ export function buildHome(actions: ViewActions): ViewHost {
       title.textContent = shown.title;
       detail.textContent = shown.detail;
       left.dataset.kind = shown.kind;
-      const playing = hold.update(Spotify.state.playing && !!Spotify.state.track, now);
-      right.classList.toggle("playing", playing);
-      if (playing) {
-        drawPlayer();
-        drawProgress(now);
-      }
       draw();
       // Paused or stopped: look again once the hold is over.
       const wait = hold.wait(now);
@@ -363,11 +418,11 @@ export function buildHome(actions: ViewActions): ViewHost {
       }, wait + 50);
     },
     tick(now: number) {
-      // The player's clock, four times a second while music plays.
-      if (!Spotify.state.playing || !right.classList.contains("playing")) return false;
+      // The grown player's bar, four times a second while music plays.
+      if (!Spotify.state.playing || open !== "music") return false;
       if (now - progressAt >= 250) {
         progressAt = now;
-        drawProgress(Date.now());
+        grown("music").sync?.();
       }
       return true;
     },

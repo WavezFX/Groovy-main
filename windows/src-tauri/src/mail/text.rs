@@ -84,7 +84,7 @@ fn quoted(s: &str) -> Vec<u8> {
 
 /// UTF-8 and ASCII as they are; Latin-1 and Windows-1252 byte by byte (the
 /// 1252 extras as their Latin-1 code points, close enough for a subject line).
-fn charset_decode(charset: &str, bytes: &[u8]) -> String {
+pub fn charset_decode(charset: &str, bytes: &[u8]) -> String {
     let c = charset.to_ascii_lowercase();
     let c = c.split('*').next().unwrap_or("");
     if c == "iso-8859-1" || c == "latin1" || c == "windows-1252" || c == "cp1252" {

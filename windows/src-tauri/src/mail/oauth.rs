@@ -36,15 +36,21 @@ pub struct Def {
 pub const GOOGLE: Def = Def {
     auth: "https://accounts.google.com/o/oauth2/v2/auth",
     token: "https://oauth2.googleapis.com/token",
-    // Read, plus modify for "Mark read" and "Archive". Nothing can be sent or deleted.
+    // Read, plus modify for "Mark read", "Archive" and (round 3D item 8) sending
+    // the reply the user wrote and pressed Send on. Nothing can be deleted.
     scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
 };
 
 pub const MICROSOFT: Def = Def {
     auth: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     token: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-    scope: "offline_access https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read",
+    // Mail.Send (round 3D item 8) only sends the reply the user pressed Send on.
+    scope: "offline_access https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read",
 };
+
+/// What Outlook accounts connected before replies were asked for (no Mail.Send):
+/// their refresh asks for no more than they agreed to.
+const MICROSOFT_READ_SCOPE: &str = "offline_access https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read";
 
 /// How long the browser may take before the sign-in is given up.
 const WAIT: Duration = Duration::from_secs(300);
@@ -190,7 +196,7 @@ pub async fn authorize(p: Provider) -> Result<Tokens, String> {
     })
     .await
     .map_err(|_| t("Sign-in took too long. Try again."))??;
-    exchange(p, &client_id, &[("grant_type", "authorization_code"), ("code", &code), ("redirect_uri", &redirect), ("code_verifier", &verifier)]).await
+    exchange(p, &client_id, &[("grant_type", "authorization_code"), ("code", &code), ("redirect_uri", &redirect), ("code_verifier", &verifier)], p.def().scope).await
 }
 
 fn html_escape(s: &str) -> String {
@@ -199,7 +205,13 @@ fn html_escape(s: &str) -> String {
 
 pub async fn refresh(p: Provider, refresh_token: &str) -> Result<Tokens, String> {
     let client_id = p.client_id().ok_or_else(|| t("Add the client ID in Settings → Mail first."))?;
-    let mut t = exchange(p, &client_id, &[("grant_type", "refresh_token"), ("refresh_token", refresh_token)]).await?;
+    let grant = [("grant_type", "refresh_token"), ("refresh_token", refresh_token)];
+    let mut t = match exchange(p, &client_id, &grant, p.def().scope).await {
+        Ok(t) => t,
+        // Connected before Mail.Send was asked for: reading goes on; a reply asks to connect again.
+        Err(_) if p == Provider::Microsoft => exchange(p, &client_id, &grant, MICROSOFT_READ_SCOPE).await?,
+        Err(e) => return Err(e),
+    };
     // Microsoft may hand out a new refresh token; Google keeps the old one.
     if t.refresh.is_none() {
         t.refresh = Some(refresh_token.to_string());
@@ -207,7 +219,7 @@ pub async fn refresh(p: Provider, refresh_token: &str) -> Result<Tokens, String>
     Ok(t)
 }
 
-async fn exchange(p: Provider, client_id: &str, extra: &[(&str, &str)]) -> Result<Tokens, String> {
+async fn exchange(p: Provider, client_id: &str, extra: &[(&str, &str)], scope: &str) -> Result<Tokens, String> {
     let d = p.def();
     let secret = p.client_secret();
     let mut pairs: Vec<(&str, &str)> = vec![("client_id", client_id)];
@@ -215,7 +227,7 @@ async fn exchange(p: Provider, client_id: &str, extra: &[(&str, &str)]) -> Resul
         pairs.push(("client_secret", s));
     }
     if p == Provider::Microsoft {
-        pairs.push(("scope", d.scope));
+        pairs.push(("scope", scope));
     }
     pairs.extend_from_slice(extra);
     let url = reqwest::Url::parse(d.token).map_err(|e| e.to_string())?;

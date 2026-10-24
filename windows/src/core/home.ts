@@ -98,9 +98,56 @@ export function pagesOf<T>(cells: T[], perPage: number, add: T): T[][] {
   return pages;
 }
 
-/** While the player shows, the Music tile isn't repeated under it. */
-export function cellsUnderPlayer(cells: Tile[]): Tile[] {
-  return cells.filter((c) => c.kind !== "music");
+// ── Tiles that expand (round 3D item 8, docs/design/settings-v2/IslandTiles) ──
+
+/** A tile grown in the island: Spotify to 4, the others to 6 (Mail to all 8). */
+export type Expanded = "music" | "mail" | "system" | "reminders";
+
+/** A grid spot: CSS grid-column / grid-row, 1-based in the 4 × 2 grid. */
+export interface Spot { col: string; row: string }
+
+export interface ExpandedLayout<T> {
+  panel: Spot;
+  /** The music strip in the fourth column, while something plays. */
+  strip: Spot | null;
+  /** The tiles still shown beside it, each in its spot. */
+  cells: { tile: T; spot: Spot }[];
+}
+
+/**
+ * Where everything goes while `kind` is grown: Spotify takes 2 × 2 and four
+ * tiles stay to its right; the others take three columns and leave the fourth
+ * to the music strip (while music plays) or to two tiles. Mail can take all 8.
+ */
+export function expandedLayout<T>(kind: Expanded, others: T[], playing: boolean, full: boolean): ExpandedLayout<T> {
+  if (kind === "music") {
+    const spots = [["3", "1"], ["4", "1"], ["3", "2"], ["4", "2"]];
+    return {
+      panel: { col: "1 / span 2", row: "1 / span 2" },
+      strip: null,
+      cells: others.slice(0, 4).map((tile, i) => ({ tile, spot: { col: spots[i][0], row: spots[i][1] } })),
+    };
+  }
+  if (kind === "mail" && full) return { panel: { col: "1 / span 4", row: "1 / span 2" }, strip: null, cells: [] };
+  const panel = { col: "1 / span 3", row: "1 / span 2" };
+  if (playing) return { panel, strip: { col: "4", row: "1 / span 2" }, cells: [] };
+  return { panel, strip: null, cells: others.slice(0, 2).map((tile, i) => ({ tile, spot: { col: "4", row: String(i + 1) } })) };
+}
+
+/** The tile kind that grows in place, if this one does. */
+export function expandsTo(tile: Tile): Expanded | null {
+  switch (tile.kind) {
+    case "music":
+      return "music";
+    case "mail":
+      return "mail";
+    case "system":
+      return "system";
+    case "reminders":
+      return "reminders";
+    default:
+      return null;
+  }
 }
 
 /**

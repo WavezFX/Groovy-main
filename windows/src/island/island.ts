@@ -11,6 +11,7 @@ import {
   EXPANDED_CORNER, EXPANDED_W, LIVE_STRIP_H, LIVE_STRIP_W, NOTCH_W, PANEL_H, PANEL_W,
   ROUNDED_CORNER, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
   islandSize,
+  HOME_GROWN,
   QUESTION_PICKER_H,
   type BotEmoteName, type IslandMode, type IslandViewName,
 } from "../core/layout";
@@ -119,6 +120,8 @@ export class Island {
 
   // Rust starts the window at full size so the launch greeting has room.
   private collapsed = false;
+  private keysWanted = false;
+  private tileGrown = false;
   /** A full-screen app or game has the screen: hovering doesn't open the island (round 3C item 2). */
   private fullScreenBusy = false;
   /** The island asked for keyboard focus (chat, quick settings, "Click away"). */
@@ -275,8 +278,13 @@ export class Island {
   private clickedAway() {
     if (State.mode !== "expanded" || !this.focusWanted) return;
     const clickAway = State.settings.autoCloseInterval === CLICK_AWAY;
-    if (State.view === "settings" || State.view === "panel") {
+    if (State.view === "settings") {
       this.setView("home");
+      if (!clickAway) return;
+    }
+    // A grown tile folds back first (round 3D item 8).
+    if (State.view === "home" && State.homeExpanded) {
+      this.foldTile();
       if (!clickAway) return;
     }
     if (clickAway && !State.isPinned && !State.pendingApproval && State.view !== "prompt") this.collapse();
@@ -669,6 +677,12 @@ export class Island {
     State.notify();
   }
 
+  /** A grown tile goes back to one tile (round 3D item 8). */
+  foldTile() {
+    State.homeExpanded = null;
+    State.notify();
+  }
+
   collapse() {
     // A waiting card is only ever folded, never dropped by a close.
     if (State.pendingApproval) {
@@ -914,6 +928,11 @@ export class Island {
     }
     if (State.mode === "expanded" && State.view === "question" && State.pendingApproval?.questions) {
       h = QUESTION_PICKER_H;
+    }
+    // A grown tile (round 3D item 8): the island makes room for it.
+    if (State.mode === "expanded" && State.view === "home" && State.homeExpanded) {
+      w = HOME_GROWN.w;
+      h = HOME_GROWN.h;
     }
     // A recorded call's strip holds "Stop & write notes": a little wider.
     if (this.stripActive()) return { w: this.liveShown === "recording" ? LIVE_STRIP_W + 64 : LIVE_STRIP_W, h: LIVE_STRIP_H, r: LIVE_STRIP_H / 2 };
@@ -1171,8 +1190,9 @@ export class Island {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && State.mode === "expanded") {
         if (State.pendingApproval) this.foldApproval();
-        // A tile's panel or quick settings folds back to the tiles first.
-        else if (State.view === "panel" || State.view === "settings") this.setView("home");
+        // A grown tile or quick settings folds back to the tiles first.
+        else if (State.view === "home" && State.homeExpanded) this.foldTile();
+        else if (State.view === "settings") this.setView("home");
         else if (!State.isPinned) this.collapse();
       }
       State.lastActivity = performance.now();
@@ -1589,15 +1609,26 @@ export class Island {
     // The island takes keyboard focus only for the chat's text field, and
     // (round 4 item 2) while quick settings or "Click away" need to know when
     // you click somewhere else: that click is the window's blur.
-    const wantsFocus = expanded && (State.view === "prompt" || State.view === "settings" || State.view === "panel" || State.settings.autoCloseInterval === CLICK_AWAY);
-    if (this.lastSyncedView !== State.view || wantsFocus !== this.focusWanted) {
+    // Closed or on another view, a grown tile is folded: it opens on the tiles next time.
+    if ((!expanded || State.view !== "home") && State.homeExpanded) State.homeExpanded = null;
+    const grownTile = expanded && State.view === "home" ? State.homeExpanded : null;
+    // Growing or folding a tile changes the island's size (HOME_GROWN), with the same morph.
+    if ((grownTile !== null) !== this.tileGrown) {
+      this.tileGrown = grownTile !== null;
+      this.animateGeometry();
+    }
+    const wantsFocus = expanded && (State.view === "prompt" || State.view === "settings" || grownTile !== null || State.settings.autoCloseInterval === CLICK_AWAY);
+    // Typing a reply or a reminder needs the keyboard too.
+    const takesKeys = State.view === "prompt" || grownTile === "mail" || grownTile === "reminders";
+    if (this.lastSyncedView !== State.view || wantsFocus !== this.focusWanted || takesKeys !== this.keysWanted) {
       const toChat = State.view === "prompt" && this.lastSyncedView !== "prompt";
       this.lastSyncedView = State.view;
-      if (wantsFocus !== this.focusWanted) {
+      if (wantsFocus !== this.focusWanted || takesKeys !== this.keysWanted) {
         this.focusWanted = wantsFocus;
-        // Only the chat takes the keyboard at once (round 3B item 8b: activating
-        // the window cost a 60-110 ms frame as quick settings opened).
-        void Bridge.focusWindow(wantsFocus, State.view === "prompt");
+        this.keysWanted = takesKeys;
+        // Only the chat and the tiles you type in take the keyboard at once (round
+        // 3B item 8b: activating the window cost a 60-110 ms frame as quick settings opened).
+        void Bridge.focusWindow(wantsFocus, takesKeys);
       }
       if (toChat) window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
     }

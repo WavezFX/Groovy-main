@@ -1,11 +1,15 @@
 // The Gmail API and Microsoft Graph mail calls: the unread count, the newest
-// messages' sender, subject and snippet (never the body), and Mark read /
-// Archive. Each takes an access token from oauth.rs.
+// messages' sender, subject and snippet, Mark read / Archive, and (round 3D
+// item 8) one message's text when it is opened and the reply the user sends.
+// Each takes an access token from oauth.rs.
 
 use std::time::Duration;
 
 use serde_json::{json, Value};
 
+use base64::Engine;
+
+use super::body;
 use super::oauth::segment;
 use super::text;
 use super::Message;
@@ -15,8 +19,15 @@ const GMAIL: &str = "https://gmail.googleapis.com/gmail/v1/users/me";
 const GRAPH: &str = "https://graph.microsoft.com/v1.0/me";
 
 async fn call(method: reqwest::Method, url: &str, token: &str, body: Option<Value>) -> Result<Value, String> {
+    call_with(method, url, token, body, None).await
+}
+
+async fn call_with(method: reqwest::Method, url: &str, token: &str, body: Option<Value>, prefer: Option<&str>) -> Result<Value, String> {
     let parsed = reqwest::Url::parse(url).map_err(|e| e.to_string())?;
     let mut req = crate::net::client(&parsed, Duration::from_secs(30))?.request(method, parsed).bearer_auth(token);
+    if let Some(p) = prefer {
+        req = req.header("Prefer", p);
+    }
     if let Some(b) = body {
         req = req.json(&b);
     }
@@ -25,6 +36,10 @@ async fn call(method: reqwest::Method, url: &str, token: &str, body: Option<Valu
     let bytes = crate::net::read_capped(response, 2 * 1024 * 1024).await?;
     if status == reqwest::StatusCode::UNAUTHORIZED {
         return Err(t("The account needs to be connected again."));
+    }
+    // An Outlook account connected before replies: it may read, not send.
+    if status == reqwest::StatusCode::FORBIDDEN && url.ends_with("/reply") {
+        return Err(t("Connect this account again to send replies from Groovy."));
     }
     if !status.is_success() {
         crate::log::line(format!("mail: {} answered {status} ({})", crate::net::host_for_log(&reqwest::Url::parse(url).map_err(|e| e.to_string())?), crate::net::error_detail(&bytes)));
@@ -94,6 +109,45 @@ pub async fn gmail_modify(token: &str, id: &str, remove: &str) -> Result<(), Str
     call(reqwest::Method::POST, &format!("{GMAIL}/messages/{}/modify", segment(id)), token, Some(json!({ "removeLabelIds": [remove] }))).await.map(|_| ())
 }
 
+/// One message opened: who, what about, its text (never kept).
+pub async fn gmail_read(token: &str, id: &str) -> Result<(String, String, String), String> {
+    let m = call(reqwest::Method::GET, &format!("{GMAIL}/messages/{}?format=full", segment(id)), token, None).await?;
+    let header = |name: &str| gmail_header(&m, name);
+    Ok((text::sender_name(&header("From")), header("Subject"), body::gmail_text(&m["payload"])))
+}
+
+fn gmail_header(m: &Value, name: &str) -> String {
+    m["payload"]["headers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(name)))
+        .and_then(|h| h["value"].as_str())
+        .map(text::decode_words)
+        .unwrap_or_default()
+}
+
+/// The reply, threaded under the original, from the account's own address.
+pub async fn gmail_reply(token: &str, from: &str, id: &str, reply: &str) -> Result<(), String> {
+    let m = call(
+        reqwest::Method::GET,
+        &format!("{GMAIL}/messages/{}?format=metadata&metadataHeaders=From&metadataHeaders=Reply-To&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=References", segment(id)),
+        token,
+        None,
+    )
+    .await?;
+    let headers: String = ["From", "Reply-To", "Subject", "Message-ID", "References"]
+        .iter()
+        .map(|n| (n, gmail_header(&m, n)))
+        .filter(|(_, v)| !v.is_empty())
+        .map(|(n, v)| format!("{n}: {v}\r\n"))
+        .collect();
+    let original = body::original(&headers);
+    let raw = body::reply_message(from, &original, reply, &body::date_now(), &body::new_id(from));
+    let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw);
+    call(reqwest::Method::POST, &format!("{GMAIL}/messages/send"), token, Some(json!({ "raw": encoded, "threadId": m["threadId"] }))).await.map(|_| ())
+}
+
 // ── Outlook (Microsoft Graph) ─────────────────────────────────────────────────
 
 pub async fn graph_email(token: &str) -> Result<String, String> {
@@ -126,6 +180,27 @@ pub fn graph_message(m: &Value, account: i64) -> Message {
         unread: !m["isRead"].as_bool().unwrap_or(true),
         link: m["webLink"].as_str().filter(|l| l.starts_with("https://")).map(str::to_string),
     }
+}
+
+pub async fn graph_read(token: &str, id: &str) -> Result<(String, String, String), String> {
+    let m = call_with(
+        reqwest::Method::GET,
+        &format!("{GRAPH}/messages/{}?$select=subject,from,body", segment(id)),
+        token,
+        None,
+        Some("outlook.body-content-type=\"text\""),
+    )
+    .await?;
+    let from = &m["from"]["emailAddress"];
+    let who = from["name"].as_str().filter(|s| !s.is_empty()).or(from["address"].as_str()).unwrap_or("").to_string();
+    let content = m["body"]["content"].as_str().unwrap_or("");
+    let text = if m["body"]["contentType"].as_str() == Some("html") { body::html_text(content) } else { content.to_string() };
+    Ok((who, m["subject"].as_str().unwrap_or("").to_string(), body::tidy(&text)))
+}
+
+/// Graph threads and addresses the reply itself.
+pub async fn graph_reply(token: &str, id: &str, reply: &str) -> Result<(), String> {
+    call(reqwest::Method::POST, &format!("{GRAPH}/messages/{}/reply", segment(id)), token, Some(json!({ "comment": reply }))).await.map(|_| ())
 }
 
 pub async fn graph_mark_read(token: &str, id: &str) -> Result<(), String> {

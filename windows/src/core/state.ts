@@ -363,8 +363,10 @@ export const DIFF_TTL_MS = 3_600_000;
 class AppState {
   mode: IslandMode = "hidden";
   view: IslandViewName = "overview";
-  /** Which tile the "panel" view shows (round 3C item 4). */
-  panel: import("../views/panel").PanelName = "reminders";
+  /** The tile grown in the island's home view (round 3D item 8), if any. */
+  homeExpanded: import("./home").Expanded | null = null;
+  /** Mail grown to all 8 instead of 6. */
+  mailFull = false;
 
   tasks: AgentTask[] = [];
   focusId: string | null = null;

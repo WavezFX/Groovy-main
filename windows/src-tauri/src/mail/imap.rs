@@ -1,7 +1,7 @@
 // A small IMAP4rev1 client over TLS (port 993), for iCloud Mail and any other
 // IMAP server: log in, read the newest headers in INBOX without marking them
-// read (BODY.PEEK), count the unread, mark one read and move one to Archive.
-// Nothing else: Groovy never downloads a message body.
+// read (BODY.PEEK), count the unread, mark one read and move one to Archive,
+// and (round 3D item 8) read one message's text when the user opens it.
 //
 // What the user typed never reaches the server unquoted: every string goes
 // through `quote`, which refuses line breaks and escapes \ and ".
@@ -49,7 +49,7 @@ pub fn quote(s: &str) -> Result<String, String> {
     Ok(format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")))
 }
 
-fn tls() -> Arc<ClientConfig> {
+pub fn tls_config() -> Arc<ClientConfig> {
     let roots = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     Arc::new(
         ClientConfig::builder_with_provider(Arc::new(ring_provider::default_provider()))
@@ -65,7 +65,7 @@ impl Session {
         let unreachable = || tf("Couldn't reach {host}.", &[("host", host)]);
         let tcp = tokio::time::timeout(TIMEOUT, TcpStream::connect((host, port))).await.map_err(|_| unreachable())?.map_err(|_| unreachable())?;
         let name = ServerName::try_from(host.to_string()).map_err(|_| unreachable())?;
-        let stream = tokio::time::timeout(TIMEOUT, TlsConnector::from(tls()).connect(name, tcp))
+        let stream = tokio::time::timeout(TIMEOUT, TlsConnector::from(tls_config()).connect(name, tcp))
             .await
             .map_err(|_| unreachable())?
             .map_err(|e| tf("A secure connection to {host} failed: {error}", &[("host", host), ("error", &e.to_string())]))?;
@@ -172,6 +172,22 @@ impl Session {
         self.run(&format!("UID MOVE {uid} {}", quote(&target)?)).await.map(|_| ())
     }
 
+    /// One message as sent, up to the first 250 KB, without marking it read.
+    pub async fn whole(&mut self, uid: u32) -> Result<String, String> {
+        self.fetched(uid, "BODY.PEEK[]<0.250000>", "BODY[]<0>").await
+    }
+
+    /// Only its headers (who to answer, how to thread it).
+    pub async fn headers(&mut self, uid: u32) -> Result<String, String> {
+        self.fetched(uid, "BODY.PEEK[HEADER]", "BODY[HEADER]").await
+    }
+
+    async fn fetched(&mut self, uid: u32, item: &str, answer: &str) -> Result<String, String> {
+        let lines = self.run(&format!("UID FETCH {uid} ({item})")).await?;
+        let line = lines.iter().find(|l| l.contains(" FETCH (") && l.contains(answer)).ok_or_else(|| t("That message is no longer in the inbox."))?;
+        Ok(body_of(line, answer))
+    }
+
     pub async fn logout(mut self) {
         let _ = self.run("LOGOUT").await;
     }
@@ -207,6 +223,13 @@ pub fn parse_fetch(line: &str) -> Option<Header> {
     })
 }
 
+/// The literal after `BODY[…] ` in a FETCH line (inlined by `run`), without the closing ")".
+fn body_of(line: &str, answer: &str) -> String {
+    let start = line.find(answer).map(|i| i + answer.len()).unwrap_or(line.len());
+    let rest = line[start..].strip_prefix(' ').unwrap_or(&line[start..]);
+    rest.strip_suffix(')').unwrap_or(rest).to_string()
+}
+
 fn after_word<'a>(line: &'a str, word: &str) -> Option<&'a str> {
     line.find(word).map(|i| &line[i + word.len()..])
 }
@@ -230,6 +253,7 @@ mod tests {
         assert!(parse_fetch("* 3 EXISTS").is_none());
         assert_eq!(mailbox_name("* LIST (\\HasNoChildren \\Archive) \"/\" \"Archive\"").as_deref(), Some("Archive"));
         assert_eq!(literal_len("* 1 FETCH (BODY[] {42}"), Some(42));
+        assert_eq!(body_of("* 1 FETCH (UID 5 BODY[]<0> Subject: x\r\n\r\nHi)", "BODY[]<0>"), "Subject: x\r\n\r\nHi");
     }
 
     #[tokio::test]

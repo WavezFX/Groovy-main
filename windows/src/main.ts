@@ -234,12 +234,14 @@ async function main() {
 }
 
 /**
- * CI's smoke test (scripts/smoke-test.ps1) photographs the island's corners in
- * the F and E layouts: hold it open on one, with a pretend track for E.
+ * CI's smoke test (scripts/corner-test.ps1) photographs the island's corners:
+ * hold it open on the tiles ("home"), or with a pretend track and the Spotify
+ * tile grown to 4 ("player", round 3D item 8: the island at its grown size).
  */
 /**
- * CI's frame-time test (round 3B item 8b): F → E → the detail card → quick
- * settings → the wardrobe → F, each held 1.2 s, every frame timed; then the
+ * CI's frame-time test (round 3B item 8b): F → E → Spotify and Mail grown and
+ * folded (round 3D item 8) → the detail card → quick settings → the wardrobe
+ * → F, each held 1.2 s, every frame timed; then the
  * island folds away so CI can read the idle CPU, and the frames go to Rust.
  */
 async function frameTest(island: Island) {
@@ -255,6 +257,10 @@ async function frameTest(island: Island) {
   const steps: TourStep[] = [
     { name: "F", run: () => island.alert("home") },
     { name: "E", run: () => music(true) },
+    // Round 3D item 8: Spotify grows to 4 tiles, then Mail to 6 beside the music strip.
+    { name: "grown Spotify", run: () => { State.homeExpanded = "music"; State.notify(); } },
+    { name: "grown Mail", run: () => { State.homeExpanded = "mail"; State.notify(); } },
+    { name: "folded", run: () => { State.homeExpanded = null; State.notify(); } },
     { name: "detail card", run: () => island.setView("overview") },
     { name: "quick settings", run: () => island.setView("settings") },
     { name: "wardrobe", run: () => island.setView("wardrobe") },
@@ -286,6 +292,10 @@ function holdForSmokeTest(island: Island, view: "home" | "player") {
         State.notify();
       }
       if (State.mode !== "expanded" || State.view !== "home") island.alert("home");
+      if (view === "player" && State.homeExpanded !== "music") {
+        State.homeExpanded = "music";
+        State.notify();
+      }
     }, 500);
   }, 4000);
 }
