@@ -152,9 +152,28 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
+      # Rounds 3F item 2 and 3G item 6: everything CI steers by environment
+      # variable (GROOVY_SMOKE_VIEW, GROOVY_WORK_TEST, GROOVY_PEAK_TEST) is a
+      # cargo feature, `ci`, that is off in everything shipped. It is built into
+      # a separate exe, here, for the corner, frame-time, realistic-idle and
+      # peak steps; the shipped exe is checked not to contain any of it.
+      - name: Build the CI exe (ci feature) and check the shipped exe has none of it
+        shell: pwsh
+        run: |
+          $has = { param($path, $text) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains($text) }
+          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW"
+          foreach ($v in $switches) { if (& $has release/groovy.exe $v) { throw "the shipped groovy.exe reads $v" } }
+          npx tauri build --no-bundle --features ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force release/test | Out-Null
+          Copy-Item target/release/groovy.exe release/test/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/test/groovy-hook.exe -ErrorAction SilentlyContinue
+          foreach ($v in $switches) { if (-not (& $has release/test/groovy.exe $v)) { throw "the CI exe was built without $v" } }
+          "shipped exe: none of the switches; CI exe: all of them"
+
       - name: Nothing but the island is drawn, and it is frosted (F and E)
         shell: pwsh
-        run: ./scripts/corner-test.ps1 -Exe release/groovy.exe -OutDir corner-shots
+        run: ./scripts/corner-test.ps1 -Exe release/test/groovy.exe -OutDir corner-shots
 
       - name: Upload the corner screenshots
         if: always()
@@ -167,7 +186,7 @@ jobs:
 
       - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
         shell: pwsh
-        run: ./scripts/frame-test.ps1 -Exe release/groovy.exe -Trace frame-trace.json
+        run: ./scripts/frame-test.ps1 -Exe release/test/groovy.exe -Trace frame-trace.json
 
       - name: Upload the frame trace
         if: always()
@@ -233,23 +252,6 @@ jobs:
             ~/AppData/Local/Groovy/Models
             ~/AppData/Local/Groovy/runtime
           key: windows-models-v2
-
-      # Round 3F item 2: the harness behind these two steps (worktest.rs) is a
-      # cargo feature that is off in everything shipped. It is built into a
-      # separate exe, here, for the two steps below only; the shipped exe is
-      # checked not to contain it.
-      - name: Build the test exe (worktest feature) and check the shipped exe has none of it
-        shell: pwsh
-        run: |
-          $has = { param($path) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains("GROOVY_WORK_TEST") }
-          if (& $has release/groovy.exe) { throw "the shipped groovy.exe contains the work test harness" }
-          npx tauri build --no-bundle --features worktest
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force release/test | Out-Null
-          Copy-Item target/release/groovy.exe release/test/groovy.exe
-          Copy-Item target/release/groovy-hook.exe release/test/groovy-hook.exe -ErrorAction SilentlyContinue
-          if (-not (& $has release/test/groovy.exe)) { throw "the test exe was built without the work test harness" }
-          "shipped exe: no harness; test exe: harness present"
 
       - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
         shell: pwsh

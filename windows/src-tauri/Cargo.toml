@@ -21,9 +21,14 @@ default = ["voice"]
 voice = ["dep:whisper-rs"]
 # CI's realistic memory and peak tests (worktest.rs): Groovy does real work by
 # itself and writes a report. Off by default: the release build, the
-# installers and the portable exe don't contain it. CI builds a second exe
-# with `tauri build --no-bundle --features worktest` for those two steps only.
+# installers and the portable exe don't contain it.
 worktest = []
+# Everything CI's tests steer by environment variable (GROOVY_SMOKE_VIEW,
+# GROOVY_WORK_TEST, GROOVY_PEAK_TEST), compiled in only here: the shipped app
+# ignores them (round 3G item 6). CI builds a second exe with
+# `tauri build --no-bundle --features ci` for the corner, frame-time,
+# realistic-idle and peak steps.
+ci = ["worktest"]
 
 [dependencies]
 whisper-rs = { version = "0.14", optional = true }

@@ -101,6 +101,7 @@ pub struct BootInfo {
 }
 
 /// The view the smoke test asked for, if it is one it may ask for.
+#[cfg(any(feature = "ci", test))]
 fn smoke_view(value: Option<&str>) -> Option<&'static str> {
     match value? {
         "home" => Some("home"),
@@ -111,11 +112,23 @@ fn smoke_view(value: Option<&str>) -> Option<&'static str> {
     }
 }
 
+/// What GROOVY_SMOKE_VIEW asks for. Only a `ci` build (round 3G item 6) reads
+/// it; the shipped app has no such switch.
+#[cfg(feature = "ci")]
+fn smoke_view_from_env() -> Option<&'static str> {
+    smoke_view(std::env::var("GROOVY_SMOKE_VIEW").ok().as_deref())
+}
+
+#[cfg(not(feature = "ci"))]
+fn smoke_view_from_env() -> Option<&'static str> {
+    None
+}
+
 /// CI's frame-time test (round 3B item 8b): the island's frame times, written
 /// to frame-test.json for the workflow. Only while that test runs.
 #[tauri::command]
 fn frame_report(report: serde_json::Value) -> Result<(), String> {
-    if smoke_view(std::env::var("GROOVY_SMOKE_VIEW").ok().as_deref()) != Some("frames") {
+    if smoke_view_from_env() != Some("frames") {
         return Err("not in the frame test".into());
     }
     log::line(format!("frame test: {}", report["stats"]));
@@ -140,7 +153,7 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         hook_path: settings::hook_exe_path().to_string_lossy().to_string(),
         cursor_poll: platform::CURSOR_POLL,
-        smoke_view: smoke_view(std::env::var("GROOVY_SMOKE_VIEW").ok().as_deref()),
+        smoke_view: smoke_view_from_env(),
     }
 }
 

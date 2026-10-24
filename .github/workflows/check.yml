@@ -88,12 +88,15 @@ jobs:
       - name: cargo check
         run: cargo check --workspace --all-targets
 
-      - name: cargo check with the CI test harness (worktest feature)
-        run: cargo check -p groovy --all-targets --features worktest
+      - name: cargo check with the CI switches (ci feature)
+        run: cargo check -p groovy --all-targets --features ci
 
       # Dead code and unused items fail; clippy's style lints are not enforced.
       - name: cargo clippy (dead code and unused items)
         run: cargo clippy --workspace --all-targets -- -A clippy::all -D dead_code -D unused
+
+      - name: cargo clippy with the ci feature
+        run: cargo clippy -p groovy --all-targets --features ci -- -A clippy::all -D dead_code -D unused
 
       - name: cargo test
         run: cargo test --workspace
