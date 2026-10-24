@@ -50,7 +50,18 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [ ] 6. Checks
 
-## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this next, after the item in progress, then round 5, then finish 3D items 11, 7 and 6.**
+## 1F. Fixes round 3F: `FIXES_ROUND3F.md` (dead code, duplicate logic and bloat). **Do this first, before 3E.** No user-facing feature is removed.
+- [ ] 1. Delete what's provably dead (backdrop.rs, `load_report`, unused exports, clippy/machete/knip sweep)
+- [ ] 2. Test-only code (worktest.rs) out of the release build
+- [ ] 3. One resource manager instead of six (idle, loads, ceiling, webview_memory, runtime_state, three reapers)
+- [ ] 4. One event-driven scheduler instead of always-on polling loops (idle CPU ≈ 0 %, threads halved)
+- [ ] 5. One speech runtime: dictation on sherpa-onnx, drop whisper-rs
+- [ ] 6. Translations loaded per language, English bundled
+- [ ] 7. Startup does only what's needed (Phone Link, mail, tasks, music, integrations, Spotify sync dormant until used)
+- [ ] 8. Merge the two Voice settings pages
+- [ ] 9. Checks
+
+## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this after 3F, then round 5, then finish 3D items 11, 7 and 6.**
 - [ ] 1. Island tiles look right at normal size: smaller text, a compact Spotify tile, a narrower Groovy area, a big page switcher
 - [ ] 2. Real app icons, never letters (apps, websites, folders, service logos)
 - [ ] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
