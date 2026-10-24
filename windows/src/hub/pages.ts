@@ -8,7 +8,8 @@ import { insightsPage } from "./pages/insights";
 import { dictionaryPage, snippetsPage } from "./pages/words";
 import { stylesPage } from "./pages/styles";
 import { flowSettingsPage } from "./pages/flowsettings";
-import { voicePage } from "./pages/voice";
+import { listeningPage, speakingPage } from "./pages/voice";
+import { homePage } from "./pages/home";
 import { skillsPage } from "./pages/skills";
 import { speechSetupPage } from "./pages/speechsetup";
 
@@ -20,7 +21,9 @@ export const FLOW_PAGE_RENDERERS: Partial<Record<PageId, FlowPageRenderer>> = {
   snippets: snippetsPage,
   styles: stylesPage,
   flowsettings: flowSettingsPage,
-  voice: voicePage,
+  home: homePage,
+  listening: listeningPage,
+  speaking: speakingPage,
   skills: skillsPage,
   speechsetup: speechSetupPage,
 };

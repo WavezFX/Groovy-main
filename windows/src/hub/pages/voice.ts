@@ -156,10 +156,11 @@ function groovyVoiceCard(ctx: HubContext, prefs: FlowPrefs): HTMLElement {
   return body;
 }
 
-export async function voicePage(page: HTMLElement, ctx: HubContext) {
+/** Voice → Listening (round 3D item 1): « OK Groovy », its check, and what leaves the PC. */
+export async function listeningPage(page: HTMLElement, ctx: HubContext) {
   const status = await ctx.refresh();
   const prefs = status.prefs;
-  page.append(ctx.hero("voice", "OK Groovy", t("Say « OK Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.")));
+  page.append(ctx.hero("listening", t("Listening"), t("Say « OK Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.")));
 
   const ready = status.models.parakeet.state === "ready";
   page.append(label(t("Listening")));
@@ -167,7 +168,7 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
     row(t("Listen for « OK Groovy »"), t("The microphone stays open; only what follows « OK Groovy » goes further."),
       toggle(prefs.voice, (on) => {
         if (on && needsSetup(ctx, "voice")) return;
-        void ctx.setPrefs((p) => (p.voice = on)).then(() => ctx.navigate("voice"));
+        void ctx.setPrefs((p) => (p.voice = on)).then(() => ctx.navigate("listening"));
       })),
     divider(),
     row(t("Parakeet, on your computer"), t("Hears « OK Groovy » here, without the internet."), modelsControl(ctx, () => ctx.navigate("voice"))),
@@ -179,12 +180,29 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
   page.append(label(t("Check")));
   page.append(checkCard());
 
+  page.append(label(t("Privacy")));
+  page.append(privacyCard());
+}
+
+function privacyCard(): HTMLElement {
+  return card(
+    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet turns it into text here. What follows « OK Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.") }),
+    divider(),
+    h("div", { class: "hub-note", text: t("An email is never sent by Groovy: your mail app opens with it written, and you send it.") }),
+  );
+}
+
+/** Voice → Speaking (round 3D item 1): his voice (Fish Audio, Kokoro, the test) and how he answers. */
+export async function speakingPage(page: HTMLElement, ctx: HubContext) {
+  const status = await ctx.refresh();
+  const prefs = status.prefs;
+  page.append(ctx.hero("speaking", t("Speaking"), t("How Groovy sounds when he answers out loud.")));
   page.append(label(t("Groovy's voice")));
   page.append(groovyVoiceCard(ctx, prefs));
   page.append(label(t("Answers")));
   const outputs: [VoiceOutput, string][] = [["system", t("System voice")], ["elevenlabs", "ElevenLabs"], ["off", t("Text only")]];
   const answers = card(
-    row(t("Groovy answers out loud"), null, segmented(outputs, prefs.voiceOutput, (v) => void ctx.setPrefs((p) => (p.voiceOutput = v)).then(() => ctx.navigate("voice")))),
+    row(t("Groovy answers out loud"), null, segmented(outputs, prefs.voiceOutput, (v) => void ctx.setPrefs((p) => (p.voiceOutput = v)).then(() => ctx.navigate("speaking")))),
   );
   if (prefs.voiceOutput === "elevenlabs") {
     answers.append(
@@ -195,11 +213,4 @@ export async function voicePage(page: HTMLElement, ctx: HubContext) {
     );
   }
   page.append(answers);
-
-  page.append(label(t("Privacy")));
-  page.append(card(
-    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet turns it into text here. What follows « OK Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.") }),
-    divider(),
-    h("div", { class: "hub-note", text: t("An email is never sent by Groovy: your mail app opens with it written, and you send it.") }),
-  ));
 }

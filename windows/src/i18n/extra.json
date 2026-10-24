@@ -4956,17 +4956,6 @@
    "ru": "Агенты для кода",
    "id": "Agen koding"
   },
-  "Pills and integrations": {
-   "zh-Hans": "胶囊与集成",
-   "hi": "पिल और इंटीग्रेशन",
-   "es": "Píldoras e integraciones",
-   "ar": "الأقراص والتكاملات",
-   "fr": "Pilules et intégrations",
-   "bn": "পিল ও ইন্টিগ্রেশন",
-   "pt-BR": "Pílulas e integrações",
-   "ru": "Пилюли и интеграции",
-   "id": "Pil dan integrasi"
-  },
   "Groovy Control Centre": {
    "zh-Hans": "Groovy 控制中心",
    "hi": "Groovy कंट्रोल सेंटर",
@@ -9290,72 +9279,6 @@
    "ru": "Диктовка",
    "id": "Dikte"
   },
-  "Your agents and their approvals on your Android phone, over your Wi-Fi.": {
-   "zh-Hans": "通过你的 Wi-Fi，在 Android 手机上查看代理并批准请求。",
-   "hi": "आपके Wi-Fi पर, आपके Android फ़ोन पर आपके एजेंट और उनकी मंज़ूरियाँ।",
-   "es": "Tus agentes y sus aprobaciones en tu teléfono Android, por tu Wi-Fi.",
-   "ar": "وكلاؤك وموافقاتهم على هاتف Android، عبر شبكة Wi-Fi لديك.",
-   "fr": "Tes agents et leurs autorisations sur ton téléphone Android, par ton Wi-Fi.",
-   "bn": "আপনার Wi-Fi-তে, আপনার Android ফোনে আপনার এজেন্ট আর তাদের অনুমোদন।",
-   "pt-BR": "Seus agentes e as aprovações deles no seu celular Android, pelo seu Wi-Fi.",
-   "ru": "Ваши агенты и их подтверждения на телефоне Android через ваш Wi-Fi.",
-   "id": "Agenmu dan persetujuannya di ponsel Android, lewat Wi-Fi-mu."
-  },
-  "Dictation is off": {
-   "zh-Hans": "听写已关闭",
-   "hi": "डिक्टेशन बंद है",
-   "es": "Dictado desactivado",
-   "ar": "الإملاء متوقف",
-   "fr": "Dictée désactivée",
-   "bn": "ডিক্টেশন বন্ধ",
-   "pt-BR": "Ditado desligado",
-   "ru": "Диктовка выключена",
-   "id": "Dikte nonaktif"
-  },
-  "Downloading the voice model…": {
-   "zh-Hans": "正在下载语音模型…",
-   "hi": "वॉइस मॉडल डाउनलोड हो रहा है…",
-   "es": "Descargando el modelo de voz…",
-   "ar": "جارٍ تنزيل نموذج الصوت…",
-   "fr": "Téléchargement du modèle de voix…",
-   "bn": "ভয়েস মডেল ডাউনলোড হচ্ছে…",
-   "pt-BR": "Baixando o modelo de voz…",
-   "ru": "Скачивается голосовая модель…",
-   "id": "Mengunduh model suara…"
-  },
-  "Download the voice model to dictate": {
-   "zh-Hans": "下载语音模型即可听写",
-   "hi": "डिक्टेट करने के लिए वॉइस मॉडल डाउनलोड करें",
-   "es": "Descarga el modelo de voz para dictar",
-   "ar": "نزّل نموذج الصوت لتملي",
-   "fr": "Télécharge le modèle de voix pour dicter",
-   "bn": "ডিক্টেট করতে ভয়েস মডেল ডাউনলোড করুন",
-   "pt-BR": "Baixe o modelo de voz para ditar",
-   "ru": "Скачайте голосовую модель, чтобы диктовать",
-   "id": "Unduh model suara untuk mendikte"
-  },
-  "Use the pill's microphone to dictate": {
-   "zh-Hans": "用胶囊上的麦克风听写",
-   "hi": "डिक्टेट करने के लिए पिल का माइक्रोफ़ोन इस्तेमाल करें",
-   "es": "Usa el micrófono de la píldora para dictar",
-   "ar": "استخدم ميكروفون الكبسولة للإملاء",
-   "fr": "Utilise le micro de la pilule pour dicter",
-   "bn": "ডিক্টেট করতে পিলের মাইক্রোফোন ব্যবহার করুন",
-   "pt-BR": "Use o microfone da pílula para ditar",
-   "ru": "Диктуйте через микрофон на пилюле",
-   "id": "Gunakan mikrofon pil untuk mendikte"
-  },
-  "Ready · hold {0}": {
-   "zh-Hans": "就绪 · 按住 {0}",
-   "hi": "तैयार · {0} दबाए रखें",
-   "es": "Listo · mantén {0}",
-   "ar": "جاهز · اضغط مطولًا على {0}",
-   "fr": "Prête · maintiens {0}",
-   "bn": "প্রস্তুত · {0} চেপে ধরুন",
-   "pt-BR": "Pronto · segure {0}",
-   "ru": "Готово · удерживайте {0}",
-   "id": "Siap · tahan {0}"
-  },
   "Claude (your key)": {
    "zh-Hans": "Claude（你的密钥）",
    "hi": "Claude (आपकी कुंजी)",
@@ -9521,39 +9444,6 @@
    "ru": "Ваш голос никогда не покидает этот компьютер: Parakeet превращает его в текст здесь. На сказанное после « OK Groovy » отвечает локальная модель; в Anthropic это уходит, только если вы выбрали Claude в качестве мозга, а в ElevenLabs — только если вы выбрали его для ответов.",
    "id": "Suaramu tidak pernah keluar dari komputer ini: Parakeet mengubahnya menjadi teks di sini. Ucapan setelah « OK Groovy » dijawab oleh model lokal; dikirim ke Anthropic hanya jika kamu memilih Claude sebagai otak, dan ke ElevenLabs hanya jika kamu memilihnya untuk jawaban."
   },
-  "Dictation settings": {
-   "zh-Hans": "听写设置",
-   "hi": "डिक्टेशन सेटिंग्स",
-   "es": "Ajustes de dictado",
-   "ar": "إعدادات الإملاء",
-   "fr": "Réglages de la dictée",
-   "bn": "ডিক্টেশন সেটিংস",
-   "pt-BR": "Ajustes de ditado",
-   "ru": "Настройки диктовки",
-   "id": "Pengaturan dikte"
-  },
-  "How Groovy thinks: local, online or both, and how he talks to you.": {
-   "zh-Hans": "Groovy 如何思考：本地、在线或两者兼用，以及他如何和你说话。",
-   "hi": "Groovy कैसे सोचता है: स्थानीय, ऑनलाइन या दोनों, और वह आपसे कैसे बात करता है।",
-   "es": "Cómo piensa Groovy: local, en línea o ambos, y cómo te habla.",
-   "ar": "كيف يفكّر Groovy: محليًا أو عبر الإنترنت أو كليهما، وكيف يتحدث إليك.",
-   "fr": "Comment Groovy réfléchit : en local, en ligne ou les deux, et comment il te parle.",
-   "bn": "Groovy কীভাবে ভাবে: স্থানীয়, অনলাইন বা দুটোই, এবং সে আপনার সাথে কীভাবে কথা বলে।",
-   "pt-BR": "Como o Groovy pensa: local, online ou ambos, e como ele fala com você.",
-   "ru": "Как думает Groovy: локально, онлайн или и так и так, и как он с вами говорит.",
-   "id": "Cara Groovy berpikir: lokal, online, atau keduanya, dan cara dia berbicara denganmu."
-  },
-  "The AI models that run on this computer.": {
-   "zh-Hans": "在这台电脑上运行的 AI 模型。",
-   "hi": "इस कंप्यूटर पर चलने वाले AI मॉडल।",
-   "es": "Los modelos de IA que funcionan en este ordenador.",
-   "ar": "نماذج الذكاء الاصطناعي التي تعمل على هذا الكمبيوتر.",
-   "fr": "Les modèles d'IA qui tournent sur cet ordinateur.",
-   "bn": "এই কম্পিউটারে চলা AI মডেলগুলো।",
-   "pt-BR": "Os modelos de IA que rodam neste computador.",
-   "ru": "Модели ИИ, работающие на этом компьютере.",
-   "id": "Model AI yang berjalan di komputer ini."
-  },
   "What Groovy remembers about you, on this computer only.": {
    "zh-Hans": "Groovy 记得的关于你的事，只保存在这台电脑上。",
    "hi": "Groovy आपके बारे में क्या याद रखता है, केवल इसी कंप्यूटर पर।",
@@ -9564,17 +9454,6 @@
    "pt-BR": "O que o Groovy lembra sobre você, só neste computador.",
    "ru": "Что Groovy помнит о вас — только на этом компьютере.",
    "id": "Apa yang Groovy ingat tentangmu, hanya di komputer ini."
-  },
-  "Tasks and reminders Groovy keeps for you.": {
-   "zh-Hans": "Groovy 为你记着的任务和提醒。",
-   "hi": "Groovy आपके लिए जो काम और रिमाइंडर रखता है।",
-   "es": "Tareas y recordatorios que Groovy guarda para ti.",
-   "ar": "المهام والتذكيرات التي يحتفظ بها Groovy لك.",
-   "fr": "Les tâches et rappels que Groovy garde pour toi.",
-   "bn": "Groovy আপনার জন্য যে কাজ ও রিমাইন্ডার রাখে।",
-   "pt-BR": "Tarefas e lembretes que o Groovy guarda para você.",
-   "ru": "Задачи и напоминания, которые Groovy хранит для вас.",
-   "id": "Tugas dan pengingat yang Groovy simpan untukmu."
   },
   "Spotify and your own music folder.": {
    "zh-Hans": "Spotify 和你自己的音乐文件夹。",
@@ -9587,50 +9466,6 @@
    "ru": "Spotify и ваша собственная папка с музыкой.",
    "id": "Spotify dan folder musikmu sendiri."
   },
-  "Voice calls": {
-   "zh-Hans": "语音通话",
-   "hi": "वॉइस कॉल",
-   "es": "Llamadas de voz",
-   "ar": "المكالمات الصوتية",
-   "fr": "Appels vocaux",
-   "bn": "ভয়েস কল",
-   "pt-BR": "Chamadas de voz",
-   "ru": "Голосовые звонки",
-   "id": "Panggilan suara"
-  },
-  "Talking with Groovy: languages, microphone and voices.": {
-   "zh-Hans": "和 Groovy 交谈：语言、麦克风和声音。",
-   "hi": "Groovy से बात करना: भाषाएँ, माइक्रोफ़ोन और आवाज़ें।",
-   "es": "Hablar con Groovy: idiomas, micrófono y voces.",
-   "ar": "التحدث مع Groovy: اللغات والميكروفون والأصوات.",
-   "fr": "Parler avec Groovy : langues, micro et voix.",
-   "bn": "Groovy-র সাথে কথা বলা: ভাষা, মাইক্রোফোন ও কণ্ঠস্বর।",
-   "pt-BR": "Conversar com o Groovy: idiomas, microfone e vozes.",
-   "ru": "Разговор с Groovy: языки, микрофон и голоса.",
-   "id": "Berbicara dengan Groovy: bahasa, mikrofon, dan suara."
-  },
-  "Groovy's looks, outfits and colours.": {
-   "zh-Hans": "Groovy 的造型、服装和颜色。",
-   "hi": "Groovy के लुक, पोशाकें और रंग।",
-   "es": "Los looks, atuendos y colores de Groovy.",
-   "ar": "مظاهر Groovy وأزياؤه وألوانه.",
-   "fr": "Les looks, tenues et couleurs de Groovy.",
-   "bn": "Groovy-র লুক, পোশাক ও রং।",
-   "pt-BR": "Os visuais, roupas e cores do Groovy.",
-   "ru": "Образы, наряды и цвета Groovy.",
-   "id": "Tampilan, pakaian, dan warna Groovy."
-  },
-  "Online AI with your own keys, and local servers.": {
-   "zh-Hans": "使用你自己密钥的在线 AI，以及本地服务器。",
-   "hi": "आपकी अपनी कुंजियों वाला ऑनलाइन AI, और स्थानीय सर्वर।",
-   "es": "IA en línea con tus propias claves, y servidores locales.",
-   "ar": "ذكاء اصطناعي عبر الإنترنت بمفاتيحك الخاصة، وخوادم محلية.",
-   "fr": "L'IA en ligne avec tes propres clés, et les serveurs locaux.",
-   "bn": "আপনার নিজের কী দিয়ে অনলাইন AI, এবং স্থানীয় সার্ভার।",
-   "pt-BR": "IA online com suas próprias chaves, e servidores locais.",
-   "ru": "Онлайн-ИИ с вашими собственными ключами и локальные серверы.",
-   "id": "AI online dengan kuncimu sendiri, dan server lokal."
-  },
   "Claude Code, Codex and the other agents Groovy follows.": {
    "zh-Hans": "Claude Code、Codex 以及 Groovy 关注的其他代理。",
    "hi": "Claude Code, Codex और अन्य एजेंट जिन पर Groovy नज़र रखता है।",
@@ -9641,17 +9476,6 @@
    "pt-BR": "Claude Code, Codex e os outros agentes que o Groovy acompanha.",
    "ru": "Claude Code, Codex и другие агенты, за которыми следит Groovy.",
    "id": "Claude Code, Codex, dan agen lain yang Groovy ikuti."
-  },
-  "The pills shown in the island, and the services behind them.": {
-   "zh-Hans": "岛上显示的胶囊，以及它们背后的服务。",
-   "hi": "आइलैंड में दिखने वाली पिल्स, और उनके पीछे की सेवाएँ।",
-   "es": "Las píldoras que se muestran en la isla y los servicios detrás de ellas.",
-   "ar": "الحبوب المعروضة في الجزيرة، والخدمات التي وراءها.",
-   "fr": "Les pilules affichées dans l'île, et les services derrière.",
-   "bn": "আইল্যান্ডে দেখানো পিলগুলো, এবং সেগুলোর পেছনের পরিষেবা।",
-   "pt-BR": "As pílulas mostradas na ilha e os serviços por trás delas.",
-   "ru": "Пилюли, показанные на острове, и сервисы за ними.",
-   "id": "Pil yang tampil di pulau, dan layanan di baliknya."
   },
   "Reminders to stand up and rest your eyes.": {
    "zh-Hans": "提醒你站起来、让眼睛休息。",
@@ -9664,17 +9488,6 @@
    "ru": "Напоминания встать и дать глазам отдохнуть.",
    "id": "Pengingat untuk berdiri dan mengistirahatkan mata."
   },
-  "Language, sounds, shortcuts and how the island behaves.": {
-   "zh-Hans": "语言、声音、快捷键以及岛的行为方式。",
-   "hi": "भाषा, ध्वनियाँ, शॉर्टकट और आइलैंड का व्यवहार।",
-   "es": "Idioma, sonidos, atajos y cómo se comporta la isla.",
-   "ar": "اللغة والأصوات والاختصارات وسلوك الجزيرة.",
-   "fr": "Langue, sons, raccourcis et comportement de l'île.",
-   "bn": "ভাষা, শব্দ, শর্টকাট এবং আইল্যান্ড কীভাবে আচরণ করে।",
-   "pt-BR": "Idioma, sons, atalhos e como a ilha se comporta.",
-   "ru": "Язык, звуки, сочетания клавиш и поведение острова.",
-   "id": "Bahasa, suara, pintasan, dan perilaku pulau."
-  },
   "What Groovy may do on this computer, and what he did.": {
    "zh-Hans": "Groovy 可以在这台电脑上做什么，以及他做过什么。",
    "hi": "Groovy इस कंप्यूटर पर क्या कर सकता है, और उसने क्या किया।",
@@ -9685,17 +9498,6 @@
    "pt-BR": "O que o Groovy pode fazer neste computador, e o que ele fez.",
    "ru": "Что Groovy может делать на этом компьютере и что он сделал.",
    "id": "Apa yang boleh Groovy lakukan di komputer ini, dan apa yang telah dia lakukan."
-  },
-  "Performance, logs and diagnostics.": {
-   "zh-Hans": "性能、日志和诊断。",
-   "hi": "प्रदर्शन, लॉग और निदान।",
-   "es": "Rendimiento, registros y diagnóstico.",
-   "ar": "الأداء والسجلات والتشخيص.",
-   "fr": "Performances, journaux et diagnostic.",
-   "bn": "পারফরম্যান্স, লগ ও ডায়াগনস্টিকস।",
-   "pt-BR": "Desempenho, logs e diagnóstico.",
-   "ru": "Производительность, журналы и диагностика.",
-   "id": "Performa, log, dan diagnostik."
   },
   "Voice and dictation": {
    "zh-Hans": "语音与听写",
@@ -10378,17 +10180,6 @@
    "pt-BR": "Baixe um modelo Whisper multilíngue (base ou small) em Groovy → Chamadas de voz.",
    "ru": "Загрузите многоязычную модель Whisper (base или small) в Groovy → Голосовые звонки.",
    "id": "Unduh model Whisper multibahasa (base atau small) di Groovy → Panggilan suara."
-  },
-  "Download a Whisper model in Groovy → Voice calls": {
-   "zh-Hans": "请在 Groovy → 语音通话 中下载 Whisper 模型",
-   "hi": "Groovy → वॉइस कॉल में Whisper मॉडल डाउनलोड करें",
-   "es": "Descarga un modelo Whisper en Groovy → Llamadas de voz",
-   "ar": "نزّل نموذج Whisper في Groovy ← المكالمات الصوتية",
-   "fr": "Télécharge un modèle Whisper dans Groovy → Appels vocaux",
-   "bn": "Groovy → ভয়েস কল-এ একটি Whisper মডেল ডাউনলোড করুন",
-   "pt-BR": "Baixe um modelo Whisper em Groovy → Chamadas de voz",
-   "ru": "Загрузите модель Whisper в Groovy → Голосовые звонки",
-   "id": "Unduh model Whisper di Groovy → Panggilan suara"
   },
   "A command is already running.": {
    "zh-Hans": "已有命令正在运行。",
@@ -11632,17 +11423,6 @@
    "pt-BR": "Minha ilha",
    "ru": "Мой остров",
    "id": "Pulauku"
-  },
-  "Your apps, mail, music and services on the island, in your order.": {
-   "zh-Hans": "你的应用、邮件、音乐和服务都在岛上，按你的顺序排列。",
-   "hi": "आपके ऐप्स, मेल, संगीत और सेवाएँ आइलैंड पर, आपके क्रम में।",
-   "es": "Tus apps, correo, música y servicios en la isla, en tu orden.",
-   "ar": "تطبيقاتك وبريدك وموسيقاك وخدماتك على الجزيرة، بترتيبك.",
-   "fr": "Tes apps, ton courrier, ta musique et tes services sur l'île, dans ton ordre.",
-   "bn": "আপনার অ্যাপ, মেল, মিউজিক ও পরিষেবা আইল্যান্ডে, আপনার ক্রমে।",
-   "pt-BR": "Seus apps, e-mail, música e serviços na ilha, na sua ordem.",
-   "ru": "Ваши приложения, почта, музыка и сервисы на острове, в вашем порядке.",
-   "id": "Aplikasi, surel, musik, dan layananmu di pulau, sesuai urutanmu."
   },
   "Developer": {
    "zh-Hans": "开发者",
@@ -14834,17 +14614,6 @@
    "ru": "Браузер",
    "id": "Peramban"
   },
-  "The browser and search engine Groovy uses.": {
-   "zh-Hans": "Groovy 使用的浏览器和搜索引擎。",
-   "hi": "Groovy जो ब्राउज़र और सर्च इंजन इस्तेमाल करता है।",
-   "es": "El navegador y el buscador que usa Groovy.",
-   "ar": "المتصفح ومحرك البحث اللذان يستخدمهما Groovy.",
-   "fr": "Le navigateur et le moteur de recherche qu’utilise Groovy.",
-   "bn": "Groovy যে ব্রাউজার আর সার্চ ইঞ্জিন ব্যবহার করে।",
-   "pt-BR": "O navegador e o buscador que o Groovy usa.",
-   "ru": "Браузер и поисковик, которыми пользуется Groovy.",
-   "id": "Peramban dan mesin pencari yang dipakai Groovy."
-  },
   "Windows' default browser": {
    "zh-Hans": "Windows 默认浏览器",
    "hi": "Windows का डिफ़ॉल्ट ब्राउज़र",
@@ -16352,17 +16121,6 @@
    "ru": "Новых писем нет. Подключите аккаунт, чтобы видеть входящие здесь.",
    "id": "Tidak ada email baru. Hubungkan akun untuk melihat kotak masuk di sini."
   },
-  "Gmail, Outlook, iCloud and other accounts, read on this PC only.": {
-   "zh-Hans": "Gmail、Outlook、iCloud 等账户，只在这台电脑上读取。",
-   "hi": "Gmail, Outlook, iCloud और दूसरे खाते, सिर्फ़ इसी पीसी पर पढ़े जाते हैं।",
-   "es": "Gmail, Outlook, iCloud y otras cuentas, leídas solo en este PC.",
-   "ar": "Gmail وOutlook وiCloud وحسابات أخرى، تُقرأ على هذا الكمبيوتر فقط.",
-   "fr": "Gmail, Outlook, iCloud et d’autres comptes, lus sur ce PC seulement.",
-   "bn": "Gmail, Outlook, iCloud ও অন্যান্য অ্যাকাউন্ট, শুধু এই পিসিতেই পড়া হয়।",
-   "pt-BR": "Gmail, Outlook, iCloud e outras contas, lidas só neste PC.",
-   "ru": "Gmail, Outlook, iCloud и другие аккаунты — читаются только на этом ПК.",
-   "id": "Gmail, Outlook, iCloud, dan akun lain, dibaca hanya di PC ini."
-  },
   "No account connected yet.": {
    "zh-Hans": "还没有连接账户。",
    "hi": "अभी कोई खाता नहीं जुड़ा है।",
@@ -17066,6 +16824,699 @@
    "pt-BR": "“Algum e-mail novo?”: quantos e de quem, das suas contas conectadas.",
    "ru": "«Есть новые письма?»: сколько и от кого, из подключённых аккаунтов.",
    "id": "“Ada email baru?”: jumlah dan pengirimnya, dari akun yang terhubung."
+  },
+  "Groovy at a glance, and anything that needs you.": {
+   "zh-Hans": "Groovy 一览，以及需要你处理的事。",
+   "hi": "Groovy एक नज़र में, और जो आपका ध्यान चाहता है।",
+   "es": "Groovy de un vistazo, y lo que necesita tu atención.",
+   "ar": "Groovy في لمحة، وكل ما يحتاج إليك.",
+   "fr": "Groovy en un coup d’œil, et ce qui demande votre attention.",
+   "bn": "এক নজরে Groovy, আর যা আপনার নজর চায়।",
+   "pt-BR": "O Groovy num relance, e o que precisa de você.",
+   "ru": "Groovy с первого взгляда и всё, что требует внимания.",
+   "id": "Groovy sekilas, dan apa pun yang butuh kamu."
+  },
+  "Character & wardrobe": {
+   "zh-Hans": "角色与衣柜",
+   "hi": "किरदार और वॉर्डरोब",
+   "es": "Personaje y vestuario",
+   "ar": "الشخصية وخزانة الملابس",
+   "fr": "Personnage et garde-robe",
+   "bn": "চরিত্র ও ওয়ার্ডরোব",
+   "pt-BR": "Personagem e guarda-roupa",
+   "ru": "Персонаж и гардероб",
+   "id": "Karakter & lemari"
+  },
+  "Sounds": {
+   "zh-Hans": "声音",
+   "hi": "आवाज़ें",
+   "es": "Sonidos",
+   "ar": "الأصوات",
+   "fr": "Sons",
+   "bn": "শব্দ",
+   "pt-BR": "Sons",
+   "ru": "Звуки",
+   "id": "Suara"
+  },
+  "The little sounds the island makes.": {
+   "zh-Hans": "岛发出的小声音。",
+   "hi": "आइलैंड की छोटी-छोटी आवाज़ें।",
+   "es": "Los pequeños sonidos que hace la isla.",
+   "ar": "الأصوات الصغيرة التي تصدرها الجزيرة.",
+   "fr": "Les petits sons de l’île.",
+   "bn": "আইল্যান্ডের ছোট ছোট শব্দ।",
+   "pt-BR": "Os sonzinhos que a ilha faz.",
+   "ru": "Короткие звуки острова.",
+   "id": "Suara-suara kecil dari pulau."
+  },
+  "Brains": {
+   "zh-Hans": "大脑",
+   "hi": "दिमाग",
+   "es": "Cerebros",
+   "ar": "العقول",
+   "fr": "Cerveaux",
+   "bn": "মস্তিষ্ক",
+   "pt-BR": "Cérebros",
+   "ru": "Мозги",
+   "id": "Otak"
+  },
+  "Extra things Groovy can do, added and removed here.": {
+   "zh-Hans": "Groovy 能做的额外事情，在这里添加和移除。",
+   "hi": "Groovy की अतिरिक्त क्षमताएँ, यहाँ जोड़ें और हटाएँ।",
+   "es": "Cosas extra que Groovy puede hacer, añadidas y quitadas aquí.",
+   "ar": "أشياء إضافية يستطيع Groovy فعلها، تضيفها وتزيلها هنا.",
+   "fr": "Ce que Groovy peut faire en plus, à ajouter ou retirer ici.",
+   "bn": "Groovy-র বাড়তি কাজ, এখানে যোগ ও সরানো যায়।",
+   "pt-BR": "Coisas extras que o Groovy faz, adicionadas e removidas aqui.",
+   "ru": "Дополнительные умения Groovy: добавляйте и удаляйте здесь.",
+   "id": "Hal tambahan yang bisa dilakukan Groovy, ditambah dan dihapus di sini."
+  },
+  "Speaking": {
+   "zh-Hans": "说话",
+   "hi": "बोलना",
+   "es": "Hablar",
+   "ar": "التحدث",
+   "fr": "Parole",
+   "bn": "কথা বলা",
+   "pt-BR": "Fala",
+   "ru": "Речь",
+   "id": "Berbicara"
+  },
+  "How Groovy sounds when he answers out loud.": {
+   "zh-Hans": "Groovy 大声回答时的声音。",
+   "hi": "जब Groovy बोलकर जवाब देता है तो वह कैसा सुनाई देता है।",
+   "es": "Cómo suena Groovy cuando responde en voz alta.",
+   "ar": "كيف يبدو صوت Groovy عندما يجيب بصوت عالٍ.",
+   "fr": "La voix de Groovy quand il répond à voix haute.",
+   "bn": "জোরে উত্তর দেওয়ার সময় Groovy-র কণ্ঠ কেমন।",
+   "pt-BR": "Como o Groovy soa quando responde em voz alta.",
+   "ru": "Как звучит Groovy, когда отвечает вслух.",
+   "id": "Suara Groovy saat menjawab dengan keras."
+  },
+  "Live calls": {
+   "zh-Hans": "实时通话",
+   "hi": "लाइव कॉल",
+   "es": "Llamadas en vivo",
+   "ar": "مكالمات مباشرة",
+   "fr": "Appels en direct",
+   "bn": "লাইভ কল",
+   "pt-BR": "Chamadas ao vivo",
+   "ru": "Живые звонки",
+   "id": "Panggilan langsung"
+  },
+  "Talking with Groovy like a phone call.": {
+   "zh-Hans": "像打电话一样和 Groovy 交谈。",
+   "hi": "फ़ोन कॉल की तरह Groovy से बात करें।",
+   "es": "Hablar con Groovy como en una llamada.",
+   "ar": "التحدث مع Groovy كأنها مكالمة هاتفية.",
+   "fr": "Parler avec Groovy comme au téléphone.",
+   "bn": "ফোন কলের মতো Groovy-র সাথে কথা বলা।",
+   "pt-BR": "Conversar com o Groovy como numa ligação.",
+   "ru": "Разговор с Groovy как по телефону.",
+   "id": "Bicara dengan Groovy seperti telepon."
+  },
+  "Speak instead of typing, in any app.": {
+   "zh-Hans": "在任何应用里用说话代替打字。",
+   "hi": "किसी भी ऐप में टाइप करने की जगह बोलें।",
+   "es": "Habla en vez de escribir, en cualquier app.",
+   "ar": "تحدث بدل الكتابة، في أي تطبيق.",
+   "fr": "Parlez au lieu de taper, dans n’importe quelle app.",
+   "bn": "যেকোনো অ্যাপে টাইপের বদলে বলুন।",
+   "pt-BR": "Fale em vez de digitar, em qualquer app.",
+   "ru": "Говорите вместо набора текста, в любом приложении.",
+   "id": "Bicara alih-alih mengetik, di aplikasi apa pun."
+  },
+  "Record meetings and calls, with a summary.": {
+   "zh-Hans": "录制会议和通话，并附上摘要。",
+   "hi": "मीटिंग और कॉल रिकॉर्ड करें, सारांश के साथ।",
+   "es": "Graba reuniones y llamadas, con un resumen.",
+   "ar": "سجّل الاجتماعات والمكالمات مع ملخص.",
+   "fr": "Enregistrez réunions et appels, avec un résumé.",
+   "bn": "মিটিং ও কল রেকর্ড করুন, সারাংশসহ।",
+   "pt-BR": "Grave reuniões e ligações, com um resumo.",
+   "ru": "Записывайте встречи и звонки с кратким итогом.",
+   "id": "Rekam rapat dan panggilan, dengan ringkasan."
+  },
+  "Island": {
+   "zh-Hans": "岛",
+   "hi": "आइलैंड",
+   "es": "Isla",
+   "ar": "الجزيرة",
+   "fr": "Île",
+   "bn": "আইল্যান্ড",
+   "pt-BR": "Ilha",
+   "ru": "Остров",
+   "id": "Pulau"
+  },
+  "Layout & tiles": {
+   "zh-Hans": "布局与磁贴",
+   "hi": "लेआउट और टाइल",
+   "es": "Diseño y mosaicos",
+   "ar": "التخطيط والمربعات",
+   "fr": "Disposition et tuiles",
+   "bn": "লেআউট ও টাইল",
+   "pt-BR": "Layout e blocos",
+   "ru": "Раскладка и плитки",
+   "id": "Tata letak & ubin"
+  },
+  "Mail, Spotify, GitHub and your other services, in one place.": {
+   "zh-Hans": "邮件、Spotify、GitHub 和你的其他服务，都在一处。",
+   "hi": "मेल, Spotify, GitHub और आपकी दूसरी सेवाएँ, एक ही जगह।",
+   "es": "Correo, Spotify, GitHub y tus otros servicios, en un solo sitio.",
+   "ar": "البريد وSpotify وGitHub وخدماتك الأخرى في مكان واحد.",
+   "fr": "Mail, Spotify, GitHub et vos autres services, au même endroit.",
+   "bn": "মেল, Spotify, GitHub ও আপনার অন্যান্য সেবা, এক জায়গায়।",
+   "pt-BR": "E-mail, Spotify, GitHub e seus outros serviços, num só lugar.",
+   "ru": "Почта, Spotify, GitHub и другие сервисы в одном месте.",
+   "id": "Email, Spotify, GitHub, dan layananmu yang lain, di satu tempat."
+  },
+  "How much you dictated, and when.": {
+   "zh-Hans": "你口述了多少，以及什么时候。",
+   "hi": "आपने कितना और कब बोलकर लिखा।",
+   "es": "Cuánto has dictado y cuándo.",
+   "ar": "كم أمليت ومتى.",
+   "fr": "Combien vous avez dicté, et quand.",
+   "bn": "কতটা আর কখন ডিক্টেট করেছেন।",
+   "pt-BR": "Quanto você ditou e quando.",
+   "ru": "Сколько и когда вы надиктовали.",
+   "id": "Seberapa banyak kamu mendikte, dan kapan."
+  },
+  "Computer": {
+   "zh-Hans": "电脑",
+   "hi": "कंप्यूटर",
+   "es": "Ordenador",
+   "ar": "الكمبيوتر",
+   "fr": "Ordinateur",
+   "bn": "কম্পিউটার",
+   "pt-BR": "Computador",
+   "ru": "Компьютер",
+   "id": "Komputer"
+  },
+  "Your agents and their approvals on your phone.": {
+   "zh-Hans": "在手机上查看你的代理及其审批。",
+   "hi": "आपके एजेंट और उनकी मंज़ूरियाँ, आपके फ़ोन पर।",
+   "es": "Tus agentes y sus aprobaciones en tu teléfono.",
+   "ar": "وكلاؤك وموافقاتهم على هاتفك.",
+   "fr": "Vos agents et leurs validations sur votre téléphone.",
+   "bn": "আপনার এজেন্ট ও তাদের অনুমোদন, আপনার ফোনে।",
+   "pt-BR": "Seus agentes e as aprovações deles no seu celular.",
+   "ru": "Ваши агенты и их подтверждения на телефоне.",
+   "id": "Agenmu dan persetujuannya di ponselmu."
+  },
+  "Language, theme, shortcuts and startup.": {
+   "zh-Hans": "语言、主题、快捷键和启动。",
+   "hi": "भाषा, थीम, शॉर्टकट और स्टार्टअप।",
+   "es": "Idioma, tema, atajos e inicio.",
+   "ar": "اللغة والسمة والاختصارات وبدء التشغيل.",
+   "fr": "Langue, thème, raccourcis et démarrage.",
+   "bn": "ভাষা, থিম, শর্টকাট ও স্টার্টআপ।",
+   "pt-BR": "Idioma, tema, atalhos e inicialização.",
+   "ru": "Язык, тема, сочетания клавиш и запуск.",
+   "id": "Bahasa, tema, pintasan, dan startup."
+  },
+  "About & updates": {
+   "zh-Hans": "关于与更新",
+   "hi": "परिचय और अपडेट",
+   "es": "Acerca de y actualizaciones",
+   "ar": "حول والتحديثات",
+   "fr": "À propos et mises à jour",
+   "bn": "পরিচিতি ও আপডেট",
+   "pt-BR": "Sobre e atualizações",
+   "ru": "О программе и обновления",
+   "id": "Tentang & pembaruan"
+  },
+  "Version, licences and credits.": {
+   "zh-Hans": "版本、许可和致谢。",
+   "hi": "संस्करण, लाइसेंस और श्रेय।",
+   "es": "Versión, licencias y créditos.",
+   "ar": "الإصدار والتراخيص والشكر.",
+   "fr": "Version, licences et crédits.",
+   "bn": "সংস্করণ, লাইসেন্স ও কৃতজ্ঞতা।",
+   "pt-BR": "Versão, licenças e créditos.",
+   "ru": "Версия, лицензии и благодарности.",
+   "id": "Versi, lisensi, dan kredit."
+  },
+  "Cloud": {
+   "zh-Hans": "云端",
+   "hi": "क्लाउड",
+   "es": "Nube",
+   "ar": "السحابة",
+   "fr": "Cloud",
+   "bn": "ক্লাউড",
+   "pt-BR": "Nuvem",
+   "ru": "Облако",
+   "id": "Cloud"
+  },
+  "Subscriptions": {
+   "zh-Hans": "订阅",
+   "hi": "सब्सक्रिप्शन",
+   "es": "Suscripciones",
+   "ar": "الاشتراكات",
+   "fr": "Abonnements",
+   "bn": "সাবস্ক্রিপশন",
+   "pt-BR": "Assinaturas",
+   "ru": "Подписки",
+   "id": "Langganan"
+  },
+  "Version": {
+   "zh-Hans": "版本",
+   "hi": "संस्करण",
+   "es": "Versión",
+   "ar": "الإصدار",
+   "fr": "Version",
+   "bn": "সংস্করণ",
+   "pt-BR": "Versão",
+   "ru": "Версия",
+   "id": "Versi"
+  },
+  "No AI is set up: Groovy can only do the basics.": {
+   "zh-Hans": "还没有设置 AI：Groovy 只能做基本的事。",
+   "hi": "कोई AI सेट नहीं है: Groovy सिर्फ़ बुनियादी काम कर सकता है।",
+   "es": "No hay IA configurada: Groovy solo puede hacer lo básico.",
+   "ar": "لم يتم إعداد ذكاء اصطناعي: يستطيع Groovy فعل الأساسيات فقط.",
+   "fr": "Aucune IA n’est configurée : Groovy ne fait que l’essentiel.",
+   "bn": "কোনো AI সেট করা নেই: Groovy শুধু মৌলিক কাজ পারে।",
+   "pt-BR": "Nenhuma IA configurada: o Groovy só faz o básico.",
+   "ru": "ИИ не настроен: Groovy умеет только основное.",
+   "id": "Belum ada AI: Groovy hanya bisa hal dasar."
+  },
+  "Set up a brain": {
+   "zh-Hans": "设置大脑",
+   "hi": "दिमाग सेट करें",
+   "es": "Configurar un cerebro",
+   "ar": "إعداد عقل",
+   "fr": "Configurer un cerveau",
+   "bn": "মস্তিষ্ক সেট করুন",
+   "pt-BR": "Configurar um cérebro",
+   "ru": "Настроить мозг",
+   "id": "Siapkan otak"
+  },
+  "The speech model isn't downloaded: he can't hear you yet.": {
+   "zh-Hans": "语音模型还没下载：他还听不到你。",
+   "hi": "स्पीच मॉडल डाउनलोड नहीं हुआ: वह अभी आपको सुन नहीं सकता।",
+   "es": "El modelo de voz no está descargado: aún no puede oírte.",
+   "ar": "نموذج الكلام غير منزّل: لا يستطيع سماعك بعد.",
+   "fr": "Le modèle vocal n’est pas téléchargé : il ne vous entend pas encore.",
+   "bn": "স্পিচ মডেল ডাউনলোড হয়নি: সে এখনও আপনাকে শুনতে পায় না।",
+   "pt-BR": "O modelo de voz não foi baixado: ele ainda não te ouve.",
+   "ru": "Речевая модель не загружена: он вас пока не слышит.",
+   "id": "Model suara belum diunduh: dia belum bisa mendengarmu."
+  },
+  "Download it": {
+   "zh-Hans": "下载",
+   "hi": "डाउनलोड करें",
+   "es": "Descargarlo",
+   "ar": "تنزيله",
+   "fr": "Le télécharger",
+   "bn": "ডাউনলোড করুন",
+   "pt-BR": "Baixar",
+   "ru": "Загрузить",
+   "id": "Unduh"
+  },
+  "The microphone didn't open: {error}": {
+   "zh-Hans": "麦克风没有打开：{error}",
+   "hi": "माइक्रोफ़ोन नहीं खुला: {error}",
+   "es": "El micrófono no se abrió: {error}",
+   "ar": "لم يُفتح الميكروفون: {error}",
+   "fr": "Le micro ne s’est pas ouvert : {error}",
+   "bn": "মাইক্রোফোন খোলেনি: {error}",
+   "pt-BR": "O microfone não abriu: {error}",
+   "ru": "Микрофон не открылся: {error}",
+   "id": "Mikrofon tidak terbuka: {error}"
+  },
+  "Now": {
+   "zh-Hans": "现在",
+   "hi": "अभी",
+   "es": "Ahora",
+   "ar": "الآن",
+   "fr": "Maintenant",
+   "bn": "এখন",
+   "pt-BR": "Agora",
+   "ru": "Сейчас",
+   "id": "Sekarang"
+  },
+  "Brain": {
+   "zh-Hans": "大脑",
+   "hi": "दिमाग",
+   "es": "Cerebro",
+   "ar": "العقل",
+   "fr": "Cerveau",
+   "bn": "মস্তিষ্ক",
+   "pt-BR": "Cérebro",
+   "ru": "Мозг",
+   "id": "Otak"
+  },
+  "{name} answers.": {
+   "zh-Hans": "由 {name} 回答。",
+   "hi": "{name} जवाब देता है।",
+   "es": "Responde {name}.",
+   "ar": "يجيب {name}.",
+   "fr": "{name} répond.",
+   "bn": "{name} উত্তর দেয়।",
+   "pt-BR": "{name} responde.",
+   "ru": "Отвечает {name}.",
+   "id": "{name} yang menjawab."
+  },
+  "No AI yet.": {
+   "zh-Hans": "还没有 AI。",
+   "hi": "अभी कोई AI नहीं।",
+   "es": "Aún no hay IA.",
+   "ar": "لا ذكاء اصطناعي بعد.",
+   "fr": "Pas encore d’IA.",
+   "bn": "এখনও কোনো AI নেই।",
+   "pt-BR": "Ainda sem IA.",
+   "ru": "ИИ пока нет.",
+   "id": "Belum ada AI."
+  },
+  "Listening for « OK Groovy ».": {
+   "zh-Hans": "正在听 « OK Groovy »。",
+   "hi": "« OK Groovy » सुन रहा है।",
+   "es": "Escuchando « OK Groovy ».",
+   "ar": "يستمع إلى « OK Groovy ».",
+   "fr": "À l’écoute de « OK Groovy ».",
+   "bn": "« OK Groovy » শুনছে।",
+   "pt-BR": "Ouvindo « OK Groovy ».",
+   "ru": "Слушает « OK Groovy ».",
+   "id": "Mendengarkan « OK Groovy »."
+  },
+  "« OK Groovy » is on, not listening yet.": {
+   "zh-Hans": "« OK Groovy » 已开启，还没开始听。",
+   "hi": "« OK Groovy » चालू है, अभी सुन नहीं रहा।",
+   "es": "« OK Groovy » está activado, aún sin escuchar.",
+   "ar": "« OK Groovy » مفعّل، لكنه لا يستمع بعد.",
+   "fr": "« OK Groovy » est activé, pas encore à l’écoute.",
+   "bn": "« OK Groovy » চালু, এখনও শুনছে না।",
+   "pt-BR": "« OK Groovy » está ligado, ainda sem ouvir.",
+   "ru": "« OK Groovy » включён, но ещё не слушает.",
+   "id": "« OK Groovy » aktif, belum mendengarkan."
+  },
+  "« OK Groovy » is off.": {
+   "zh-Hans": "« OK Groovy » 已关闭。",
+   "hi": "« OK Groovy » बंद है।",
+   "es": "« OK Groovy » está desactivado.",
+   "ar": "« OK Groovy » متوقف.",
+   "fr": "« OK Groovy » est désactivé.",
+   "bn": "« OK Groovy » বন্ধ।",
+   "pt-BR": "« OK Groovy » está desligado.",
+   "ru": "« OK Groovy » выключен.",
+   "id": "« OK Groovy » mati."
+  },
+  "Memory use": {
+   "zh-Hans": "内存占用",
+   "hi": "मेमोरी उपयोग",
+   "es": "Uso de memoria",
+   "ar": "استخدام الذاكرة",
+   "fr": "Mémoire utilisée",
+   "bn": "মেমরি ব্যবহার",
+   "pt-BR": "Uso de memória",
+   "ru": "Использование памяти",
+   "id": "Pemakaian memori"
+  },
+  "Groovy uses {mb} of {total}.": {
+   "zh-Hans": "Groovy 使用了 {total} 中的 {mb}。",
+   "hi": "Groovy {total} में से {mb} इस्तेमाल करता है।",
+   "es": "Groovy usa {mb} de {total}.",
+   "ar": "يستخدم Groovy {mb} من {total}.",
+   "fr": "Groovy utilise {mb} sur {total}.",
+   "bn": "Groovy {total}-এর মধ্যে {mb} ব্যবহার করে।",
+   "pt-BR": "O Groovy usa {mb} de {total}.",
+   "ru": "Groovy использует {mb} из {total}.",
+   "id": "Groovy memakai {mb} dari {total}."
+  },
+  "Quick toggles": {
+   "zh-Hans": "快捷开关",
+   "hi": "झटपट स्विच",
+   "es": "Interruptores rápidos",
+   "ar": "مفاتيح سريعة",
+   "fr": "Raccourcis rapides",
+   "bn": "দ্রুত সুইচ",
+   "pt-BR": "Atalhos rápidos",
+   "ru": "Быстрые переключатели",
+   "id": "Sakelar cepat"
+  },
+  "Windows' own Focus: notifications wait.": {
+   "zh-Hans": "Windows 自带的专注模式：通知会暂缓。",
+   "hi": "Windows का अपना फ़ोकस: सूचनाएँ इंतज़ार करती हैं।",
+   "es": "El modo Concentración de Windows: las notificaciones esperan.",
+   "ar": "وضع التركيز في Windows: تنتظر الإشعارات.",
+   "fr": "La concentration de Windows : les notifications attendent.",
+   "bn": "Windows-এর নিজস্ব ফোকাস: নোটিফিকেশন অপেক্ষা করে।",
+   "pt-BR": "O Foco do próprio Windows: as notificações esperam.",
+   "ru": "Фокусировка Windows: уведомления ждут.",
+   "id": "Fokus bawaan Windows: notifikasi menunggu."
+  },
+  "Nothing needs you. All set.": {
+   "zh-Hans": "没有需要你处理的事，一切就绪。",
+   "hi": "किसी चीज़ को आपकी ज़रूरत नहीं। सब तैयार।",
+   "es": "Nada te necesita. Todo listo.",
+   "ar": "لا شيء يحتاج إليك. كل شيء جاهز.",
+   "fr": "Rien ne vous attend. Tout est prêt.",
+   "bn": "কিছুই আপনার অপেক্ষায় নেই। সব ঠিক আছে।",
+   "pt-BR": "Nada precisa de você. Tudo certo.",
+   "ru": "Ничего не требует внимания. Всё готово.",
+   "id": "Tidak ada yang butuh kamu. Semua siap."
+  },
+  "Search settings": {
+   "zh-Hans": "搜索设置",
+   "hi": "सेटिंग्स खोजें",
+   "es": "Buscar ajustes",
+   "ar": "البحث في الإعدادات",
+   "fr": "Rechercher un réglage",
+   "bn": "সেটিংস খুঁজুন",
+   "pt-BR": "Buscar configurações",
+   "ru": "Поиск настроек",
+   "id": "Cari pengaturan"
+  },
+  "Nothing found": {
+   "zh-Hans": "没有找到",
+   "hi": "कुछ नहीं मिला",
+   "es": "No se encontró nada",
+   "ar": "لم يُعثر على شيء",
+   "fr": "Rien trouvé",
+   "bn": "কিছু পাওয়া যায়নি",
+   "pt-BR": "Nada encontrado",
+   "ru": "Ничего не найдено",
+   "id": "Tidak ditemukan"
+  },
+  "Public domain / MIT": {
+   "zh-Hans": "公有领域 / MIT",
+   "hi": "पब्लिक डोमेन / MIT",
+   "es": "Dominio público / MIT",
+   "ar": "ملكية عامة / MIT",
+   "fr": "Domaine public / MIT",
+   "bn": "পাবলিক ডোমেইন / MIT",
+   "pt-BR": "Domínio público / MIT",
+   "ru": "Общественное достояние / MIT",
+   "id": "Domain publik / MIT"
+  },
+  "See what's new and download updates": {
+   "zh-Hans": "查看新内容并下载更新",
+   "hi": "नया क्या है देखें और अपडेट डाउनलोड करें",
+   "es": "Ver novedades y descargar actualizaciones",
+   "ar": "اطّلع على الجديد ونزّل التحديثات",
+   "fr": "Voir les nouveautés et télécharger les mises à jour",
+   "bn": "নতুন কী দেখুন ও আপডেট ডাউনলোড করুন",
+   "pt-BR": "Ver novidades e baixar atualizações",
+   "ru": "Что нового и загрузка обновлений",
+   "id": "Lihat yang baru dan unduh pembaruan"
+  },
+  "Licences": {
+   "zh-Hans": "许可",
+   "hi": "लाइसेंस",
+   "es": "Licencias",
+   "ar": "التراخيص",
+   "fr": "Licences",
+   "bn": "লাইসেন্স",
+   "pt-BR": "Licenças",
+   "ru": "Лицензии",
+   "id": "Lisensi"
+  },
+  "Some of Groovy's code is used under the MIT licence; its notice ships with Groovy. Speech, voice and local AI models are downloaded only when you ask, each under its own licence, shown where you download it.": {
+   "zh-Hans": "Groovy 的部分代码以 MIT 许可使用，其声明随 Groovy 一起提供。语音识别、语音和本地 AI 模型只在你要求时下载，各有自己的许可，在下载处显示。",
+   "hi": "Groovy का कुछ कोड MIT लाइसेंस के तहत इस्तेमाल होता है; उसकी सूचना Groovy के साथ आती है। स्पीच, आवाज़ और लोकल AI मॉडल सिर्फ़ आपके कहने पर डाउनलोड होते हैं, हर एक अपने लाइसेंस के तहत, जो डाउनलोड की जगह दिखता है।",
+   "es": "Parte del código de Groovy se usa bajo la licencia MIT; su aviso se incluye con Groovy. Los modelos de voz, habla e IA local se descargan solo cuando lo pides, cada uno con su licencia, mostrada donde lo descargas.",
+   "ar": "يُستخدم جزء من شيفرة Groovy بترخيص MIT؛ ويُرفق إشعاره مع Groovy. لا تُنزّل نماذج الكلام والصوت والذكاء الاصطناعي المحلي إلا عند طلبك، ولكل منها ترخيصه المعروض حيث تنزّله.",
+   "fr": "Une partie du code de Groovy est utilisée sous licence MIT ; sa notice est fournie avec Groovy. Les modèles de reconnaissance vocale, de voix et d’IA locale ne sont téléchargés qu’à votre demande, chacun sous sa licence, indiquée là où vous le téléchargez.",
+   "bn": "Groovy-র কিছু কোড MIT লাইসেন্সে ব্যবহৃত; এর নোটিশ Groovy-র সাথে আসে। স্পিচ, ভয়েস ও লোকাল AI মডেল শুধু আপনি চাইলে ডাউনলোড হয়, প্রতিটি নিজস্ব লাইসেন্সে, যা ডাউনলোডের জায়গায় দেখানো হয়।",
+   "pt-BR": "Parte do código do Groovy é usada sob a licença MIT; o aviso dela acompanha o Groovy. Modelos de fala, voz e IA local só são baixados quando você pede, cada um com sua licença, mostrada onde você baixa.",
+   "ru": "Часть кода Groovy используется по лицензии MIT; её уведомление поставляется с Groovy. Модели речи, голоса и локального ИИ загружаются только по вашему запросу, каждая под своей лицензией, указанной при загрузке.",
+   "id": "Sebagian kode Groovy dipakai dengan lisensi MIT; pemberitahuannya disertakan bersama Groovy. Model ucapan, suara, dan AI lokal hanya diunduh saat kamu minta, masing-masing dengan lisensinya, ditampilkan di tempat unduhnya."
+  },
+  "Everything Groovy is doing, at a glance.": {
+   "zh-Hans": "Groovy 正在做的一切，一目了然。",
+   "hi": "Groovy जो कुछ कर रहा है, एक नज़र में।",
+   "es": "Todo lo que hace Groovy, de un vistazo.",
+   "ar": "كل ما يفعله Groovy، في لمحة.",
+   "fr": "Tout ce que fait Groovy, d’un coup d’œil.",
+   "bn": "Groovy যা করছে সব, এক নজরে।",
+   "pt-BR": "Tudo o que o Groovy está fazendo, num relance.",
+   "ru": "Всё, что делает Groovy, с первого взгляда.",
+   "id": "Semua yang dilakukan Groovy, sekilas."
+  },
+  "His look, how far he has grown, and what he's wearing.": {
+   "zh-Hans": "他的样子、他长到了哪一步，以及他穿着什么。",
+   "hi": "उसका रूप, वह कितना बड़ा हुआ है, और उसने क्या पहना है।",
+   "es": "Su aspecto, cuánto ha crecido y lo que lleva puesto.",
+   "ar": "مظهره، وإلى أي حد كبر، وماذا يرتدي.",
+   "fr": "Son allure, où il en est de sa croissance, et ce qu’il porte.",
+   "bn": "তার চেহারা, সে কতটা বড় হয়েছে, আর সে কী পরে আছে।",
+   "pt-BR": "O visual dele, o quanto cresceu e o que está vestindo.",
+   "ru": "Его облик, насколько он вырос и что на нём надето.",
+   "id": "Penampilannya, seberapa jauh ia tumbuh, dan apa yang ia pakai."
+  },
+  "Which AI Groovy thinks with, and what he switches to when one runs out.": {
+   "zh-Hans": "Groovy 用哪个 AI 思考，以及一个用完时他切换到哪个。",
+   "hi": "Groovy किस AI से सोचता है, और एक के खत्म होने पर वह किस पर जाता है।",
+   "es": "Con qué IA piensa Groovy y a cuál cambia cuando una se agota.",
+   "ar": "أي ذكاء اصطناعي يفكر به Groovy، وإلى أيٍّ ينتقل عندما ينفد أحدها.",
+   "fr": "Avec quelle IA Groovy réfléchit, et vers laquelle il bascule quand l’une est épuisée.",
+   "bn": "Groovy কোন AI দিয়ে ভাবে, আর একটি ফুরিয়ে গেলে কোনটিতে যায়।",
+   "pt-BR": "Com qual IA o Groovy pensa e para qual ele muda quando uma acaba.",
+   "ru": "Каким ИИ думает Groovy и на какой переключается, когда один исчерпан.",
+   "id": "AI mana yang dipakai Groovy untuk berpikir, dan ke mana ia beralih saat satu habis."
+  },
+  "Pick his voice. Fish Audio goes first; Kokoro takes over offline so he's never silent.": {
+   "zh-Hans": "选择他的声音。先用 Fish Audio；离线时由 Kokoro 接手，所以他从不沉默。",
+   "hi": "उसकी आवाज़ चुनें। पहले Fish Audio; ऑफ़लाइन होने पर Kokoro संभालता है, ताकि वह कभी चुप न रहे।",
+   "es": "Elige su voz. Fish Audio va primero; sin conexión toma el relevo Kokoro, así nunca se queda callado.",
+   "ar": "اختر صوته. يأتي Fish Audio أولًا؛ ويتولى Kokoro دون اتصال حتى لا يصمت أبدًا.",
+   "fr": "Choisissez sa voix. Fish Audio passe en premier ; hors ligne, Kokoro prend le relais pour qu’il ne soit jamais muet.",
+   "bn": "তার কণ্ঠ বেছে নিন। প্রথমে Fish Audio; অফলাইনে Kokoro দায়িত্ব নেয়, তাই সে কখনো চুপ থাকে না।",
+   "pt-BR": "Escolha a voz dele. O Fish Audio vem primeiro; offline, o Kokoro assume para ele nunca ficar calado.",
+   "ru": "Выберите его голос. Сначала Fish Audio; без сети его заменяет Kokoro, чтобы он никогда не молчал.",
+   "id": "Pilih suaranya. Fish Audio lebih dulu; saat offline Kokoro mengambil alih agar ia tak pernah diam."
+  },
+  "Listening & calls": {
+   "zh-Hans": "聆听与通话",
+   "hi": "सुनना और कॉल",
+   "es": "Escucha y llamadas",
+   "ar": "الاستماع والمكالمات",
+   "fr": "Écoute et appels",
+   "bn": "শোনা ও কল",
+   "pt-BR": "Escuta e chamadas",
+   "ru": "Прослушивание и звонки",
+   "id": "Mendengarkan & panggilan"
+  },
+  "« OK Groovy », the microphone, and talking with him like a phone call.": {
+   "zh-Hans": "« OK Groovy »、麦克风，以及像打电话一样和他交谈。",
+   "hi": "« OK Groovy », माइक्रोफ़ोन, और फ़ोन कॉल की तरह उससे बात करना।",
+   "es": "« OK Groovy », el micrófono y hablar con él como en una llamada.",
+   "ar": "« OK Groovy »، والميكروفون، والتحدث معه كمكالمة هاتفية.",
+   "fr": "« OK Groovy », le micro, et lui parler comme au téléphone.",
+   "bn": "« OK Groovy », মাইক্রোফোন, আর ফোন কলের মতো তার সাথে কথা বলা।",
+   "pt-BR": "« OK Groovy », o microfone e conversar com ele como numa ligação.",
+   "ru": "« OK Groovy », микрофон и разговор с ним, как по телефону.",
+   "id": "« OK Groovy », mikrofon, dan berbicara dengannya seperti panggilan telepon."
+  },
+  "What the island shows, how it looks and when it opens. Changes appear live.": {
+   "zh-Hans": "岛显示什么、外观如何、何时打开。更改即时生效。",
+   "hi": "आइलैंड क्या दिखाता है, कैसा दिखता है और कब खुलता है। बदलाव तुरंत दिखते हैं।",
+   "es": "Qué muestra la isla, cómo se ve y cuándo se abre. Los cambios se ven al instante.",
+   "ar": "ما تعرضه الجزيرة، وكيف تبدو، ومتى تُفتح. تظهر التغييرات مباشرة.",
+   "fr": "Ce que l’île affiche, son allure et quand elle s’ouvre. Les changements s’affichent en direct.",
+   "bn": "আইল্যান্ড কী দেখায়, কেমন দেখায় আর কখন খোলে। পরিবর্তন সঙ্গে সঙ্গে দেখা যায়।",
+   "pt-BR": "O que a ilha mostra, como ela fica e quando abre. As mudanças aparecem na hora.",
+   "ru": "Что показывает остров, как он выглядит и когда открывается. Изменения видны сразу.",
+   "id": "Apa yang ditampilkan pulau, tampilannya, dan kapan terbuka. Perubahan langsung terlihat."
+  },
+  "Accounts": {
+   "zh-Hans": "账户",
+   "hi": "खाते",
+   "es": "Cuentas",
+   "ar": "الحسابات",
+   "fr": "Comptes",
+   "bn": "অ্যাকাউন্ট",
+   "pt-BR": "Contas",
+   "ru": "Аккаунты",
+   "id": "Akun"
+  },
+  "Reminders & breaks": {
+   "zh-Hans": "提醒与休息",
+   "hi": "रिमाइंडर और ब्रेक",
+   "es": "Recordatorios y pausas",
+   "ar": "التذكيرات والاستراحات",
+   "fr": "Rappels et pauses",
+   "bn": "রিমাইন্ডার ও বিরতি",
+   "pt-BR": "Lembretes e pausas",
+   "ru": "Напоминания и перерывы",
+   "id": "Pengingat & jeda"
+  },
+  "Tasks Groovy keeps for you, and reminders to rest.": {
+   "zh-Hans": "Groovy 为你记着的任务，以及休息提醒。",
+   "hi": "Groovy आपके लिए जो काम याद रखता है, और आराम करने के रिमाइंडर।",
+   "es": "Tareas que Groovy guarda para ti y recordatorios para descansar.",
+   "ar": "مهام يحفظها Groovy لك، وتذكيرات بالراحة.",
+   "fr": "Les tâches que Groovy garde pour vous, et des rappels pour faire une pause.",
+   "bn": "Groovy আপনার জন্য যে কাজ মনে রাখে, আর বিশ্রামের রিমাইন্ডার।",
+   "pt-BR": "Tarefas que o Groovy guarda para você e lembretes para descansar.",
+   "ru": "Задачи, которые Groovy хранит для вас, и напоминания отдохнуть.",
+   "id": "Tugas yang dicatat Groovy untuk Anda, dan pengingat untuk istirahat."
+  },
+  "Browser & agents": {
+   "zh-Hans": "浏览器与智能体",
+   "hi": "ब्राउज़र और एजेंट",
+   "es": "Navegador y agentes",
+   "ar": "المتصفح والوكلاء",
+   "fr": "Navigateur et agents",
+   "bn": "ব্রাউজার ও এজেন্ট",
+   "pt-BR": "Navegador e agentes",
+   "ru": "Браузер и агенты",
+   "id": "Peramban & agen"
+  },
+  "The browser Groovy uses, and the coding agents he follows.": {
+   "zh-Hans": "Groovy 使用的浏览器，以及他关注的编程智能体。",
+   "hi": "Groovy जो ब्राउज़र इस्तेमाल करता है, और जिन कोडिंग एजेंट पर वह नज़र रखता है।",
+   "es": "El navegador que usa Groovy y los agentes de programación que sigue.",
+   "ar": "المتصفح الذي يستخدمه Groovy، ووكلاء البرمجة الذين يتابعهم.",
+   "fr": "Le navigateur qu’utilise Groovy, et les agents de code qu’il suit.",
+   "bn": "Groovy যে ব্রাউজার ব্যবহার করে, আর যে কোডিং এজেন্টদের সে অনুসরণ করে।",
+   "pt-BR": "O navegador que o Groovy usa e os agentes de programação que ele acompanha.",
+   "ru": "Браузер, которым пользуется Groovy, и агенты для кода, за которыми он следит.",
+   "id": "Peramban yang dipakai Groovy, dan agen pemrograman yang ia ikuti."
+  },
+  "How much of your PC Groovy uses. He stays under 300 MB idle and never goes over 400 MB.": {
+   "zh-Hans": "Groovy 占用你电脑多少资源。空闲时不超过 300 MB，任何时候都不超过 400 MB。",
+   "hi": "Groovy आपके PC का कितना इस्तेमाल करता है। खाली रहते हुए वह 300 MB से कम रहता है और कभी 400 MB से ऊपर नहीं जाता।",
+   "es": "Cuánto usa Groovy de tu PC. En reposo se queda por debajo de 300 MB y nunca pasa de 400 MB.",
+   "ar": "كم يستخدم Groovy من حاسوبك. يبقى تحت 300 ميغابايت في الخمول ولا يتجاوز 400 ميغابايت أبدًا.",
+   "fr": "Ce que Groovy utilise de votre PC. Il reste sous 300 Mo au repos et ne dépasse jamais 400 Mo.",
+   "bn": "Groovy আপনার পিসির কতটা ব্যবহার করে। অলস অবস্থায় সে 300 MB-এর নিচে থাকে এবং কখনো 400 MB পার হয় না।",
+   "pt-BR": "Quanto do seu PC o Groovy usa. Em repouso ele fica abaixo de 300 MB e nunca passa de 400 MB.",
+   "ru": "Сколько ресурсов ПК использует Groovy. В простое он держится ниже 300 МБ и никогда не превышает 400 МБ.",
+   "id": "Seberapa banyak PC Anda yang dipakai Groovy. Saat diam ia di bawah 300 MB dan tak pernah melewati 400 MB."
+  },
+  "Layout": {
+   "zh-Hans": "布局",
+   "hi": "लेआउट",
+   "es": "Diseño",
+   "ar": "التخطيط",
+   "fr": "Disposition",
+   "bn": "লেআউট",
+   "pt-BR": "Layout",
+   "ru": "Расположение",
+   "id": "Tata letak"
+  },
+  "Settings sections": {
+   "zh-Hans": "设置分区",
+   "hi": "सेटिंग्स के भाग",
+   "es": "Secciones de Ajustes",
+   "ar": "أقسام الإعدادات",
+   "fr": "Sections des réglages",
+   "bn": "সেটিংসের অংশ",
+   "pt-BR": "Seções das configurações",
+   "ru": "Разделы настроек",
+   "id": "Bagian pengaturan"
+  },
+  "{look} · Stage {stage}": {
+   "zh-Hans": "{look} · 第 {stage} 阶段",
+   "hi": "{look} · चरण {stage}",
+   "es": "{look} · Etapa {stage}",
+   "ar": "{look} · المرحلة {stage}",
+   "fr": "{look} · Étape {stage}",
+   "bn": "{look} · ধাপ {stage}",
+   "pt-BR": "{look} · Estágio {stage}",
+   "ru": "{look} · Стадия {stage}",
+   "id": "{look} · Tahap {stage}"
   }
  }
 }

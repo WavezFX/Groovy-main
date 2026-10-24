@@ -64,6 +64,15 @@ export function shownStage(g: Growth): number {
   return g.reached;
 }
 
+/** How far he is from the stage he is at to the next, 0–1 (1 at the last stage). */
+export function stageProgress(g: Growth): number {
+  const stage = shownStage(g);
+  if (stage >= MAX_STAGE) return 1;
+  const from = stage === 0 ? 0 : STAGE_AFTER[stage - 1];
+  const to = STAGE_AFTER[stage];
+  return Math.max(0, Math.min(1, (g.activeSeconds - from) / (to - from)));
+}
+
 /** Active seconds left to the next stage; null at the last one. */
 export function untilNext(g: Growth): number | null {
   if (g.reached >= MAX_STAGE) return null;

@@ -1,76 +1,28 @@
-// The Control Centre window: a sidebar with Groovy's own pages (assistant,
-// models, memory… every setting) and Voice and dictation (dictation, the
-// Notetaker, « OK Groovy », the statistics, the dictionary, the snippets, the
-// styles and their settings), and the page on the right, under its coloured
-// band. Ported from Groovy 0.5.0's hub (MIT).
+// The Settings window (round 3D item 1, docs/design/settings-v2/Sidebar):
+// Groovy's card, a search box (Ctrl K), then 15 pages in 8 groups, and the
+// page on the right with tabs for the merged pages. It remembers the last
+// page. Ported from Groovy 0.5.0's hub (MIT).
 
+import "./fonts/manrope.css";
 import "./hub.css";
 import { h, clear } from "../views/dom";
 import { t } from "../i18n/i18n";
 import { Bridge, onEvent } from "../core/bridge";
 import { FlowBridge, type FlowPrefs, type FlowStatus, type ModelsStatus } from "../core/flow";
-import { hero, liveGroovy } from "./hero";
-import { icon, keyLabel } from "./ui";
+import { hero } from "./hero";
+import { parseGrowth, shownStage, stageProgress } from "../mochi/growth";
+import { SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
+import { lookSprite, spriteCanvas } from "../mochi/sprites";
+import { ALL_PAGES, SECTIONS, TABS, pageDef, resolvePage, search, type Place } from "./nav";
+import type { GroovyPageId, PageId } from "./nav";
 
-export type PageId =
-  | "dictation" | "notes" | "insights" | "dictionary" | "snippets" | "styles" | "flowsettings" | "voice" | "skills" | "speechsetup"
-  | GroovyPageId;
-
-/** The pages drawn by settings/main.ts from Groovy's own sections. */
-export type GroovyPageId =
-  | "assistant" | "island" | "wardrobe" | "models" | "memory" | "reminders" | "music" | "calls" | "chat"
-  | "agents" | "pills" | "phone" | "breaks" | "general" | "browser" | "permissions" | "system" | "mail";
-
-interface PageDef {
-  id: PageId;
-  icon: string;
-  title: () => string;
-  /** The band's line; none for pages that draw their own band. */
-  subtitle?: () => string;
-}
-
-export const FLOW_PAGES: PageDef[] = [
-  { id: "dictation", icon: "mic", title: () => t("Dictation") },
-  { id: "notes", icon: "record", title: () => t("Notetaker") },
-  { id: "voice", icon: "wave", title: () => "OK Groovy" },
-  { id: "insights", icon: "chart", title: () => t("Statistics") },
-  { id: "dictionary", icon: "book", title: () => t("Dictionary") },
-  { id: "snippets", icon: "bolt", title: () => t("Snippets") },
-  { id: "styles", icon: "text", title: () => t("Styles") },
-  { id: "flowsettings", icon: "sliders", title: () => t("Dictation settings") },
-];
-
-export const GROOVY_PAGES: PageDef[] = [
-  { id: "assistant", icon: "chat", title: () => t("Assistant"), subtitle: () => t("How Groovy thinks: local, online or both, and how he talks to you.") },
-  { id: "island", icon: "grid", title: () => t("My island"), subtitle: () => t("Your apps, mail, music and services on the island, in your order.") },
-  { id: "models", icon: "chip", title: () => t("Models"), subtitle: () => t("The AI models that run on this computer.") },
-  { id: "memory", icon: "book", title: () => t("Memory"), subtitle: () => t("What Groovy remembers about you, on this computer only.") },
-  { id: "mail", icon: "mail", title: () => t("Mail"), subtitle: () => t("Gmail, Outlook, iCloud and other accounts, read on this PC only.") },
-  { id: "reminders", icon: "bell", title: () => t("Reminders"), subtitle: () => t("Tasks and reminders Groovy keeps for you.") },
-  { id: "music", icon: "music", title: () => t("Music"), subtitle: () => t("Spotify and your own music folder.") },
-  { id: "calls", icon: "phone", title: () => t("Voice calls"), subtitle: () => t("Talking with Groovy: languages, microphone and voices.") },
-  { id: "wardrobe", icon: "shirt", title: () => t("Wardrobe"), subtitle: () => t("Groovy's looks, outfits and colours.") },
-  { id: "chat", icon: "chat", title: () => t("Chat providers"), subtitle: () => t("Online AI with your own keys, and local servers.") },
-  { id: "skills", icon: "bolt", title: () => t("Skills") },
-  { id: "agents", icon: "terminal", title: () => t("Coding agents"), subtitle: () => t("Claude Code, Codex and the other agents Groovy follows.") },
-  { id: "pills", icon: "grid", title: () => t("Pills and integrations"), subtitle: () => t("The pills shown in the island, and the services behind them.") },
-  { id: "phone", icon: "phone", title: () => t("Android phone"), subtitle: () => t("Your agents and their approvals on your Android phone, over your Wi-Fi.") },
-  { id: "breaks", icon: "clock", title: () => t("Breaks"), subtitle: () => t("Reminders to stand up and rest your eyes.") },
-  { id: "general", icon: "gear", title: () => t("General"), subtitle: () => t("Language, sounds, shortcuts and how the island behaves.") },
-  { id: "browser", icon: "globe", title: () => t("Browser"), subtitle: () => t("The browser and search engine Groovy uses.") },
-  { id: "permissions", icon: "shield", title: () => t("Permissions"), subtitle: () => t("What Groovy may do on this computer, and what he did.") },
-  { id: "system", icon: "sliders", title: () => t("System"), subtitle: () => t("Performance, logs and diagnostics.") },
-];
-
-/** Pages reached from other pages, not listed in the sidebar. */
-const HIDDEN_PAGES: PageDef[] = [{ id: "speechsetup", icon: "mic", title: () => t("Set up speech") }];
-
-const ALL = [...GROOVY_PAGES, ...FLOW_PAGES, ...HIDDEN_PAGES];
+export type { FlowPageId, GroovyPageId, PageId } from "./nav";
 
 /** What a page gets to draw itself and reach the rest of the window. */
 export interface HubContext {
   status: FlowStatus;
-  navigate(page: PageId): void;
+  /** A page id, current or old (nav.ts ALIASES), and a tab for merged pages. */
+  navigate(page: string, tab?: string): void;
   /** Reads the status again (prefs, models) and redraws the sidebar's line. */
   refresh(): Promise<FlowStatus>;
   /** Saves new preferences and keeps them as the window's. */
@@ -86,8 +38,8 @@ export type FlowPageRenderer = (container: HTMLElement, ctx: HubContext) => void
 export interface HubOptions {
   version: string;
   flowPages: Partial<Record<PageId, FlowPageRenderer>>;
-  /** Draws Groovy's own sections for one of the Groovy pages into `container`. */
-  renderGroovy(page: GroovyPageId, container: HTMLElement): Promise<void>;
+  /** Draws Groovy's own sections for one of the Groovy pages (and its tab) into `container`. */
+  renderGroovy(page: GroovyPageId, container: HTMLElement, tab?: string): Promise<void>;
 }
 
 const DEFAULT_STATUS: FlowStatus = {
@@ -104,106 +56,259 @@ const DEFAULT_STATUS: FlowStatus = {
   autostarted: false,
 };
 
+
+/** Per-viewer conveniences only: the last page and its tab. */
+const REMEMBER = "groovy.settings.nav";
+interface Remembered {
+  page?: string;
+  tab?: string;
+}
+function recall(): Remembered {
+  try {
+    return JSON.parse(localStorage.getItem(REMEMBER) ?? "{}") as Remembered;
+  } catch {
+    return {};
+  }
+}
+function remember(r: Remembered) {
+  try {
+    localStorage.setItem(REMEMBER, JSON.stringify(r));
+  } catch {
+    // Private mode or storage off: nothing is remembered.
+  }
+}
+
+/** After a jump from the search: the row whose label reads `label`, briefly lit. */
+function highlight(container: HTMLElement, label: string) {
+  const wanted = label.trim().toLowerCase();
+  const candidates = container.querySelectorAll<HTMLElement>("label, h2, h3, .hub-row-title, .hub-label, .subhead, b, span");
+  for (const el of candidates) {
+    if ((el.textContent ?? "").trim().toLowerCase() !== wanted) continue;
+    const row = el.closest<HTMLElement>(".hub-row, .row, section, .hub-card") ?? el;
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+    row.classList.add("hub-found");
+    window.setTimeout(() => row.classList.remove("hub-found"), 1800);
+    return;
+  }
+}
+
+/** The accent follows his look (the approved design: #46EB78 for Night). */
+export const LOOK_ACCENT: Record<Skin, string> = { night: "#46EB78", ember: "#FF7A2F", frost: "#4AA8FF" };
+
+const SVG = "http://www.w3.org/2000/svg";
+
+/** A sidebar icon from its path (nav.ts NAV_ICONS). */
+function pathIcon(d: string): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG, "path");
+  path.setAttribute("d", d);
+  svg.append(path);
+  return svg;
+}
+
+function searchIcon(): SVGSVGElement {
+  const svg = pathIcon("M20 20l-4-4");
+  const c = document.createElementNS(SVG, "circle");
+  c.setAttribute("cx", "11");
+  c.setAttribute("cy", "11");
+  c.setAttribute("r", "7");
+  svg.prepend(c);
+  return svg;
+}
+
 export async function startHub(root: HTMLElement, opts: HubOptions) {
   document.body.classList.add("hub-window");
-  // Opened on a page (lib.rs show_hub: settings.html?page=…), else the first one.
-  const asked = new URLSearchParams(location.search).get("page");
-  const askedId = (asked === "settings" ? "flowsettings" : asked) as PageId | null;
-  let current: PageId = askedId && ALL.some((p) => p.id === askedId) ? askedId : "assistant";
+  const saved = recall();
+  // Opened on a page (lib.rs show_hub: settings.html?page=…), else where it was left, else Home.
+  let place: Place = resolvePage(new URLSearchParams(location.search).get("page"))
+    ?? resolvePage(saved.page) ?? { page: "home" };
+  if (!place.tab && saved.page === place.page && saved.tab) place.tab = saved.tab;
   let status: FlowStatus = (await FlowBridge.status()) ?? DEFAULT_STATUS;
   const items = new Map<PageId, HTMLElement>();
-  const statusLine = h("div", { class: "hub-status" });
   const scroll = h("div", { class: "hub-scroll" });
   let rendering = 0;
+
+  const keep = () => remember({ page: place.page, tab: place.tab });
 
   const ctx: HubContext = {
     get status() {
       return status;
     },
-    navigate: (page) => void show(page),
+    navigate: (page, tab) => {
+      const to = resolvePage(page);
+      if (to) void show({ page: to.page, tab: tab ?? to.tab });
+    },
     refresh: async () => {
       status = (await FlowBridge.status()) ?? status;
-      drawStatus();
       return status;
     },
     setPrefs: async (change) => {
       const next = { ...status.prefs };
       change(next);
       status = { ...status, prefs: next };
-      drawStatus();
       await FlowBridge.setPrefs(next);
     },
     hero: (page, title, subtitle, actions = [], compact = false) => hero(page, title, subtitle, actions, compact),
   };
 
-  function drawStatus() {
-    clear(statusLine);
-    const models = status.models.parakeet.state;
-    let color = "#6b7079";
-    let text: string;
-    if (!status.prefs.enabled) {
-      text = t("Dictation is off");
-    } else if (status.prefs.engine === "whisper" && !status.engineReady) {
-      color = "#f7b32b";
-      text = t("Download a Whisper model in Groovy → Voice calls");
-    } else if (status.prefs.engine !== "whisper" && models !== "ready") {
-      color = "#f7b32b";
-      text = models === "downloading" ? t("Downloading the voice model…") : t("Download the voice model to dictate");
-    } else if (status.keys !== "ok" && status.keys !== "wayland") {
-      color = "#f7b32b";
-      text = t("Use the pill's microphone to dictate");
-    } else {
-      color = "#34d399";
-      text = t("Ready · hold {0}", { 0: keyLabel(status.keys === "wayland" ? "wayland" : status.prefs.key, status.platform) });
+  /** The tab bar of a merged page; the tab shown is `tab`. */
+  function tabBar(page: PageId, tab: string): HTMLElement | null {
+    const tabs = TABS[page];
+    if (!tabs) return null;
+    const bar = h("div", { class: "hub-tabs", role: "tablist" });
+    for (const x of tabs) {
+      bar.append(h("button", {
+        class: x.id === tab ? "hub-tab on" : "hub-tab",
+        role: "tab",
+        "aria-selected": String(x.id === tab),
+        text: t(x.title),
+        onclick: () => void show({ page, tab: x.id }),
+      }));
     }
-    statusLine.append(h("i", { class: "dot", style: `background:${color}` }), h("span", { text }));
+    return bar;
   }
 
-  async function show(page: PageId) {
-    const def = ALL.find((p) => p.id === page) ?? GROOVY_PAGES[0];
+  async function show(to: Place, find?: string) {
+    const def = pageDef(to.page);
+    const tabs = TABS[def.id];
+    const tab = tabs ? (tabs.some((x) => x.id === to.tab) ? to.tab! : tabs[0].id) : undefined;
     ctx.onLeave?.();
     ctx.onLeave = undefined;
-    current = def.id;
-    for (const [id, el] of items) el.classList.toggle("on", id === current);
+    place = { page: def.id, tab };
+    keep();
+    for (const [id, el] of items) el.classList.toggle("on", id === def.id);
     const token = ++rendering;
     const page_ = h("div", { class: "hub-page" });
-    const renderer = opts.flowPages[def.id];
+    const bar = tab ? tabBar(def.id, tab) : null;
+    // A tab may be a page of its own (Speaking › Sounds, Dictation › Styles…);
+    // Brains' tabs are its own sections.
+    const tabPage = tab && tab !== def.id && (opts.flowPages[tab as PageId] || ALL_PAGES.some((x) => x.id === tab));
+    const contentId = (tabPage ? tab : def.id) as PageId;
+    const flowId = contentId;
+    const renderer = opts.flowPages[flowId];
     if (renderer) {
-      await renderer(page_, ctx);
+      const inner = h("div", {});
+      await renderer(inner, ctx);
+      // The renderer drew its own band: the tabs go under it.
+      if (bar) inner.insertBefore(bar, inner.children[1] ?? null);
+      page_.append(inner);
     } else {
-      page_.append(hero(def.id, def.title(), def.subtitle?.() ?? null));
+      page_.append(hero(def.id, t(def.title), t(def.subtitle) || null));
+      if (bar) page_.append(bar);
       const container = h("div", { id: "settings-root" });
       page_.append(container);
-      await opts.renderGroovy(def.id as GroovyPageId, container);
+      await opts.renderGroovy(contentId as GroovyPageId, container, tabPage ? undefined : tab);
+      // Sections every tab shares come first; the page marks where the tabs go.
+      const slot = container.querySelector(".hub-tab-slot");
+      if (bar && slot) slot.replaceWith(bar);
     }
     if (token !== rendering) return;
     clear(scroll);
     scroll.append(page_);
     scroll.scrollTop = 0;
+    if (find) highlight(page_, find);
   }
 
-  // ── The sidebar ──
-  const side = h("nav", { class: "hub-side" });
-  const logo = h("canvas", {});
-  side.append(h("div", { class: "hub-brand" }, logo, h("span", { text: "Groovy" })));
-  liveGroovy(logo as HTMLCanvasElement);
-  const group = (title: string, pages: PageDef[]) => {
-    side.append(h("div", { class: "hub-group", text: title }));
-    for (const p of pages) {
-      const b = h("button", { class: "hub-item", onclick: () => void show(p.id) });
-      b.append(icon(p.icon), h("span", { text: p.title() }));
-      items.set(p.id, b);
-      side.append(b);
+  // ── The sidebar (docs/design/settings-v2/Sidebar) ──
+  const side = h("nav", { class: "hub-side", "aria-label": t("Settings sections") });
+  const card = h("div", { class: "hub-me" });
+  const query = h("input", { class: "hub-search", type: "search", placeholder: t("Search settings"), "aria-label": t("Search settings") }) as HTMLInputElement;
+  const results = h("div", { class: "hub-results", role: "listbox" });
+  const sections = h("div", { class: "hub-sections" });
+  /** Accounts that need the user (a mail account to sign in again…): the sidebar's badge. */
+  let attention = 0;
+
+  /** Groovy's card: his portrait, look and stage, and how far to the next. */
+  async function drawCard() {
+    const boot = await Bridge.boot();
+    const settings = boot?.settings;
+    const look = parseSkin(settings?.groovyLook);
+    const g = parseGrowth(settings?.growth);
+    document.body.style.setProperty("--hub-accent", LOOK_ACCENT[look]);
+    document.body.style.setProperty("--hub-accent-soft", `${LOOK_ACCENT[look]}21`);
+    const portrait = h("span", { class: "hub-me-portrait" });
+    requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(g), 52, Math.min(2, window.devicePixelRatio || 1)), 52)));
+    const bar = h("div", { class: "hub-me-bar" }, h("i", { style: `transform:scaleX(${stageProgress(g).toFixed(3)})` }));
+    clear(card);
+    card.append(portrait, h("div", { class: "hub-me-text" },
+      h("div", { class: "hub-me-name", text: "Groovy" }),
+      h("div", { class: "hub-me-stage", text: t("{look} · Stage {stage}", { look: t(SKIN_KEYS[look]), stage: shownStage(g) }) }),
+      bar,
+    ));
+  }
+
+  function drawSide() {
+    clear(sections);
+    items.clear();
+    for (const sec of SECTIONS) {
+      if (sec.title) sections.append(h("div", { class: "hub-group", text: t(sec.title) }));
+      for (const pg of sec.pages) {
+        const b = h("button", { class: pg.id === place.page ? "hub-item on" : "hub-item", type: "button", onclick: () => void show({ page: pg.id }) });
+        b.append(pathIcon(pg.icon), h("span", { class: "hub-item-label", text: t(pg.title) }));
+        if (pg.id === "accounts" && attention > 0) b.append(h("span", { class: "hub-badge", text: String(attention) }));
+        items.set(pg.id, b);
+        sections.append(b);
+      }
     }
-  };
-  group("Groovy", GROOVY_PAGES);
-  group(t("Voice and dictation"), FLOW_PAGES);
-  side.append(h("div", { class: "spacer" }), statusLine, h("div", { class: "hub-version", text: `Groovy ${opts.version}` }));
+  }
+
+  async function countAttention() {
+    const inboxes = (await Bridge.mailInboxes()) ?? [];
+    const n = inboxes.filter((x) => x.error).length;
+    if (n !== attention) {
+      attention = n;
+      drawSide();
+    }
+  }
+
+  function drawResults() {
+    clear(results);
+    const found = search(query.value);
+    results.classList.toggle("shown", query.value.trim().length > 0);
+    if (!found.length && query.value.trim()) {
+      results.append(h("div", { class: "hub-result-none", text: t("Nothing found") }));
+      return;
+    }
+    for (const r of found) {
+      results.append(h("button", {
+        class: "hub-result",
+        role: "option",
+        onclick: () => {
+          query.value = "";
+          drawResults();
+          void show(r.place, r.label);
+        },
+      }, h("span", { text: r.label }), h("span", { class: "hub-result-where", text: r.where })));
+    }
+  }
+  query.addEventListener("input", drawResults);
+  query.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") (results.querySelector(".hub-result") as HTMLButtonElement | null)?.click();
+    if (e.key === "Escape") {
+      query.value = "";
+      drawResults();
+    }
+  });
+
+  const searchBox = h("label", { class: "hub-search-box" }, searchIcon(), query, h("kbd", { class: "hub-kbd", text: "Ctrl K" }), results);
+  side.append(card, searchBox, sections);
+  drawSide();
+  void drawCard();
+  void countAttention();
+  // Ctrl K (or ⌘K) finds a setting from anywhere in the window.
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      query.focus();
+      query.select();
+    }
+  });
 
   clear(root);
   root.append(side, h("main", { class: "hub-panel" }, scroll));
-  drawStatus();
-  await show(current);
+  await show(place);
 
   // Opening (round 3C item 6): Rust shows the window only after this first
   // paint, then grows it out of the island; the page slides in after it.
@@ -214,19 +319,20 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
   // Closing: the page folds up while the window shrinks back into the island.
   void onEvent<null>("hub-closing", () => document.body.classList.add("closing"));
   void onEvent<string>("hub-page", (page) => {
-    const id = (page === "settings" ? "flowsettings" : page) as PageId;
-    if (ALL.some((p) => p.id === id)) void show(id);
+    const to = resolvePage(page);
+    if (to) void show(to);
   });
   void onEvent<FlowPrefs>("flow-prefs", (prefs) => {
     status = { ...status, prefs };
-    drawStatus();
   });
   void onEvent<ModelsStatus>("speech-models", (models) => {
     status = { ...status, models };
-    drawStatus();
   });
   return {
-    redraw: () => void show(current),
-    current: () => current,
+    redraw: () => void show(place),
+    current: () => place.page,
   };
 }
+
+/** For the tests: every page the sidebar or a link can open. */
+export const PAGE_IDS: readonly PageId[] = ALL_PAGES.map((x) => x.id);

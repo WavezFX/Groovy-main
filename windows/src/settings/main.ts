@@ -36,6 +36,7 @@ import { modelsSection } from "./models";
 import { memorySection } from "./memory";
 import { tasksSection } from "./tasks";
 import { mailSection } from "./mail";
+import { aboutSection } from "./about";
 import { systemSection } from "./system";
 import { wardrobeSection } from "./wardrobe";
 import { musicSection } from "./music";
@@ -59,7 +60,9 @@ const windowRoot = document.getElementById("hub")!;
 let root: HTMLElement = windowRoot;
 let hub: { redraw(): void; current(): PageId } | null = null;
 /** The Groovy page being shown. */
-let groovyPage: GroovyPageId = "assistant";
+let groovyPage: GroovyPageId = "home";
+/** The tab of a merged page being shown (Brains: cloud, subscriptions, local). */
+let groovyTab: string | undefined;
 
 async function save() {
   await Bridge.saveSettings(settings);
@@ -932,7 +935,8 @@ function setupAgainSection(): HTMLElement {
   );
 }
 
-function generalSection(): HTMLElement {
+/** Groovy → Sounds (round 3D item 1): on or off, how loud, and your own sounds. */
+function soundsSection(): HTMLElement {
   const volume = h("input", {
     type: "range", min: "0", max: "0.2", step: "0.005",
     value: String(settings.soundVolume),
@@ -955,6 +959,21 @@ function generalSection(): HTMLElement {
     text: t("Reload sounds"),
     onclick: () => void Bridge.reloadSounds().then(() => window.setTimeout(countCustom, 300)),
   });
+  return h(
+    "section",
+    {},
+    h("h2", {}, h("span", { text: t("Sounds") })),
+    h("div", { class: "row" },
+      h("label", { text: t("Sound") }),
+      toggle(settings.soundEnabled, (v) => { settings.soundEnabled = v; void save(); }),
+      volume,
+    ),
+    h("div", { class: "row" }, soundsFolder, reloadSounds, customCount),
+    h("div", { class: "hint", text: t("Drop a file named like one of Groovy's sounds (finish.wav, approval.mp3, greet.m4a…) in the sounds folder to replace it, then Reload.") }),
+  );
+}
+
+function generalSection(): HTMLElement {
 
   // Round 3C item 2: hovering opens it (the default), or a click does.
   const openOnHover = h("select", {}) as HTMLSelectElement;
@@ -1012,13 +1031,6 @@ function generalSection(): HTMLElement {
     "section",
     {},
     h("h2", {}, h("span", { text: t("General") })),
-    h("div", { class: "row" },
-      h("label", { text: t("Sound") }),
-      toggle(settings.soundEnabled, (v) => { settings.soundEnabled = v; void save(); }),
-      volume,
-    ),
-    h("div", { class: "row" }, soundsFolder, reloadSounds, customCount),
-    h("div", { class: "hint", text: t("Drop a file named like one of Groovy's sounds (finish.wav, approval.mp3, greet.m4a…) in the sounds folder to replace it, then Reload.") }),
     h("div", { class: "row" },
       h("label", { text: t("The island opens") }),
       openOnHover,
@@ -1361,8 +1373,9 @@ async function main() {
   hub = await startHub(windowRoot, {
     version,
     flowPages: FLOW_PAGE_RENDERERS,
-    renderGroovy: async (page, container) => {
+    renderGroovy: async (page, container, tab) => {
       groovyPage = page;
+      groovyTab = tab;
       root = container;
       await render();
     },
@@ -1513,26 +1526,38 @@ async function render() {
   shortcutsListener = null;
   clear(root);
 
+  // Round 3D item 1: one place for each setting; Brains shows its Auto order
+  // above the tabs, and each tab its own sections.
+  const brains = (tab: string | undefined): HTMLElement[] => [
+    aiSetupSection(settings, () => void save(), () => assistantPrefs(settings)),
+    assistantSection(settings, () => void save(), toggle),
+    // The shell puts the Cloud / Subscriptions / On this PC tabs here.
+    h("div", { class: "hub-tab-slot" }),
+    ...(tab === "subscriptions" ? [claudeSection(status), planSection(status)]
+      : tab === "local" ? [localSection(customKey), modelsSection(settings, () => void save())]
+      : [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged)]),
+  ];
   const pages: Record<GroovyPageId, () => HTMLElement[]> = {
-    assistant: () => [aiSetupSection(settings, () => void save(), () => assistantPrefs(settings)), assistantSection(settings, () => void save(), toggle)],
+    home: () => [],
+    brains: () => brains(groovyTab),
     wardrobe: () => [wardrobeSection(settings, () => void save())],
-    island: () => [islandSection(settings, () => void save())],
-    models: () => [modelsSection(settings, () => void save())],
+    sounds: () => [soundsSection()],
+    island: () => [islandSection(settings, () => void save()), activePillsSection(connected)],
+    accounts: () => [mailSection(), integrationsSection(present)],
     memory: () => [memorySection(settings, () => void save(), toggle)],
     reminders: () => [tasksSection()],
     music: () => [musicSection()],
     calls: () => [voiceSection(settings, () => void save(), toggle, KEY_STORE)],
-    chat: () => [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)],
-    agents: () => [studioSection(), claudeSection(status), agentsSection(agents), planSection(status)],
-    pills: () => [activePillsSection(connected), integrationsSection(present)],
+    agents: () => [studioSection(), agentsSection(agents)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: () => [breaksSection(settings, () => void save())],
     general: () => [setupAgainSection(), appearanceSection(), generalSection(), shortcutsSection(shortcutReport)],
     browser: () => [browserSection()],
     permissions: () => [permissionsSection()],
     system: () => [systemSection()],
-    mail: () => [mailSection()],
+    about: () => [aboutSection(version)],
   };
+
   root.append(...pages[groovyPage]());
   if (groovyPage === "general") {
     root.append(h("div", {
