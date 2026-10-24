@@ -20,7 +20,7 @@ import { registerLiveHandlers } from "./island/live";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { SPOTIFY_ID, Spotify } from "./core/spotify";
 import { Recap } from "./recap/recap";
-import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
+import { loadLanguage, onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
 import { glassAlpha, glassStrength, type GlassLook } from "./core/glass";
 import { frameStats, frameTour, frameVerdict, type TourStep } from "./core/frametest";
 
@@ -71,6 +71,8 @@ async function main() {
   // relabel themselves (views/dom.ts) and the views redraw the rest on this
   // sync. Nothing is rebuilt, so tasks, steps and the chat stay as they are.
   onLanguageChange(() => State.notify());
+  // Round 3F item 6: the language's file is in before the first draw.
+  await loadLanguage(resolveLanguage(State.settings.language, systemLanguages()));
   applyLanguage();
   // Rust shows the tray and its errors in the same language as the webview.
   void Bridge.setSystemLanguages(systemLanguages());

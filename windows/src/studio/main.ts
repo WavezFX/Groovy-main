@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Bridge, IS_TAURI, onEvent } from "../core/bridge";
 import { DEFAULT_SETTINGS } from "../core/state";
 import { fromEdit, fromNew, type FileDiff } from "../core/diff";
-import { applyDocumentLanguage, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t } from "../i18n/i18n";
+import { applyDocumentLanguage, isRtl, loadLanguage, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t } from "../i18n/i18n";
 import { h, clear } from "../views/dom";
 import { installErrorReporting } from "../views/toast";
 import { languageOf, parseProblems, parseProposals, type Proposals } from "./ai";
@@ -445,6 +445,7 @@ async function main() {
   installErrorReporting("page");
   const boot = await Bridge.boot();
   const settings = { ...DEFAULT_SETTINGS, ...(boot?.settings ?? {}) };
+  await loadLanguage(resolveLanguage(settings.language, systemLanguages()));
   setLanguage(resolveLanguage(settings.language, systemLanguages()));
   applyDocumentLanguage();
   document.documentElement.dir = isRtl() ? "rtl" : "ltr";

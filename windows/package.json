@@ -4,13 +4,15 @@
   "version": "0.6.0",
   "type": "module",
   "scripts": {
+    "gen:i18n": "node scripts/split-i18n.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "pretest": "node scripts/split-i18n.mjs",
     "test": "node --import ./tests/setup.mjs --test \"tests/**/*.test.mjs\"",
     "tauri": "tauri",
-    "predev": "cargo build --release -p groovy-hook",
-    "prebuild": "cargo build --release -p groovy-hook",
+    "predev": "node scripts/split-i18n.mjs && cargo build --release -p groovy-hook",
+    "prebuild": "node scripts/split-i18n.mjs && cargo build --release -p groovy-hook",
     "pack": "tauri build && node scripts/pack.mjs"
   },
   "devDependencies": {

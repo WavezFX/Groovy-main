@@ -8,6 +8,12 @@
 // - extra.json, the strings only Windows and Linux have, written by hand.
 // A string missing from both, or from one language, shows in English.
 //
+// Round 3F item 6: a window carries English only. scripts/split-i18n.mjs
+// makes one file per language from the two tables, and `loadLanguage` fetches
+// the one in use, once (langs.ts). A window that starts in French calls
+// `await loadLanguage("fr")` before it draws; `setLanguage` itself never
+// waits, and tells the listeners again when the file arrives.
+//
 // The Rust side (src-tauri/src/i18n.rs) embeds the same two files and looks up
 // the same way, for the tray menu, notifications and the errors it returns.
 //
@@ -15,8 +21,8 @@
 // listens (`onLanguageChange`), views/dom.ts relabels the text it was given
 // as `tl(…)`, and the views redraw the rest on their next sync.
 
-import MAC from "./strings.json";
-import EXTRA from "./extra.json";
+import EN from "./lang/en.json";
+import { LOADERS, type LanguageTable } from "./langs";
 
 export const LANGUAGE_CODES = ["en", "zh-Hans", "hi", "es", "ar", "fr", "bn", "pt-BR", "ru", "id"] as const;
 export type Language = (typeof LANGUAGE_CODES)[number];
@@ -37,14 +43,33 @@ export const LANGUAGES: readonly { code: Language; name: string }[] = [
 
 export type Vars = Record<string, string | number>;
 type Plural = Partial<Record<Intl.LDMLPluralRule, string>>;
-type Entry = Partial<Record<Language, string | Plural>>;
-type Table = Record<string, Entry>;
 
-/** extra.json wins over the Mac's table where both have a string. */
-const TABLE: Table = {
-  ...((MAC as { strings: Table }).strings),
-  ...((EXTRA as { strings: Table }).strings),
-};
+/** The tables fetched so far, by language. English has the plural forms only. */
+const TABLES: Partial<Record<Language, LanguageTable>> = { en: EN as LanguageTable };
+const loading = new Map<Language, Promise<void>>();
+
+/** Fetches `lang`'s translations (once). Resolves also when the file can't be had: English shows then. */
+export function loadLanguage(lang: Language): Promise<void> {
+  if (TABLES[lang] || lang === "en") return Promise.resolve();
+  let pending = loading.get(lang);
+  if (!pending) {
+    pending = LOADERS[lang]()
+      .then((m) => {
+        TABLES[lang] = m.default as LanguageTable;
+      })
+      .catch(() => {
+        // Not cached: the next switch to it tries again.
+      })
+      .finally(() => loading.delete(lang));
+    loading.set(lang, pending);
+  }
+  return pending;
+}
+
+/** Whether `lang`'s translations are in memory. */
+export function isLoaded(lang: Language): boolean {
+  return !!TABLES[lang];
+}
 
 let current: Language = "en";
 const listeners = new Set<(lang: Language) => void>();
@@ -100,6 +125,12 @@ export function setLanguage(lang: Language): boolean {
   current = lang;
   applyDocumentLanguage();
   for (const listener of [...listeners]) listener(lang);
+  if (!TABLES[lang]) {
+    // Shown in English for a moment, then relabelled when the file is in.
+    void loadLanguage(lang).then(() => {
+      if (current === lang && TABLES[lang]) for (const listener of [...listeners]) listener(lang);
+    });
+  }
   return true;
 }
 
@@ -142,7 +173,7 @@ function pickPlural(forms: Plural, lang: Language, count: number): string | unde
 /** The raw translation of `key` in `lang`, or undefined. */
 export function lookup(key: string, lang: Language = current): string | Plural | undefined {
   if (lang === "en") return undefined;
-  return TABLE[key]?.[lang];
+  return TABLES[lang]?.[key];
 }
 
 /**
@@ -172,7 +203,7 @@ export function tn(one: string, other: string, count: number, vars?: Vars): stri
   }
   if (typeof found === "string") return interpolate(found, all);
   // English, or a language without this string: the English forms.
-  const englishForms = TABLE[other]?.en;
+  const englishForms = TABLES.en?.[other];
   if (englishForms && typeof englishForms !== "string") {
     const text = pickPlural(englishForms, "en", count);
     if (text) return interpolate(text, all);

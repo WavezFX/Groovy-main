@@ -29,7 +29,7 @@ import { templatize } from "../hub/template";
 import { savedToast } from "../hub/ui";
 import { renderDiff, statusDot } from "./parts";
 import {
-  LANGUAGES, N_, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
+  LANGUAGES, N_, isRtl, loadLanguage, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
 } from "../i18n/i18n";
 
 /** Where secrets.rs keeps the keys on this OS. */
@@ -1327,6 +1327,8 @@ async function main() {
     settings = { ...settings, ...boot.settings };
     version = boot.version;
   }
+  // Round 3F item 6: the language's file is in before the first draw.
+  await loadLanguage(resolveLanguage(settings.language, systemLanguages()));
   setLanguage(resolveLanguage(settings.language, systemLanguages()));
   applyDirection();
   hub = await startHub(windowRoot, {

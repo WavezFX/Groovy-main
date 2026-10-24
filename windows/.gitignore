@@ -12,3 +12,6 @@ src-tauri/gen/schemas/
 .env.*
 !.env.example
 settings-screens/
+
+# Made from strings.json and extra.json by scripts/split-i18n.mjs (round 3F item 6)
+src/i18n/lang/

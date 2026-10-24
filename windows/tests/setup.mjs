@@ -30,3 +30,9 @@ registerHooks({
 // The island reaches timers and Tauri through `window`.
 globalThis.window = globalThis;
 globalThis.__TAURI_INTERNALS__ = internals;
+
+// Every language's translations are in memory before a test runs: a window
+// fetches its language's file on its own, a test can't wait for that
+// (round 3F item 6).
+const { LANGUAGE_CODES, loadLanguage } = await import("../src/i18n/i18n.ts");
+await Promise.all(LANGUAGE_CODES.map((code) => loadLanguage(code)));

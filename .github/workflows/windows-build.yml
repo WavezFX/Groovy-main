@@ -280,6 +280,7 @@ jobs:
       - name: Settings screenshots (every page, dark and light)
         shell: pwsh
         run: |
+          npm run gen:i18n
           npm i --no-save playwright-core@1.48.2
           $vite = Start-Process -PassThru -NoNewWindow -FilePath cmd.exe -ArgumentList "/c", "npx", "vite", "--port", "1420", "--strictPort", "--host", "127.0.0.1"
           $up = $false

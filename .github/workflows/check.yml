@@ -60,6 +60,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # One file per language, made from the two tables (round 3F item 6);
+      # the type check imports them.
+      - name: Translation files
+        run: npm run gen:i18n
+
       - name: Type check
         run: npx tsc --noEmit
 

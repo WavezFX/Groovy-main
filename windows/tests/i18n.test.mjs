@@ -291,3 +291,59 @@ test("no known user-facing English literal outside t() in the views and settings
   }
   assert.deepEqual(offenders, []);
 });
+
+// ── One file per language (round 3F item 6) ───────────────────────────────────
+
+test("the per-language files hold exactly what the two tables hold, nothing missing", async () => {
+  const { mergedTable, splitByLanguage } = await import("../scripts/split-i18n.mjs");
+  const table = mergedTable();
+  const split = splitByLanguage(table);
+  const keys = new Set(Object.keys(table));
+  assert.ok(keys.size > 2000);
+  for (const code of LANGUAGE_CODES) {
+    const file = JSON.parse(readFileSync(join(WINDOWS, `src/i18n/lang/${code}.json`), "utf8"));
+    assert.deepEqual(file, split[code] ?? {}, `${code}.json is what the tables say (run npm run gen:i18n)`);
+    for (const key of Object.keys(file)) assert.ok(keys.has(key), `${code}: "${key}" has an English key`);
+  }
+  // Every key is translated in every language but English, as before the split.
+  for (const code of OTHERS) {
+    const file = JSON.parse(readFileSync(join(WINDOWS, `src/i18n/lang/${code}.json`), "utf8"));
+    assert.equal(Object.keys(file).length, keys.size, `${code} has every key`);
+  }
+  // English carries only the plural forms some keys have; the key is the text.
+  const en = JSON.parse(readFileSync(join(WINDOWS, "src/i18n/lang/en.json"), "utf8"));
+  assert.ok(Object.keys(en).length < 10);
+});
+
+test("a window bundles English only: the page imports no table but en.json, the others are fetched", () => {
+  const sources = [];
+  (function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) {
+        if (name !== "lang") walk(path);
+      } else if (path.endsWith(".ts")) sources.push(path);
+    }
+  })(join(WINDOWS, "src"));
+  for (const path of sources) {
+    const text = readFileSync(path, "utf8");
+    for (const m of text.matchAll(/^import[^;\n]*from\s+"([^"]*\.json)"/gm)) {
+      const file = m[1];
+      if (/\/lang\/en\.json$/.test(file)) continue;
+      assert.ok(!/strings\.json$|extra\.json$|\/lang\//.test(file), `${relative(WINDOWS, path)} imports ${file} statically`);
+    }
+  }
+  const langs = readFileSync(join(WINDOWS, "src/i18n/langs.ts"), "utf8");
+  for (const code of OTHERS) assert.ok(langs.includes(`import("./lang/${code}.json")`), `${code} is fetched on demand`);
+});
+
+test("switching languages works from the loaded tables, and a language loads once", async () => {
+  const { loadLanguage, isLoaded } = await import("../src/i18n/i18n.ts");
+  for (const code of LANGUAGE_CODES) assert.ok(isLoaded(code), code);
+  const again = loadLanguage("fr");
+  assert.ok(again instanceof Promise);
+  await again;
+  inLanguage("es", () => assert.equal(t("Allow"), "Permitir"));
+  inLanguage("fr", () => assert.equal(t("Allow"), "Autoriser"));
+  assert.equal(t("Allow"), "Allow");
+});
