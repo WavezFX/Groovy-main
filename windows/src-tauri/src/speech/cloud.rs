@@ -35,6 +35,16 @@ impl Service {
         }
     }
 
+    /// Where it answers: the connection the wake word warms (round 3D item 10).
+    pub fn host(self) -> &'static str {
+        match self {
+            Service::Deepgram => "https://api.deepgram.com/",
+            Service::OpenAi => "https://api.openai.com/",
+            Service::ElevenLabs => "https://api.elevenlabs.io/",
+            Service::Gemini => "https://generativelanguage.googleapis.com/",
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Service::Deepgram => "Deepgram Nova-3",
@@ -158,7 +168,8 @@ pub fn read_answer(service: Service, v: &Value) -> Option<String> {
 }
 
 async fn ask(service: Service, key: &str, audio: &[u8], vocabulary: &[String], language: Option<&str>) -> Result<String, (u16, String)> {
-    let client = reqwest::Client::builder().timeout(TIMEOUT).build().map_err(|e| (0, e.to_string()))?;
+    // Shared, so the connection the wake word warmed is the one used (round 3D item 10).
+    let client = crate::net::client(&reqwest::Url::parse("https://api.deepgram.com/").unwrap(), TIMEOUT).map_err(|e| (0, e))?;
     let boundary = "groovy-dictation-7d4e1f";
     let request = match service {
         Service::Deepgram => {

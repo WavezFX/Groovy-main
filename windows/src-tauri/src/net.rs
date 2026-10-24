@@ -111,14 +111,52 @@ pub fn anthropic_endpoint(raw: &str) -> Result<Url, String> {
 
 /// A client for `url`: requests to this machine skip any system proxy, which
 /// would otherwise see (and usually fail) a loopback address.
+///
+/// Round 3D item 10: clients are shared (one per timeout, and per loopback or
+/// not), so a connection opened for one request — or by `warm` when the wake
+/// word fires — is reused by the next instead of a new TCP and TLS handshake.
+/// `release` drops them, and their idle connections, back in Standby.
 pub fn client(url: &Url, timeout: Duration) -> Result<reqwest::Client, String> {
+    let key = (is_loopback_url(url), timeout.as_millis() as u64);
+    let mut clients = CLIENTS.lock().unwrap();
+    if let Some((_, c)) = clients.iter().find(|(k, _)| *k == key) {
+        return Ok(c.clone());
+    }
     let mut builder = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(10).min(timeout))
-        .timeout(timeout);
-    if is_loopback_url(url) {
+        .timeout(timeout)
+        .pool_idle_timeout(Duration::from_secs(60));
+    if key.0 {
         builder = builder.no_proxy();
     }
-    builder.build().map_err(|e| e.to_string())
+    let c = builder.build().map_err(|e| e.to_string())?;
+    clients.push((key, c.clone()));
+    Ok(c)
+}
+
+static CLIENTS: std::sync::Mutex<Vec<((bool, u64), reqwest::Client)>> = std::sync::Mutex::new(Vec::new());
+
+/// Back in Standby: the shared clients and their idle connections go.
+pub fn release() {
+    CLIENTS.lock().unwrap().clear();
+}
+
+/// How many shared clients for services off this PC there are now (for tests
+/// and the state report); this PC's own servers (Ollama, LM Studio) don't count.
+pub fn shared_clients() -> usize {
+    CLIENTS.lock().unwrap().iter().filter(|((loopback, _), _)| !loopback).count()
+}
+
+/// Opens a connection to each of these services now (DNS, TCP and TLS), all at
+/// once, so the request that follows doesn't wait for one. Nothing is sent but
+/// a HEAD to the address; any answer, even an error, leaves the connection open.
+pub async fn warm(urls: Vec<Url>, timeout: Duration) {
+    let tasks = urls.into_iter().map(|u| async move {
+        if let Ok(c) = client(&u, timeout) {
+            let _ = c.head(u).timeout(Duration::from_secs(3)).send().await;
+        }
+    });
+    futures_util::future::join_all(tasks).await;
 }
 
 /// The body of `response`, refused past `limit` bytes.
@@ -170,6 +208,39 @@ pub fn host_for_log(url: &Url) -> String {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn the_warm_up_reaches_every_service_at_once() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        // Two servers that each take 400 ms to answer.
+        let mut urls = Vec::new();
+        for _ in 0..2 {
+            let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            urls.push(Url::parse(&format!("http://{}/", l.local_addr().unwrap())).unwrap());
+            tokio::spawn(async move {
+                let (mut sock, _) = l.accept().await.unwrap();
+                let mut buf = [0u8; 1024];
+                let _ = sock.read(&mut buf).await;
+                tokio::time::sleep(Duration::from_millis(400)).await;
+                let _ = sock.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n").await;
+            });
+        }
+        let t = std::time::Instant::now();
+        warm(urls, Duration::from_millis(23_456)).await;
+        let ms = t.elapsed().as_millis();
+        assert!((400..750).contains(&ms), "in parallel, not one after the other ({ms} ms)");
+    }
+
+    #[test]
+    fn one_shared_client_per_timeout_for_every_service() {
+        // A timeout no other test uses, so tests running alongside don't count.
+        let t = Duration::from_millis(12_345);
+        client(&Url::parse("https://api.example.com/").unwrap(), t).unwrap();
+        client(&Url::parse("https://other.example.org/x").unwrap(), t).unwrap();
+        client(&Url::parse("http://127.0.0.1:11434/").unwrap(), t).unwrap();
+        let keys: Vec<(bool, u64)> = CLIENTS.lock().unwrap().iter().map(|(k, _)| *k).filter(|k| k.1 == 12_345).collect();
+        assert_eq!(keys, [(false, 12_345), (true, 12_345)], "both services share one; this PC's own servers skip the proxy");
+    }
 
     #[test]
     fn loopback_hosts_are_recognised_and_others_are_not() {

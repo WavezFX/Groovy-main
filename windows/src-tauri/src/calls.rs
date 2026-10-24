@@ -26,8 +26,10 @@ pub fn active() -> bool {
 }
 
 #[tauri::command]
-pub fn voice_call_active(on: bool) {
+pub fn voice_call_active(app: tauri::AppHandle, on: bool) {
     ACTIVE.store(on, Ordering::Relaxed);
+    // A live call is a conversation until it ends (round 3D item 10).
+    crate::runtime_state::fire(&app, if on { crate::runtime_state::Event::CallStarted } else { crate::runtime_state::Event::CallEnded });
 }
 
 /// Music, volume, the time, timers, opening things: answered at once, with no AI.

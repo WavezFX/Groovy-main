@@ -788,7 +788,10 @@ pub fn show(app: &AppHandle) {
             .center()
             .build()
         {
-            Ok(_) => log::line("studio window opened"),
+            Ok(win) => {
+                log::line("studio window opened");
+                crate::webview_memory::trim(&win);
+            }
             Err(e) => log::line(format!("studio window failed: {e}")),
         }
         OPENING.store(false, std::sync::atomic::Ordering::SeqCst);

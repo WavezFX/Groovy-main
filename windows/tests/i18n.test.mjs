@@ -260,6 +260,7 @@ const NOT_TEXT = new Set([
   "commands", // a brain job id (assistant.rs job_brains)
   "cloud", // a brain kind id (aisetup.ts, main.ts)
   "subscription", // a brain kind id (aisetup.ts)
+  "offline", // a run state id (runtime_state.rs)
 ]);
 
 test("no known user-facing English literal outside t() in the views and settings", () => {

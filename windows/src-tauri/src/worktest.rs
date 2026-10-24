@@ -43,6 +43,8 @@ pub fn start(app: &AppHandle) {
         let t = Instant::now();
         step("OK Groovy command", t, command(&app, &dir));
         let t = Instant::now();
+        step("back to Standby after the follow-up window", t, back_to_standby());
+        let t = Instant::now();
         step("local AI reply", t, tauri::async_runtime::block_on(local_reply(&app)));
         let t = Instant::now();
         step("models freed when idle", t, wait_for_unload());
@@ -101,13 +103,42 @@ fn command(app: &AppHandle, dir: &Path) -> Result<String, String> {
         return Err("“OK, let's go to the store” was taken for « OK Groovy »".into());
     }
     let samples = wav(dir, "ok-groovy-time.wav")?;
+    let t = Instant::now();
     if !spotter.heard(&samples) {
         return Err("the spotter did not hear « OK Groovy »".into());
     }
+    let wake_ms = t.elapsed().as_millis();
+    // Round 3D item 10: the wake word starts a conversation.
+    crate::runtime_state::fire(app, crate::runtime_state::Event::Wake);
+    let t = Instant::now();
     let heard = speech::transcribe(&samples).ok_or("Parakeet did not load")?.text;
+    let words_ms = t.elapsed().as_millis();
     let rest = crate::okgroovy::wake::after_wake(&heard).unwrap_or_else(|| crate::okgroovy::wake::drop_wake_words(&heard));
     let basic = crate::okgroovy::basic::parse(&rest).ok_or_else(|| format!("no command in “{heard}”"))?;
-    Ok(format!("“{heard}” → {}", crate::okgroovy::basic::run(app, &basic)))
+    let t = Instant::now();
+    let answer = crate::okgroovy::basic::run(app, &basic);
+    let answer_ms = t.elapsed().as_millis();
+    crate::runtime_state::fire(app, crate::runtime_state::Event::ReplyDone);
+    Ok(format!("“{heard}” → {answer} (wake heard in {wake_ms} ms, words on this PC in {words_ms} ms, answer in {answer_ms} ms)"))
+}
+
+/// The conversation ends by itself after the follow-up window, and what it held goes.
+fn back_to_standby() -> Result<String, String> {
+    use crate::runtime_state::{state, RunState, FOLLOW_UP};
+    let t = Instant::now();
+    while state() == RunState::Conversation && t.elapsed() < FOLLOW_UP + Duration::from_secs(4) {
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    let s = state();
+    if s == RunState::Conversation {
+        return Err(format!("still in a conversation after {} s", t.elapsed().as_secs()));
+    }
+    let clients = crate::net::shared_clients();
+    let mem = crate::system::read_now().groovy_memory / (1024 * 1024);
+    if clients > 0 {
+        return Err(format!("{s:?} but {clients} warmed connection(s) kept"));
+    }
+    Ok(format!("{s:?} after {:.1} s, connections released, groovy.exe {mem} MB", t.elapsed().as_secs_f64()))
 }
 
 async fn local_reply(app: &AppHandle) -> Result<String, String> {

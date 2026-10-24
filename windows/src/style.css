@@ -3597,6 +3597,10 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
    core/glass.ts: the Glass strength setting and the backdrop's brightness),
    a thin light rim and a soft top highlight. With no blur at all the tint is
    opaque enough that nothing behind can be read. ── */
+/* Round 3D item 10: the operating state, subtly on the island's rim. */
+body[data-run="conversation"] #island { outline: 1px solid rgba(70, 235, 120, 0.45); outline-offset: -1px; }
+body[data-run="offline"] #island { outline: 1px solid rgba(245, 184, 75, 0.5); outline-offset: -1px; }
+
 body.glass #island {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 38%),

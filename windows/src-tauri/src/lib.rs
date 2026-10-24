@@ -2,6 +2,7 @@
 
 mod agent_hooks;
 mod loads;
+mod runtime_state;
 mod agents;
 mod assistant;
 mod brain_ai;
@@ -174,6 +175,9 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         *current = settings;
         (screen_changed, autostart_changed, shortcuts_changed)
     };
+    // A brain on this PC chosen (or a cloud one again): Offline or not (round 3D item 10).
+    let chose_local = shared.settings.lock().unwrap().assistant.ai_setup == "local";
+    runtime_state::fire(&app, runtime_state::Event::ChoseLocal(chose_local));
     let settings = shared.settings.lock().unwrap().clone();
     if let Err(err) = settings::save(&settings) {
         log::line(format!("could not save settings: {err}"));
@@ -973,6 +977,7 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
         match built {
             Ok(win) => {
                 log::line("control centre opened");
+                webview_memory::trim(&win);
                 // Transparent from the start: whatever shows it early (focus,
                 // WebView2) shows nothing until the grow fades it in.
                 platform::set_window_alpha(&win, Some(0));
@@ -1429,6 +1434,7 @@ pub fn run() {
             sounds::reveal_sounds_folder,
             log::reveal_logs_folder,
             loads::load_report,
+            runtime_state::runtime_state,
             free_memory_now,
             sounds::reload_sounds,
             spotify::spotify_refresh,
@@ -1629,6 +1635,7 @@ pub fn run() {
                     }
                 });
                 platform::make_non_activating(&win);
+                webview_memory::trim(&win);
                 #[cfg(windows)]
                 webview_drop::install(&handle);
                 island::apply_geometry(&handle, &loaded.screen, false);
@@ -1654,6 +1661,9 @@ pub fn run() {
             tasks::spawn(handle.clone());
             mail::spawn(handle.clone());
             brain_ai::init(&handle);
+            if loaded.assistant.ai_setup == "local" {
+                runtime_state::fire(&handle, runtime_state::Event::ChoseLocal(true));
+            }
             island_tiles::spawn_mail_watch(handle.clone());
             flow::setup(&handle);
             notes::setup(&handle);

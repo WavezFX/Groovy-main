@@ -81,11 +81,18 @@ fn test_step(app: &AppHandle, step: &str, ok: bool, detail: &str) {
     let _ = app.emit("okgroovy-test", json!({ "step": step, "ok": ok, "detail": detail }));
 }
 
+/// The answer is out: the follow-up window starts, or "thanks" / "stop" ends the conversation.
+fn replied(app: &AppHandle, question: &str) {
+    use crate::runtime_state::{fire, is_dismissal, Event};
+    fire(app, if is_dismissal(question) { Event::Dismissed } else { Event::ReplyDone });
+}
+
 /// Says it and shows it in the island, with a button when there is one.
 fn tell(app: &AppHandle, heard: &str, text: String, action: Option<(String, &str)>) {
     show(app, Some(VoiceView { phase: "speaking".into(), heard: heard.into(), answer: text.clone() }));
     live::announce(app, "error", "#FFB020", text.clone(), action, 12);
     speak(app, &text);
+    crate::runtime_state::fire(app, crate::runtime_state::Event::ReplyDone);
 }
 
 /// Starts or stops listening to follow the preference.
@@ -238,6 +245,8 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                 continue;
             }
             if spotted {
+                // Conversation: the cloud engines are warmed now, in parallel (round 3D item 10).
+                crate::runtime_state::fire(&app, crate::runtime_state::Event::Wake);
                 // Loads now, while the command is still being said.
                 if !cloud_first(&app) {
                     speech::get_ready(&app);
@@ -316,6 +325,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             };
             test_step(&app, "answer", true, &answer);
             if answer == "✓" {
+                replied(&app, &question);
                 show(&app, Some(VoiceView { phase: "speaking".into(), heard: question, answer }));
                 test_step(&app, "spoken", true, "");
                 hide_at = Some(Instant::now() + Duration::from_secs(5));
@@ -324,6 +334,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             show(&app, Some(VoiceView { phase: "speaking".into(), heard: question.clone(), answer: answer.clone() }));
             speak(&app, &answer);
             test_step(&app, "spoken", true, "");
+            replied(&app, &question);
             vad.reset();
             // Drop what the microphone heard of Groovy's own voice.
             while rx.try_recv().is_ok() {}

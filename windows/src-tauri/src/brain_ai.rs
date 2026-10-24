@@ -246,6 +246,16 @@ pub fn available() -> bool {
     !current_order(&settings(app)).is_empty()
 }
 
+/// Where the first cloud brain in the order answers, for the wake word's warm-up
+/// and the offline check (round 3D item 10); None when only local or CLI brains are set up.
+pub fn first_cloud_url(app: &AppHandle) -> Option<String> {
+    current_order_for(&settings(app), "chat").into_iter().find_map(|w| match w {
+        Who::Claude => Some("https://api.anthropic.com/".to_string()),
+        Who::Cloud(id) => crate::openai_compat::provider(id).map(|p| format!("{}/", p.base_url)),
+        _ => None,
+    })
+}
+
 fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
     let built_in = || crate::models::server_exe().is_some() && !crate::models::discover(&crate::models::models_dir(), 2048).is_empty();
     match prefs.local_provider.as_str() {
@@ -408,6 +418,7 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
     let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
+    let mut tally = CloudTally::default();
     for who in current_order_for(&s, "writing") {
         let r = match who {
             Who::Claude => crate::claude::complete(CLAUDE_FAST, system, user, max_tokens, timeout).await,
@@ -425,9 +436,13 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
             }
         };
         match r {
-            Ok(t) => return Ok(t),
+            Ok(t) => {
+                tally.answered(app, who);
+                return Ok(t);
+            }
             Err(e) => {
                 crate::log::line(format!("brain ({who:?}): {e}"));
+                tally.failed(who, &e);
                 let stop = !may_switch(&prefs, &e);
                 last = e;
                 if stop {
@@ -436,6 +451,7 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
             }
         }
     }
+    tally.done(app);
     Err(last)
 }
 
@@ -446,6 +462,7 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
     let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
+    let mut tally = CloudTally::default();
     for who in current_order_for(&s, "commands") {
         let r = match who {
             Who::Claude => crate::claude::voice_turn(CLAUDE_FAST, system, messages, tools).await,
@@ -463,9 +480,13 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
             }
         };
         match r {
-            Ok(v) => return Ok(v),
+            Ok(v) => {
+                tally.answered(app, who);
+                return Ok(v);
+            }
             Err(e) => {
                 crate::log::line(format!("brain ({who:?}): {e}"));
+                tally.failed(who, &e);
                 let stop = !may_switch(&prefs, &e);
                 last = e;
                 if stop {
@@ -474,7 +495,62 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
             }
         }
     }
+    tally.done(app);
     Err(last)
+}
+
+/// How the cloud brains fared on one request (round 3D item 10): all
+/// unreachable means the network is down, all out of their limit means the
+/// cloud is used up; either makes Groovy Offline until the cloud answers again.
+#[derive(Default)]
+struct CloudTally {
+    tried: u32,
+    network: u32,
+    limits: u32,
+}
+
+impl CloudTally {
+    fn failed(&mut self, who: Who, err: &str) {
+        if matches!(who, Who::Claude | Who::Cloud(_)) {
+            self.tried += 1;
+            if is_network(err) {
+                self.network += 1;
+            } else if is_limit(err) {
+                self.limits += 1;
+            }
+        }
+    }
+
+    fn answered(&self, app: &AppHandle, who: Who) {
+        if matches!(who, Who::Claude | Who::Cloud(_)) && crate::runtime_state::state() == crate::runtime_state::RunState::Offline {
+            crate::runtime_state::fire(app, crate::runtime_state::Event::NetworkUp);
+        }
+    }
+
+    fn done(&self, app: &AppHandle) {
+        if let Some(e) = self.verdict() {
+            crate::runtime_state::fire(app, e);
+        }
+    }
+
+    fn verdict(&self) -> Option<crate::runtime_state::Event> {
+        use crate::runtime_state::Event;
+        if self.tried == 0 {
+            None
+        } else if self.network == self.tried {
+            Some(Event::NetworkDown)
+        } else if self.limits == self.tried {
+            Some(Event::CloudExhausted)
+        } else {
+            None
+        }
+    }
+}
+
+/// An error that says the service couldn't be reached at all.
+pub fn is_network(err: &str) -> bool {
+    let e = err.to_ascii_lowercase();
+    ["network error", "error sending request", "dns error", "failed to lookup", "connection refused", "timed out", "couldn't reach"].iter().any(|w| e.contains(w))
 }
 
 // ── Format conversion (pure) ──────────────────────────────────────────────────
@@ -584,6 +660,25 @@ pub fn from_openai(v: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_cloud_unreachable_or_used_up_means_offline() {
+        use crate::runtime_state::Event;
+        let mut t = CloudTally::default();
+        t.failed(Who::Claude, "Network error: error sending request");
+        t.failed(Who::Cloud("google"), "Network error: dns error");
+        t.failed(Who::Local, "Couldn't start llama-server");
+        assert_eq!(t.verdict(), Some(Event::NetworkDown), "every cloud brain unreachable");
+        let mut t = CloudTally::default();
+        t.failed(Who::Claude, "429 rate limit");
+        t.failed(Who::Cloud("openai"), "quota exceeded");
+        assert_eq!(t.verdict(), Some(Event::CloudExhausted));
+        let mut t = CloudTally::default();
+        t.failed(Who::Claude, "429 rate limit");
+        t.failed(Who::Cloud("openai"), "Network error: timed out");
+        assert_eq!(t.verdict(), None, "mixed: nothing to conclude");
+        assert_eq!(CloudTally::default().verdict(), None, "no cloud brain tried");
+    }
 
     #[test]
     fn the_users_order_and_a_jobs_brain_rearrange_but_this_pc_stays_last() {

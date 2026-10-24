@@ -96,6 +96,11 @@ try {
         $metrics["  $($group.Name) x$($group.Count) (MB)"] = [math]::Round($sum / 1MB, 1)
       }
       $metrics["working set summed per process (MB, shared pages counted each time)"] = [math]::Round(($proc.WorkingSet64 + $ws) / 1MB, 1)
+      # Round 3D item 10's WebView2 audit: in Standby, the island is the only WebView.
+      $renderers = @($tree | Where-Object { $_.CommandLine -match '--type=renderer' -and $_.CommandLine -notmatch '--extension-process' })
+      $metrics["WebView2 renderer processes"] = $renderers.Count
+      $metrics["WebView2 processes by kind"] = (($tree | ForEach-Object { if ($_.CommandLine -match '--type=([a-z-]+)') { $Matches[1] } else { "browser" } }) | Group-Object | ForEach-Object { "$($_.Name) x$($_.Count)" }) -join ", "
+      $results["Standby: one WebView (the island), no hidden window kept (renderers: $($renderers.Count))"] = $renderers.Count -le 1
       $total = $null
       # Task Manager's "Memory" column (private working set), for comparison.
       $ids = @($proc.Id) + @($tree | ForEach-Object { $_.ProcessId })

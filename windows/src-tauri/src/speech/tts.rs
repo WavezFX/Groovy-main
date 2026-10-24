@@ -79,13 +79,14 @@ impl FishError {
     }
 }
 
+/// How long one Fish Audio answer may take.
+pub const FISH_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// One Fish Audio request: the MP3, read as it streams in.
 pub async fn fish_request(url: &str, key: &str, voice: &str, model: &str, text: &str, speed: f32) -> Result<Vec<u8>, FishError> {
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(8))
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|_| FishError::Offline)?;
+    // Shared, so the connection the wake word warmed is the one used (round 3D item 10).
+    let parsed = reqwest::Url::parse(url).map_err(|_| FishError::Offline)?;
+    let client = crate::net::client(&parsed, FISH_TIMEOUT).map_err(|_| FishError::Offline)?;
     let mut response = client
         .post(url)
         .bearer_auth(key)

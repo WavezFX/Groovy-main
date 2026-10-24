@@ -306,6 +306,7 @@ fn ensure_window(app: &AppHandle, d: &Desktop) -> bool {
     match create_window(app, d.mode) {
         Some(win) if platform::prepare_desktop_window(&win, d.mode) => {
             crate::log::line("desktop Groovy: window made");
+            crate::webview_memory::trim(&win);
             *d.inner.lock().unwrap() = Inner::default();
             true
         }
@@ -482,12 +483,29 @@ fn hide(app: &AppHandle, d: &Desktop) {
     } else if let Some(win) = window(app) {
         let _ = win.hide();
     }
-    // Back in the island: his window keeps as little memory as it can.
+    // Back in the island: his window keeps as little memory as it can, and if
+    // he stays home it goes altogether (round 3D item 10: only the island's
+    // WebView in Standby); it is made again the next time he goes out.
     if let Some(win) = window(app) {
         crate::webview_memory::set_low(&win, true);
     }
     let _ = app.emit_to(LABEL, "desktop-visible", false);
+    let app = app.clone();
+    let _ = std::thread::Builder::new().name("groovy-desktop-close".into()).spawn(move || {
+        std::thread::sleep(CLOSE_HIDDEN_AFTER);
+        let d = app.state::<Arc<Desktop>>().inner().clone();
+        if d.inner.lock().unwrap().shown {
+            return;
+        }
+        if let Some(win) = window(&app) {
+            let _ = win.destroy();
+            crate::log::line("desktop Groovy: window closed (he stayed in the island)");
+        }
+    });
 }
+
+/// Home in the island this long, his desktop window is destroyed, not kept hidden.
+const CLOSE_HIDDEN_AFTER: Duration = Duration::from_secs(30);
 
 /// Re-derives the poll gate and what takes the mouse from the current state.
 fn refresh(app: &AppHandle, d: &Desktop) {

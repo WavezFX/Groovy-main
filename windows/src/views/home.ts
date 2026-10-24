@@ -263,6 +263,10 @@ export function buildHome(actions: ViewActions): ViewHost {
   let expand: typeof import("./expand") | null = null;
   const loadExpand = once(() => import("./expand").then((m) => (expand = m)));
   const grownTiles = new Map<Expanded | "strip", Grown>();
+  // Back in Standby (round 3D item 10): the grown tiles not on screen are rebuilt when next opened.
+  window.addEventListener("groovy-release", () => {
+    for (const k of [...grownTiles.keys()]) if (k !== open && !(k === "strip" && stripOn)) grownTiles.delete(k);
+  });
   const grown = (k: Expanded | "strip"): Grown => {
     let g = grownTiles.get(k);
     if (!g) {

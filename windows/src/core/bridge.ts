@@ -178,6 +178,18 @@ export interface MailInbox {
   canModify: boolean;
 }
 
+/** Groovy's operating state (runtime_state.rs, round 3D item 10). */
+export type RunState = "standby" | "conversation" | "offline";
+
+export interface RunReport {
+  state: RunState;
+  seconds: number;
+  offlineNetwork: boolean;
+  offlineLimits: boolean;
+  offlineChoseLocal: boolean;
+  warmClients: number;
+}
+
 export interface SystemStatus {
   os: string;
   cpuName: string;
@@ -474,6 +486,7 @@ export const Bridge = {
   customSound: (name: string) => call<ArrayBuffer>("custom_sound", { name }),
   revealSoundsFolder: () => call<void>("reveal_sounds_folder"),
   revealLogsFolder: () => call<void>("reveal_logs_folder"),
+  runtimeState: () => call<RunReport>("runtime_state"),
   freeMemoryNow: () => call<void>("free_memory_now"),
   /** Tells the island to read the sounds folder again ("sounds-changed"). */
   reloadSounds: () => call<void>("reload_sounds"),

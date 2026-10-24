@@ -1,7 +1,7 @@
 // Settings → System: what this computer has and what Groovy uses (system.rs),
 // read when the section is drawn or refreshed, never in the background.
 
-import { Bridge, type SystemStatus } from "../core/bridge";
+import { Bridge, type RunReport, type SystemStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { clear, h } from "../views/dom";
 import { N_, t } from "../i18n/i18n";
@@ -34,6 +34,15 @@ export const SYSTEM_STRINGS = {
   resetButton: N_("Reset"),
   sure: N_("Sure?"),
   details: N_("This PC"),
+  state: N_("Right now"),
+  standby: N_("Standby"),
+  conversation: N_("Conversation"),
+  offline: N_("Offline"),
+  standbyLine: N_("Only the island and the wake word: nothing else is loaded"),
+  conversationLine: N_("Talking: cloud speech, the brain and the voice are ready"),
+  offlineNetwork: N_("No network: thinking on this PC, its engines load per request"),
+  offlineLimits: N_("Every cloud brain is out of its limit: thinking on this PC"),
+  offlineLocal: N_("You chose a brain on this PC: its engines load per request"),
 };
 
 const IDLE_MB = 300;
@@ -71,6 +80,18 @@ export function systemPage(settings: Settings, save: () => void, version: string
     cpuState.className = s && s.cpuUsage > 50 ? "hub-s-state warn" : "hub-s-state";
   };
 
+  const runName = h("span", { class: "hub-s-state" });
+  const runLine = h("span", { class: "hub-b-detail" });
+  const drawRun = (r: RunReport | null) => {
+    if (!r) return;
+    runName.textContent = t(r.state === "conversation" ? SYSTEM_STRINGS.conversation : r.state === "offline" ? SYSTEM_STRINGS.offline : SYSTEM_STRINGS.standby);
+    runName.className = r.state === "offline" ? "hub-s-state warn" : "hub-s-state";
+    runLine.textContent = t(r.state === "conversation" ? SYSTEM_STRINGS.conversationLine
+      : r.state === "standby" ? SYSTEM_STRINGS.standbyLine
+      : r.offlineChoseLocal ? SYSTEM_STRINGS.offlineLocal
+      : r.offlineLimits ? SYSTEM_STRINGS.offlineLimits
+      : SYSTEM_STRINGS.offlineNetwork);
+  };
   const cpu = h("span", { class: "hub-b-detail" });
   const cpuState = h("span", { class: "hub-s-state" });
   const row = (name: string, line: HTMLElement | string, control: HTMLElement | null, cls = "") =>
@@ -106,6 +127,7 @@ export function systemPage(settings: Settings, save: () => void, version: string
     h("div", { class: "hub-home-two" },
       h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t(SYSTEM_STRINGS.performance) }),
         h("div", { class: "hub-card hub-b-list" },
+          row(t(SYSTEM_STRINGS.state), runLine, runName),
           row(t("CPU"), cpu, cpuState),
           row(t(SYSTEM_STRINGS.unload), unloadLine, unload),
           row(t(SYSTEM_STRINGS.notCounted), t(SYSTEM_STRINGS.notCountedLine), null))),
@@ -117,7 +139,9 @@ export function systemPage(settings: Settings, save: () => void, version: string
   );
 
   async function load() {
-    drawMemory(await Bridge.systemStatus());
+    const [s, r] = await Promise.all([Bridge.systemStatus(), Bridge.runtimeState()]);
+    drawMemory(s);
+    drawRun(r);
   }
   void load();
   // The action sits in the page header, as designed, once the page is on screen.

@@ -1,7 +1,7 @@
 // Entry point: boot the bridge, wire the island, start the greeting.
 
 import "./style.css";
-import { Bridge, IS_TAURI, onEvent, type MailInbox } from "./core/bridge";
+import { Bridge, IS_TAURI, onEvent, type MailInbox, type RunState } from "./core/bridge";
 import { Sound } from "./core/sound";
 import { installErrorReporting } from "./views/toast";
 import { Mail, wantsMail, type MailNote } from "./views/tiles";
@@ -198,6 +198,14 @@ async function main() {
     island.alert("notify");
   });
   // Connected mail accounts (mail/): the tile's unread count and the Mail panel.
+  // Standby, Conversation or Offline (round 3D item 10): shown on the island's rim.
+  const showState = (s: RunState) => {
+    document.body.dataset.run = s;
+  };
+  await onEvent<RunState>("runtime-state", showState);
+  void Bridge.runtimeState().then((r) => r && showState(r.state));
+  // Back in Standby: what the page holds only for a conversation goes.
+  await onEvent<null>("runtime-release", () => window.dispatchEvent(new Event("groovy-release")));
   await onEvent<MailInbox[]>("mail-inboxes", (inboxes) => {
     Mail.inboxes = inboxes;
     State.notify();

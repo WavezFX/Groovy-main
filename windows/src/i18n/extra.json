@@ -19079,6 +19079,116 @@
    "pt-BR": "{host} não oferece conexão segura.",
    "ru": "{host} не поддерживает защищённое соединение.",
    "id": "{host} tidak menyediakan koneksi aman."
+  },
+  "Right now": {
+   "zh-Hans": "当前",
+   "hi": "अभी",
+   "es": "Ahora",
+   "ar": "الآن",
+   "fr": "En ce moment",
+   "bn": "এখন",
+   "pt-BR": "Agora",
+   "ru": "Сейчас",
+   "id": "Saat ini"
+  },
+  "Standby": {
+   "zh-Hans": "待机",
+   "hi": "स्टैंडबाय",
+   "es": "En espera",
+   "ar": "وضع الاستعداد",
+   "fr": "En veille",
+   "bn": "স্ট্যান্ডবাই",
+   "pt-BR": "Em espera",
+   "ru": "Ожидание",
+   "id": "Siaga"
+  },
+  "Conversation": {
+   "zh-Hans": "对话中",
+   "hi": "बातचीत",
+   "es": "Conversación",
+   "ar": "محادثة",
+   "fr": "Conversation",
+   "bn": "কথোপকথন",
+   "pt-BR": "Conversa",
+   "ru": "Разговор",
+   "id": "Percakapan"
+  },
+  "Offline": {
+   "zh-Hans": "离线",
+   "hi": "ऑफ़लाइन",
+   "es": "Sin conexión",
+   "ar": "دون اتصال",
+   "fr": "Hors ligne",
+   "bn": "অফলাইন",
+   "pt-BR": "Offline",
+   "ru": "Офлайн",
+   "id": "Offline"
+  },
+  "Only the island and the wake word: nothing else is loaded": {
+   "zh-Hans": "只有岛和唤醒词：其他都不加载",
+   "hi": "सिर्फ़ आइलैंड और जगाने वाला शब्द: बाकी कुछ लोड नहीं",
+   "es": "Solo la isla y la palabra de activación: nada más está cargado",
+   "ar": "الجزيرة وكلمة التنبيه فقط: لا شيء آخر محمّل",
+   "fr": "Seulement l'île et le mot d'éveil : rien d'autre n'est chargé",
+   "bn": "শুধু আইল্যান্ড ও জাগানোর শব্দ: আর কিছু লোড নেই",
+   "pt-BR": "Só a ilha e a palavra de ativação: nada mais carregado",
+   "ru": "Только остров и слово-активатор: больше ничего не загружено",
+   "id": "Hanya pulau dan kata pemicu: tak ada lagi yang dimuat"
+  },
+  "Talking: cloud speech, the brain and the voice are ready": {
+   "zh-Hans": "对话中：云端语音识别、大脑和语音已就绪",
+   "hi": "बातचीत: क्लाउड स्पीच, ब्रेन और आवाज़ तैयार हैं",
+   "es": "Hablando: la voz en la nube, el cerebro y la voz están listos",
+   "ar": "يتحدث: التعرّف السحابي والعقل والصوت جاهزة",
+   "fr": "En conversation : la reconnaissance cloud, le cerveau et la voix sont prêts",
+   "bn": "কথা চলছে: ক্লাউড স্পিচ, ব্রেন ও ভয়েস প্রস্তুত",
+   "pt-BR": "Conversando: fala na nuvem, o cérebro e a voz prontos",
+   "ru": "Разговор: облачное распознавание, мозг и голос готовы",
+   "id": "Berbicara: ucapan cloud, otak, dan suara siap"
+  },
+  "No network: thinking on this PC, its engines load per request": {
+   "zh-Hans": "没有网络：在本机思考，引擎按需加载",
+   "hi": "नेटवर्क नहीं: इस पीसी पर सोच रहा है, इंजन ज़रूरत पर लोड होते हैं",
+   "es": "Sin red: piensa en este PC, sus motores se cargan al pedirlos",
+   "ar": "لا شبكة: يفكر على هذا الكمبيوتر، وتُحمَّل محركاته عند الطلب",
+   "fr": "Pas de réseau : il réfléchit sur ce PC, ses moteurs se chargent à la demande",
+   "bn": "নেটওয়ার্ক নেই: এই পিসিতে ভাবছে, ইঞ্জিন দরকারে লোড হয়",
+   "pt-BR": "Sem rede: pensa neste PC, os motores carregam sob demanda",
+   "ru": "Нет сети: думает на этом ПК, движки загружаются по запросу",
+   "id": "Tanpa jaringan: berpikir di PC ini, mesinnya dimuat sesuai permintaan"
+  },
+  "Every cloud brain is out of its limit: thinking on this PC": {
+   "zh-Hans": "所有云端大脑都已达到限额：在本机思考",
+   "hi": "हर क्लाउड ब्रेन की सीमा खत्म: इस पीसी पर सोच रहा है",
+   "es": "Todos los cerebros en la nube llegaron a su límite: piensa en este PC",
+   "ar": "كل العقول السحابية بلغت حدها: يفكر على هذا الكمبيوتر",
+   "fr": "Tous les cerveaux cloud ont atteint leur limite : il réfléchit sur ce PC",
+   "bn": "সব ক্লাউড ব্রেনের সীমা শেষ: এই পিসিতে ভাবছে",
+   "pt-BR": "Todos os cérebros na nuvem atingiram o limite: pensa neste PC",
+   "ru": "У всех облачных мозгов закончился лимит: думает на этом ПК",
+   "id": "Semua otak cloud mencapai batas: berpikir di PC ini"
+  },
+  "You chose a brain on this PC: its engines load per request": {
+   "zh-Hans": "你选择了本机大脑：其引擎按需加载",
+   "hi": "आपने इस पीसी का ब्रेन चुना: इंजन ज़रूरत पर लोड होते हैं",
+   "es": "Elegiste un cerebro en este PC: sus motores se cargan al pedirlos",
+   "ar": "اخترت عقلًا على هذا الكمبيوتر: تُحمَّل محركاته عند الطلب",
+   "fr": "Vous avez choisi un cerveau sur ce PC : ses moteurs se chargent à la demande",
+   "bn": "আপনি এই পিসির ব্রেন বেছে নিয়েছেন: ইঞ্জিন দরকারে লোড হয়",
+   "pt-BR": "Você escolheu um cérebro neste PC: os motores carregam sob demanda",
+   "ru": "Вы выбрали мозг на этом ПК: движки загружаются по запросу",
+   "id": "Anda memilih otak di PC ini: mesinnya dimuat sesuai permintaan"
+  },
+  "Offline: thinking on this PC": {
+   "zh-Hans": "离线：在本机思考",
+   "hi": "ऑफ़लाइन: इस पीसी पर सोच रहा है",
+   "es": "Sin conexión: pienso en este PC",
+   "ar": "دون اتصال: أفكر على هذا الكمبيوتر",
+   "fr": "Hors ligne : je réfléchis sur ce PC",
+   "bn": "অফলাইন: এই পিসিতে ভাবছি",
+   "pt-BR": "Offline: pensando neste PC",
+   "ru": "Офлайн: думаю на этом ПК",
+   "id": "Offline: berpikir di PC ini"
   }
  }
 }

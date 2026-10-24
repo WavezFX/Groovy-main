@@ -27,3 +27,31 @@ pub fn set_low(win: &WebviewWindow, low: bool) {
 
 #[cfg(not(windows))]
 pub fn set_low(_win: &WebviewWindow, _low: bool) {}
+
+/// Round 3D item 10's WebView2 audit: features Groovy never uses are off in
+/// every window — the password and form autofill prompts, the status bar for
+/// link targets, and (in release builds) the developer tools.
+#[cfg(windows)]
+pub fn trim(win: &WebviewWindow) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings4;
+    use wv2_core::Interface;
+    let label = win.label().to_string();
+    let _ = win.with_webview(move |webview| unsafe {
+        let Ok(core) = webview.controller().CoreWebView2() else { return };
+        let Ok(settings) = core.Settings() else { return };
+        let _ = settings.SetIsStatusBarEnabled(false);
+        if cfg!(not(debug_assertions)) {
+            let _ = settings.SetAreDevToolsEnabled(false);
+        }
+        match settings.cast::<ICoreWebView2Settings4>() {
+            Ok(s4) => {
+                let _ = s4.SetIsPasswordAutosaveEnabled(false);
+                let _ = s4.SetIsGeneralAutofillEnabled(false);
+            }
+            Err(err) => crate::log::line(format!("{label}: autofill left as it is: {err}")),
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub fn trim(_win: &WebviewWindow) {}

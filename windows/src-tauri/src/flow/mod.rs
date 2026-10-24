@@ -327,6 +327,7 @@ fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
         Ok(capture) => {
             let app_front = os::foreground_app().filter(|(id, _)| !is_shell(id));
             live::update(app, |s| s.phase = "listening".into());
+            crate::runtime_state::fire(app, crate::runtime_state::Event::Wake);
             // The PC's engine is loaded now, while you speak, unless the cloud one answers first.
             let cloud_first = flow.store.lock().unwrap().prefs.cloud_speech && !speech::cloud::available().is_empty();
             if !cloud_first {
@@ -363,6 +364,7 @@ fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicB
     // Too short or silent: nothing to send to the model.
     if samples.len() < 16_000 / 4 || peak < 0.004 {
         live::update(app, |s| s.phase = "idle".into());
+        crate::runtime_state::fire(app, crate::runtime_state::Event::ReplyDone);
         return;
     }
     live::update(app, |s| s.phase = "thinking".into());
@@ -373,6 +375,8 @@ fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicB
         busy.store(true, Ordering::Relaxed);
         let result = process(&app, &flow, &samples, front.as_ref(), seconds);
         busy.store(false, Ordering::Relaxed);
+        // Typed: the follow-up window starts (round 3D item 10).
+        crate::runtime_state::fire(&app, crate::runtime_state::Event::ReplyDone);
         if let Err(err) = result {
             crate::log::line(format!("flow: {err}"));
             live::update(&app, |s| s.phase = "idle".into());
