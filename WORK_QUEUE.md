@@ -50,6 +50,16 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [ ] 6. Checks
 
+## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this next, after the item in progress, then round 5, then finish 3D items 11, 7 and 6.**
+- [ ] 1. Island tiles look right at normal size: smaller text, a compact Spotify tile, a narrower Groovy area, a big page switcher
+- [ ] 2. Real app icons, never letters (apps, websites, folders, service logos)
+- [ ] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
+- [ ] 4. Growth bug: he starts at his real stage (one-time correction of the "fully grown" migration), 7-step timeline
+- [ ] 5. Stage 6: Sakura bonsai with emerald eyes, golden flame, Diamond sea with a golden shark and submarine (this does round 5 item 2)
+- [ ] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
+- [ ] 7. Full wardrobe: 28 items plus the Diamond crown, stage unlocks, Seasonal tab, every Mochi item gone (this does round 5 items 3 and 4)
+- [ ] 8. Checks
+
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
@@ -60,9 +70,9 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 3. Fixes round 5: `FIXES_ROUND5.md` (Groovy's own wardrobe)
 - [x] 1. Growth art from the canvas. **There's no stage picker:** round 3B item 5 removed it.
-- [ ] 2. Stage 6 at six months
-- [ ] 3. Wardrobe v2. **Keep round 3B item 4's speed fixes** (cached previews, one live engine).
-- [ ] 4. Seasonal collection
+- [ ] 2. Stage 6 at six months (**done by round 3E item 5: tick it with that commit**)
+- [ ] 3. (**Done by round 3E item 7: tick it with that commit.**) Wardrobe v2. **Keep round 3B item 4's speed fixes** (cached previews, one live engine).
+- [ ] 4. Seasonal collection (**done by round 3E item 7: tick it with that commit**)
 - [ ] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
 - [ ] 5. Tests and checks
 
