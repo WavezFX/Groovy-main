@@ -12,7 +12,9 @@ name: Windows
 #
 # The nightly schedule only fires from the default branch's copy of this file.
 
-run-name: "${{ github.event_name == 'schedule' && 'Nightly build' || github.event_name == 'workflow_dispatch' && 'Build (started by hand)' || format('Build · {0}', github.event.head_commit.message) }}"
+# Started by a push or a pull request, a run keeps GitHub's own title (the
+# commit's first line); the other two say what they are.
+run-name: "${{ github.event_name == 'schedule' && 'Nightly build' || github.event_name == 'workflow_dispatch' && 'Build (started by hand)' || '' }}"
 
 on:
   push:

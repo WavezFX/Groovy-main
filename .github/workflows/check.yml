@@ -6,8 +6,6 @@ name: Check
 # Windows is in the full build, windows-build.yml). Clippy is run for dead
 # code and unused items only: they fail the check, style lints don't.
 
-run-name: "Check · ${{ github.event.head_commit.message || github.event.pull_request.title }}"
-
 on:
   push:
     branches: [main, 'groovy-ai-*']
