@@ -68,7 +68,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 4. Named pipe with an explicit current-user-only DACL
 - [ ] 5. Untrusted content (mail, web, issues) can't trigger actions without approval
 - [x] 6. Test environment switches compiled out of the release build
-- [ ] 7. Logs redact keys and tokens
+- [x] 7. Logs redact keys and tokens
 - [ ] 8. Dependabot, cargo audit, npm audit and gitleaks in CI
 - [x] 9. Fast check on every push; full build on demand / `[build]` / nightly into one "Groovy latest build" release; short retention and run clean-up
 - [ ] 10. Checks

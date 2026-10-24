@@ -30,7 +30,15 @@ pub fn reveal_logs_folder() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
+pub(crate) fn append_to(dir: &std::path::Path, name: &str, message: &str) {
+    append(dir, name, message)
+}
+
 fn append(dir: &std::path::Path, name: &str, message: &str) {
+    // Round 3G item 7: no key, token, password or code is ever written (redact.rs).
+    let message = crate::redact::redact(message);
+    let message = message.as_str();
     let t = platform::local_time();
     let stamp = format!(
         "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
@@ -64,7 +72,7 @@ pub fn install_crash_handler() {
         line(&report);
         let dir = settings::local_dir();
         if platform::ensure_private_dir(&dir).is_ok() {
-            let _ = std::fs::write(dir.join("crash.log"), format!("{report}\n"));
+            let _ = std::fs::write(dir.join("crash.log"), format!("{}\n", crate::redact::redact(&report)));
         }
         default(info);
     }));

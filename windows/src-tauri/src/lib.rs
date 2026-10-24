@@ -42,6 +42,7 @@ mod ollama;
 mod openai_compat;
 mod phone_link;
 mod pipe;
+mod redact;
 mod platform;
 #[cfg(target_os = "linux")]
 mod portal;
