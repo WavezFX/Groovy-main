@@ -184,6 +184,10 @@ export async function listeningPage(page: HTMLElement, ctx: HubContext) {
 
   page.append(label(t("Privacy")));
   page.append(privacyCard());
+
+  // Round 3F item 8: the call options were a second page ("Live calls"); they are here now.
+  page.append(label(t("Calls and recognition")));
+  page.append(await ctx.callsSection());
 }
 
 function privacyCard(): HTMLElement {

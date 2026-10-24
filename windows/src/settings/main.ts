@@ -1340,6 +1340,12 @@ async function main() {
       root = container;
       await render();
     },
+    // The voice-call options sit inside Listening & calls (round 3F item 8).
+    callsSection: async () => {
+      const box = h("div", { id: "settings-root" }, (await PAGE.voice()).voiceSection(settings, () => void save(), toggle, KEY_STORE));
+      templatize(box, CALLS_ADVANCED);
+      return box;
+    },
   });
   onLanguageChange(() => {
     applyDirection();
@@ -1427,9 +1433,10 @@ const PAGE = {
 };
 
 /** Rows (by label) and sections (by title) each page keeps under Advanced (round 3D item 3). */
+const CALLS_ADVANCED = [N_("Voice engine"), N_("Recognition"), N_("Instant voice"), N_("Server"), N_("Room"), N_("API key"), N_("API secret"), N_("While listening, show"), N_("Free memory after")];
+
 const ADVANCED: Partial<Record<GroovyPageId, string[]>> = {
   brains: [N_("Local model"), N_("Voice and dictation"), N_("Online messages per day"), "settings.json", N_("Relay")],
-  calls: [N_("Voice engine"), N_("Recognition"), N_("Instant voice"), N_("Server"), N_("Room"), N_("API key"), N_("API secret"), N_("While listening, show"), N_("Free memory after")],
   general: [N_("Run setup again"), N_("Island lives on"), N_("Position along the top")],
   memory: [N_("Keep them for")],
   island: [N_("Main tool")],
@@ -1504,8 +1511,8 @@ async function render() {
       assistantSection(settings, () => void save(), toggle, () => hub?.navigate("memory")),
     ];
   };
-  const pages: Record<GroovyPageId, () => HTMLElement[] | Promise<HTMLElement[]>> = {
-    home: () => [],
+  // Home is drawn by the hub itself (hub/pages/home.ts), never from here.
+  const pages: Record<Exclude<GroovyPageId, "home">, () => HTMLElement[] | Promise<HTMLElement[]>> = {
     brains: () => brains(groovyTab),
     wardrobe: async () => [(await PAGE.wardrobe()).wardrobeSection(settings, () => void save())],
     sounds: () => [soundsSection()],
@@ -1517,7 +1524,6 @@ async function render() {
     memory: async () => [(await PAGE.memory()).memorySection(settings, () => void save(), toggle)],
     reminders: async () => [(await PAGE.tasks()).tasksSection()],
     music: async () => [(await PAGE.music()).musicSection()],
-    calls: async () => [(await PAGE.voice()).voiceSection(settings, () => void save(), toggle, KEY_STORE)],
     agents: async () => [studioSection(), (await PAGE.agents()).agentsSection(agents)],
     phone: async () => [(await PAGE.phone()).phoneSection(settings.phoneLink ?? false, toggle, settings)],
     breaks: async () => [(await PAGE.breaks()).breaksSection(settings, () => void save())],
@@ -1536,7 +1542,7 @@ async function render() {
     about: async () => [(await PAGE.about()).aboutSection(version)],
   };
 
-  root.append(...(await pages[groovyPage]()));
+  root.append(...(groovyPage === "home" ? [] : await pages[groovyPage]()));
   templatize(root, ADVANCED[groovyPage] ?? []);
   if (groovyPage === "general") {
     root.append(h("div", {

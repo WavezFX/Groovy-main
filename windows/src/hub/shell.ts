@@ -33,6 +33,12 @@ export interface HubContext {
    * pages reached on their own (Set up speech).
    */
   hero(page: PageId, title: string, subtitle: string | null, actions?: HTMLElement[], compact?: boolean): HTMLElement;
+  /**
+   * The voice-call options (wake engine, Whisper models, LiveKit, the call
+   * microphone…): Groovy's own settings, drawn inside Listening & calls
+   * (round 3F item 8, where they were a second page).
+   */
+  callsSection(): Promise<HTMLElement>;
   /** Set by a page: called when the page is left. */
   onLeave?: () => void;
 }
@@ -44,6 +50,8 @@ export interface HubOptions {
   flowPages: Partial<Record<PageId, FlowPageRenderer>>;
   /** Draws Groovy's own sections for one of the Groovy pages (and its tab) into `container`. */
   renderGroovy(page: GroovyPageId, container: HTMLElement, tab?: string): Promise<void>;
+  /** The voice-call options, as one element (see HubContext.callsSection). */
+  callsSection(): Promise<HTMLElement>;
 }
 
 const DEFAULT_STATUS: FlowStatus = {
@@ -176,6 +184,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
       status = (await FlowBridge.status()) ?? status;
       return status;
     },
+    callsSection: () => opts.callsSection(),
     setPrefs: async (change) => {
       const next = { ...status.prefs };
       change(next);

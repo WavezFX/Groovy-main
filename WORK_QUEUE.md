@@ -58,7 +58,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 5. One speech runtime: dictation on sherpa-onnx, drop whisper-rs
 - [x] 6. Translations loaded per language, English bundled
 - [ ] 7. Startup does only what's needed (Phone Link, mail, tasks, music, integrations, Spotify sync dormant until used)
-- [ ] 8. Merge the two Voice settings pages
+- [x] 8. Merge the two Voice settings pages
 - [ ] 9. Checks
 
 ## 1G. Fixes round 3G: `FIXES_ROUND3G.md` (security hardening and a tidy CI). **After 3F, before 3E.**

@@ -8,7 +8,7 @@ import { N_, t } from "../i18n/i18n";
 
 export type GroovyPageId =
   | "home" | "wardrobe" | "sounds" | "brains" | "memory" | "island" | "accounts" | "music"
-  | "reminders" | "breaks" | "calls" | "agents" | "browser" | "permissions" | "phone"
+  | "reminders" | "breaks" | "agents" | "browser" | "permissions" | "phone"
   | "general" | "system" | "about";
 
 export type FlowPageId =
@@ -97,7 +97,6 @@ export const SECTIONS: NavSection[] = [
  */
 export const HIDDEN: NavPage[] = [
   p("sounds", I.speaking, N_("Sounds"), N_("The little sounds the island makes.")),
-  p("calls", I.listening, N_("Live calls"), N_("Talking with Groovy like a phone call.")),
   p("notes", I.dictation, N_("Notetaker"), N_("Record meetings and calls, with a summary.")),
   p("insights", I.dictation, N_("Statistics"), N_("How much you dictated, and when.")),
   p("music", I.layout, N_("Music"), N_("Spotify and your own music folder.")),
@@ -123,10 +122,6 @@ export const TABS: Partial<Record<PageId, { id: string; title: string }[]>> = {
   speaking: [
     { id: "speaking", title: N_("Voice") },
     { id: "sounds", title: N_("Sounds") },
-  ],
-  listening: [
-    { id: "listening", title: N_("Listening") },
-    { id: "calls", title: N_("Live calls") },
   ],
   dictation: [
     { id: "dictation", title: N_("Dictation") },
@@ -163,7 +158,9 @@ export const ALIASES: Record<string, { page: PageId; tab?: string }> = {
   models: { page: "brains", tab: "local" },
   pills: { page: "island" },
   mail: { page: "accounts" },
-  voice: { page: "listening", tab: "calls" },
+  // Round 3F item 8: the old "Live calls" page is part of Listening & calls.
+  voice: { page: "listening" },
+  calls: { page: "listening" },
   settings: { page: "dictation", tab: "flowsettings" },
   flowsettings: { page: "dictation", tab: "flowsettings" },
   dictionary: { page: "dictation", tab: "dictionary" },
@@ -171,7 +168,7 @@ export const ALIASES: Record<string, { page: PageId; tab?: string }> = {
   styles: { page: "dictation", tab: "styles" },
 };
 
-/** The sidebar page a tab page lives under: "calls" → listening. */
+/** The sidebar page a tab page lives under: "sounds" → speaking. */
 export function parentOf(id: string): PageId | null {
   for (const [page, tabs] of Object.entries(TABS)) {
     if (page !== id && tabs?.some((x) => x.id === id)) return page as PageId;
@@ -238,8 +235,8 @@ export const SETTINGS: SettingEntry[] = [
   s(N_("Groovy answers out loud"), "speaking", "speak elevenlabs system voice"),
   s(N_("Listen for « OK Groovy »"), "listening", "wake word ok groovy hey groovy"),
   s(N_("Test OK Groovy"), "listening", "check test wake"),
-  s(N_("Microphone"), "calls", "mic input"),
-  s(N_("Let me interrupt him"), "calls", "barge interrupt"),
+  s(N_("Microphone"), "listening", "mic input"),
+  s(N_("Let me interrupt him"), "listening", "barge interrupt"),
   s(N_("Dictation"), "dictation", "dictate speech to text hold key", "dictation"),
   s(N_("Dictionary"), "dictation", "words names spelling", "dictionary"),
   s(N_("Snippets"), "dictation", "shortcut text expand", "snippets"),
@@ -260,7 +257,7 @@ export const SETTINGS: SettingEntry[] = [
   s(N_("Appearance"), "general", "glass solid theme island style"),
   s(N_("Shortcuts"), "general", "keyboard keys hotkey"),
   s(N_("Launch at startup"), "general", "startup login autostart windows"),
-  s(N_("Free memory after"), "calls", "unload idle memory"),
+  s(N_("Free memory after"), "listening", "unload idle memory"),
   s(N_("System"), "system", "diagnostics log logs performance"),
   s(N_("Version"), "about", "update licence license credits"),
 ];
@@ -276,7 +273,7 @@ export function search(query: string, limit = 8): { label: string; place: Place;
   if (!words.length) return [];
   const scored: { score: number; label: string; place: Place; where: string }[] = [];
   const consider = (label: string, haystack: string, at: Place) => {
-    // A tab page ("calls") opens under its sidebar page ("Listening & calls").
+    // A tab page ("sounds") opens under its sidebar page ("Speaking").
     const place = !at.tab && parentOf(at.page) ? { page: parentOf(at.page)!, tab: at.page } : at;
     const hay = fold(haystack);
     if (!words.every((w) => hay.includes(w))) return;

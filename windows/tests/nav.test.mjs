@@ -31,9 +31,10 @@ test("every page id the code opens still lands somewhere, old ones included", ()
   for (const [old, to] of Object.entries(ALIASES)) assert.ok(ALL_PAGES.some((p) => p.id === to.page), old);
   assert.deepEqual(resolvePage("models"), { page: "brains", tab: "local" });
   assert.deepEqual(resolvePage("assistant"), { page: "brains" });
-  assert.deepEqual(resolvePage("voice"), { page: "listening", tab: "calls" });
+  // The old Voice and Live calls pages are one page with Listening (round 3F item 8).
+  assert.deepEqual(resolvePage("voice"), { page: "listening" });
+  assert.deepEqual(resolvePage("calls"), { page: "listening" });
   // A page that became a tab still opens, under its sidebar page.
-  assert.deepEqual(resolvePage("calls"), { page: "listening", tab: "calls" });
   assert.deepEqual(resolvePage("sounds"), { page: "speaking", tab: "sounds" });
   assert.deepEqual(resolvePage("about"), { page: "general", tab: "about" });
   assert.equal(resolvePage("nonsense"), null);

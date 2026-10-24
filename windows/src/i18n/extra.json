@@ -16594,28 +16594,6 @@
    "ru": "Речь",
    "id": "Berbicara"
   },
-  "Live calls": {
-   "zh-Hans": "实时通话",
-   "hi": "लाइव कॉल",
-   "es": "Llamadas en vivo",
-   "ar": "مكالمات مباشرة",
-   "fr": "Appels en direct",
-   "bn": "লাইভ কল",
-   "pt-BR": "Chamadas ao vivo",
-   "ru": "Живые звонки",
-   "id": "Panggilan langsung"
-  },
-  "Talking with Groovy like a phone call.": {
-   "zh-Hans": "像打电话一样和 Groovy 交谈。",
-   "hi": "फ़ोन कॉल की तरह Groovy से बात करें।",
-   "es": "Hablar con Groovy como en una llamada.",
-   "ar": "التحدث مع Groovy كأنها مكالمة هاتفية.",
-   "fr": "Parler avec Groovy comme au téléphone.",
-   "bn": "ফোন কলের মতো Groovy-র সাথে কথা বলা।",
-   "pt-BR": "Conversar com o Groovy como numa ligação.",
-   "ru": "Разговор с Groovy как по телефону.",
-   "id": "Bicara dengan Groovy seperti telepon."
-  },
   "Speak instead of typing, in any app.": {
    "zh-Hans": "在任何应用里用说话代替打字。",
    "hi": "किसी भी ऐप में टाइप करने की जगह बोलें।",
@@ -19321,6 +19299,17 @@
    "pt-BR": "Modelo descarregado",
    "ru": "Модель выгружена",
    "id": "Model dilepas"
+  },
+  "Calls and recognition": {
+   "zh-Hans": "通话与识别",
+   "hi": "कॉल और पहचान",
+   "es": "Llamadas y reconocimiento",
+   "ar": "المكالمات والتعرّف",
+   "fr": "Appels et reconnaissance",
+   "bn": "কল ও শনাক্তকরণ",
+   "pt-BR": "Chamadas e reconhecimento",
+   "ru": "Звонки и распознавание",
+   "id": "Panggilan dan pengenalan"
   }
  }
 }
