@@ -81,7 +81,7 @@ cpal = "0.18"
 # Folder picker for the music library.
 tauri-plugin-dialog = "2"
 # Unpacking the pinned llama.cpp runtime (models.rs).
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 # The wake word spotter comes as a .tar.bz2 (speech/kws.rs).
 bzip2 = "0.5"
 tar = { version = "0.4", default-features = false }

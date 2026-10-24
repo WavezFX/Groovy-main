@@ -4,7 +4,9 @@ name: Check
 # minutes on Linux, no installer. It type-checks and tests the front end and
 # checks, lints and tests the Rust (the pure-Rust tests; what only runs on
 # Windows is in the full build, windows-build.yml). Clippy is run for dead
-# code and unused items only: they fail the check, style lints don't.
+# code and unused items only: they fail the check, style lints don't. The
+# "Security" job checks the dependencies for advisories and the commits for
+# secrets (round 3G item 8).
 
 on:
   push:
@@ -100,3 +102,38 @@ jobs:
 
       - name: cargo test
         run: cargo test --workspace
+
+  # Dependencies with a known advisory, and secrets in the commits, fail the push
+  # (high and critical for npm; every Rust advisory with a fix except the ones
+  # justified in windows/.cargo/audit.toml).
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: gitleaks (secrets in the pushed commits and the history)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: npm audit (shipped packages, high and critical)
+        working-directory: windows
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: cargo audit
+        working-directory: windows
+        run: cargo audit

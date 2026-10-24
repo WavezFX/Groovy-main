@@ -943,7 +943,7 @@ pub fn unzip_into(zip_path: &Path, dir: &Path) -> Result<usize, String> {
     let mut n = 0;
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-        let Some(rel) = entry.enclosed_name() else { return Err(format!("unsafe path in archive: {}", entry.name())) };
+        let Some(rel) = entry.enclosed_name() else { return Err(format!("unsafe path in archive: {}", String::from_utf8_lossy(entry.name_raw()))) };
         let out = dir.join(rel);
         if entry.is_dir() {
             std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
