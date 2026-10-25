@@ -563,16 +563,20 @@ mod tests {
             }
             let half = body.len() / 2;
             let head = format!("HTTP/1.1 {status} X\r\ncontent-type: audio/mpeg\r\ntransfer-encoding: chunked\r\n\r\n");
-            sock.write_all(head.as_bytes()).unwrap();
-            for part in [&body[..half], &body[half..]] {
-                if !part.is_empty() {
-                    sock.write_all(format!("{:x}\r\n", part.len()).as_bytes()).unwrap();
-                    sock.write_all(part).unwrap();
-                    sock.write_all(b"\r\n").unwrap();
-                    sock.flush().unwrap();
+            // The client may hang up as soon as it has read a refusal's status,
+            // so a write after the head can fail with a broken pipe.
+            let _ = (|| -> std::io::Result<()> {
+                sock.write_all(head.as_bytes())?;
+                for part in [&body[..half], &body[half..]] {
+                    if !part.is_empty() {
+                        sock.write_all(format!("{:x}\r\n", part.len()).as_bytes())?;
+                        sock.write_all(part)?;
+                        sock.write_all(b"\r\n")?;
+                        sock.flush()?;
+                    }
                 }
-            }
-            sock.write_all(b"0\r\n\r\n").unwrap();
+                sock.write_all(b"0\r\n\r\n")
+            })();
             String::from_utf8_lossy(&req).to_string()
         });
         (url, handle)
