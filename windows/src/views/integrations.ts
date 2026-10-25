@@ -4,7 +4,7 @@
 // Cal.com is the one simplification: macOS shows a three-level calendar
 // (month → day → booking); here it is the list of upcoming bookings.
 
-import { h, svg, clear, dot } from "./dom";
+import { h, svg, dot } from "./dom";
 import { ICONS } from "./icons";
 import { State, type AgentTask } from "../core/state";
 import { Bridge } from "../core/bridge";
@@ -525,4 +525,3 @@ export function renderIntegrationCard(task: AgentTask, hooks: IntegrationCardHoo
   }
 }
 
-export { clear };

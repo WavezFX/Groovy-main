@@ -1,10 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
-    "src/main.ts",
-    "src/settings/main.ts",
-    "src/desktop/main.ts",
-    "src/studio/main.ts",
     "tests/**/*.mjs",
     "scripts/*.mjs"
   ],

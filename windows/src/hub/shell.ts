@@ -15,7 +15,7 @@ import { lookSprite, spriteCanvas } from "../mochi/sprites";
 import { ALL_PAGES, SECTIONS, TABS, greeting, pageDef, parentOf, resolvePage, search, sectionOf, type Place } from "./nav";
 import type { GroovyPageId, PageId } from "./nav";
 
-export type { FlowPageId, GroovyPageId, PageId } from "./nav";
+export type { GroovyPageId, PageId } from "./nav";
 
 /** What a page gets to draw itself and reach the rest of the window. */
 export interface HubContext {

@@ -59,9 +59,6 @@ interface Say {
   gender: "female" | "male";
 }
 
-/** Groovy is saying an answer (the bars move with it). */
-export let speaking = false;
-
 /** The system's voice in the answer's language, a woman's or a man's when the system says. */
 export function systemVoice(voices: SpeechSynthesisVoice[], lang: string | null, gender: string): SpeechSynthesisVoice | null {
   const want = (lang ?? navigator.language).toLowerCase();
@@ -114,12 +111,10 @@ async function sayAudio(base64: string, mime = "audio/mpeg"): Promise<boolean> {
 }
 
 async function say(s: Say) {
-  speaking = true;
   State.notify();
   try {
     if (!(s.audio && (await sayAudio(s.audio, s.mime ?? undefined)))) await sayWithSystem(s.text, s.lang, s.gender);
   } finally {
-    speaking = false;
     State.notify();
     void FlowBridge.voiceDone(s.id);
   }
