@@ -19299,6 +19299,17 @@
    "pt-BR": "o próximo em cerca de {n} meses",
    "ru": "следующий примерно через {n} мес.",
    "id": "berikutnya sekitar {n} bulan lagi"
+  },
+  "Six months together. Thank you.": {
+   "zh-Hans": "我们已经一起六个月了。谢谢你。",
+   "hi": "छह महीने साथ में। धन्यवाद।",
+   "es": "Seis meses juntos. Gracias.",
+   "ar": "ستة أشهر معًا. شكرًا لك.",
+   "fr": "Six mois ensemble. Merci.",
+   "bn": "একসাথে ছয় মাস। ধন্যবাদ।",
+   "pt-BR": "Seis meses juntos. Obrigado.",
+   "ru": "Шесть месяцев вместе. Спасибо.",
+   "id": "Enam bulan bersama. Terima kasih."
   }
  }
 }

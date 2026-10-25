@@ -5,13 +5,38 @@
 // Three looks that grow (FIXES_ROUND3 item 6): Night grows into Grove (a
 // sprout, leaves, a sapling, branches, a bonsai), Ember into Blaze (a spark,
 // a flame, flames round him, a fire aura) and Frost into Tide (drops, then
-// water filling him up). The stage, 0…5, comes from how long Groovy has run
-// (./growth.ts); the colours move from the look's toward its grown one.
+// water filling him up). The stage, 0…6, comes from how long Groovy has run
+// and, for 6, six months since he hatched (./growth.ts); the colours move
+// from the look's toward its grown one. Stage 6 is each look's final form
+// (round 3E item 5, ./stage6.ts): the Sakura bonsai, the golden flame and
+// the Diamond sea, with gem eyes.
 
 import type { Head } from "./outfits";
 import { N_ } from "../i18n/i18n";
-import { drawShapes, toBoard, type Art } from "./art/draw";
+import { drawShapes, toBoard, type Art, type Shape } from "./art/draw";
 import { GROWTH_ART } from "./art/growth";
+import { STAGE6_ART } from "./art/stage6";
+import { GEM_EYES, GOLD, drawGemFacets, drawStage6Body, drawStage6Front } from "./stage6";
+
+/** The last stage: the final forms. */
+const FINAL = 6;
+
+/** A piece of one of the board's golden swimmers: gold, a fish's eye, a submarine's portholes. */
+function boardSwimmer(s: Shape): boolean {
+  const gold = GOLD.toUpperCase();
+  if (s.f?.toUpperCase() === gold || s.s?.toUpperCase() === gold) return true;
+  if (s.f?.toUpperCase() === "#13241A") return true;
+  return s.f?.toUpperCase() === "#7FD4FF" && !s.s && /A1\.3 1\.3/.test(s.d);
+}
+
+/**
+ * The Diamond sea's board draws all three golden swimmers at once; on him
+ * one swims through at a time (stage6.ts), so the board's are left out.
+ */
+const FINAL_ART: Record<Skin, Art> = {
+  ...STAGE6_ART,
+  frost: { ...STAGE6_ART.frost, body: (STAGE6_ART.frost.body ?? []).filter((s) => !boardSwimmer(s)) },
+};
 
 export type Skin = "night" | "ember" | "frost";
 
@@ -60,8 +85,10 @@ export interface SkinStyle {
   irisCore: string;
   /** The look's nature: leaves (Night), fire (Ember) or water (Frost). */
   nature: "leaf" | "flame" | "water" | null;
-  /** How far it has grown, 0…5 (0: nothing shows yet). */
+  /** How far it has grown, 0…6 (0: nothing shows yet; 6: the final form). */
   stage: number;
+  /** Stage 6: the look whose gem eyes and final-form touches he has. */
+  gem?: Skin;
   /** Head shape: width/height multipliers, superellipse exponent (2 = round,
    *  higher = boxier) and taper (< 0 narrows the chin). */
   shape: { w: number; h: number; exp: number; taper: number };
@@ -151,15 +178,15 @@ function mixRgb(a: RGB, b: RGB, k: number): RGB {
 
 const atCache = new Map<string, SkinStyle>();
 
-/** A look at a stage: its colours moved toward the grown look's, stage 0…5. */
+/** A look at a stage: its colours moved toward the grown look's, stage 0…6. */
 export function styleAt(skin: Skin, stage: number): SkinStyle {
-  const st = Math.max(0, Math.min(5, Math.round(stage)));
+  const st = Math.max(0, Math.min(FINAL, Math.round(stage)));
   const key = `${skin}:${st}`;
   const hit = atCache.get(key);
   if (hit) return hit;
   const a = SKIN_STYLES[skin];
   const b = GROWN_STYLES[skin];
-  const k = st / 5;
+  const k = Math.min(st, 5) / 5;
   const style: SkinStyle = {
     ...a,
     bodyTop: mixRgb(a.bodyTop, b.bodyTop, k),
@@ -171,10 +198,16 @@ export function styleAt(skin: Skin, stage: number): SkinStyle {
     irisCore: mixCss(a.irisCore, b.irisCore, k),
     stage: st,
   };
-  // The eyes take the board's colours for the stage (round 5 item 1).
-  const art = GROWTH_ART[skin][st];
+  // The eyes take the board's colours for the stage (round 5 item 1); at
+  // stage 6 they are gems: emerald, gold or diamond (round 3E item 5).
+  const art = st === FINAL ? FINAL_ART[skin] : GROWTH_ART[skin][st];
   if (art?.iris) style.iris = art.iris;
   if (art?.core) style.irisCore = art.core;
+  if (st === FINAL) {
+    style.gem = skin;
+    style.iris = GEM_EYES[skin].iris;
+    style.irisCore = GEM_EYES[skin].core;
+  }
   atCache.set(key, style);
   return style;
 }
@@ -201,6 +234,15 @@ export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin | SkinStyle
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02 || s.stage < 1) return;
   drawLayer(x, s, H, st, "body", body);
+  if (s.gem) {
+    // The Diamond sea's golden swimmer, inside his body.
+    x.save();
+    x.globalAlpha *= st.shown;
+    x.clip(body);
+    toBoard(x, H.rx, H.ry, Math.sin(H.yaw) * H.rx * 0.8);
+    drawStage6Body(x, s.gem, st.time);
+    x.restore();
+  }
 }
 
 /** In front: what grows on top (Grove's plant, Blaze's flame, Tide's crest). */
@@ -208,6 +250,14 @@ export function drawSkinFront(x: CanvasRenderingContext2D, skin: Skin | SkinStyl
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02 || s.stage < 1) return;
   drawLayer(x, s, H, st, "front");
+  if (s.gem) {
+    // Petals, gold sparkles or diamond flakes round him.
+    x.save();
+    x.globalAlpha *= st.shown * st.hatless;
+    toBoard(x, H.rx, H.ry, Math.sin(H.yaw) * H.rx * 0.35);
+    drawStage6Front(x, s.gem, st.time, !!st.lite);
+    x.restore();
+  }
 }
 
 export type MouthMood = "calm" | "happy" | "sad" | "open" | "none";
@@ -288,6 +338,8 @@ export function drawAlmondEye(x: CanvasRenderingContext2D, skin: Skin | SkinStyl
   g.addColorStop(1, "rgba(0,0,0,0)");
   x.fillStyle = g;
   x.fillRect(-w, -h * 2, w * 2, h * 4);
+  // Stage 6: the eye is a cut gem.
+  if (s.gem && open > 0.3) drawGemFacets(x, s.gem, w, hh, performance.now() / 1000);
   x.restore();
   // The glow spills out of the eye a little.
   if (open > 0.3) {
@@ -317,7 +369,9 @@ const LOOK_OF: Record<NonNullable<SkinStyle["nature"]>, Skin> = { leaf: "night",
 /** The card for a style's look and stage, if it has grown at all. */
 export function artFor(s: SkinStyle): Art | null {
   if (!s.nature) return null;
-  return GROWTH_ART[LOOK_OF[s.nature]][Math.max(0, Math.min(5, s.stage))] ?? null;
+  const look = LOOK_OF[s.nature];
+  if (s.stage >= FINAL) return FINAL_ART[look] ?? null;
+  return GROWTH_ART[look][Math.max(0, Math.min(5, s.stage))] ?? null;
 }
 
 /** The shared phase, slower in the Lightweight profile. */

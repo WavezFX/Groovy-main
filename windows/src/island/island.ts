@@ -1,7 +1,7 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
-import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { MAX_STAGE, parseGrowth, progressLine, shownStage } from "../mochi/growth";
 import { flavorOf } from "../core/sounds-synth";
 import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
@@ -593,7 +593,10 @@ export class Island {
       outfit: worn[0] ?? "none",
       layers: worn.slice(1),
       lite: State.settings.assistant.performanceProfile === "lightweight",
-    }, kind === "grew"
+    }, kind === "grew" && shownStage(g) === MAX_STAGE
+      // Round 5 item 2: the final form, six months after he hatched.
+      ? { title: t("Six months together. Thank you."), sub: progressLine(g) }
+      : kind === "grew"
       ? { title: t("I grew while you were away!"), sub: progressLine(g) }
       : { title: t("Hi, I'm Groovy."), sub: t("I'll grow the longer we work together.") });
     intro.onGrow = () => this.animateGeometry();

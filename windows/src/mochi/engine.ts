@@ -226,7 +226,7 @@ export class BotEngine {
 
   /** Shows the look at another stage, with a little squash when animated. */
   setStage(next: number, animated = true) {
-    const stage = Math.max(0, Math.min(5, Math.round(next)));
+    const stage = Math.max(0, Math.min(6, Math.round(next)));
     if (stage === this.stage) return;
     this.stage = stage;
     if (animated) this.squash();
