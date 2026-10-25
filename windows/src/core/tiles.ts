@@ -184,3 +184,37 @@ export function servicesOf(t: IslandTiles, mainPill: string): string[] {
   }
   return ids;
 }
+
+/** Names apps give themselves that are longer than what people call them. */
+const SHORT_NAMES: Record<string, string> = {
+  "visual studio code": "VS Code",
+  "microsoft visual studio code": "VS Code",
+  "google chrome": "Chrome",
+  "microsoft edge": "Edge",
+  "microsoft teams": "Teams",
+  "microsoft word": "Word",
+  "microsoft excel": "Excel",
+  "microsoft powerpoint": "PowerPoint",
+  "microsoft outlook": "Outlook",
+  "mozilla firefox": "Firefox",
+  "windows terminal": "Terminal",
+  "file explorer": "Explorer",
+};
+
+/**
+ * An app's name as a tile shows it (round 3E item 1): what people call it,
+ * without "Launcher", "- Shortcut", "(x64)" or a version. The user's own
+ * label is never changed.
+ */
+export function shortAppName(name: string): string {
+  const trimmed = name.trim();
+  const known = SHORT_NAMES[trimmed.toLowerCase()];
+  if (known) return known;
+  const short = trimmed
+    .replace(/\s*-\s*shortcut$/i, "")
+    .replace(/\s*\((x64|x86|64-bit|32-bit)\)$/i, "")
+    .replace(/\s+v?\d+(\.\d+)+$/i, "")
+    .replace(/\s+(launcher|desktop|app)$/i, "")
+    .trim();
+  return short || trimmed;
+}

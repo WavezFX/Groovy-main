@@ -8,7 +8,7 @@ import type { IslandViewName } from "../core/layout";
 import { isAgentTask, pillDefinition } from "../core/pills";
 import { Spotify } from "../core/spotify";
 import { State } from "../core/state";
-import { currentTiles, type Tile } from "../core/tiles";
+import { currentTiles, shortAppName, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
 import { showError } from "./toast";
 import { h } from "./dom";
@@ -109,7 +109,7 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
       return {
         icon: tile.kind === "site" ? "🌐" : tile.kind === "folder" ? "📁" : initial(label),
         color: tile.kind === "site" ? "#3B9EFF" : tile.kind === "folder" ? "#F7B32B" : "#A78BFA",
-        title: tile.kind === "site" ? (tile.label || tile.target.replace(/^https?:\/\//, "").split("/")[0]) : label,
+        title: tile.kind === "site" ? (tile.label || tile.target.replace(/^https?:\/\//, "").split("/")[0]) : tile.label || shortAppName(label),
         sub: tile.kind === "app" ? t("App") : tile.kind === "site" ? t("Website") : t("Folder"),
         open: () => void Bridge.islandLaunch(tile.kind, tile.target).catch(showError),
       };

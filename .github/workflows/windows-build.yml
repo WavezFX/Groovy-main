@@ -281,6 +281,9 @@ jobs:
           if (-not $up) { taskkill /PID $vite.Id /T /F | Out-Null; throw "The page server didn't start" }
           node --import ./tests/setup.mjs scripts/settings-screens.mjs http://127.0.0.1:1420 settings-screens
           $code = $LASTEXITCODE
+          # Round 3E item 1: the island's tiles, both pages, long names, hit areas.
+          node --import ./tests/setup.mjs scripts/island-screens.mjs http://127.0.0.1:1420 settings-screens/island
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
           taskkill /PID $vite.Id /T /F | Out-Null
           exit $code
 

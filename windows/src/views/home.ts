@@ -19,7 +19,7 @@ import {
 import { EASE_OUT, MOTION, duration } from "../core/motion";
 import type { IslandViewName } from "../core/layout";
 import { pillDefinition, sanitizeDeclared } from "../core/pills";
-import { Spotify } from "../core/spotify";
+import { Spotify, currentArtwork } from "../core/spotify";
 import { State } from "../core/state";
 import { currentTiles, tile as makeTile, withServices, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
@@ -150,17 +150,21 @@ function iconBtn(path: string, label: string, onclick: () => void, cls = ""): HT
   return b;
 }
 
-/** The Spotify tile: its mark and ⏮ ▶ ⏭, all working; anywhere else grows it to 4. */
+/**
+ * The Spotify tile at its 1-tile size (round 3E item 1): the cover (or
+ * Spotify's mark), the song and one play/pause; previous and next are in the
+ * grown player. Anywhere else on it grows it to 4.
+ */
 function musicCell(): HTMLElement {
   const playing = Spotify.state.playing;
-  const song = Spotify.state.track?.title;
-  const cell = h("div", { class: "home-cell music", title: song ? `Spotify — ${song}` : "Spotify", role: "button", tabindex: "0" },
-    h("div", { class: "home-cell-head" }, h("span", { class: "home-mark", style: "background:#1DB954" }), h("b", { text: "Spotify" })),
-    h("div", { class: "home-music-ctl" },
-      iconBtn(ICONS.backward, t("Previous"), () => void Bridge.spotifyControl("previous")),
-      iconBtn(playing ? ICONS.pause : ICONS.play, playing ? t("Pause") : t("Play"), playOrOpen, "main"),
-      iconBtn(ICONS.forward, t("Next"), () => void Bridge.spotifyControl("next")),
-    ),
+  const track = Spotify.state.track;
+  const cover = currentArtwork();
+  const art = cover
+    ? h("img", { class: "home-mark art", src: cover, alt: "", draggable: "false" })
+    : h("span", { class: "home-mark", style: "background:#1DB954" });
+  const cell = h("div", { class: "home-cell music", title: track ? `Spotify — ${track.title}` : "Spotify", role: "button", tabindex: "0" },
+    h("div", { class: "home-cell-head" }, art, iconBtn(playing ? ICONS.pause : ICONS.play, playing ? t("Pause") : t("Play"), playOrOpen, "main")),
+    h("span", { class: "home-cell-text" }, h("b", { text: track?.title ?? "Spotify" }), h("span", { text: track?.artist ?? t("Music") })),
   );
   cell.addEventListener("click", () => grow("music"));
   return cell;
@@ -242,17 +246,42 @@ export function buildHome(actions: ViewActions): ViewHost {
 
   // Right: the tiles, with page dots, or one of them grown (round 3D item 8).
   const grid = h("div", { class: "home-grid" });
-  const dots = h("div", { class: "home-dots" });
+  const dots = h("div", { class: "home-dots", role: "tablist" });
   const right = h("div", { class: "home-card home-right" }, grid, dots);
   let page = 0;
   let pageCount = 1;
+  /** Which way the last page change went, for the slide (round 3E item 1). */
+  let turned = 0;
+  const turn = (to: number) => {
+    if (pageCount < 2 || State.homeExpanded) return;
+    const next = ((to % pageCount) + pageCount) % pageCount;
+    if (next === page) return;
+    turned = next > page ? 1 : -1;
+    page = next;
+    lastGrid = "";
+    draw();
+  };
+  // The wheel, and a horizontal swipe over the tiles, change pages too.
+  let wheelAt = 0;
   right.addEventListener("wheel", (e) => {
     if (pageCount < 2 || State.homeExpanded) return;
     e.preventDefault();
-    page = (page + (e.deltaY > 0 || e.deltaX > 0 ? 1 : pageCount - 1)) % pageCount;
-    lastGrid = "";
-    draw();
+    const now = Date.now();
+    if (now - wheelAt < 350) return;
+    wheelAt = now;
+    turn(page + (e.deltaY > 0 || e.deltaX > 0 ? 1 : -1));
   }, { passive: false });
+  let swipeFrom: { x: number; y: number } | null = null;
+  right.addEventListener("pointerdown", (e) => {
+    swipeFrom = { x: e.clientX, y: e.clientY };
+  });
+  right.addEventListener("pointerup", (e) => {
+    if (!swipeFrom) return;
+    const dx = e.clientX - swipeFrom.x;
+    const dy = e.clientY - swipeFrom.y;
+    swipeFrom = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) turn(page + (dx < 0 ? 1 : -1));
+  });
 
   const fold = () => {
     State.homeExpanded = null;
@@ -375,7 +404,7 @@ export function buildHome(actions: ViewActions): ViewHost {
     const pages = pagesOf(cells, CELLS_F, ADD);
     pageCount = pages.length;
     page = Math.min(page, pageCount - 1);
-    const faces = pages[page].map((c) => (c === ADD ? "+" : c.kind === "service" ? `${c.id}:${serviceLine(c.target).text}` : c.kind === "music" ? `music:${Spotify.state.playing}` : `${c.id}:${face(c, actions.setView).sub}`));
+    const faces = pages[page].map((c) => (c === ADD ? "+" : c.kind === "service" ? `${c.id}:${serviceLine(c.target).text}` : c.kind === "music" ? `music:${Spotify.state.playing}:${Spotify.state.track?.title ?? ""}:${!!currentArtwork()}` : `${c.id}:${face(c, actions.setView).sub}`));
     const key = `${page}/${pageCount}|${faces.join("|")}`;
     if (key === lastGrid) return;
     const folding = lastGrown !== "";
@@ -394,15 +423,18 @@ export function buildHome(actions: ViewActions): ViewHost {
     clear(grid);
     for (const c of pages[page]) grid.append(cell(c, actions.setView));
     if (folding) slide(before);
+    if (turned && typeof grid.animate === "function") {
+      grid.animate([{ transform: `translateX(${turned * 24}px)`, opacity: 0.4 }, { transform: "none", opacity: 1 }], { duration: duration(MOTION.unfold), easing: EASE_OUT });
+    }
+    turned = 0;
     clear(dots);
     dots.hidden = pageCount < 2;
     for (let i = 0; i < pageCount; i++) {
-      const dot = h("button", { class: i === page ? "on" : "", "aria-label": t("Page {n}", { n: i + 1 }) });
+      // An 8 px dot in a 32 × 32 px button.
+      const dot = h("button", { class: i === page ? "on" : "", role: "tab", "aria-selected": String(i === page), "aria-label": t("Page {n}", { n: i + 1 }) }, h("i"));
       dot.addEventListener("click", (e) => {
         e.stopPropagation();
-        page = i;
-        lastGrid = "";
-        draw();
+        turn(i);
       });
       dots.append(dot);
     }

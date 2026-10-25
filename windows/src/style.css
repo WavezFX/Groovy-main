@@ -3819,3 +3819,91 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
 
  .panel-hint .btn { padding: 5px 11px; }
 
+
+/* ── Round 3E item 1: tiles that fit at their normal size ─────────────────────
+   One line of 12 px semibold title and 10.5 px subtitle, the Groovy card 15 %
+   narrower so the tiles get the room, Spotify's 1-tile face with one play
+   button, and a page switcher you can hit (8 px dots, 32 px targets). */
+.home-next {
+  flex: 0 0 249px;
+}
+.home-cell-text b {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-cell-text span {
+  font-size: 10.5px;
+  line-height: 1.25;
+  white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.66);
+}
+.home-cell .home-cell-head {
+  justify-content: space-between;
+}
+.home-mark.art {
+  object-fit: cover;
+  padding: 0;
+}
+.home-cell.music .home-ctl.main {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  flex: 0 0 28px;
+}
+.home-right {
+  padding-bottom: 18px;
+}
+.home-dots {
+  bottom: -6px;
+  gap: 0;
+}
+.home-dots button {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-dots button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.home-dots button:hover i {
+  background: rgba(255, 255, 255, 0.6);
+}
+.home-dots button.on i {
+  background: #fff;
+  transform: scale(1.15);
+}
+.home-dots button.on {
+  background: transparent;
+}
+.home-grid {
+  gap: 5px;
+}
+.home-cell {
+  padding: 6px 6px;
+}
+/* The narrower card: its actions wrap onto a second row, 28 px tall each. */
+.home-actions {
+  flex-wrap: wrap;
+  gap: 4px 5px;
+}
+.home-pill {
+  height: 28px;
+  border-radius: 14px;
+  padding: 0 11px;
+}
