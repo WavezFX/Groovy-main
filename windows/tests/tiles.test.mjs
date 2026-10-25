@@ -107,19 +107,43 @@ test("only removing a service's tile turns it off: a preset or the mail apps nev
   assert.deepEqual(keptServices(["integration_neon"], on), ["integration_neon", ...on]);
 });
 
-// Round 3D item 3: Island → Layout & tiles shows or hides a tile with one tap.
-import { toggled } from "../src/settings/islandpage.ts";
-import { currentTiles as tilesNow, tile as makeTile } from "../src/core/tiles.ts";
+// Round 3E item 3: one Tiles list. The user's own tiles are kept while hidden;
+// Groovy's own and the services are always on offer; Remove is for good.
+import { currentTiles as tilesNow, tile as makeTile, hideTile, showTile, renameTile } from "../src/core/tiles.ts";
+import { entries } from "../src/settings/tilesgrid.ts";
 
-test("a tile on the Layout & tiles page turns on and off, its service with it", () => {
-  const settings = structuredClone(DEFAULT_SETTINGS);
-  const before = tilesNow(settings);
-  const github = { tile: makeTile("service", "integration_github"), name: "GitHub", color: "#fff" };
-  const on = toggled(settings, before, github, true);
-  assert.ok(on.tiles.tiles.some((x) => tileService(x) === "integration_github"));
-  assert.ok(on.active.includes("integration_github"));
-  assert.equal(on.tiles.preset, "custom");
-  const off = toggled({ ...settings, islandTiles: on.tiles, activeIntegrations: on.active }, on.tiles, github, false);
-  assert.ok(!off.tiles.tiles.some((x) => tileService(x) === "integration_github"));
-  assert.ok(!off.active.includes("integration_github"));
+test("hiding an app keeps it to show again; removing it forgets it", () => {
+  const app = makeTile("app", "C:\\Apps\\ArtCraft Launcher.lnk");
+  const cur = { ...tilesNow(structuredClone(DEFAULT_SETTINGS)), tiles: [makeTile("system"), app] };
+  const hidden = hideTile(cur, app.id);
+  assert.ok(!hidden.tiles.some((x) => x.id === app.id));
+  assert.deepEqual(hidden.hidden.map((x) => x.id), [app.id]);
+  assert.equal(hidden.preset, "custom");
+  const back = showTile(hidden, app.id);
+  assert.deepEqual(back.tiles.map((x) => x.id), ["system", app.id], "back at the end");
+  assert.equal(back.hidden.length, 0);
+  assert.equal(removeTile(hidden, app.id).hidden.length, 0, "removed for good");
+  // A hidden Groovy tile isn't kept: it is always on offer.
+  assert.equal(hideTile(cur, "system").hidden.length, 0);
+  // Saved and read back.
+  assert.deepEqual(parseTiles(JSON.parse(JSON.stringify(hidden))).hidden.map((x) => x.id), [app.id]);
+  assert.equal(parseTiles({ tiles: [], hidden: [{ kind: "mail" }] }).hidden.length, 0, "only the user's own kinds are kept hidden");
+});
+
+test("a tile can be renamed, and an empty name gives its usual one back", () => {
+  const app = makeTile("app", "C:\\Apps\\Code.exe");
+  const cur = { ...tilesNow(structuredClone(DEFAULT_SETTINGS)), tiles: [app] };
+  assert.equal(renameTile(cur, app.id, "  Editor ").tiles[0].label, "Editor");
+  assert.equal(renameTile(cur, app.id, "").tiles[0].label, "");
+});
+
+test("the Tiles list shows the island's tiles in order, then everything else on offer", () => {
+  const app = makeTile("app", "C:\\Apps\\Obsidian.exe");
+  const cur = { ...tilesNow(structuredClone(DEFAULT_SETTINGS)), tiles: [makeTile("music"), makeTile("system")], hidden: [app] };
+  const list = entries(cur);
+  assert.deepEqual(list.slice(0, 3).map((e) => [e.tile.id, e.shown]), [["music", true], ["system", true], [app.id, false]]);
+  assert.ok(list.some((e) => e.tile.id === "mail" && !e.shown));
+  assert.ok(list.some((e) => e.tile.kind === "service" && e.tile.target === "integration_github" && !e.shown));
+  assert.ok(!list.some((e) => e.tile.target === "integration_spotify"), "Spotify is the Music tile");
+  assert.equal(new Set(list.map((e) => e.tile.id)).size, list.length, "each once");
 });

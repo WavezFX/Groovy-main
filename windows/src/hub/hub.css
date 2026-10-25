@@ -1796,3 +1796,42 @@ button.hub-i-tile:not(.on) { background: transparent; border-style: dashed; colo
 .hub-s-part { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 12px; background: var(--v2-btn); min-width: 0; }
 .hub-s-part b { font: 700 16px var(--font); color: var(--hub-text); }
 @media (max-width: 860px) { .hub-s-parts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Island → Tiles, the one list (round 3E item 3) ── */
+.hub-i-tilesbox { display: flex; flex-direction: column; gap: 8px; }
+.hub-i-tilesbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.hub-i-hint { margin: 0 2px; }
+div.hub-i-tile { position: relative; min-width: 0; height: 74px; border-radius: 12px; border: 1px solid var(--v2-edge); background: var(--v2-btn); transition: opacity .15s ease, background-color .15s ease; }
+div.hub-i-tile:not(.on) { opacity: .5; border-style: dashed; background: transparent; }
+div.hub-i-tile:not(.on):hover { opacity: .8; }
+div.hub-i-tile[draggable="true"] { cursor: grab; }
+.hub-i-tile-main { all: unset; box-sizing: border-box; width: 100%; height: 100%; padding: 11px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; cursor: pointer; border-radius: 12px; font: 600 12.5px var(--font); color: var(--hub-text); }
+.hub-i-tile-main:focus-visible { outline: 2px solid var(--hub-accent, #46EB78); outline-offset: 2px; }
+.hub-i-tile-main:disabled { cursor: default; }
+.hub-i-more { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--hub-secondary); font: 700 14px var(--font); cursor: pointer; }
+.hub-i-more:hover { background: rgba(255,255,255,.1); color: var(--hub-text); }
+.hub-i-menu { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; min-width: 150px; display: flex; flex-direction: column; gap: 2px; padding: 5px; border-radius: 10px; background: var(--hub-card); border: 1px solid var(--hub-line); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.hub-i-menu button { all: unset; padding: 7px 10px; border-radius: 7px; font: 500 12.5px var(--font); color: var(--hub-text); cursor: pointer; }
+.hub-i-menu button:hover, .hub-i-menu button:focus-visible { background: var(--v2-tab-on); }
+.hub-i-menu button.danger { color: #ff8d97; }
+.hub-i-menu input { padding: 6px 8px; border-radius: 7px; border: 1px solid var(--v2-edge); background: rgba(255,255,255,.06); color: inherit; font: 13px var(--font); }
+.hub-i-picker { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.hub-i-picker input[type="search"], .hub-i-row input { padding: 7px 10px; border-radius: 9px; border: 1px solid var(--v2-edge); background: rgba(255,255,255,.06); color: inherit; font: 13px var(--font); }
+.hub-i-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.hub-i-row input[type="url"] { flex: 1 1 220px; }
+.hub-i-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 4px; max-height: 240px; overflow: auto; }
+.hub-i-app { all: unset; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 8px; border-radius: 8px; font: 500 12.5px var(--font); color: var(--hub-text); cursor: pointer; }
+.hub-i-app:hover, .hub-i-app:focus-visible { background: rgba(255,255,255,.08); }
+.hub-i-app span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-i-mini .home-mark { width: 18px; height: 18px; border-radius: 5px; }
+/* The island's tile marks, shown here too (views/tileicon.ts). */
+.hub-i .home-mark { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; flex: none; }
+.hub-i .home-mark.letter { font: 800 12px var(--font); color: #fff; }
+.hub-i .home-mark.icon { object-fit: contain; }
+.hub-i .home-mark.brand svg { display: block; }
+.hub-i-app .home-mark { width: 20px; height: 20px; }
+.hub-i-tilesbox .hub-i-tiles { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); overflow: visible; }
+.hub-i-tilesbox { margin-bottom: 18px; }
+/* The glass choice takes its own line when the column is narrow. */
+.hub-i .hub-b-list .hub-home-row { flex-wrap: wrap; row-gap: 8px; }
+.hub-i-tile-main:disabled { color: var(--hub-text); opacity: 1; }

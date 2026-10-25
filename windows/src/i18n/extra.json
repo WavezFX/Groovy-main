@@ -11336,17 +11336,6 @@
    "ru": "Разработчик",
    "id": "Pengembang"
   },
-  "Today's island: your coding agents, their questions and diffs.": {
-   "zh-Hans": "现在的岛：你的编程代理、它们的提问和差异。",
-   "hi": "आज का आइलैंड: आपके कोडिंग एजेंट, उनके सवाल और बदलाव।",
-   "es": "La isla de siempre: tus agentes de código, sus preguntas y cambios.",
-   "ar": "الجزيرة الحالية: وكلاء البرمجة لديك وأسئلتهم وتغييراتهم.",
-   "fr": "L'île actuelle : tes agents de code, leurs questions et leurs diffs.",
-   "bn": "এখনকার আইল্যান্ড: আপনার কোডিং এজেন্ট, তাদের প্রশ্ন ও পরিবর্তন।",
-   "pt-BR": "A ilha de hoje: seus agentes de código, as perguntas e diffs deles.",
-   "ru": "Нынешний остров: ваши агенты-программисты, их вопросы и изменения.",
-   "id": "Pulau saat ini: agen pemrogramanmu, pertanyaan, dan diff mereka."
-  },
   "Everyday": {
    "zh-Hans": "日常",
    "hi": "रोज़मर्रा",
@@ -11358,17 +11347,6 @@
    "ru": "На каждый день",
    "id": "Sehari-hari"
   },
-  "Mail, music, reminders and your PC, with your own apps added.": {
-   "zh-Hans": "邮件、音乐、提醒和你的电脑，再加上你自己的应用。",
-   "hi": "मेल, संगीत, रिमाइंडर और आपका PC, आपके अपने ऐप्स के साथ।",
-   "es": "Correo, música, recordatorios y tu PC, con tus propias apps.",
-   "ar": "البريد والموسيقى والتذكيرات وجهازك، مع تطبيقاتك الخاصة.",
-   "fr": "Courrier, musique, rappels et ton PC, avec tes propres apps.",
-   "bn": "মেল, মিউজিক, রিমাইন্ডার ও আপনার PC, সাথে আপনার নিজের অ্যাপ।",
-   "pt-BR": "E-mail, música, lembretes e seu PC, com seus próprios apps.",
-   "ru": "Почта, музыка, напоминания и ваш ПК, плюс ваши приложения.",
-   "id": "Surel, musik, pengingat, dan PC-mu, ditambah aplikasimu sendiri."
-  },
   "Custom": {
    "zh-Hans": "自定义",
    "hi": "कस्टम",
@@ -11379,17 +11357,6 @@
    "pt-BR": "Personalizado",
    "ru": "Свой",
    "id": "Kustom"
-  },
-  "Exactly the tiles below.": {
-   "zh-Hans": "正好是下面这些卡片。",
-   "hi": "ठीक नीचे वाली टाइलें।",
-   "es": "Exactamente los mosaicos de abajo.",
-   "ar": "البلاطات أدناه تمامًا.",
-   "fr": "Exactement les tuiles ci-dessous.",
-   "bn": "ঠিক নিচের টাইলগুলো।",
-   "pt-BR": "Exatamente os blocos abaixo.",
-   "ru": "Ровно плитки ниже.",
-   "id": "Persis ubin di bawah."
   },
   "Website": {
    "zh-Hans": "网站",
@@ -11468,17 +11435,6 @@
    "ru": "Компактная",
    "id": "Ringkas"
   },
-  "Compact or wide on the island": {
-   "zh-Hans": "在岛上紧凑或宽",
-   "hi": "आइलैंड पर कॉम्पैक्ट या चौड़ा",
-   "es": "Compacto o ancho en la isla",
-   "ar": "مضغوط أو عريض على الجزيرة",
-   "fr": "Compact ou large sur l'île",
-   "bn": "আইল্যান্ডে কমপ্যাক্ট বা চওড়া",
-   "pt-BR": "Compacto ou largo na ilha",
-   "ru": "Компактная или широкая на острове",
-   "id": "Ringkas atau lebar di pulau"
-  },
   "Move up": {
    "zh-Hans": "上移",
    "hi": "ऊपर ले जाएँ",
@@ -11489,17 +11445,6 @@
    "pt-BR": "Mover para cima",
    "ru": "Выше",
    "id": "Pindah ke atas"
-  },
-  "Move down": {
-   "zh-Hans": "下移",
-   "hi": "नीचे ले जाएँ",
-   "es": "Bajar",
-   "ar": "نقل لأسفل",
-   "fr": "Descendre",
-   "bn": "নিচে সরান",
-   "pt-BR": "Mover para baixo",
-   "ru": "Ниже",
-   "id": "Pindah ke bawah"
   },
   "Tiles": {
    "zh-Hans": "卡片",
@@ -11544,28 +11489,6 @@
    "pt-BR": "Um site começa com https://",
    "ru": "Адрес сайта начинается с https://",
    "id": "Situs web diawali https://"
-  },
-  "You pick the folder after clicking Add.": {
-   "zh-Hans": "点击“添加”后再选择文件夹。",
-   "hi": "“जोड़ें” क्लिक करने के बाद फ़ोल्डर चुनें।",
-   "es": "Eliges la carpeta después de pulsar Añadir.",
-   "ar": "تختار المجلد بعد النقر على «إضافة».",
-   "fr": "Tu choisis le dossier après avoir cliqué sur Ajouter.",
-   "bn": "“যোগ করুন” ক্লিক করার পরে ফোল্ডার বেছে নেবেন।",
-   "pt-BR": "Você escolhe a pasta depois de clicar em Adicionar.",
-   "ru": "Папку вы выберете после нажатия «Добавить».",
-   "id": "Kamu memilih folder setelah mengklik Tambah."
-  },
-  "The island holds {n} tiles at most.": {
-   "zh-Hans": "岛上最多放 {n} 张卡片。",
-   "hi": "आइलैंड पर अधिकतम {n} टाइलें आती हैं।",
-   "es": "La isla admite {n} mosaicos como máximo.",
-   "ar": "تتّسع الجزيرة لـ {n} بلاطات على الأكثر.",
-   "fr": "L'île contient {n} tuiles au plus.",
-   "bn": "আইল্যান্ডে সর্বোচ্চ {n}টি টাইল থাকে।",
-   "pt-BR": "A ilha comporta no máximo {n} blocos.",
-   "ru": "На острове помещается не больше {n} плиток.",
-   "id": "Pulau memuat paling banyak {n} ubin."
   },
   "This tile is already on the island.": {
    "zh-Hans": "这张卡片已经在岛上了。",
@@ -13062,17 +12985,6 @@
    "pt-BR": "Gravando chamada · {0}",
    "ru": "Запись звонка · {0}",
    "id": "Merekam panggilan · {0}"
-  },
-  "No tiles yet: add one below.": {
-   "zh-Hans": "还没有磁贴：在下面添加一个。",
-   "hi": "अभी कोई टाइल नहीं: नीचे एक जोड़ें।",
-   "es": "Aún no hay mosaicos: añade uno abajo.",
-   "ar": "لا توجد مربعات بعد: أضف واحدًا أدناه.",
-   "fr": "Pas encore de tuiles : ajoutez-en une ci-dessous.",
-   "bn": "এখনো কোনো টাইল নেই: নিচে একটি যোগ করুন।",
-   "pt-BR": "Nenhum bloco ainda: adicione um abaixo.",
-   "ru": "Плиток пока нет: добавьте ниже.",
-   "id": "Belum ada ubin: tambahkan di bawah."
   },
   "{name} key": {
    "zh-Hans": "{name} 密钥",
@@ -18046,17 +17958,6 @@
    "ru": "Думает с помощью",
    "id": "Berpikir dengan"
   },
-  "Tiles · tap to show or hide": {
-   "zh-Hans": "磁贴 · 点击显示或隐藏",
-   "hi": "टाइलें · दिखाने या छिपाने के लिए टैप करें",
-   "es": "Mosaicos · toca para mostrar u ocultar",
-   "ar": "البلاطات · انقر للإظهار أو الإخفاء",
-   "fr": "Tuiles · touchez pour afficher ou masquer",
-   "bn": "টাইল · দেখাতে বা লুকাতে চাপুন",
-   "pt-BR": "Blocos · toque para mostrar ou ocultar",
-   "ru": "Плитки · нажмите, чтобы показать или скрыть",
-   "id": "Ubin · ketuk untuk tampil atau sembunyi"
-  },
   "Tiles, glass and accounts": {
    "zh-Hans": "磁贴、玻璃效果和账户",
    "hi": "टाइलें, ग्लास और खाते",
@@ -19310,6 +19211,83 @@
    "pt-BR": "Chamadas e reconhecimento",
    "ru": "Звонки и распознавание",
    "id": "Panggilan dan pengenalan"
+  },
+  "Tap to show or hide · drag to reorder · this is the island's order": {
+   "zh-Hans": "点按显示或隐藏 · 拖动排序 · 这就是灵动岛上的顺序",
+   "hi": "दिखाने या छिपाने के लिए टैप करें · क्रम बदलने के लिए खींचें · यही आइलैंड का क्रम है",
+   "es": "Toca para mostrar u ocultar · arrastra para ordenar · este es el orden de la isla",
+   "ar": "انقر للإظهار أو الإخفاء · اسحب لإعادة الترتيب · هذا هو ترتيب الجزيرة",
+   "fr": "Touchez pour afficher ou masquer · faites glisser pour réordonner · c'est l'ordre de l'île",
+   "bn": "দেখাতে বা লুকাতে ট্যাপ করুন · ক্রম বদলাতে টেনে আনুন · এটাই আইল্যান্ডের ক্রম",
+   "pt-BR": "Toque para mostrar ou ocultar · arraste para reordenar · esta é a ordem da ilha",
+   "ru": "Нажмите, чтобы показать или скрыть · перетащите, чтобы изменить порядок · это порядок на острове",
+   "id": "Ketuk untuk menampilkan atau menyembunyikan · seret untuk mengurutkan · ini urutan di pulau"
+  },
+  "+ Add tile": {
+   "zh-Hans": "+ 添加磁贴",
+   "hi": "+ टाइल जोड़ें",
+   "es": "+ Añadir mosaico",
+   "ar": "+ إضافة مربع",
+   "fr": "+ Ajouter une tuile",
+   "bn": "+ টাইল যোগ করুন",
+   "pt-BR": "+ Adicionar bloco",
+   "ru": "+ Добавить плитку",
+   "id": "+ Tambah ubin"
+  },
+  "Rename": {
+   "zh-Hans": "重命名",
+   "hi": "नाम बदलें",
+   "es": "Renombrar",
+   "ar": "إعادة التسمية",
+   "fr": "Renommer",
+   "bn": "নাম বদলান",
+   "pt-BR": "Renomear",
+   "ru": "Переименовать",
+   "id": "Ganti nama"
+  },
+  "More for {name}": {
+   "zh-Hans": "{name} 的更多选项",
+   "hi": "{name} के लिए और",
+   "es": "Más para {name}",
+   "ar": "المزيد لـ {name}",
+   "fr": "Plus pour {name}",
+   "bn": "{name}-এর জন্য আরও",
+   "pt-BR": "Mais para {name}",
+   "ru": "Ещё для {name}",
+   "id": "Lainnya untuk {name}"
+  },
+  "Search your apps": {
+   "zh-Hans": "搜索你的应用",
+   "hi": "अपने ऐप खोजें",
+   "es": "Busca tus apps",
+   "ar": "ابحث في تطبيقاتك",
+   "fr": "Rechercher vos applis",
+   "bn": "আপনার অ্যাপ খুঁজুন",
+   "pt-BR": "Pesquise seus apps",
+   "ru": "Поиск приложений",
+   "id": "Cari aplikasi Anda"
+  },
+  "Add website": {
+   "zh-Hans": "添加网站",
+   "hi": "वेबसाइट जोड़ें",
+   "es": "Añadir sitio web",
+   "ar": "إضافة موقع",
+   "fr": "Ajouter le site",
+   "bn": "ওয়েবসাইট যোগ করুন",
+   "pt-BR": "Adicionar site",
+   "ru": "Добавить сайт",
+   "id": "Tambah situs web"
+  },
+  "Choose a folder…": {
+   "zh-Hans": "选择文件夹…",
+   "hi": "फ़ोल्डर चुनें…",
+   "es": "Elige una carpeta…",
+   "ar": "اختر مجلدًا…",
+   "fr": "Choisir un dossier…",
+   "bn": "একটি ফোল্ডার বেছে নিন…",
+   "pt-BR": "Escolha uma pasta…",
+   "ru": "Выберите папку…",
+   "id": "Pilih folder…"
   }
  }
 }

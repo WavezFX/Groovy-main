@@ -25,6 +25,12 @@ export interface Tile {
 export interface IslandTiles {
   preset: IslandPreset;
   tiles: Tile[];
+  /**
+   * The user's own tiles (apps, websites, folders) switched off in Settings
+   * but kept, so tapping them brings them back (round 3E item 3). Groovy's
+   * own tiles and the services need no keeping: they are always on offer.
+   */
+  hidden: Tile[];
   /** Apps whose notifications may pop up on the island as mail ("Outlook", "Mail", "Chrome"…). Empty: any mail-looking app. */
   mailApps: string[];
 }
@@ -45,7 +51,10 @@ export const PRESETS: Record<Exclude<IslandPreset, "custom">, () => Tile[]> = {
   everyday: () => [tile("mail", "", "", "expanded"), tile("music"), tile("reminders"), tile("system")],
 };
 
-export const DEFAULT_TILES: IslandTiles = { preset: "developer", tiles: PRESETS.developer(), mailApps: [] };
+export const DEFAULT_TILES: IslandTiles = { preset: "developer", tiles: PRESETS.developer(), hidden: [], mailApps: [] };
+
+/** The kinds the user adds themselves; only these can be removed for good. */
+export const OWN_KINDS: readonly TileKind[] = ["app", "site", "folder"];
 
 function cleanText(v: unknown, max: number): string {
   return typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
@@ -70,26 +79,30 @@ export function validTarget(kind: TileKind, target: string): boolean {
 export function parseTiles(raw: unknown): IslandTiles {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const preset: IslandPreset = o.preset === "everyday" || o.preset === "custom" || o.preset === "developer" ? o.preset : DEFAULT_TILES.preset;
-  const tiles: Tile[] = [];
   const seen = new Set<string>();
-  if (Array.isArray(o.tiles)) {
-    for (const t of o.tiles) {
+  const list = (raw: unknown, only?: readonly TileKind[]): Tile[] => {
+    const out: Tile[] = [];
+    if (!Array.isArray(raw)) return out;
+    for (const t of raw) {
       if (!t || typeof t !== "object") continue;
       const r = t as Record<string, unknown>;
       const kind = KINDS.find((k) => k === r.kind);
-      if (!kind) continue;
+      if (!kind || (only && !only.includes(kind))) continue;
       const target = cleanText(r.target, 1000);
       if (!validTarget(kind, target)) continue;
       const one = tile(kind, target, cleanText(r.label, 40), r.size === "expanded" ? "expanded" : "compact");
       if (seen.has(one.id)) continue;
       seen.add(one.id);
-      tiles.push(one);
-      if (tiles.length >= MAX_TILES) break;
+      out.push(one);
+      if (out.length >= MAX_TILES) break;
     }
-  }
+    return out;
+  };
+  const tiles = list(o.tiles);
+  const hidden = list(o.hidden, OWN_KINDS);
   const mailApps = Array.isArray(o.mailApps) ? o.mailApps.map((a) => cleanText(a, 60)).filter(Boolean).slice(0, 20) : [];
-  if (!Array.isArray(o.tiles)) return { ...DEFAULT_TILES, preset, tiles: preset === "everyday" ? PRESETS.everyday() : PRESETS.developer(), mailApps };
-  return { preset, tiles, mailApps };
+  if (!Array.isArray(o.tiles)) return { ...DEFAULT_TILES, preset, tiles: preset === "everyday" ? PRESETS.everyday() : PRESETS.developer(), hidden, mailApps };
+  return { preset, tiles, hidden, mailApps };
 }
 
 export function currentTiles(settings: Pick<Settings, "islandTiles">): IslandTiles {
@@ -109,7 +122,28 @@ export function addTile(t: IslandTiles, add: Tile): IslandTiles | null {
 }
 
 export function removeTile(t: IslandTiles, id: string): IslandTiles {
-  return { ...t, preset: "custom", tiles: t.tiles.filter((x) => x.id !== id) };
+  return { ...t, preset: "custom", tiles: t.tiles.filter((x) => x.id !== id), hidden: (t.hidden ?? []).filter((x) => x.id !== id) };
+}
+
+/** Takes a tile off the island; the user's own are kept to show again. */
+export function hideTile(t: IslandTiles, id: string): IslandTiles {
+  const it = t.tiles.find((x) => x.id === id);
+  const keep = it && OWN_KINDS.includes(it.kind) ? [...(t.hidden ?? []).filter((x) => x.id !== id), it] : (t.hidden ?? []);
+  return { ...t, preset: "custom", tiles: t.tiles.filter((x) => x.id !== id), hidden: keep };
+}
+
+/** Puts a kept tile back on the island, at the end. */
+export function showTile(t: IslandTiles, id: string): IslandTiles {
+  const it = (t.hidden ?? []).find((x) => x.id === id);
+  if (!it || t.tiles.length >= MAX_TILES) return t;
+  return { ...t, preset: "custom", tiles: [...t.tiles, it], hidden: t.hidden.filter((x) => x.id !== id) };
+}
+
+/** A tile's own name (empty: its usual one). */
+export function renameTile(t: IslandTiles, id: string, label: string): IslandTiles {
+  const name = cleanText(label, 40);
+  const re = (x: Tile) => (x.id === id ? { ...x, label: name } : x);
+  return { ...t, preset: "custom", tiles: t.tiles.map(re), hidden: (t.hidden ?? []).map(re) };
 }
 
 /** Moves the tile `id` to position `to` (drag and drop, or the arrows). */

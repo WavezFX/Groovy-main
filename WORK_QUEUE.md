@@ -76,7 +76,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this right after 3F items 5, 7 and 9 (owner's choice, 25 Oct), before the open 3G security items 1, 2, 5 and 10. Then round 5, then 3G 1, 2, 5, 10, then 3D items 11 and 6.**
 - [x] 1. Island tiles look right at normal size: smaller text, a compact Spotify tile, a narrower Groovy area, a big page switcher
 - [x] 2. Real app icons, never letters (apps, websites, folders, service logos)
-- [ ] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
+- [x] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
 - [ ] 4. Growth bug: he starts at his real stage (one-time correction of the "fully grown" migration), 7-step timeline
 - [ ] 5. Stage 6: Sakura bonsai with emerald eyes, golden flame, Diamond sea with a golden shark and submarine (this does round 5 item 2)
 - [ ] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
