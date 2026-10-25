@@ -82,6 +82,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
 - [x] 7. Full wardrobe: 28 items plus the Diamond crown, stage unlocks, Seasonal tab, every Mochi item gone (this does round 5 items 3 and 4)
 - [x] 8. Checks
+- [ ] 9. Frost's water leaves blank spots when he faces sideways (owner's screenshot, 25 Oct): water drawn wider than his body, same check for the heat glow and golden swimmer
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
