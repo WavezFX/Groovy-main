@@ -1,0 +1,27 @@
+# Gitleaks: the default rules, plus an allowlist for known fake test values.
+# A finding is skipped only when it is one of these exact values AND it is in
+# one of these two test files ("AND"). Never add a real secret here: rotate it.
+# (One [allowlist] table: gitleaks 8.24, which CI runs, has no [[allowlists]].)
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "fake test values"
+condition = "AND"
+paths = [
+  # Phone Link relay test vectors (shared with the Android app's RelayCrypto.kt).
+  '''^windows/src-tauri/src/phone_link/relay-test-vectors\.json$''',
+  # Log redaction tests: inputs checked to be hidden by redact().
+  '''^windows/src-tauri/src/redact\.rs$''',
+]
+regexes = [
+  # kAuth derived from the counting test key 000102…1f
+  '''^b90415a0b01277ef3c2a977ab590c7742a20e417594852389803878fd3a209cb$''',
+  # made-up API keys and refresh token
+  '''^0123456789abcdef0123456789abcdef$''',
+  '''^0123456789abcdef$''',
+  '''^1//0gAbCdEfGhIjKlMn$''',
+  # a one-line fragment of a private key, not a usable key
+  '''^-----BEGIN RSA PRIVATE KEY-----\\nMIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu\\n-----END RSA PRIVATE KEY-----$''',
+]
