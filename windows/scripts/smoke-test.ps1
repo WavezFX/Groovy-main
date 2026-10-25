@@ -127,10 +127,21 @@ try {
       # whole machine (Task Manager's CPU column).
       $cpuOf = { param($ids) ($ids | ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } | Measure-Object -Property { $_.TotalProcessorTime.TotalSeconds } -Sum).Sum }
       $cpu0 = & $cpuOf $ids
+      $cpuAt = @{}
+      foreach ($id in $ids) { $p = Get-Process -Id $id -ErrorAction SilentlyContinue; if ($p) { $cpuAt[$id] = $p.TotalProcessorTime.TotalSeconds } }
       $t0 = Get-Date
       Start-Sleep -Seconds $CpuSeconds
       $cpu = [math]::Round(100.0 * ((& $cpuOf $ids) - $cpu0) / (((Get-Date) - $t0).TotalSeconds * [Environment]::ProcessorCount), 2)
       $metrics["idle CPU over $CpuSeconds s (% of the machine)"] = $cpu
+      # Which process it was: groovy.exe, or which kind of WebView2 process.
+      foreach ($id in $ids) {
+        $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+        if (-not $p) { continue }
+        $line = ($tree | Where-Object { $_.ProcessId -eq $id } | Select-Object -First 1).CommandLine
+        $kind = if ($id -eq $proc.Id) { "groovy.exe" } elseif ($line -match '--type=([a-z-]+)') { $Matches[1] } else { "browser" }
+        $key = "  CPU s in 60 s idle: $kind"
+        $metrics[$key] = [math]::Round(([double]($metrics[$key] ?? 0)) + $p.TotalProcessorTime.TotalSeconds - ($cpuAt[$id] ?? 0), 2)
+      }
       $proc.Refresh()
       $metrics["groovy.exe threads after"] = $proc.Threads.Count
       $results["idle CPU under $CpuBudget % over $CpuSeconds s (was $cpu)"] = $cpu -lt $CpuBudget

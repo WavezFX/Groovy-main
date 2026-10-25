@@ -486,6 +486,14 @@ fn current_screen_key(app: &AppHandle) -> Option<(i32, i32, u32, u32, u64)> {
     Some((p.x, p.y, size.width, size.height, m.scale_factor().to_bits()))
 }
 
+/// How far outside the island's window the cursor counts as far away.
+const FAR_MARGIN: f64 = 150.0;
+
+/// The cursor (window-logical) is well clear of the window of `size`.
+pub(crate) fn cursor_far(x: f64, y: f64, size: (f64, f64)) -> bool {
+    x < -FAR_MARGIN || y < -FAR_MARGIN || x > size.0 + FAR_MARGIN || y > size.1 + FAR_MARGIN
+}
+
 /// Emits `cursor` (window-logical coordinates) at ~60 Hz while the island is
 /// visible. Parked on a condvar the rest of the time.
 pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
@@ -506,8 +514,9 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
             gate.wait_until_active();
             let mut last = (f64::MIN, f64::MIN);
             let mut ticks: u32 = 0;
+            let mut wait = period;
             while gate.is_active() {
-                std::thread::sleep(Duration::from_millis(period));
+                std::thread::sleep(Duration::from_millis(wait));
 
                 // Monitors get plugged in, unplugged, rearranged and rescaled, and
                 // an island pinned to coordinates that no longer exist is an island
@@ -537,6 +546,10 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
                     Err(_) => (PANEL_W, PANEL_H),
                 };
                 let pressed = left_button_down();
+                // Far from the island with no button held, nothing needs 60 Hz:
+                // a third of the wake-ups (round 3F item 4), still quick enough
+                // to catch a click away.
+                wait = if !pressed && cursor_far(x, y, size) { period * 3 } else { period };
                 if pressed && !was_pressed {
                     let r = *gate.rect.lock().unwrap();
                     let on = r.w > 0.0 && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
@@ -635,5 +648,19 @@ pub fn refresh_click_through(app: &AppHandle, gate: &PollGate) {
 pub fn set_ignore_cursor(app: &AppHandle, ignore: bool) {
     if let Some(win) = window(app) {
         let _ = win.set_ignore_cursor_events(ignore);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_cursor_is_far_only_well_clear_of_the_window() {
+        let size = (700.0, 300.0);
+        assert!(!cursor_far(350.0, 150.0, size), "over the island");
+        assert!(!cursor_far(-100.0, 400.0, size), "close below and beside it");
+        assert!(cursor_far(350.0, 451.0, size));
+        assert!(cursor_far(-151.0, 0.0, size));
     }
 }
