@@ -150,3 +150,26 @@ He wants to **preview every stage's look**, with each stage unlocking once he re
 - **The three looks:** a small Night / Ember / Frost switch above the strip previews the other looks at any stage too (preview only, 5 seconds); the chosen look is changed only where it is chosen now.
 - **Memory:** the strip draws only while the page is visible, one small canvas at a time (lazy), and stops when Settings closes. It must not raise idle memory (round 3D items 7 and 9).
 - **Test:** a profile at stage 2 shows stages 1 and 2 unlocked and 3 to 6 locked; previewing stage 6 doesn't change `reached`; the preview reverts after 5 seconds; nothing is saved.
+
+## Item 12: Night, Ember and Frost each grow on their own (owner, 25 Oct)
+
+Each look has its **own growth**. If he spends a month as Night and no time as Ember or Frost, Ember and Frost are still at stage 0 (not started), and each look grows only in proportion to the time spent with that look.
+
+- **Data** (`windows/src/mochi/growth.ts`, `settings.rs` `merge_growth`): today there is one `settings.growth` record (`activeSeconds`, `reached`, `seen`, `hatchedAt`, `correction`). Replace it with **one record per look**: `settings.growths = { night, ember, frost }`, each a full `Growth`. Keyed by the base look (Night, Ember or Frost; Grove, Blaze and Tide are just their grown forms).
+- **Only the look he's wearing grows.** The minute tick adds active time to the current look's record and to no other. Switching look never copies, resets or shares time or stage.
+- **Each look has its own start date.** A look's `hatchedAt` is set the first time it is chosen (or on its first tick), and not before. Until then it's "Not started" at stage 0. The six-month rule for stage 6 counts from that look's own `hatchedAt`, on top of its own active time (as now).
+- **One-time migration** (a new correction version, in `parseGrowth`, `correctGrowth` and Rust `merge_growth`, so it never runs twice and a lower stage is allowed once): the existing single record moves to the look he has chosen now (`groovyLook`); the other two start empty ("Not started"). Nothing else is lost; the timeline stays in step with 3E item 4's corrected value.
+- **Merging** (the Rust side): merge each look's record separately by the same rules as today (never go back; compare the correction version).
+- **Everything that reads growth uses the current look's record:** the island and desktop Groovy's art, the launch greeting (`seen`), the timeline, "next in about …", the wardrobe's stage unlocks and the previews (item 11). Grep for every `settings.growth` / `shownStage` / `stageProgress` use and update it.
+- **The UI:**
+  - the Settings → Groovy timeline shows the current look's own progress;
+  - the Night / Ember / Frost switch shows each look's state under its name ("Stage 5", "Stage 2" or "Not started");
+  - the item 11 preview strip for a look uses that look's reached stage, so Ember and Frost show locked stages until they are earned;
+  - choosing a look for the first time starts its clock, and the first-hatch pick in round 5 item 6 starts the chosen look's clock only.
+- **Wardrobe stage unlocks** (Seed pendant to Diamond crown) are the owner's keepsakes and unlock for good at the **highest stage any look has reached**; locked previews still work (item 11). Say in `STATUS.md` that this was the default chosen, so the owner can change it to per-look if he prefers.
+- **Tests:**
+  - a profile with 30 active days as Night and none as Ember or Frost shows Night at stage 5, Ember and Frost at "Not started" stage 0;
+  - switching to Ember and running 2 days makes Ember stage 2 and Night unchanged;
+  - the migration moves the old record to the chosen look once and does not run twice;
+  - Rust `merge_growth` merges the three records independently and never lowers one;
+  - the six-month rule for each look counts from that look's own start.
