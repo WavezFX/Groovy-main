@@ -7,6 +7,7 @@
 import { Ease, lerp, type EaseFn } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
+import { SLOT_OF } from "./appearance";
 import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
 import { DEFAULT_SKIN, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
@@ -850,9 +851,15 @@ export class BotEngine {
     const head = dressed ? makeHead(R, this.yaw, this.pitch, this.physDx, this.physDy) : null;
     const outfitState = { presence: this.outfitPresence, morph: this.morph };
     const skinHead = this.isMini ? null : { ...makeHead(R, this.yaw, this.pitch, this.physDx, this.physDy), rx, ry };
-    if (head) { head.rx = rx; head.ry = ry; }
+    if (head) {
+      head.rx = rx;
+      head.ry = ry;
+      // Face items sit on his real eyes, wherever he looks (round 3E item 10).
+      head.eyes = this.eyeCentres(rx, ry);
+    }
     const skinState: SkinState = {
-      hatless: dressed ? 1 - Math.min(1, this.outfitPresence) : 1,
+      // Only a hat hides what grows on top of his head (round 3E item 10).
+      hatless: dressed && [this.outfit, ...this.layers].some((o) => o !== "none" && SLOT_OF[o] === "head") ? 1 - Math.min(1, this.outfitPresence) : 1,
       shown: Math.max(0, 1 - this.morph * 2),
       time: now(),
       lite: this.lite,
@@ -1021,6 +1028,23 @@ export class BotEngine {
     return true;
   }
 
+  /** Where his eyes are (body space), as drawEyes puts them: left, then right. */
+  eyeCentres(rx: number, ry: number): [[number, number], [number, number]] {
+    const face = this.isMini ? null : this.style.face;
+    const at = (sd: number): [number, number] => {
+      const eyeYaw = sd * (face?.eyeSp ?? EYE_SP) + this.yaw;
+      const eyePitch = this.eyePitch(face);
+      return [Math.sin(eyeYaw) * Math.cos(eyePitch) * rx, -Math.sin(eyePitch) * ry + (this.morph > 0 ? ry * 0.14 * this.morph : 0)];
+    };
+    return [at(-1), at(1)];
+  }
+
+  private eyePitch(face: SkinStyle["face"] | null | undefined): number {
+    // Rolling with an outfit on, the whole body turns: the eyes must not roll again.
+    const p = EYE_P - (face?.eyeY ?? 0) + this.pitch + (this.rigidRoll ? 0 : this.roll);
+    return (((p + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  }
+
   private drawEyes(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
     let shape: EyeShape = this.eyeOverride ?? this.cfg.eye;
     // Dancing: happy eyes in the calm states.
@@ -1046,9 +1070,7 @@ export class BotEngine {
     const face = sk?.face;
     for (const sd of [-1, 1]) {
       const eyeYaw = sd * (face?.eyeSp ?? EYE_SP) + this.yaw;
-      // Rolling with an outfit on, the whole body turns: the eyes must not roll again.
-      let eyePitch = EYE_P - (face?.eyeY ?? 0) + this.pitch + (this.rigidRoll ? 0 : this.roll);
-      eyePitch = (((eyePitch + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+      const eyePitch = this.eyePitch(face);
       const cp = Math.cos(eyePitch);
       if (Math.cos(eyeYaw) * cp <= 0.04) continue;
 

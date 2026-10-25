@@ -287,6 +287,9 @@ jobs:
           # Round 3E item 9: Frost's water fills his body at yaw -1, 0 and +1, every stage.
           node --import ./tests/setup.mjs scripts/water-check.mjs http://127.0.0.1:1420 settings-screens/water
           if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3E item 10: every wardrobe item on his head at every angle, with a contact sheet.
+          node --import ./tests/setup.mjs scripts/items-check.mjs http://127.0.0.1:1420 settings-screens/items
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
           taskkill /PID $vite.Id /T /F | Out-Null
           exit $code
 

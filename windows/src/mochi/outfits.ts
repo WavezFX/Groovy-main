@@ -5,12 +5,19 @@
 // crown, his six-month reward, drawn in the same style.
 //
 // Coordinates are BotEngine's body space: origin at the body centre, y down,
-// R = W × 0.3, rx = 1.14 R, ry = 0.88 R. Items turn a little with his head,
-// as the eyes and the growth art do; hats drop on, glasses slide down into
-// place and neck items pop in.
+// R = W × 0.3, rx = 1.14 R, ry = 0.88 R. Each item follows its anchor as he
+// turns, looks up or down and wobbles (round 3E item 10, placed the way
+// Coucou's items follow its head; none of its art):
+// - face items are mapped onto his real eyes (BotEngine.eyeCentres), so the
+//   board's lenses land on them at any angle and narrow as the eyes do;
+// - hats ride the top of his head: a small slide, a little narrower;
+// - neck items sit on his front, low down: they slide and narrow like it;
+// - the pool ring goes round his middle and only slides.
+// Nothing is clipped to the body, so nothing is cut off at the edge. Hats
+// drop on, glasses slide down into place and neck items pop in.
 
 import { Ease } from "../core/anim";
-import { drawShapes, toBoard, type Art, type Shape } from "./art/draw";
+import { drawShapes, type Art, type Shape } from "./art/draw";
 import { SEASONAL_ART } from "./art/seasonal";
 import { WARDROBE_ART } from "./art/wardrobe";
 import { SLOT_OF } from "./appearance";
@@ -27,6 +34,8 @@ export interface Head {
   pitch: number;
   physDx: number;
   physDy: number;
+  /** His eyes in body space, left then right (the engine's); face items sit on them. */
+  eyes?: [[number, number], [number, number]];
 }
 
 export function makeHead(R: number, yaw = 0, pitch = 0, physDx = 0, physDy = 0): Head {
@@ -141,8 +150,57 @@ function arrive(ctx: Ctx, item: Accessory, H: Head, p: number) {
   }
 }
 
-function drawItem(ctx: Ctx, art: Art, H: Head, layers: readonly ("behind" | "body" | "front")[]) {
-  toBoard(ctx, H.rx, H.ry, Math.sin(H.yaw) * H.rx * 0.35);
+/** The board's eyes (Wardrobe.dc.html): what face items were drawn around. */
+const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
+/** The board points the other items hang from: the top of the head, the neck, his middle. */
+const ANCHOR = { head: [50, 30], neck: [50, 90], middle: [50, 80] } as const;
+
+/** How an item narrows as he turns, never below 0.6 so nothing vanishes. */
+export function narrowing(yaw: number, strength: number): number {
+  return Math.max(0.6, 1 - (1 - Math.max(0, Math.cos(yaw))) * strength);
+}
+
+/**
+ * Board space for an item, placed on its anchor (the caller drew nothing
+ * yet). Exported for the placement test.
+ */
+export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
+  const sx = H.rx / 36;
+  const sy = H.ry / 31;
+  const slot = SLOT_OF[item];
+  const wobbleX = H.physDx * H.rx * 0.05;
+  const wobbleY = H.physDy * H.ry * 0.05;
+  if (slot === "face") {
+    const [l, r] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
+    // The board's two eyes onto his: their middle, their spacing (never under
+    // 0.6 of the full face's), and the line between them.
+    const front = Math.abs(12 * sx * 2) || 1;
+    const span = Math.hypot(r[0] - l[0], r[1] - l[1]);
+    const full = H.eyes ? span / Math.max(0.05, Math.cos(H.yaw)) : front;
+    const k = Math.max(span, full * 0.6) / (BOARD_EYES.r - BOARD_EYES.l);
+    const ky = full / (BOARD_EYES.r - BOARD_EYES.l);
+    ctx.translate((l[0] + r[0]) / 2, (l[1] + r[1]) / 2);
+    ctx.rotate(Math.atan2(r[1] - l[1], r[0] - l[0]));
+    ctx.scale(k, ky);
+    ctx.translate(-(BOARD_EYES.l + BOARD_EYES.r) / 2, -BOARD_EYES.y);
+    return;
+  }
+  const where = item === "poolRing" ? "middle" : slot === "head" ? "head" : "neck";
+  const [ax, ay] = ANCHOR[where];
+  // Hats sit on top: they slide less than his face and barely narrow; neck
+  // items are on his front, low down; the ring goes all the way round.
+  const slide = where === "head" ? 0.35 : where === "neck" ? 0.75 : 0.3;
+  const kx = where === "middle" ? 1 : narrowing(H.yaw, where === "head" ? 0.45 : 0.75);
+  const lift = -Math.sin(H.pitch) * H.ry * (where === "head" ? 0.3 : 0.2);
+  ctx.translate(Math.sin(H.yaw) * H.rx * slide + wobbleX, lift + wobbleY);
+  // The anchor in body space; the item narrows around it.
+  ctx.translate((ax - 50) * sx, (ay - 61) * sy);
+  ctx.scale(sx * kx, sy);
+  ctx.translate(-ax, -ay);
+}
+
+function drawItem(ctx: Ctx, item: Accessory, art: Art, H: Head, layers: readonly ("behind" | "body" | "front")[]) {
+  placeItem(ctx, item, H);
   for (const l of layers) drawShapes(ctx, art[l]);
 }
 
@@ -161,7 +219,7 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
   if (!layers.some((l) => art[l]?.length)) return;
   ctx.save();
   arrive(ctx, outfit, H, st.presence);
-  withLayer(ctx, alpha, (l) => drawItem(l, art, H, layers));
+  withLayer(ctx, alpha, (l) => drawItem(l, outfit, art, H, layers));
   ctx.restore();
 }
 
@@ -175,7 +233,7 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
   ctx.save();
   arrive(ctx, outfit, H, st.presence);
   // The board puts glasses that hide the eyes under them; on him they go over.
-  withLayer(ctx, alpha, (l) => drawItem(l, art, H, ["body", "front"]));
+  withLayer(ctx, alpha, (l) => drawItem(l, outfit, art, H, ["body", "front"]));
   ctx.restore();
 }
 

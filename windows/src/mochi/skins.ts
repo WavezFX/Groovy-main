@@ -250,7 +250,8 @@ export function drawSkinBody(x: CanvasRenderingContext2D, skin: Skin | SkinStyle
 export function drawSkinFront(x: CanvasRenderingContext2D, skin: Skin | SkinStyle, H: Head, st: SkinState) {
   const s = typeof skin === "string" ? SKIN_STYLES[skin] : skin;
   if (st.shown < 0.02 || s.stage < 1) return;
-  drawLayer(x, s, H, st, "front");
+  // What grows on top of his head goes under a hat (round 3E item 10).
+  if (st.hatless > 0.02) drawLayer(x, s, H, { ...st, shown: st.shown * st.hatless }, "front");
   if (s.gem) {
     // Petals, gold sparkles or diamond flakes round him.
     x.save();
