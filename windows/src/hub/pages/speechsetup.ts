@@ -4,7 +4,7 @@
 // 2. the speech model, with its size and a progress bar; 3. a five-second test
 // that shows the words heard. Finishing turns on what was asked for.
 
-import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "../../settings/voice";
+import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "../../settings/speechlabels";
 import { invoke } from "@tauri-apps/api/core";
 import { h } from "../../views/dom";
 import { t } from "../../i18n/i18n";

@@ -2,7 +2,7 @@
 // model, the Notetaker's summaries, the window and the history. Port of
 // FlowHubSettings.swift.
 
-import { PARAKEET_OVER_LIMIT } from "../../settings/voice";
+import { PARAKEET_OVER_LIMIT } from "../../settings/speechlabels";
 import { needsSetup } from "./speechsetup";
 import { h, clear } from "../../views/dom";
 import { t } from "../../i18n/i18n";

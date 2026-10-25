@@ -7,12 +7,11 @@ import { Bridge, onEvent, type VoiceStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { h, clear } from "../views/dom";
 import { statusDot } from "./parts";
-import { N_, t } from "../i18n/i18n";
+import { t } from "../i18n/i18n";
 import { speak, voices } from "../voice/speak";
+import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "./speechlabels";
 
 /** Round 3D item 7: Parakeet is the accurate choice, not the default. */
-export const PARAKEET_LABEL = N_("Parakeet: high accuracy (uses more memory)");
-export const PARAKEET_OVER_LIMIT = N_("Parakeet uses about 670 MB while it listens: over Groovy's 400 MB limit. Whisper (light) keeps Groovy under it.");
 
 /** Whisper models Groovy can download (ggml format from whisper.cpp; pinned in voice.rs). */
 const MODELS: Array<[id: string, label: string]> = [
