@@ -116,3 +116,12 @@ The wardrobe still shows the **old Coucou/Mochi items** (Party hat, Beanie, Crow
 - Stage 6 renders for all three looks.
 - No Mochi item is left (grep).
 - The memory budgets hold (300 MB Standby, 400 MB peak), and the frame-time test passes.
+
+## Item 9: Frost's water leaves blank spots when he faces sideways (owner's screenshot, 25 Oct)
+
+When Frost turns his head to the side, part of his body shows no water (a pale blank strip on one side), so he looks half empty.
+
+- **Cause** (`windows/src/mochi/finish.ts`, `surface()` and `drawWater()`): the water is drawn only between board x = 8 and 92 (his body's width). `skins.ts` `drawLayer` shifts the whole board sideways by `sin(yaw) * rx * 0.8` when he turns, so on the side he turns away from, the body's edge lies outside 8–92 and nothing is painted there.
+- **Fix:** draw the water far wider than his body, since the clip to his body already decides what shows. In `surface()`, run the wave from `SEA_L = -70` to `SEA_R = 170` and close the path down to y 140 (not 98). In `drawWater()`, run the caustic bands from x -50 to 150, not 10 to 90. Bubbles may stay where they are.
+- **Check the same thing everywhere that is shifted with the board:** Ember's heat glow (`drawHeat`), the golden swimmer (`drawStage6Body`, `skins.ts` line 243, shifted by 0.8) and any full-width layer in `stage6.ts`. Each must cover the body at the largest yaw, on both sides.
+- **Test:** render Frost at yaw -1, 0 and +1 (all stages 1-6) in CI and fail if any pixel inside the body outline is left unpainted by the water layer. Screenshot the three in the CI artifacts.
