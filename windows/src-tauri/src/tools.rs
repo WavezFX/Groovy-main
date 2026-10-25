@@ -492,7 +492,13 @@ struct Pending {
 }
 
 static PENDING: Mutex<Option<HashMap<u64, Pending>>> = Mutex::new(None);
-static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+/// Pending requests are named by a random id, so a page can't guess one it wasn't shown.
+fn pending_id() -> u64 {
+    let mut b = [0u8; 8];
+    ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut b).ok();
+    // Kept under 2^53, so the page's numbers hold it exactly.
+    (u64::from_le_bytes(b) >> 11).max(1)
+}
 const PENDING_FOR: Duration = Duration::from_secs(300);
 
 /// The answer to a recognised request: the result, or the question with buttons.
@@ -509,7 +515,7 @@ pub fn handle(call: Call) -> (String, Option<PendingAction>) {
             (run(&call), None)
         }
         Perm::Ask => {
-            let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let id = pending_id();
             let question = call.describe();
             audit(&conn, tool, &call.args(), "asked");
             let mut p = PENDING.lock().unwrap();
@@ -794,14 +800,32 @@ pub fn tools_list() -> Result<Vec<ToolInfo>, String> {
     Ok(TOOLS.iter().map(|d| ToolInfo { id: d.id, label: d.label, description: d.description, permission: permission(&conn, d.id) }).collect())
 }
 
+/// Round 3G item 1: which window may change permissions (Settings → Permissions)
+/// and which may answer a pending request (the island's chat and panels,
+/// and Settings). The pending request and its outcome live here; a page only
+/// names one by the id Groovy gave it.
+pub fn may_set_permissions(label: &str) -> bool {
+    label == crate::HUB_LABEL
+}
+
+pub fn may_decide(label: &str) -> bool {
+    label == crate::island::WINDOW_LABEL || label == crate::HUB_LABEL
+}
+
 #[tauri::command]
-pub fn tools_set_permission(id: String, permission: String) -> Result<(), String> {
+pub fn tools_set_permission(window: tauri::Window, id: String, permission: String) -> Result<(), String> {
+    if !may_set_permissions(window.label()) {
+        return Err(t("Permissions are changed in Settings → Permissions."));
+    }
     let perm = Perm::parse(&permission).ok_or("Unknown permission.")?;
     set_permission(&*db::conn()?, &id, perm)
 }
 
 #[tauri::command]
-pub fn tools_decide(id: u64, decision: String) -> Result<String, String> {
+pub fn tools_decide(window: tauri::Window, id: u64, decision: String) -> Result<String, String> {
+    if !may_decide(window.label()) {
+        return Err(t("That request has expired: ask again."));
+    }
     decide(id, &decision)
 }
 
@@ -824,6 +848,19 @@ pub fn tools_log_clear() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_settings_changes_permissions_and_only_the_island_or_settings_answers() {
+        assert!(may_set_permissions("settings"));
+        for w in ["island", "studio", "mochi", "pill"] {
+            assert!(!may_set_permissions(w), "{w}");
+        }
+        assert!(may_decide("island") && may_decide("settings"));
+        assert!(!may_decide("studio") && !may_decide("mochi"));
+        let (a, b) = (pending_id(), pending_id());
+        assert_ne!(a, b);
+        assert!(a < 1 << 53 && b < 1 << 53);
+    }
 
     #[test]
     fn understands_reminders() {

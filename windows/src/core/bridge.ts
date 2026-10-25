@@ -660,7 +660,8 @@ export const Bridge = {
   studioRevert: (ws: number, id: number) => callOrThrow<string>("studio_revert", { ws, id }),
   studioSearch: (ws: number, query: string) => callOrThrow<StudioHit[]>("studio_search", { ws, query }),
   /** Only ever called from a Run button that shows the command: that click is the approval. */
-  studioRun: (ws: number, command: string) => callOrThrow<number>("studio_run", { ws, command, approved: true, timeoutMinutes: null }),
+  // Groovy asks in its own dialog before it runs (round 3G item 1): the page can't approve.
+  studioRun: (ws: number, command: string) => callOrThrow<number>("studio_run", { ws, command, timeoutMinutes: null }),
   studioStop: (run: number) => call<boolean>("studio_stop", { run }),
   studioGit: (ws: number, what: "status" | "diff" | "log" | "remote") => callOrThrow<string>("studio_git", { ws, what }),
   studioGitAction: (ws: number, action: "init" | "stage" | "commit" | "push", message?: string) =>

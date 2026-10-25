@@ -30,6 +30,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::i18n::{t, tf};
 use crate::{db, log};
 
 const MAX_READ: u64 = 2 * 1024 * 1024;
@@ -542,6 +543,89 @@ pub fn build_prompt(question: &str, files: &[(String, String)], extra: &str) -> 
     out
 }
 
+// ── Who may change things (round 3G item 1) ──────────────────────────────────
+//
+// What runs a program, writes, deletes or posts answers the Studio window
+// only, and running a command is decided here, never by the page: Groovy's
+// own dialog asks (Run / Always run this here / Cancel), or the command is on
+// the list the user said "always" to for that workspace, kept in the database.
+
+/// The Studio window's label.
+pub const WINDOW: &str = "studio";
+
+/// Only the Studio window may: a script in another window gets an error.
+pub fn studio_only(label: &str) -> Result<(), String> {
+    if label == WINDOW {
+        Ok(())
+    } else {
+        Err(t("That only works from the Coding Studio window."))
+    }
+}
+
+const MAX_ALWAYS: usize = 200;
+
+fn always_key(ws: i64) -> String {
+    format!("studio.always.{ws}")
+}
+
+/// The commands the user said "always" to in this workspace.
+pub fn always_list(conn: &Connection, ws: i64) -> Vec<String> {
+    crate::music::kv_get(conn, &always_key(ws)).and_then(|v| serde_json::from_str(&v).ok()).unwrap_or_default()
+}
+
+/// "Always run this here": exactly this command, in this workspace.
+pub fn remember_always(conn: &Connection, ws: i64, command: &str) {
+    let mut list = always_list(conn, ws);
+    if !list.iter().any(|c| c == command) {
+        list.push(command.to_string());
+    }
+    let start = list.len().saturating_sub(MAX_ALWAYS);
+    crate::music::kv_set(conn, &always_key(ws), &serde_json::to_string(&list[start..]).unwrap_or_default());
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Answer {
+    Once,
+    Always,
+    Cancel,
+}
+
+/// Reads the native dialog's answer: its custom labels, or its plain Yes / No / Cancel.
+pub fn answer_of(result: &tauri_plugin_dialog::MessageDialogResult, once: &str, always: &str) -> Answer {
+    use tauri_plugin_dialog::MessageDialogResult as R;
+    match result {
+        R::Yes | R::Ok => Answer::Once,
+        R::No => Answer::Always,
+        R::Custom(label) if label == once => Answer::Once,
+        R::Custom(label) if label == always => Answer::Always,
+        _ => Answer::Cancel,
+    }
+}
+
+/// Groovy's own question, over the Studio window; the page has no say in the answer.
+async fn confirm(window: &tauri::Window, title: String, message: String, once: String, always: Option<String>) -> Answer {
+    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let buttons = match &always {
+        Some(a) => MessageDialogButtons::YesNoCancelCustom(once.clone(), a.clone(), t("Cancel")),
+        None => MessageDialogButtons::OkCancelCustom(once.clone(), t("Cancel")),
+    };
+    window
+        .dialog()
+        .message(message)
+        .title(title)
+        .kind(MessageDialogKind::Warning)
+        .parent(window)
+        .buttons(buttons)
+        .show_with_result(move |r| {
+            let _ = tx.send(r);
+        });
+    match rx.await {
+        Ok(r) => answer_of(&r, &once, always.as_deref().unwrap_or("\u{0}")),
+        Err(_) => Answer::Cancel,
+    }
+}
+
 // ── Tauri commands ────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -589,7 +673,8 @@ pub async fn studio_new_project(app: AppHandle, name: String) -> Result<Option<W
 }
 
 #[tauri::command]
-pub fn studio_remove_workspace(id: i64) -> Result<(), String> {
+pub fn studio_remove_workspace(window: tauri::Window, id: i64) -> Result<(), String> {
+    studio_only(window.label())?;
     db::conn()?.execute("DELETE FROM workspaces WHERE id = ?1", [id]).map_err(sql)?;
     Ok(())
 }
@@ -607,7 +692,8 @@ pub fn studio_read(ws: i64, path: String) -> Result<FileText, String> {
 }
 
 #[tauri::command]
-pub fn studio_write(ws: i64, path: String, text: String, reason: Option<String>) -> Result<(), String> {
+pub fn studio_write(window: tauri::Window, ws: i64, path: String, text: String, reason: Option<String>) -> Result<(), String> {
+    studio_only(window.label())?;
     if text.len() > 8 * 1024 * 1024 {
         return Err("That file is too large to save from the editor.".into());
     }
@@ -620,7 +706,8 @@ pub fn studio_write(ws: i64, path: String, text: String, reason: Option<String>)
 }
 
 #[tauri::command]
-pub fn studio_delete(ws: i64, path: String) -> Result<(), String> {
+pub fn studio_delete(window: tauri::Window, ws: i64, path: String) -> Result<(), String> {
+    studio_only(window.label())?;
     let conn = db::conn()?;
     let root = root_of(&conn, ws)?;
     trash(&conn, ws, &root, &path)?;
@@ -634,7 +721,8 @@ pub fn studio_history(ws: i64, path: String) -> Result<Vec<Version>, String> {
 }
 
 #[tauri::command]
-pub fn studio_revert(ws: i64, id: i64) -> Result<String, String> {
+pub fn studio_revert(window: tauri::Window, ws: i64, id: i64) -> Result<String, String> {
+    studio_only(window.label())?;
     let conn = db::conn()?;
     let root = root_of(&conn, ws)?;
     revert(&conn, ws, &root, id)
@@ -646,22 +734,44 @@ pub async fn studio_search(ws: i64, query: String) -> Result<Vec<Hit>, String> {
     tauri::async_runtime::spawn_blocking(move || search(&root, &query, 500)).await.map_err(|e| e.to_string())
 }
 
-/// Runs a command the user approved by clicking Run on it.
+/// Runs a command in a workspace, once Groovy's own dialog said so (or the
+/// user said "always" to exactly this command here). The page can't approve.
 #[tauri::command]
-pub fn studio_run(app: AppHandle, ws: i64, command: String, approved: bool, timeout_minutes: Option<u64>) -> Result<u64, String> {
-    if !approved {
-        return Err("Commands only run when you click Run.".into());
+pub async fn studio_run(app: AppHandle, window: tauri::Window, ws: i64, command: String, timeout_minutes: Option<u64>) -> Result<u64, String> {
+    studio_only(window.label())?;
+    let command = command.trim().to_string();
+    if command.is_empty() {
+        return Err(t("Type a command first."));
     }
-    let conn = db::conn()?;
-    let w = workspace(&conn, ws)?;
-    crate::tools::audit(&conn, "terminal", &serde_json::json!({ "workspace": w.path, "command": command }), "run (approved)");
-    drop(conn);
+    let (w, always) = {
+        let conn = db::conn()?;
+        let w = workspace(&conn, ws)?;
+        let always = always_list(&conn, ws).contains(&command);
+        (w, always)
+    };
+    let how = if always {
+        "run (always allowed in this workspace)"
+    } else {
+        let message = format!("{command}\n\n{}", tf("In {folder}", &[("folder", &w.path)]));
+        match confirm(&window, t("Run this command?"), message, t("Run"), Some(t("Always run this here"))).await {
+            Answer::Cancel => {
+                crate::tools::audit(&*db::conn()?, "terminal", &serde_json::json!({ "workspace": w.path, "command": command }), "declined");
+                return Err(t("Not run."));
+            }
+            Answer::Always => {
+                remember_always(&*db::conn()?, ws, &command);
+                "run (always, from now on)"
+            }
+            Answer::Once => "run (confirmed)",
+        }
+    };
+    crate::tools::audit(&*db::conn()?, "terminal", &serde_json::json!({ "workspace": w.path, "command": command }), how);
     start(&app, &w, &command, Duration::from_secs(timeout_minutes.unwrap_or(10).clamp(1, 120) * 60))
 }
 
 #[tauri::command]
-pub fn studio_stop(run: u64) -> bool {
-    stop(run)
+pub fn studio_stop(window: tauri::Window, run: u64) -> bool {
+    studio_only(window.label()).is_ok() && stop(run)
 }
 
 #[tauri::command]
@@ -680,13 +790,18 @@ pub async fn studio_git(ws: i64, what: String) -> Result<String, String> {
 
 /// git init / add -A / commit / push — each one an explicit click in the Studio.
 #[tauri::command]
-pub async fn studio_git_action(ws: i64, action: String, message: Option<String>) -> Result<String, String> {
-    let root = {
-        let conn = db::conn()?;
-        let root = root_of(&conn, ws)?;
-        crate::tools::audit(&conn, "git", &serde_json::json!({ "workspace": root.to_string_lossy(), "action": action }), "approved");
-        root
-    };
+pub async fn studio_git_action(window: tauri::Window, ws: i64, action: String, message: Option<String>) -> Result<String, String> {
+    studio_only(window.label())?;
+    let root = root_of(&*db::conn()?, ws)?;
+    // A push posts the code elsewhere: Groovy asks first, every time.
+    if action == "push" {
+        let message = tf("Push the commits in {folder} to its remote?", &[("folder", &root.to_string_lossy())]);
+        if confirm(&window, t("Push?"), message, t("Push"), None).await != Answer::Once {
+            crate::tools::audit(&*db::conn()?, "git", &serde_json::json!({ "workspace": root.to_string_lossy(), "action": action }), "declined");
+            return Err(t("Not pushed."));
+        }
+    }
+    crate::tools::audit(&*db::conn()?, "git", &serde_json::json!({ "workspace": root.to_string_lossy(), "action": action }), "approved");
     tauri::async_runtime::spawn_blocking(move || match action.as_str() {
         "init" => git(&root, &["init"]),
         "stage" => git(&root, &["add", "-A"]),
@@ -804,6 +919,40 @@ pub fn show(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn only_the_studio_window_may_run_write_delete_or_push() {
+        assert!(studio_only("studio").is_ok());
+        for other in ["island", "settings", "mochi", "pill", ""] {
+            assert!(studio_only(other).is_err(), "{other}");
+        }
+    }
+
+    #[test]
+    fn always_is_this_exact_command_in_this_workspace_only() {
+        let c = db::open_in_memory().unwrap();
+        assert!(always_list(&c, 1).is_empty());
+        remember_always(&c, 1, "npm test");
+        remember_always(&c, 1, "npm test");
+        assert_eq!(always_list(&c, 1), ["npm test"]);
+        assert!(always_list(&c, 2).is_empty(), "another workspace asks again");
+        assert!(!always_list(&c, 1).contains(&"npm test && rm -rf /".to_string()), "a longer command asks again");
+        for i in 0..250 {
+            remember_always(&c, 1, &format!("cmd {i}"));
+        }
+        assert_eq!(always_list(&c, 1).len(), MAX_ALWAYS, "the list keeps the newest");
+    }
+
+    #[test]
+    fn the_dialogs_answer_is_read_from_its_buttons() {
+        use tauri_plugin_dialog::MessageDialogResult as R;
+        assert_eq!(answer_of(&R::Custom("Run".into()), "Run", "Always run this here"), Answer::Once);
+        assert_eq!(answer_of(&R::Custom("Always run this here".into()), "Run", "Always run this here"), Answer::Always);
+        assert_eq!(answer_of(&R::Yes, "Run", "Always"), Answer::Once);
+        assert_eq!(answer_of(&R::No, "Run", "Always"), Answer::Always);
+        assert_eq!(answer_of(&R::Cancel, "Run", "Always"), Answer::Cancel);
+        assert_eq!(answer_of(&R::Custom("Cancel".into()), "Run", "Always"), Answer::Cancel, "closing or cancelling runs nothing");
+    }
+
     use super::*;
 
     fn tmp(name: &str) -> PathBuf {

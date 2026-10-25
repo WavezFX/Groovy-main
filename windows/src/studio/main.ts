@@ -276,8 +276,8 @@ async function run(command: string) {
   output.textContent = outputText;
   clear(problems);
   try {
-    // The click on Run is the approval.
-    running = await call<number>("studio_run", { ws: ws.id, command, approved: true });
+    // Groovy's own dialog asks before it runs (round 3G item 1); the page can't approve.
+    running = await call<number>("studio_run", { ws: ws.id, command });
   } catch (e) {
     say(errorText(e), true);
   }

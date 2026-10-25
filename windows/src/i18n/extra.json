@@ -20102,6 +20102,116 @@
    "pt-BR": "Não começou",
    "ru": "Ещё не начат",
    "id": "Belum dimulai"
+  },
+  "That only works from the Coding Studio window.": {
+   "zh-Hans": "这只能在 Coding Studio 窗口中使用。",
+   "hi": "यह सिर्फ़ Coding Studio विंडो से काम करता है।",
+   "es": "Eso solo funciona desde la ventana de Coding Studio.",
+   "ar": "يعمل هذا من نافذة Coding Studio فقط.",
+   "fr": "Cela ne fonctionne que depuis la fenêtre Coding Studio.",
+   "bn": "এটি শুধু Coding Studio উইন্ডো থেকে কাজ করে।",
+   "pt-BR": "Isso só funciona na janela do Coding Studio.",
+   "ru": "Это работает только из окна Coding Studio.",
+   "id": "Itu hanya berfungsi dari jendela Coding Studio."
+  },
+  "Type a command first.": {
+   "zh-Hans": "请先输入命令。",
+   "hi": "पहले एक कमांड लिखें।",
+   "es": "Escribe primero un comando.",
+   "ar": "اكتب أمرًا أولًا.",
+   "fr": "Saisissez d’abord une commande.",
+   "bn": "আগে একটি কমান্ড লিখুন।",
+   "pt-BR": "Digite um comando primeiro.",
+   "ru": "Сначала введите команду.",
+   "id": "Ketik perintah dulu."
+  },
+  "In {folder}": {
+   "zh-Hans": "位于 {folder}",
+   "hi": "{folder} में",
+   "es": "En {folder}",
+   "ar": "في {folder}",
+   "fr": "Dans {folder}",
+   "bn": "{folder}-এ",
+   "pt-BR": "Em {folder}",
+   "ru": "В {folder}",
+   "id": "Di {folder}"
+  },
+  "Run this command?": {
+   "zh-Hans": "运行这条命令？",
+   "hi": "यह कमांड चलाएँ?",
+   "es": "¿Ejecutar este comando?",
+   "ar": "تشغيل هذا الأمر؟",
+   "fr": "Exécuter cette commande ?",
+   "bn": "এই কমান্ড চালাবেন?",
+   "pt-BR": "Executar este comando?",
+   "ru": "Выполнить эту команду?",
+   "id": "Jalankan perintah ini?"
+  },
+  "Always run this here": {
+   "zh-Hans": "在这里始终运行",
+   "hi": "यहाँ हमेशा चलाएँ",
+   "es": "Ejecutar siempre aquí",
+   "ar": "شغّله هنا دائمًا",
+   "fr": "Toujours l’exécuter ici",
+   "bn": "এখানে সবসময় চালান",
+   "pt-BR": "Sempre executar aqui",
+   "ru": "Всегда выполнять здесь",
+   "id": "Selalu jalankan di sini"
+  },
+  "Not run.": {
+   "zh-Hans": "未运行。",
+   "hi": "नहीं चलाया।",
+   "es": "No se ejecutó.",
+   "ar": "لم يُشغَّل.",
+   "fr": "Non exécutée.",
+   "bn": "চালানো হয়নি।",
+   "pt-BR": "Não executado.",
+   "ru": "Не выполнено.",
+   "id": "Tidak dijalankan."
+  },
+  "Push the commits in {folder} to its remote?": {
+   "zh-Hans": "将 {folder} 中的提交推送到远程仓库？",
+   "hi": "{folder} के कमिट उसके रिमोट पर पुश करें?",
+   "es": "¿Enviar los commits de {folder} a su remoto?",
+   "ar": "دفع الإيداعات في {folder} إلى المستودع البعيد؟",
+   "fr": "Pousser les commits de {folder} vers son dépôt distant ?",
+   "bn": "{folder}-এর কমিটগুলো রিমোটে পুশ করবেন?",
+   "pt-BR": "Enviar os commits de {folder} para o remoto?",
+   "ru": "Отправить коммиты из {folder} в удалённый репозиторий?",
+   "id": "Push commit di {folder} ke remote-nya?"
+  },
+  "Push?": {
+   "zh-Hans": "推送？",
+   "hi": "पुश करें?",
+   "es": "¿Enviar?",
+   "ar": "دفع؟",
+   "fr": "Pousser ?",
+   "bn": "পুশ করবেন?",
+   "pt-BR": "Enviar?",
+   "ru": "Отправить?",
+   "id": "Push?"
+  },
+  "Not pushed.": {
+   "zh-Hans": "未推送。",
+   "hi": "पुश नहीं किया।",
+   "es": "No se envió.",
+   "ar": "لم يُدفع.",
+   "fr": "Non poussé.",
+   "bn": "পুশ করা হয়নি।",
+   "pt-BR": "Não enviado.",
+   "ru": "Не отправлено.",
+   "id": "Tidak di-push."
+  },
+  "Permissions are changed in Settings → Permissions.": {
+   "zh-Hans": "权限在 设置 → 权限 中更改。",
+   "hi": "अनुमतियाँ सेटिंग्स → अनुमतियाँ में बदली जाती हैं।",
+   "es": "Los permisos se cambian en Ajustes → Permisos.",
+   "ar": "تُغيَّر الأذونات في الإعدادات ← الأذونات.",
+   "fr": "Les autorisations se changent dans Réglages → Autorisations.",
+   "bn": "অনুমতি বদলানো হয় সেটিংস → অনুমতি-তে।",
+   "pt-BR": "As permissões são alteradas em Configurações → Permissões.",
+   "ru": "Разрешения меняются в Настройки → Разрешения.",
+   "id": "Izin diubah di Pengaturan → Izin."
   }
  }
 }
