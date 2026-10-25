@@ -1,0 +1,42 @@
+name: Build 183 for personal testing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 3f90cd6539da7614ce4af15c742f3cc34bd268f0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build relay
+        run: cargo build --release -p groovy-hook
+
+      - name: Build installers
+        run: npm run pack
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Groovy-build-183-installer
+          path: windows/release/*-Windows-Setup.exe
+          if-no-files-found: error
+          retention-days: 7
