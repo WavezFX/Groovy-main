@@ -634,7 +634,8 @@ export class Island {
       this.greetingCanvas.height = 1;
       this.fsm.greetComplete();
       this.onGreetingDone?.();
-      if (choose) {
+      // Asked again at the end: another window may have hatched him meanwhile.
+      if (choose && !State.settings.hatchDone) {
         // Open on the three hatchlings until one is chosen and named.
         this.fsm.pinned = true;
         this.fsm.forceHome();

@@ -45,6 +45,8 @@ for (const scheme of ["dark", "light"]) {
   await page.waitForFunction(() => window.groovy?.island, null, { timeout: 20000 });
   await page.evaluate((tiles) => {
     const { island, State, Spotify } = window.groovy;
+    // Already hatched: the first-run picker (round 5 item 6) would cover the tiles.
+    State.settings.hatchDone = true;
     State.settings.islandTiles = tiles;
     State.settings.activeIntegrations = [...new Set([...(State.settings.activeIntegrations ?? []), "integration_spotify"])];
     Spotify.state = { ...Spotify.state, running: true, installed: true, playing: true, position: 10, positionAt: Date.now(), track: { id: "spotify:track:t", title: "A song with a rather long title", artist: "Somebody", album: "", duration: 200, artUrl: null } };
