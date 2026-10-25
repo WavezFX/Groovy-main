@@ -623,9 +623,10 @@ fn player() -> &'static Player {
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 
+/// Nothing of the player is made here (round 3F item 7): its thread and
+/// audio output start the first time music is asked for.
 pub fn init(app: &AppHandle) {
     let _ = APP.set(app.clone());
-    player();
 }
 
 /// Quitting: remember where the music was.

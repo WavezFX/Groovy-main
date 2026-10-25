@@ -207,6 +207,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         island::apply_geometry(&app, &settings.screen, collapsed);
     }
     integrations::settings_saved(&app, &settings.active_integrations);
+    // A Mail tile added or removed: the notification watch starts or stops.
+    scheduler::poke(island_tiles::MAIL_WATCH);
     // The voice model or language may be the dictation engine's too.
     flow::sync_engine(&app);
     spotify::sync(&app, &settings.active_integrations);
@@ -503,8 +505,11 @@ fn agent_hooks_preview(agent: String, install: bool) -> Result<config_file::Plan
 /// Only ever called from an explicit click in the settings window, with the
 /// fingerprint of the preview the user looked at.
 #[tauri::command]
-fn agent_hooks_apply(agent: String, install: bool, fingerprint: String) -> Result<String, String> {
+fn agent_hooks_apply(app: AppHandle, agent: String, install: bool, fingerprint: String) -> Result<String, String> {
     let backups = agents::apply(&agent, install, &fingerprint)?;
+    if install {
+        pipe::start(app);
+    }
     let done = if install { "installed" } else { "removed" };
     log::line(format!("agent hooks {done} for {agent}"));
     Ok(backups)
@@ -1656,7 +1661,7 @@ pub fn run() {
         .on_menu_event(|app, event| on_context_menu(app, event.id().as_ref()))
         .setup(move |app| {
             let handle = app.handle().clone();
-            app.manage(phone_link::PhoneLink::new(handle.clone()));
+            app.manage(phone_link::Lazy::new(handle.clone()));
             tray::build(&handle)?;
             // Groovy's desktop window, when he is out on the desktop. The
             // Control Centre and the Studio are made only when opened.
@@ -1742,7 +1747,7 @@ pub fn run() {
             #[cfg(feature = "worktest")]
             worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);
-            pipe::start(handle.clone());
+            pipe::start_if_hooked(&handle);
             phone_link::start_if_enabled(&handle);
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);

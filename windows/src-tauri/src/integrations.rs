@@ -81,7 +81,9 @@ const JOB: &str = "integrations";
 /// the quickest one switched on, nothing while none is or Groovy is paused.
 pub fn start(app: AppHandle) {
     crate::scheduler::add(JOB, Duration::from_secs(3), pace, poll_due);
-    spawn_github_loops(app);
+    if github_ready(&app) {
+        spawn_github_loops(app);
+    }
 }
 
 fn pace(app: &AppHandle) -> crate::scheduler::Next {
@@ -448,7 +450,19 @@ fn emit_github(app: &AppHandle) {
     emit(app, IntegrationUpdate { id: GITHUB_ID, data, error: None, event: None });
 }
 
+/// GitHub is switched on and has its token.
+fn github_ready(app: &AppHandle) -> bool {
+    enabled(app, GITHUB_ID) && secrets::present("github-token")
+}
+
+/// The GitHub pulse and activity loops: started the first time GitHub is on
+/// with its token (at start, when switched on, when the token is saved),
+/// never otherwise (round 3F item 7).
 fn spawn_github_loops(app: AppHandle) {
+    static STARTED: AtomicBool = AtomicBool::new(false);
+    if STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
     let pulse_app = app.clone();
     tauri::async_runtime::spawn(async move {
         let mut wait = Duration::from_secs(10);
@@ -581,6 +595,9 @@ pub fn github_refresh_if_stale(section: &str) {
 pub fn github_token_changed(app: &AppHandle) {
     GITHUB.generation.fetch_add(1, Ordering::SeqCst);
     let has_token = secrets::get("github-token").is_some();
+    if has_token && enabled(app, GITHUB_ID) {
+        spawn_github_loops(app.clone());
+    }
     {
         let mut cache = GITHUB.cache.lock().unwrap();
         cache.pulse = None;
@@ -603,6 +620,9 @@ pub fn settings_saved(app: &AppHandle, active_integrations: &[String]) {
     // Switched on or off: the job finds its pace again now.
     crate::scheduler::poke(JOB);
     if active_integrations.iter().any(|id| id == GITHUB_ID) {
+        if secrets::present("github-token") {
+            spawn_github_loops(app.clone());
+        }
         return;
     }
     let had_data = {

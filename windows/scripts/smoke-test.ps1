@@ -85,6 +85,31 @@ try {
       $metrics["groovy.exe private memory (MB)"] = [math]::Round($proc.PrivateMemorySize64 / 1MB, 1)
       # Round 3F: threads, Groovy's own and with every process under it.
       $metrics["groovy.exe threads"] = $proc.Threads.Count
+      # Round 3F item 7: on a fresh profile the dormant features have no thread
+      # (the names Groovy gives its threads, read with GetThreadDescription).
+      if (-not ("ThreadNames" -as [type])) {
+        Add-Type -TypeDefinition @"
+using System; using System.Runtime.InteropServices;
+public static class ThreadNames {
+  [DllImport("kernel32.dll")] static extern IntPtr OpenThread(uint access, bool inherit, uint id);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+  [DllImport("kernel32.dll")] static extern int GetThreadDescription(IntPtr h, out IntPtr name);
+  [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr p);
+  public static string Of(int id) {
+    IntPtr h = OpenThread(0x0800, false, (uint)id);
+    if (h == IntPtr.Zero) return "";
+    try {
+      IntPtr p; if (GetThreadDescription(h, out p) < 0) return "";
+      string s = Marshal.PtrToStringUni(p); LocalFree(p); return s ?? "";
+    } finally { CloseHandle(h); }
+  }
+}
+"@
+      }
+      $names = @($proc.Threads | ForEach-Object { [ThreadNames]::Of($_.Id) } | Where-Object { $_ })
+      $metrics["groovy.exe named threads"] = (($names | Group-Object | ForEach-Object { if ($_.Count -gt 1) { "$($_.Name) x$($_.Count)" } else { $_.Name } }) -join ", ")
+      $dormant = @($names | Where-Object { $_ -match '^(music|groovy-spotify|mDNS_daemon|groovy-studio-window)' })
+      $results["fresh profile: no thread of a feature not in use (found: $($dormant -join ', '))"] = $dormant.Count -eq 0
       $all = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue
       $tree = @()
       $frontier = @($proc.Id)

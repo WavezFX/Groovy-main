@@ -152,8 +152,22 @@ fn create_instance(name: &str, first: bool) -> std::io::Result<NamedPipeServer> 
     unsafe { options.create_with_security_attributes_raw(name, (&mut attributes as *mut _) as *mut std::ffi::c_void) }
 }
 
+/// The relay only serves the coding agents' hooks (round 3F item 7): it is
+/// opened at start only when one has Groovy's hooks, and when the user
+/// installs them; never twice.
+pub fn start_if_hooked(app: &AppHandle) {
+    if crate::agents::list().iter().any(|a| a.installed) {
+        start(app.clone());
+    }
+}
+
+static STARTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 #[cfg(windows)]
 pub fn start(app: AppHandle) {
+    if STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
     tauri::async_runtime::spawn(async move {
         let name = pipe_name();
         // first_pipe_instance also means we refuse to join a pipe somebody else
@@ -189,6 +203,10 @@ pub fn start(app: AppHandle) {
 pub fn start(app: AppHandle) {
     use std::os::unix::fs::PermissionsExt;
     use tokio::net::UnixListener;
+
+    if STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
 
     tauri::async_runtime::spawn(async move {
         let Some(path) = crate::platform::relay_socket_path() else {

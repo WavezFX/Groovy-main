@@ -29,7 +29,7 @@ mod server;
 mod tests;
 
 use std::net::{Ipv4Addr, SocketAddr, TcpListener as StdListener};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
@@ -114,6 +114,35 @@ impl server::Features for TauriFeatures {
         // Only ids the link knows, whatever the file held.
         let ticked = self.app.state::<Shared>().settings.lock().unwrap().phone_services.clone();
         hub::SERVICE_IDS.iter().filter(|id| ticked.iter().any(|t| t == *id)).map(|id| id.to_string()).collect()
+    }
+}
+
+/// Phone Link as Groovy holds it (round 3F item 7): nothing of it is made
+/// until it is turned on or its Settings page asks; the island's updates and
+/// status checks don't make it.
+pub struct Lazy {
+    app: AppHandle,
+    cell: OnceLock<PhoneLink>,
+}
+
+impl Lazy {
+    pub fn new(app: AppHandle) -> Self {
+        Self { app, cell: OnceLock::new() }
+    }
+
+    /// The link, if it was ever made.
+    fn made(&self) -> Option<&PhoneLink> {
+        self.cell.get()
+    }
+}
+
+impl std::ops::Deref for Lazy {
+    type Target = PhoneLink;
+    fn deref(&self) -> &PhoneLink {
+        self.cell.get_or_init(|| {
+            log::line("phone link: made (its first use)");
+            PhoneLink::new(self.app.clone())
+        })
     }
 }
 
@@ -282,9 +311,22 @@ fn status_of(link: &PhoneLink, enabled: bool) -> Status {
 }
 
 #[tauri::command]
-pub fn phone_link_status(link: State<PhoneLink>, shared: State<Shared>) -> Status {
+pub fn phone_link_status(link: State<Lazy>, shared: State<Shared>) -> Status {
     let enabled = shared.settings.lock().unwrap().phone_link;
-    status_of(&link, enabled)
+    match link.made() {
+        Some(l) => status_of(l, enabled),
+        // Never made: off, nobody connected.
+        None => Status {
+            enabled,
+            running: false,
+            port: 0,
+            host: pairing::lan_address().map(|ip| ip.to_string()).unwrap_or_default(),
+            name: pairing::computer_name(),
+            clients: 0,
+            error: None,
+            relay_state: relay_client::State::Off,
+        },
+    }
 }
 
 /// Turns the link on or off. Only ever from the switch in Settings → Phone (the calling window is checked).
@@ -292,7 +334,7 @@ pub fn phone_link_status(link: State<PhoneLink>, shared: State<Shared>) -> Statu
 pub fn phone_link_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<Status, String> {
@@ -318,7 +360,7 @@ pub fn phone_link_set_enabled(
 /// The pairing link and its QR code. Only the settings window may ask: the token
 /// is the secret that lets a phone in.
 #[tauri::command]
-pub fn phone_link_pairing(window: WebviewWindow, link: State<PhoneLink>) -> Result<Pairing, String> {
+pub fn phone_link_pairing(window: WebviewWindow, link: State<Lazy>) -> Result<Pairing, String> {
     only_settings(&window)?;
     let running = link.running.lock().unwrap();
     let r = running.as_ref().ok_or("the phone link is off")?;
@@ -364,7 +406,7 @@ fn renew_pairing(hub: &Hub, token: &Mutex<String>, store: &dyn SecretStore) -> R
 /// A new pairing code: the phone that had the old one is disconnected and must
 /// pair again.
 #[tauri::command]
-pub fn phone_link_new_pairing(window: WebviewWindow, link: State<PhoneLink>) -> Result<Pairing, String> {
+pub fn phone_link_new_pairing(window: WebviewWindow, link: State<Lazy>) -> Result<Pairing, String> {
     only_settings(&window)?;
     let running = link.running.lock().unwrap();
     let r = running.as_ref().ok_or("the phone link is off")?;
@@ -400,7 +442,7 @@ fn relay_status_of(link: &PhoneLink, shared: &Shared) -> RelayStatus {
 }
 
 #[tauri::command]
-pub fn phone_relay_status(link: State<PhoneLink>, shared: State<Shared>) -> RelayStatus {
+pub fn phone_relay_status(link: State<Lazy>, shared: State<Shared>) -> RelayStatus {
     relay_status_of(&link, &shared)
 }
 
@@ -410,7 +452,7 @@ pub fn phone_relay_status(link: State<PhoneLink>, shared: State<Shared>) -> Rela
 pub fn phone_relay_set(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
     url: String,
@@ -447,7 +489,7 @@ pub fn phone_relay_set(
 pub fn phone_relay_set_access(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     access: String,
 ) -> Result<RelayStatus, String> {
@@ -492,7 +534,7 @@ pub fn phone_details_status(shared: State<Shared>) -> DetailsStatus {
 pub fn phone_details_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<DetailsStatus, String> {
@@ -530,7 +572,7 @@ pub fn phone_answers_status(shared: State<Shared>) -> AnswersStatus {
 pub fn phone_answers_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<AnswersStatus, String> {
@@ -568,7 +610,7 @@ pub fn phone_diffs_status(shared: State<Shared>) -> DiffsStatus {
 pub fn phone_diffs_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<DiffsStatus, String> {
@@ -606,7 +648,7 @@ pub fn phone_usage_status(shared: State<Shared>) -> UsageStatus {
 pub fn phone_usage_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<UsageStatus, String> {
@@ -646,7 +688,7 @@ pub fn phone_services_status(shared: State<Shared>) -> ServicesStatus {
 pub fn phone_services_set(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     services: Vec<String>,
 ) -> Result<ServicesStatus, String> {
@@ -668,33 +710,27 @@ pub fn phone_services_set(
 
 /// What the island's service pills show, for phones whose user allowed those services.
 #[tauri::command]
-pub fn phone_link_publish_services(window: WebviewWindow, link: State<PhoneLink>, services: Vec<hub::ServiceIn>) -> Result<(), String> {
+pub fn phone_link_publish_services(window: WebviewWindow, link: State<Lazy>, services: Vec<hub::ServiceIn>) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.publish_services(services);
     Ok(())
 }
 
 /// The plan usage the island shows, for phones that have `usage`.
 #[tauri::command]
-pub fn phone_link_publish_usage(window: WebviewWindow, link: State<PhoneLink>, usage: hub::UsageIn) -> Result<(), String> {
+pub fn phone_link_publish_usage(window: WebviewWindow, link: State<Lazy>, usage: hub::UsageIn) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.publish_usage(usage);
     Ok(())
 }
 
 /// The island's answer to a phone's request for a file's diff (event "phone-link-getdiff").
 #[tauri::command]
-pub fn phone_link_send_diff(window: WebviewWindow, link: State<PhoneLink>, conn: u64, diff: hub::DiffIn) -> Result<(), String> {
+pub fn phone_link_send_diff(window: WebviewWindow, link: State<Lazy>, conn: u64, diff: hub::DiffIn) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.send_diff(conn, diff);
     Ok(())
 }
@@ -755,7 +791,7 @@ pub fn phone_chat_status(shared: State<Shared>) -> ChatStatus {
 pub fn phone_chat_set_enabled(
     app: AppHandle,
     window: WebviewWindow,
-    link: State<PhoneLink>,
+    link: State<Lazy>,
     shared: State<Shared>,
     enabled: bool,
 ) -> Result<ChatStatus, String> {
@@ -802,41 +838,37 @@ pub fn phone_chat_set_models(
 
 /// The question Claude Code is waiting on (None: none), for phones that may answer it.
 #[tauri::command]
-pub fn phone_link_publish_question(window: WebviewWindow, link: State<PhoneLink>, question: Option<hub::QuestionIn>) -> Result<(), String> {
+pub fn phone_link_publish_question(window: WebviewWindow, link: State<Lazy>, question: Option<hub::QuestionIn>) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.publish_question(question, server::now_ms());
     Ok(())
 }
 
 /// What Groovy wears on the computer, for phones that asked for `prefs`.
 #[tauri::command]
-pub fn phone_link_publish_prefs(window: WebviewWindow, link: State<PhoneLink>, outfit: String) -> Result<(), String> {
+pub fn phone_link_publish_prefs(window: WebviewWindow, link: State<Lazy>, outfit: String) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.publish_outfit(&outfit);
     Ok(())
 }
 
 /// The island's picture of its sessions and of the request waiting for an answer.
 #[tauri::command]
-pub fn phone_link_publish(window: WebviewWindow, link: State<PhoneLink>, sessions: Vec<SessionIn>, approval: Option<ApprovalIn>) -> Result<(), String> {
+pub fn phone_link_publish(window: WebviewWindow, link: State<Lazy>, sessions: Vec<SessionIn>, approval: Option<ApprovalIn>) -> Result<(), String> {
     only_island(&window)?;
-    if link.running.lock().unwrap().is_none() {
-        return Ok(());
-    }
+    let Some(link) = link.made().filter(|l| l.running.lock().unwrap().is_some()) else { return Ok(()) };
     link.hub.publish(sessions, approval, server::now_ms());
     Ok(())
 }
 
 /// The app is quitting: withdraw the announcement so phones forget this computer at once.
 pub fn stop_on_exit(app: &AppHandle) {
-    if let Some(link) = app.try_state::<PhoneLink>() {
-        link.stop();
+    if let Some(link) = app.try_state::<Lazy>() {
+        if let Some(link) = link.made() {
+            link.stop();
+        }
     }
 }
 
@@ -844,7 +876,7 @@ pub fn stop_on_exit(app: &AppHandle) {
 pub fn start_if_enabled(app: &AppHandle) {
     let enabled = app.state::<Shared>().settings.lock().unwrap().phone_link;
     if enabled {
-        let link = app.state::<PhoneLink>();
+        let link = app.state::<Lazy>();
         // A failure is kept in the status and the log; the setting stays on so
         // the user sees why in Settings instead of finding it silently off.
         let _ = link.start();

@@ -226,10 +226,32 @@ fn read_notifications() -> Result<Vec<MailNote>, String> {
 
 /// Watches the notification feed and hands new ones to the island
 /// ("mail-notification"); the island keeps those from mail apps the user
-/// chose. A job on the scheduler: every 10 s, every 30 s while it's quiet.
+/// chose. A job on the scheduler: every 10 s (30 s while it's quiet), and
+/// only while the island has a Mail tile (round 3F item 7); poked when the
+/// settings are saved.
 #[cfg(windows)]
 pub fn spawn_mail_watch(_app: AppHandle) {
-    crate::scheduler::add("mail-notifications", std::time::Duration::ZERO, |_| crate::scheduler::Next::Every(std::time::Duration::from_secs(10)), read_new);
+    crate::scheduler::add(MAIL_WATCH, std::time::Duration::ZERO, mail_watch_pace, read_new);
+}
+
+pub const MAIL_WATCH: &str = "mail-notifications";
+
+#[cfg(windows)]
+fn mail_watch_pace(app: &AppHandle) -> crate::scheduler::Next {
+    use tauri::Manager;
+    let wanted = app.try_state::<crate::Shared>().is_some_and(|s| has_mail_tile(&s.settings.lock().unwrap().island_tiles));
+    if wanted {
+        crate::scheduler::Next::Every(std::time::Duration::from_secs(10))
+    } else {
+        crate::scheduler::Next::Idle
+    }
+}
+
+/// The island's tiles (settings.json's islandTiles) include a Mail tile. With
+/// none stored the island is the developer preset, which has none.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn has_mail_tile(tiles: &serde_json::Value) -> bool {
+    tiles["tiles"].as_array().is_some_and(|list| list.iter().any(|t| t["kind"] == "mail"))
 }
 
 /// The ids already seen, and whether the first reading (which only fills it) is done.
@@ -239,6 +261,10 @@ static SEEN: std::sync::Mutex<(Option<std::collections::HashSet<u32>>, bool)> = 
 #[cfg(windows)]
 fn read_new(app: &AppHandle) {
     use tauri::Emitter;
+    // A poke runs it once even when not wanted: without a Mail tile, nothing is read.
+    if mail_watch_pace(app) == crate::scheduler::Next::Idle {
+        return;
+    }
     let Ok(list) = read_notifications() else { return };
     let mut guard = SEEN.lock().unwrap();
     let (seen, filled) = &mut *guard;
@@ -274,6 +300,13 @@ pub fn mail_open(app_id: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_notification_watch_runs_only_with_a_mail_tile() {
+        assert!(!has_mail_tile(&serde_json::json!({})), "nothing stored: the developer island, no Mail");
+        assert!(!has_mail_tile(&serde_json::json!({ "tiles": [{ "kind": "music" }] })));
+        assert!(has_mail_tile(&serde_json::json!({ "tiles": [{ "kind": "music" }, { "kind": "mail" }] })));
+    }
 
     #[test]
     fn only_real_shortcuts_and_desktop_ids_launch() {

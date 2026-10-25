@@ -672,11 +672,13 @@ fn save_png(dirs: &[PathBuf], data: &str, week: &str) -> Result<PathBuf, String>
 
 // ── Tauri glue ────────────────────────────────────────────────────────────────
 
-pub struct Store(Mutex<Recap>);
+/// The recap, read from disk the first time something needs it (round 3F
+/// item 7: nothing of it is held until then).
+pub struct Store(std::sync::OnceLock<Mutex<Recap>>);
 
 impl Store {
     fn lock(&self) -> MutexGuard<'_, Recap> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        self.0.get_or_init(|| Mutex::new(Recap::load(platform::local_dir().join("recap.json"), now()))).lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 
@@ -685,7 +687,7 @@ fn now() -> i64 {
 }
 
 pub fn load() -> Store {
-    Store(Mutex::new(Recap::load(platform::local_dir().join("recap.json"), now())))
+    Store(std::sync::OnceLock::new())
 }
 
 /// Called by the relay server for every hook event. An agent starting work is
