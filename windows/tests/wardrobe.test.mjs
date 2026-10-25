@@ -57,3 +57,28 @@ test("new installs wear nothing", () => {
   assert.equal(DEFAULT_SETTINGS.mochiOutfit, "none");
   assert.deepEqual(DEFAULT_SETTINGS.seasonalEarned, []);
 });
+
+test("no Mochi outfit is left anywhere in the code (round 3E item 8)", async () => {
+  const { readdirSync, readFileSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(ts|css|html)$/.test(name)) files.push(p);
+    }
+  };
+  walk("src");
+  walk("src-tauri/src");
+  const mochi = /\b(partyHat|witchHat|santaHat|bunnyEars|roundGlasses)\b|"(Party hat|Witch hat|Santa hat|Bunny ears|Beanie|Sunglasses|Round glasses)"/;
+  const found = [];
+  for (const f of files) {
+    readFileSync(f, "utf8").split("\n").forEach((line, i) => {
+      // The one place old ids are read, to move them to their new item.
+      if (f.endsWith("wardrobe.ts") && /OLD_IDS|^\s+(beanie|bow|sunglasses|roundGlasses|scarf): "/.test(line)) return;
+      if (mochi.test(line)) found.push(`${f}:${i + 1}: ${line.trim()}`);
+    });
+  }
+  assert.deepEqual(found, []);
+});

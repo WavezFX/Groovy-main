@@ -1,7 +1,8 @@
 // Round 3E item 1: the island's tiles at their normal size, dark and light,
 // both tile pages, with long app names. Fails if a tile's title is clipped
 // when it should fit, any text leaves its tile, or a control on the tiles
-// has a hit area under 28 px.
+// has a hit area under 28 px. Round 3E item 8: also the island's wardrobe
+// (every item, the locked ones dashed) and Groovy's final form in each look.
 //   node scripts/island-screens.mjs <base url> <out dir>
 // Uses playwright-core with the installed Edge (CI) or $CHROME (elsewhere).
 
@@ -84,6 +85,26 @@ for (const scheme of ["dark", "light"]) {
     console.log(`${scheme} page ${n}: ${found.titles.join(" · ")}`);
     for (const b of found.bad) errors.push(`${scheme} page ${n}: ${b}`);
   }
+  // The wardrobe on the island, and stage 6 for Night, Ember and Frost.
+  const sixMonths = Math.floor(Date.now() / 1000) - 200 * 86400;
+  for (const look of ["night", "ember", "frost"]) {
+    await page.evaluate(([look, hatchedAt]) => {
+      const { island, State } = window.groovy;
+      State.settings.groovyLook = look;
+      State.settings.growth = { activeSeconds: 40 * 86400, reached: 6, seen: 6, hatchedAt, correction: 1 };
+      State.notify();
+      island.alert("wardrobe");
+    }, [look, sixMonths]);
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: join(out, `island-wardrobe-${look}-stage6-${scheme}.png`) });
+    const shown = await page.evaluate(() => ({
+      items: document.querySelectorAll(".wardrobe-slots .wardrobe-item").length,
+      locked: [...document.querySelectorAll(".wardrobe-slots .wardrobe-item.locked")].map((b) => b.title),
+    }));
+    // 45 items and 3 Nones; at stage 6 only seasonal items not earned yet can be locked.
+    if (shown.items !== 48) errors.push(`${scheme} ${look}: the wardrobe shows ${shown.items} buttons, not 48`);
+    for (const title of shown.locked) if (/Stage \d/.test(title)) errors.push(`${scheme} ${look}: "${title}" is still locked at stage 6`);
+  }
   await page.close();
 }
 await browser.close();
@@ -91,4 +112,4 @@ if (errors.length) {
   for (const e of errors) console.error(e);
   process.exit(1);
 }
-console.log("island tiles: every title fits, every control at least 28 px");
+console.log("island tiles: every title fits, every control at least 28 px; the wardrobe and stage 6 drawn for every look");

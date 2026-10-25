@@ -81,7 +81,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 5. Stage 6: Sakura bonsai with emerald eyes, golden flame, Diamond sea with a golden shark and submarine (this does round 5 item 2)
 - [x] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
 - [x] 7. Full wardrobe: 28 items plus the Diamond crown, stage unlocks, Seasonal tab, every Mochi item gone (this does round 5 items 3 and 4)
-- [ ] 8. Checks
+- [x] 8. Checks
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
