@@ -125,3 +125,28 @@ When Frost turns his head to the side, part of his body shows no water (a pale b
 - **Fix:** draw the water far wider than his body, since the clip to his body already decides what shows. In `surface()`, run the wave from `SEA_L = -70` to `SEA_R = 170` and close the path down to y 140 (not 98). In `drawWater()`, run the caustic bands from x -50 to 150, not 10 to 90. Bubbles may stay where they are.
 - **Check the same thing everywhere that is shifted with the board:** Ember's heat glow (`drawHeat`), the golden swimmer (`drawStage6Body`, `skins.ts` line 243, shifted by 0.8) and any full-width layer in `stage6.ts`. Each must cover the body at the largest yaw, on both sides.
 - **Test:** render Frost at yaw -1, 0 and +1 (all stages 1-6) in CI and fail if any pixel inside the body outline is left unpainted by the water layer. Screenshot the three in the CI artifacts.
+
+## Item 10: Wardrobe items must fit and track his head (owner, 25 Oct)
+
+The head, face (eyes) and neck items don't fit nicely. When he faces sideways they show blank spots and they don't sit the way they do in Coucou.
+
+- **Likely causes** (`windows/src/mochi/outfits.ts`):
+  - `drawItem` slides every item by `sin(yaw) * rx * 0.35`, but his eyes are shifted by `sin(yaw) * rx * 0.8` (`skins.ts` and `drawEyes`). So **face items drift off the eyes** when he turns. Face items must use the same 0.8 shift as the eyes; hats and neck items get their own shift that keeps them on the part of the head they belong to.
+  - The art is flat and is not narrowed as the head turns, so a hat or glasses stays full width on a body that looks narrower. Narrow each item horizontally by the head's turn (about `cos(yaw)` on the way round, never below about 0.6 so nothing vanishes) around the item's own anchor, the way Coucou's items follow its head.
+  - Items drawn "clipped" to the body (`drawShapes(…, "clipped")`) lose the part that falls outside the body when it slides. Only parts meant to sit inside the body (the lens fill, say) are clipped; frames, hats and neck items are drawn free.
+  - Pitch, roll and the head's physics wobble (`physDx`, `physDy`) must move items with the head too.
+- **Reference:** upstream Coucou's items are the reference for **where and how an item sits** on the head (anchor points, how it follows the head, how it layers behind and in front). Don't copy any Coucou art; only the placement behaviour.
+- **Fix every one of the 28 Wardrobe v2 items, the Diamond crown and the 16 seasonal items:** each gets an anchor (head top, eye line, neck) and a behind/body/front split, so nothing is cut off or floats at any angle.
+- **Test:** render every item on all three looks and all six stages at yaw -1, -0.5, 0, 0.5 and 1, and at pitch ±0.3. Fail if any item's art sits outside its anchor zone by more than 6% of his width, or leaves a gap against the body. Put the contact sheet in the CI artifacts so the owner can see it.
+
+## Item 11: Preview the growth looks, with stages that unlock at their minimum (owner, 25 Oct)
+
+He wants to **preview every stage's look**, with each stage unlocking once he reaches its minimum requirement. **This is not a stage picker:** the real stage is still earned by time, and previewing never changes it (round 3B item 5 stays).
+
+- **Where:** Settings → Groovy, under the 7-step timeline: a strip of the six stage looks (1 to 6) for his current look (Night, Ember or Frost), each drawn live at the shared frame tick with the same renderer as the island.
+- **Unlocked stages** (reached): shown in full colour with a tick; tapping plays that stage's look in the big preview.
+- **Locked stages:** shown dimmed with a dashed border and "Stage N · unlocks in about …" (from `STAGE_AFTER`, 1 d, 3 d, 1 wk, 2 wk, 1 mo, 6 mo). Tapping one **previews it for 5 seconds** in the big preview with a "Preview only" label, then goes back to his real look. It can't be kept, saved or shown on the island.
+- **Same for wardrobe items that wait for a stage** (Seed pendant, Flower crown, Mini top hat, Cloud buddy, Gold chain, Diamond crown): tapping a locked one tries it on for 5 seconds with "Preview only", then it comes off. When the stage is reached it unlocks for good, as now.
+- **The three looks:** a small Night / Ember / Frost switch above the strip previews the other looks at any stage too (preview only, 5 seconds); the chosen look is changed only where it is chosen now.
+- **Memory:** the strip draws only while the page is visible, one small canvas at a time (lazy), and stops when Settings closes. It must not raise idle memory (round 3D items 7 and 9).
+- **Test:** a profile at stage 2 shows stages 1 and 2 unlocked and 3 to 6 locked; previewing stage 6 doesn't change `reached`; the preview reverts after 5 seconds; nothing is saved.
