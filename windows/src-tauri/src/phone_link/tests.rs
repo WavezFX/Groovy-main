@@ -1367,14 +1367,14 @@ mod prefs_tests {
     fn prefs_is_offered_to_a_phone_that_asks_and_the_outfit_follows() {
         block_on(async {
             let rig = Rig::start().await;
-            rig.hub.publish_outfit("witchHat");
+            rig.hub.publish_outfit("pumpkinCap");
             let (mut c, welcome) = phone(&rig, Some(json!(["prefs"]))).await;
             assert_eq!(welcome["caps"], json!(["prefs"]));
             assert_eq!(c.expect("sessions").await["type"], "sessions");
             let prefs = c.expect("prefs").await;
-            assert_eq!(prefs["outfit"], "witchHat");
-            rig.hub.publish_outfit("beanie");
-            assert_eq!(c.expect("prefs").await["outfit"], "beanie");
+            assert_eq!(prefs["outfit"], "pumpkinCap");
+            rig.hub.publish_outfit("bucketHat");
+            assert_eq!(c.expect("prefs").await["outfit"], "bucketHat");
         });
     }
 
@@ -1382,10 +1382,10 @@ mod prefs_tests {
     fn an_older_phone_is_offered_nothing_and_hears_nothing() {
         block_on(async {
             let rig = Rig::start().await;
-            rig.hub.publish_outfit("bow");
+            rig.hub.publish_outfit("bowTie");
             let (mut c, welcome) = phone(&rig, None).await;
             assert!(welcome.get("caps").is_none(), "{welcome}");
-            rig.hub.publish_outfit("scarf");
+            rig.hub.publish_outfit("leafScarf");
             c.send(json!({ "type": "ping" })).await;
             let mut seen = Vec::new();
             loop {

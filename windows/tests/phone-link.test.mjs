@@ -284,11 +284,11 @@ test("the outfit is published when the link comes up and whenever the wardrobe c
   assert.equal(p()[0].outfit, "none", "new installs wear nothing");
 
   // Round 3: what he wears is the wardrobe's layers; the phone gets the first (head, face, neck).
-  State.settings.wardrobe = { appearance: { layers: ["scarf", "beanie"] } };
+  State.settings.wardrobe = { appearance: { layers: ["leafScarf", "bucketHat"] } };
   State.notify();
   tick(250);
   assert.equal(p().length, 2);
-  assert.equal(p()[1].outfit, "beanie");
+  assert.equal(p()[1].outfit, "bucketHat");
 
   State.notify();
   tick(250);

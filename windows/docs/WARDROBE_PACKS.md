@@ -27,7 +27,7 @@ harmless: the worst a bad pack can do is be refused.
         "body2": "",
         "glow": "#7cc4ff",
         "eyes": "",
-        "layers": ["scarf", "roundGlasses"]
+        "layers": ["leafScarf", "roundSpecs"]
       }
     }
   ]
@@ -39,22 +39,35 @@ harmless: the worst a bad pack can do is be refused.
 | `groovyWardrobePack` | must be `1` |
 | `presets[].name` | 1–40 characters (control characters are removed); a preset without a name is skipped |
 | `presets[].look` | `night`, `ember`, `frost`, `grove`, `blaze`, `tide` — anything else becomes `night` |
-| `presets[].outfit` | `auto`, `none`, `partyHat`, `beanie`, `crown`, `sunglasses`, `roundGlasses`, `bow`, `scarf`, `witchHat`, `pumpkin`, `santaHat`, `bunnyEars` — anything else becomes `none` |
+| `presets[].outfit` | packs from before round 3 only: read as one more layer (below); new packs write `none` |
 | `appearance.body`, `body2` | body gradient top and bottom, `#RRGGBB`, or `""` for the look's own |
 | `appearance.glow`, `eyes` | `#RRGGBB` or `""` |
-| `appearance.layers` | accessories worn with the outfit |
+| `appearance.layers` | the items worn, at most one per slot (ids below) |
 
 ## Compatibility rules
 
-Every item has a slot: **head** (party hat, beanie, crown, witch hat, Santa
-hat, bunny ears, bow), **face** (sunglasses, round glasses), **neck** (scarf)
-or **costume** (pumpkin).
+Every item has a slot (src/mochi/wardrobe.ts):
 
-- One item per slot. The outfit takes its slot first; a layer whose slot is
-  taken is not worn.
-- A costume is worn alone: with the pumpkin on, no layer is worn, and a
-  costume is never added as a layer over another outfit.
+- **head:** `leafCrown`, `acornCap`, `mushroomCap`, `flowerCrown`, `bucketHat`,
+  `backwardsCap`, `headphones`, `pilotGoggles`, `beretPin`, `miniTopHat`,
+  `cloudBuddy`, `antenna`, `diamondCrown`, and the seasonal `pumpkinCap`,
+  `batWingBand`, `bobbleBeanie`, `twigAntlers`, `bunnyEarBand`, `eggshellHat`,
+  `strawSunHat`, `watermelonCap`;
+- **face:** `roundSpecs`, `shades`, `heartGlasses`, `glowVisor`, `monocle`,
+  `frecklesBlush`, `starStickers`, `piratePatch`;
+- **neck:** `bandana`, `bowTie`, `leafScarf`, `seedPendant`, `neckPhones`,
+  `goldChain`, `flowerLei`, `necktie`, and the seasonal `candyCornScarf`,
+  `littleGhostPal`, `knitStripeScarf`, `jingleBellCollar`, `pastelRibbonBow`,
+  `daisyChain`, `shellNecklace`, `poolRing`.
+
+- One item per slot; the first one named wins its slot.
+- Ids of the old Mochi outfits are read as their nearest new item
+  (`beanie` → `bucketHat`, `bow` → `bowTie`, `sunglasses` → `shades`,
+  `roundGlasses` → `roundSpecs`, `scarf` → `leafScarf`); the others (party hat,
+  crown, witch hat, Santa hat, bunny ears, pumpkin, auto) are dropped.
 - Unknown items are dropped.
+- A pack can name an item that waits for a stage or a season: it is kept in
+  the preset, and worn only once he can wear it.
 
 ## Validation
 

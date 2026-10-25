@@ -221,39 +221,6 @@
    "ru": "Некорректный ответ API: {error}",
    "id": "Respons API tidak valid: {error}"
   },
-  "Beanie": {
-   "zh-Hans": "毛线帽",
-   "hi": "ऊनी टोपी",
-   "es": "Gorro de lana",
-   "ar": "قبعة صوفية",
-   "fr": "Bonnet",
-   "bn": "উলের টুপি",
-   "pt-BR": "Gorro",
-   "ru": "Шапка",
-   "id": "Kupluk"
-  },
-  "Bow": {
-   "zh-Hans": "蝴蝶结",
-   "hi": "बो",
-   "es": "Lazo",
-   "ar": "فيونكة",
-   "fr": "Nœud",
-   "bn": "বো",
-   "pt-BR": "Laço",
-   "ru": "Бантик",
-   "id": "Pita"
-  },
-  "Bunny ears": {
-   "zh-Hans": "兔耳朵",
-   "hi": "खरगोश के कान",
-   "es": "Orejas de conejo",
-   "ar": "أذنا أرنب",
-   "fr": "Oreilles de lapin",
-   "bn": "খরগোশের কান",
-   "pt-BR": "Orelhas de coelho",
-   "ru": "Заячьи ушки",
-   "id": "Telinga kelinci"
-  },
   "Can't read {path}: {error}": {
    "zh-Hans": "无法读取 {path}：{error}",
    "hi": "{path} पढ़ा नहीं जा सकता: {error}",
@@ -605,17 +572,6 @@
    "pt-BR": "Somente contagens e nomes de projeto — nunca comandos, arquivos ou prompts. Mantido neste computador por 12 semanas.",
    "ru": "Только счётчики и названия проектов — никогда команды, файлы или промпты. Хранится на этом компьютере 12 недель.",
    "id": "Hanya hitungan dan nama proyek — tidak pernah perintah, file, atau prompt. Disimpan di komputer ini selama 12 minggu."
-  },
-  "Crown": {
-   "zh-Hans": "王冠",
-   "hi": "मुकुट",
-   "es": "Corona",
-   "ar": "تاج",
-   "fr": "Couronne",
-   "bn": "মুকুট",
-   "pt-BR": "Coroa",
-   "ru": "Корона",
-   "id": "Mahkota"
   },
   "Custom server": {
    "zh-Hans": "自定义服务器",
@@ -1563,17 +1519,6 @@
    "ru": "PDF",
    "id": "PDF"
   },
-  "Party hat": {
-   "zh-Hans": "派对帽",
-   "hi": "पार्टी टोपी",
-   "es": "Gorro de fiesta",
-   "ar": "قبعة الحفلة",
-   "fr": "Chapeau de fête",
-   "bn": "পার্টি টুপি",
-   "pt-BR": "Chapéu de festa",
-   "ru": "Праздничный колпак",
-   "id": "Topi pesta"
-  },
   "Payment": {
    "zh-Hans": "付款",
    "hi": "भुगतान",
@@ -1783,28 +1728,6 @@
    "ru": "Результат",
    "id": "Hasil"
   },
-  "Round glasses": {
-   "zh-Hans": "圆框眼镜",
-   "hi": "गोल चश्मा",
-   "es": "Gafas redondas",
-   "ar": "نظارة دائرية",
-   "fr": "Lunettes rondes",
-   "bn": "গোল চশমা",
-   "pt-BR": "Óculos redondos",
-   "ru": "Круглые очки",
-   "id": "Kacamata bulat"
-  },
-  "Santa hat": {
-   "zh-Hans": "圣诞帽",
-   "hi": "सांता टोपी",
-   "es": "Gorro de Papá Noel",
-   "ar": "قبعة بابا نويل",
-   "fr": "Bonnet de Père Noël",
-   "bn": "সান্তা টুপি",
-   "pt-BR": "Gorro de Papai Noel",
-   "ru": "Шапка Санты",
-   "id": "Topi Sinterklas"
-  },
   "Saturday": {
    "zh-Hans": "星期六",
    "hi": "शनिवार",
@@ -1870,17 +1793,6 @@
    "pt-BR": "Salvando…",
    "ru": "Сохранение…",
    "id": "Menyimpan…"
-  },
-  "Scarf": {
-   "zh-Hans": "围巾",
-   "hi": "मफ़लर",
-   "es": "Bufanda",
-   "ar": "وشاح",
-   "fr": "Écharpe",
-   "bn": "মাফলার",
-   "pt-BR": "Cachecol",
-   "ru": "Шарф",
-   "id": "Syal"
   },
   "Secret key": {
    "zh-Hans": "私密密钥",
@@ -2112,17 +2024,6 @@
    "pt-BR": "Domingo",
    "ru": "Воскресенье",
    "id": "Minggu"
-  },
-  "Sunglasses": {
-   "zh-Hans": "墨镜",
-   "hi": "धूप का चश्मा",
-   "es": "Gafas de sol",
-   "ar": "نظارة شمسية",
-   "fr": "Lunettes de soleil",
-   "bn": "সানগ্লাস",
-   "pt-BR": "Óculos de sol",
-   "ru": "Солнечные очки",
-   "id": "Kacamata hitam"
   },
   "Switch provider or model": {
    "zh-Hans": "切换服务商或模型",
@@ -2574,17 +2475,6 @@
    "pt-BR": "Onde você programa",
    "ru": "Где вы пишете код",
    "id": "Tempat Anda membuat kode"
-  },
-  "Witch hat": {
-   "zh-Hans": "女巫帽",
-   "hi": "चुड़ैल की टोपी",
-   "es": "Sombrero de bruja",
-   "ar": "قبعة ساحرة",
-   "fr": "Chapeau de sorcière",
-   "bn": "ডাইনির টুপি",
-   "pt-BR": "Chapéu de bruxa",
-   "ru": "Шляпа ведьмы",
-   "id": "Topi penyihir"
   },
   "Work from any app. Click a shortcut to change it, then press the new keys — Esc cancels, Backspace removes it.": {
    "zh-Hans": "在任何应用中都可使用。点击某个快捷键即可修改，然后按下新的按键 — Esc 取消，Backspace 删除。",
@@ -19310,6 +19200,589 @@
    "pt-BR": "Seis meses juntos. Obrigado.",
    "ru": "Шесть месяцев вместе. Спасибо.",
    "id": "Enam bulan bersama. Terima kasih."
+  },
+  "Acorn cap": {
+   "zh-Hans": "橡果帽",
+   "hi": "बलूत टोपी",
+   "es": "Gorro de bellota",
+   "ar": "قبعة البلوط",
+   "fr": "Bonnet gland",
+   "bn": "ওক ফলের টুপি",
+   "pt-BR": "Gorro de bolota",
+   "ru": "Шапочка-жёлудь",
+   "id": "Topi biji ek"
+  },
+  "Antenna": {
+   "zh-Hans": "天线",
+   "hi": "एंटीना",
+   "es": "Antena",
+   "ar": "هوائي",
+   "fr": "Antenne",
+   "bn": "অ্যান্টেনা",
+   "pt-BR": "Antena",
+   "ru": "Антенна",
+   "id": "Antena"
+  },
+  "Backwards cap": {
+   "zh-Hans": "反戴棒球帽",
+   "hi": "उल्टी टोपी",
+   "es": "Gorra al revés",
+   "ar": "قبعة معكوسة",
+   "fr": "Casquette à l’envers",
+   "bn": "উল্টো ক্যাপ",
+   "pt-BR": "Boné virado",
+   "ru": "Кепка козырьком назад",
+   "id": "Topi terbalik"
+  },
+  "Bandana": {
+   "zh-Hans": "头巾",
+   "hi": "बंदना",
+   "es": "Pañuelo",
+   "ar": "باندانا",
+   "fr": "Bandana",
+   "bn": "ব্যান্ডানা",
+   "pt-BR": "Bandana",
+   "ru": "Бандана",
+   "id": "Bandana"
+  },
+  "Bat-wing band": {
+   "zh-Hans": "蝙蝠翅膀发箍",
+   "hi": "चमगादड़-पंख पट्टी",
+   "es": "Diadema de alas de murciélago",
+   "ar": "طوق أجنحة الخفاش",
+   "fr": "Serre-tête ailes de chauve-souris",
+   "bn": "বাদুড়-ডানা ব্যান্ড",
+   "pt-BR": "Tiara de asas de morcego",
+   "ru": "Ободок с крыльями летучей мыши",
+   "id": "Bando sayap kelelawar"
+  },
+  "Beret & pin": {
+   "zh-Hans": "贝雷帽和徽章",
+   "hi": "बेरेट और पिन",
+   "es": "Boina y pin",
+   "ar": "بيريه ودبوس",
+   "fr": "Béret et pin’s",
+   "bn": "বেরেট ও পিন",
+   "pt-BR": "Boina e broche",
+   "ru": "Берет со значком",
+   "id": "Baret & pin"
+  },
+  "Bobble beanie": {
+   "zh-Hans": "绒球毛线帽",
+   "hi": "फुंदने वाली ऊनी टोपी",
+   "es": "Gorro con pompón",
+   "ar": "قبعة صوفية بكرة",
+   "fr": "Bonnet à pompon",
+   "bn": "ঝুমকো উলের টুপি",
+   "pt-BR": "Gorro com pompom",
+   "ru": "Шапка с помпоном",
+   "id": "Kupluk berpompom"
+  },
+  "Bow tie": {
+   "zh-Hans": "领结",
+   "hi": "बो टाई",
+   "es": "Pajarita",
+   "ar": "ربطة عنق فراشة",
+   "fr": "Nœud papillon",
+   "bn": "বো টাই",
+   "pt-BR": "Gravata-borboleta",
+   "ru": "Галстук-бабочка",
+   "id": "Dasi kupu-kupu"
+  },
+  "Bucket hat": {
+   "zh-Hans": "渔夫帽",
+   "hi": "बकेट हैट",
+   "es": "Sombrero de pescador",
+   "ar": "قبعة دلو",
+   "fr": "Bob",
+   "bn": "বাকেট হ্যাট",
+   "pt-BR": "Chapéu bucket",
+   "ru": "Панама",
+   "id": "Topi bucket"
+  },
+  "Bunny-ear band": {
+   "zh-Hans": "兔耳发箍",
+   "hi": "खरगोश-कान पट्टी",
+   "es": "Diadema de orejas de conejo",
+   "ar": "طوق آذان الأرنب",
+   "fr": "Serre-tête oreilles de lapin",
+   "bn": "খরগোশ-কান ব্যান্ড",
+   "pt-BR": "Tiara de orelhas de coelho",
+   "ru": "Ободок с заячьими ушками",
+   "id": "Bando telinga kelinci"
+  },
+  "Candy-corn scarf": {
+   "zh-Hans": "糖果玉米围巾",
+   "hi": "कैंडी-कॉर्न स्कार्फ़",
+   "es": "Bufanda de caramelo de maíz",
+   "ar": "وشاح حلوى الذرة",
+   "fr": "Écharpe bonbon maïs",
+   "bn": "ক্যান্ডি-কর্ন স্কার্ফ",
+   "pt-BR": "Cachecol de bala de milho",
+   "ru": "Шарф «конфетная кукуруза»",
+   "id": "Syal permen jagung"
+  },
+  "Cloud buddy": {
+   "zh-Hans": "云朵伙伴",
+   "hi": "बादल दोस्त",
+   "es": "Nube amiga",
+   "ar": "رفيق الغيمة",
+   "fr": "Petit nuage",
+   "bn": "মেঘ বন্ধু",
+   "pt-BR": "Nuvem amiga",
+   "ru": "Облачко-друг",
+   "id": "Teman awan"
+  },
+  "Comes back in {month}": {
+   "zh-Hans": "{month}回来",
+   "hi": "{month} में लौटेगा",
+   "es": "Vuelve en {month}",
+   "ar": "يعود في {month}",
+   "fr": "De retour en {month}",
+   "bn": "{month}-এ ফিরবে",
+   "pt-BR": "Volta em {month}",
+   "ru": "Вернётся: {month}",
+   "id": "Kembali pada {month}"
+  },
+  "Daisy chain": {
+   "zh-Hans": "雏菊花环",
+   "hi": "डेज़ी माला",
+   "es": "Collar de margaritas",
+   "ar": "عقد الأقحوان",
+   "fr": "Guirlande de pâquerettes",
+   "bn": "ডেইজি মালা",
+   "pt-BR": "Colar de margaridas",
+   "ru": "Венок из ромашек",
+   "id": "Kalung bunga aster"
+  },
+  "Diamond crown": {
+   "zh-Hans": "钻石王冠",
+   "hi": "हीरे का मुकुट",
+   "es": "Corona de diamante",
+   "ar": "تاج الماس",
+   "fr": "Couronne de diamant",
+   "bn": "হীরের মুকুট",
+   "pt-BR": "Coroa de diamante",
+   "ru": "Бриллиантовая корона",
+   "id": "Mahkota berlian"
+  },
+  "Dress for the season: on its first day he puts on one of its hats.": {
+   "zh-Hans": "按季节打扮：每个季节的第一天他会戴上一顶应季帽子。",
+   "hi": "मौसम के हिसाब से कपड़े: मौसम के पहले दिन वह उसकी एक टोपी पहन लेता है।",
+   "es": "Vestirse para la temporada: el primer día se pone uno de sus sombreros.",
+   "ar": "ارتدِ حسب الموسم: في أول أيامه يضع إحدى قبعاته.",
+   "fr": "S’habiller pour la saison : le premier jour, il met l’un de ses chapeaux.",
+   "bn": "ঋতু অনুযায়ী সাজ: ঋতুর প্রথম দিনে সে তার একটি টুপি পরে নেয়।",
+   "pt-BR": "Vestir-se para a estação: no primeiro dia ele põe um dos chapéus dela.",
+   "ru": "Одеваться по сезону: в первый день сезона он надевает одну из его шапок.",
+   "id": "Berdandan sesuai musim: pada hari pertamanya ia memakai salah satu topinya."
+  },
+  "Easter": {
+   "zh-Hans": "复活节",
+   "hi": "ईस्टर",
+   "es": "Pascua",
+   "ar": "عيد الفصح",
+   "fr": "Pâques",
+   "bn": "ইস্টার",
+   "pt-BR": "Páscoa",
+   "ru": "Пасха",
+   "id": "Paskah"
+  },
+  "Eggshell hat": {
+   "zh-Hans": "蛋壳帽",
+   "hi": "अंडे के छिलके की टोपी",
+   "es": "Sombrero de cáscara de huevo",
+   "ar": "قبعة قشرة البيض",
+   "fr": "Chapeau coquille d’œuf",
+   "bn": "ডিমের খোসার টুপি",
+   "pt-BR": "Chapéu de casca de ovo",
+   "ru": "Шляпка-скорлупка",
+   "id": "Topi cangkang telur"
+  },
+  "Flower crown": {
+   "zh-Hans": "花冠",
+   "hi": "फूलों का मुकुट",
+   "es": "Corona de flores",
+   "ar": "تاج الزهور",
+   "fr": "Couronne de fleurs",
+   "bn": "ফুলের মুকুট",
+   "pt-BR": "Coroa de flores",
+   "ru": "Цветочный венок",
+   "id": "Mahkota bunga"
+  },
+  "Flower lei": {
+   "zh-Hans": "花环项链",
+   "hi": "फूलों की माला",
+   "es": "Collar de flores",
+   "ar": "قلادة الزهور",
+   "fr": "Collier de fleurs",
+   "bn": "ফুলের মালা",
+   "pt-BR": "Colar havaiano",
+   "ru": "Цветочное ожерелье",
+   "id": "Kalung bunga"
+  },
+  "Freckles & blush": {
+   "zh-Hans": "雀斑和腮红",
+   "hi": "झाइयाँ और लाली",
+   "es": "Pecas y rubor",
+   "ar": "نمش وحمرة",
+   "fr": "Taches de rousseur et joues roses",
+   "bn": "তিল ও লালচে গাল",
+   "pt-BR": "Sardas e blush",
+   "ru": "Веснушки и румянец",
+   "id": "Bintik & perona"
+  },
+  "Glow visor": {
+   "zh-Hans": "发光面罩",
+   "hi": "चमकता वाइज़र",
+   "es": "Visor luminoso",
+   "ar": "واقي متوهج",
+   "fr": "Visière lumineuse",
+   "bn": "উজ্জ্বল ভাইজার",
+   "pt-BR": "Viseira brilhante",
+   "ru": "Светящийся визор",
+   "id": "Visor bercahaya"
+  },
+  "Gold chain": {
+   "zh-Hans": "金链",
+   "hi": "सोने की चेन",
+   "es": "Cadena de oro",
+   "ar": "سلسلة ذهبية",
+   "fr": "Chaîne en or",
+   "bn": "সোনার চেইন",
+   "pt-BR": "Corrente de ouro",
+   "ru": "Золотая цепь",
+   "id": "Kalung emas"
+  },
+  "Halloween": {
+   "zh-Hans": "万圣节",
+   "hi": "हैलोवीन",
+   "es": "Halloween",
+   "ar": "الهالوين",
+   "fr": "Halloween",
+   "bn": "হ্যালোইন",
+   "pt-BR": "Halloween",
+   "ru": "Хэллоуин",
+   "id": "Halloween"
+  },
+  "Headphones": {
+   "zh-Hans": "耳机",
+   "hi": "हेडफ़ोन",
+   "es": "Auriculares",
+   "ar": "سماعات رأس",
+   "fr": "Casque audio",
+   "bn": "হেডফোন",
+   "pt-BR": "Fones de ouvido",
+   "ru": "Наушники",
+   "id": "Headphone"
+  },
+  "Heart glasses": {
+   "zh-Hans": "爱心眼镜",
+   "hi": "दिल वाला चश्मा",
+   "es": "Gafas de corazón",
+   "ar": "نظارة القلوب",
+   "fr": "Lunettes cœur",
+   "bn": "হৃদয় চশমা",
+   "pt-BR": "Óculos de coração",
+   "ru": "Очки-сердечки",
+   "id": "Kacamata hati"
+  },
+  "Jingle-bell collar": {
+   "zh-Hans": "铃铛项圈",
+   "hi": "घंटी वाला कॉलर",
+   "es": "Collar de cascabeles",
+   "ar": "طوق الأجراس",
+   "fr": "Collier à grelots",
+   "bn": "ঘুঙুর কলার",
+   "pt-BR": "Coleira de sininhos",
+   "ru": "Ошейник с бубенчиками",
+   "id": "Kalung lonceng"
+  },
+  "Knit stripe scarf": {
+   "zh-Hans": "条纹针织围巾",
+   "hi": "धारीदार ऊनी स्कार्फ़",
+   "es": "Bufanda de punto a rayas",
+   "ar": "وشاح محبوك مخطط",
+   "fr": "Écharpe tricot à rayures",
+   "bn": "ডোরাকাটা উলের স্কার্ফ",
+   "pt-BR": "Cachecol de tricô listrado",
+   "ru": "Вязаный полосатый шарф",
+   "id": "Syal rajut bergaris"
+  },
+  "Leaf crown": {
+   "zh-Hans": "叶冠",
+   "hi": "पत्तों का मुकुट",
+   "es": "Corona de hojas",
+   "ar": "تاج الأوراق",
+   "fr": "Couronne de feuilles",
+   "bn": "পাতার মুকুট",
+   "pt-BR": "Coroa de folhas",
+   "ru": "Венок из листьев",
+   "id": "Mahkota daun"
+  },
+  "Leaf scarf": {
+   "zh-Hans": "叶子围巾",
+   "hi": "पत्तों का स्कार्फ़",
+   "es": "Bufanda de hojas",
+   "ar": "وشاح الأوراق",
+   "fr": "Écharpe feuille",
+   "bn": "পাতার স্কার্ফ",
+   "pt-BR": "Cachecol de folha",
+   "ru": "Шарф-листок",
+   "id": "Syal daun"
+  },
+  "Little ghost pal": {
+   "zh-Hans": "小幽灵伙伴",
+   "hi": "नन्हा भूत दोस्त",
+   "es": "Fantasmita amigo",
+   "ar": "الشبح الصغير الصديق",
+   "fr": "Petit fantôme",
+   "bn": "ছোট্ট ভূত বন্ধু",
+   "pt-BR": "Fantasminha amigo",
+   "ru": "Маленький призрак-друг",
+   "id": "Teman hantu kecil"
+  },
+  "Mini top hat": {
+   "zh-Hans": "迷你礼帽",
+   "hi": "छोटी टॉप हैट",
+   "es": "Minisombrero de copa",
+   "ar": "قبعة عالية صغيرة",
+   "fr": "Mini haut-de-forme",
+   "bn": "ছোট টপ হ্যাট",
+   "pt-BR": "Minicartola",
+   "ru": "Мини-цилиндр",
+   "id": "Topi tinggi mini"
+  },
+  "Monocle": {
+   "zh-Hans": "单片眼镜",
+   "hi": "एक-शीशे का चश्मा",
+   "es": "Monóculo",
+   "ar": "نظارة أحادية",
+   "fr": "Monocle",
+   "bn": "মনোকল",
+   "pt-BR": "Monóculo",
+   "ru": "Монокль",
+   "id": "Monokel"
+  },
+  "Mushroom cap": {
+   "zh-Hans": "蘑菇帽",
+   "hi": "मशरूम टोपी",
+   "es": "Gorro de seta",
+   "ar": "قبعة الفطر",
+   "fr": "Chapeau champignon",
+   "bn": "মাশরুম টুপি",
+   "pt-BR": "Chapéu de cogumelo",
+   "ru": "Шляпка-гриб",
+   "id": "Topi jamur"
+  },
+  "Neck phones": {
+   "zh-Hans": "挂颈耳机",
+   "hi": "गले के हेडफ़ोन",
+   "es": "Auriculares al cuello",
+   "ar": "سماعات حول الرقبة",
+   "fr": "Casque autour du cou",
+   "bn": "গলায় হেডফোন",
+   "pt-BR": "Fones no pescoço",
+   "ru": "Наушники на шее",
+   "id": "Headphone di leher"
+  },
+  "Necktie": {
+   "zh-Hans": "领带",
+   "hi": "टाई",
+   "es": "Corbata",
+   "ar": "ربطة عنق",
+   "fr": "Cravate",
+   "bn": "টাই",
+   "pt-BR": "Gravata",
+   "ru": "Галстук",
+   "id": "Dasi"
+  },
+  "Pastel ribbon bow": {
+   "zh-Hans": "粉彩丝带蝴蝶结",
+   "hi": "हल्के रंग का रिबन",
+   "es": "Lazo de cinta pastel",
+   "ar": "فيونكة شريط باستيل",
+   "fr": "Nœud de ruban pastel",
+   "bn": "প্যাস্টেল ফিতের ফুল",
+   "pt-BR": "Laço de fita pastel",
+   "ru": "Пастельный бант",
+   "id": "Pita pastel"
+  },
+  "Pilot goggles": {
+   "zh-Hans": "飞行员护目镜",
+   "hi": "पायलट चश्मा",
+   "es": "Gafas de piloto",
+   "ar": "نظارات الطيار",
+   "fr": "Lunettes d’aviateur",
+   "bn": "পাইলট গগলস",
+   "pt-BR": "Óculos de aviador",
+   "ru": "Лётные очки",
+   "id": "Kacamata pilot"
+  },
+  "Pirate patch": {
+   "zh-Hans": "海盗眼罩",
+   "hi": "समुद्री डाकू पट्टी",
+   "es": "Parche pirata",
+   "ar": "رقعة القرصان",
+   "fr": "Bandeau de pirate",
+   "bn": "জলদস্যুর চোখপট্টি",
+   "pt-BR": "Tapa-olho de pirata",
+   "ru": "Пиратская повязка",
+   "id": "Penutup mata bajak laut"
+  },
+  "Pool ring": {
+   "zh-Hans": "游泳圈",
+   "hi": "तैराकी रिंग",
+   "es": "Flotador",
+   "ar": "عوامة سباحة",
+   "fr": "Bouée",
+   "bn": "সাঁতারের রিং",
+   "pt-BR": "Boia",
+   "ru": "Надувной круг",
+   "id": "Ban renang"
+  },
+  "Pumpkin cap": {
+   "zh-Hans": "南瓜帽",
+   "hi": "कद्दू टोपी",
+   "es": "Gorro de calabaza",
+   "ar": "قبعة اليقطين",
+   "fr": "Bonnet citrouille",
+   "bn": "কুমড়ো টুপি",
+   "pt-BR": "Gorro de abóbora",
+   "ru": "Шапочка-тыква",
+   "id": "Topi labu"
+  },
+  "Round specs": {
+   "zh-Hans": "圆框眼镜",
+   "hi": "गोल चश्मा",
+   "es": "Gafas redondas",
+   "ar": "نظارة مستديرة",
+   "fr": "Lunettes rondes",
+   "bn": "গোল চশমা",
+   "pt-BR": "Óculos redondos",
+   "ru": "Круглые очки",
+   "id": "Kacamata bulat"
+  },
+  "Seasonal": {
+   "zh-Hans": "季节",
+   "hi": "मौसमी",
+   "es": "De temporada",
+   "ar": "موسمي",
+   "fr": "Saisonnier",
+   "bn": "ঋতুভিত্তিক",
+   "pt-BR": "Sazonal",
+   "ru": "Сезонное",
+   "id": "Musiman"
+  },
+  "Seed pendant": {
+   "zh-Hans": "种子吊坠",
+   "hi": "बीज लॉकेट",
+   "es": "Colgante de semilla",
+   "ar": "قلادة البذرة",
+   "fr": "Pendentif graine",
+   "bn": "বীজের লকেট",
+   "pt-BR": "Pingente de semente",
+   "ru": "Кулон-семечко",
+   "id": "Liontin biji"
+  },
+  "Shades": {
+   "zh-Hans": "墨镜",
+   "hi": "धूप का चश्मा",
+   "es": "Gafas de sol",
+   "ar": "نظارة شمسية",
+   "fr": "Lunettes de soleil",
+   "bn": "রোদচশমা",
+   "pt-BR": "Óculos escuros",
+   "ru": "Тёмные очки",
+   "id": "Kacamata hitam"
+  },
+  "Shell necklace": {
+   "zh-Hans": "贝壳项链",
+   "hi": "सीप का हार",
+   "es": "Collar de conchas",
+   "ar": "قلادة الأصداف",
+   "fr": "Collier de coquillages",
+   "bn": "ঝিনুকের মালা",
+   "pt-BR": "Colar de conchas",
+   "ru": "Ожерелье из ракушек",
+   "id": "Kalung kerang"
+  },
+  "Stage {n}": {
+   "zh-Hans": "第 {n} 阶段",
+   "hi": "चरण {n}",
+   "es": "Etapa {n}",
+   "ar": "المرحلة {n}",
+   "fr": "Étape {n}",
+   "bn": "ধাপ {n}",
+   "pt-BR": "Fase {n}",
+   "ru": "Этап {n}",
+   "id": "Tahap {n}"
+  },
+  "Star stickers": {
+   "zh-Hans": "星星贴纸",
+   "hi": "तारे वाले स्टिकर",
+   "es": "Pegatinas de estrellas",
+   "ar": "ملصقات النجوم",
+   "fr": "Autocollants étoiles",
+   "bn": "তারার স্টিকার",
+   "pt-BR": "Adesivos de estrela",
+   "ru": "Наклейки-звёздочки",
+   "id": "Stiker bintang"
+  },
+  "Straw sun hat": {
+   "zh-Hans": "草编遮阳帽",
+   "hi": "भूसे की धूप वाली टोपी",
+   "es": "Sombrero de paja",
+   "ar": "قبعة شمس من القش",
+   "fr": "Chapeau de paille",
+   "bn": "খড়ের রোদটুপি",
+   "pt-BR": "Chapéu de palha",
+   "ru": "Соломенная шляпа",
+   "id": "Topi jerami"
+  },
+  "Summer": {
+   "zh-Hans": "夏季",
+   "hi": "गर्मी",
+   "es": "Verano",
+   "ar": "الصيف",
+   "fr": "Été",
+   "bn": "গ্রীষ্ম",
+   "pt-BR": "Verão",
+   "ru": "Лето",
+   "id": "Musim panas"
+  },
+  "Twig antlers": {
+   "zh-Hans": "树枝鹿角",
+   "hi": "टहनी वाले सींग",
+   "es": "Astas de ramitas",
+   "ar": "قرون من الأغصان",
+   "fr": "Bois en brindilles",
+   "bn": "ডালের শিং",
+   "pt-BR": "Chifres de galhos",
+   "ru": "Рожки из веточек",
+   "id": "Tanduk ranting"
+  },
+  "Watermelon cap": {
+   "zh-Hans": "西瓜帽",
+   "hi": "तरबूज टोपी",
+   "es": "Gorra de sandía",
+   "ar": "قبعة البطيخ",
+   "fr": "Casquette pastèque",
+   "bn": "তরমুজ টুপি",
+   "pt-BR": "Boné de melancia",
+   "ru": "Кепка-арбуз",
+   "id": "Topi semangka"
+  },
+  "Winter & Christmas": {
+   "zh-Hans": "冬季与圣诞",
+   "hi": "सर्दी और क्रिसमस",
+   "es": "Invierno y Navidad",
+   "ar": "الشتاء وعيد الميلاد",
+   "fr": "Hiver et Noël",
+   "bn": "শীত ও বড়দিন",
+   "pt-BR": "Inverno e Natal",
+   "ru": "Зима и Рождество",
+   "id": "Musim dingin & Natal"
   }
  }
 }

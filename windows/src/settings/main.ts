@@ -21,6 +21,7 @@ import {
 import { currentTiles, withServices } from "../core/tiles";
 import { migrateSettingsOutfit } from "../mochi/appearance";
 import { migrateGrownLook } from "../mochi/growth";
+import { seasonalLaunch } from "../mochi/seasons";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
 import { FLOW_PAGE_RENDERERS } from "../hub/pages";
@@ -1475,6 +1476,8 @@ async function render() {
   migrateSettingsOutfit(settings);
   // Grove, Blaze and Tide are now their base look fully grown (round 3 item 6).
   if (migrateGrownLook(settings)) void Bridge.saveSettings(settings);
+  // The season's items are earned here too, so the wardrobe never shows them locked in season.
+  if (seasonalLaunch(settings, new Date())) void Bridge.saveSettings(settings);
   const connected: Record<string, boolean> = { ...(hookStatus ?? {}) };
   for (const def of availablePills()) {
     if (def.connect.kind === "key") connected[def.id] = present[def.connect.key] ?? false;

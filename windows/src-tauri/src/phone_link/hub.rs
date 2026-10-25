@@ -160,10 +160,17 @@ pub struct ApprovalIn {
     pub command: String,
 }
 
-/// The values the island stores for what Groovy wears: nothing, or one accessory.
-pub const OUTFIT_CHOICES: [&str; 11] = [
-    "none", "partyHat", "beanie", "crown", "witchHat", "santaHat", "bunnyEars", "bow",
-    "sunglasses", "roundGlasses", "scarf",
+/// The values the island stores for what Groovy wears: nothing, or one item
+/// (src/mochi/wardrobe.ts: head, face, neck, then the seasonal ones).
+pub const OUTFIT_CHOICES: [&str; 46] = [
+    "none", "leafCrown", "acornCap", "mushroomCap", "flowerCrown", "bucketHat", "backwardsCap",
+    "headphones", "pilotGoggles", "beretPin", "miniTopHat", "cloudBuddy", "antenna",
+    "diamondCrown", "roundSpecs", "shades", "heartGlasses", "glowVisor", "monocle",
+    "frecklesBlush", "starStickers", "piratePatch", "bandana", "bowTie", "leafScarf",
+    "seedPendant", "neckPhones", "goldChain", "flowerLei", "necktie", "pumpkinCap", "batWingBand",
+    "candyCornScarf", "littleGhostPal", "bobbleBeanie", "twigAntlers", "knitStripeScarf",
+    "jingleBellCollar", "bunnyEarBand", "eggshellHat", "pastelRibbonBow", "daisyChain",
+    "strawSunHat", "watermelonCap", "shellNecklace", "poolRing",
 ];
 
 fn clean_services(cards: Vec<ServiceIn>) -> Vec<ServiceIn> {
@@ -1640,36 +1647,36 @@ mod tests {
     #[test]
     fn a_phone_with_prefs_hears_the_outfit_when_it_connects_and_whenever_it_changes() {
         let (hub, _) = hub();
-        hub.publish_outfit("beanie");
+        hub.publish_outfit("bucketHat");
         let (tx, mut rx) = mpsc::channel(16);
         hub.subscribe_with(tx, 1_000, Caps { prefs: true, ..Caps::default() });
         let first = drain(&mut rx);
-        assert!(first.iter().any(|l| l["type"] == "prefs" && l["outfit"] == "beanie"), "{first:?}");
-        hub.publish_outfit("crown");
+        assert!(first.iter().any(|l| l["type"] == "prefs" && l["outfit"] == "bucketHat"), "{first:?}");
+        hub.publish_outfit("acornCap");
         let next = drain(&mut rx);
         assert_eq!(next.len(), 1);
-        assert_eq!(next[0], serde_json::json!({ "type": "prefs", "outfit": "crown" }));
-        hub.publish_outfit("crown"); // the same again: nothing new
+        assert_eq!(next[0], serde_json::json!({ "type": "prefs", "outfit": "acornCap" }));
+        hub.publish_outfit("acornCap"); // the same again: nothing new
         assert!(drain(&mut rx).is_empty());
     }
 
     #[test]
     fn a_phone_without_prefs_never_hears_of_the_outfit() {
         let (hub, _) = hub();
-        hub.publish_outfit("scarf");
+        hub.publish_outfit("leafScarf");
         let (tx, mut rx) = mpsc::channel(16);
         hub.subscribe_with(tx, 1_000, Caps { details: true, answers: true, ..Caps::default() });
-        hub.publish_outfit("bow");
+        hub.publish_outfit("bowTie");
         assert!(drain(&mut rx).iter().all(|l| l["type"] != "prefs"));
     }
 
     #[test]
     fn only_the_known_wardrobe_values_are_sent() {
         let (hub, _) = hub();
-        let (tx, mut rx) = mpsc::channel(16);
+        let (tx, mut rx) = mpsc::channel(OUTFIT_CHOICES.len() + 4);
         hub.subscribe_with(tx, 1_000, Caps { prefs: true, ..Caps::default() });
         drain(&mut rx);
-        for bad in ["", "topHat", "Beanie", "beanie ", "../../etc", "auto", "pumpkin"] {
+        for bad in ["", "topHat", "beanie", "witchHat", "bucketHat ", "../../etc", "auto", "pumpkin"] {
             hub.publish_outfit(bad);
         }
         assert!(drain(&mut rx).is_empty());
@@ -1682,8 +1689,13 @@ mod tests {
     #[test]
     fn the_outfit_list_is_the_one_of_the_island() {
         let ts = include_str!("../../../src/mochi/wardrobe.ts");
-        let body = ts.split("export const ACCESSORIES = [").nth(1).unwrap().split("] as const").next().unwrap();
-        let ids: Vec<&str> = std::iter::once("none").chain(body.split('"').skip(1).step_by(2)).collect();
+        let list = |name: &str| -> Vec<&str> {
+            let body = ts.split(&format!("export const {name} = [")).nth(1).unwrap().split("] as const").next().unwrap();
+            body.split('"').skip(1).step_by(2).collect()
+        };
+        let ids: Vec<&str> = std::iter::once("none")
+            .chain(["HEAD_ITEMS", "FACE_ITEMS", "NECK_ITEMS", "SEASONAL_ITEMS"].into_iter().flat_map(list))
+            .collect();
         assert_eq!(ids, OUTFIT_CHOICES.to_vec());
     }
     // ── file changes (cap `diffs`) ──────────────────────────────────────────────────

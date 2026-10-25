@@ -10,6 +10,7 @@ import { currentTiles, isMailNotification } from "./core/tiles";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { migrateSettingsOutfit } from "./mochi/appearance";
+import { seasonalLaunch } from "./mochi/seasons";
 import { mergeGrowth, migrateGrownLook, startGrowthClock } from "./mochi/growth";
 import { registerHookHandlers } from "./island/hooks";
 import { registerPhoneLink } from "./island/phone-link";
@@ -57,6 +58,8 @@ async function main() {
     if (migrateSettingsOutfit(State.settings)) void Bridge.saveSettings(State.settings);
     // Grove, Blaze and Tide are now Night, Ember and Frost fully grown, once.
     if (migrateGrownLook(State.settings)) void Bridge.saveSettings(State.settings);
+    // The season's wardrobe items are earned, and he dresses for it once (round 5 item 4).
+    if (seasonalLaunch(State.settings, new Date())) void Bridge.saveSettings(State.settings);
   }
   // Groovy's look grows with the time he runs here (round 3 item 6).
   startGrowthClock(
@@ -65,7 +68,14 @@ async function main() {
       State.settings.growth = g;
       if (grew) State.notify();
     },
-    (g) => void Bridge.saveGrowth(g),
+    (g) => {
+      void Bridge.saveGrowth(g);
+      // Left running into a new season: it is earned (and dressed for) then too.
+      if (seasonalLaunch(State.settings, new Date())) {
+        void Bridge.saveSettings(State.settings);
+        State.notify();
+      }
+    },
   );
   // A language change redraws the island in place: the texts given as tl(…)
   // relabel themselves (views/dom.ts) and the views redraw the rest on this

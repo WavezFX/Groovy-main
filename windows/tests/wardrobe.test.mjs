@@ -1,26 +1,59 @@
-// The wardrobe's items (src/mochi/wardrobe.ts, FIXES_ROUND3 item 5): no Auto,
-// no costume, and the old setting read only to move it into its slot.
+// The wardrobe's items (src/mochi/wardrobe.ts, round 5 items 3 and 4, round
+// 3E item 7): the 28 Wardrobe v2 items and the Diamond crown, the 16 seasonal
+// ones, stage locks, and every Mochi outfit gone.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ACCESSORIES, DEFAULT_OUTFIT, OUTFIT_KEYS, isAccessory, parseOutfit } from "../src/mochi/wardrobe.ts";
+import {
+  ACCESSORIES, DEFAULT_OUTFIT, FACE_ITEMS, HEAD_ITEMS, NECK_ITEMS, OUTFIT_KEYS, SEASONAL_ITEMS, STAGE_LOCK,
+  available, isAccessory, parseOutfit,
+} from "../src/mochi/wardrobe.ts";
+import { itemArt } from "../src/mochi/outfits.ts";
 import { DEFAULT_SETTINGS } from "../src/core/state.ts";
 
-test("the items keep the Mac's raw values; Auto and the pumpkin are gone", () => {
-  for (const id of ["partyHat", "beanie", "crown", "sunglasses", "roundGlasses", "bow", "scarf", "witchHat", "santaHat", "bunnyEars"]) {
-    assert.ok(isAccessory(id), id);
-    assert.ok(OUTFIT_KEYS[id], id);
+test("12 head, 8 face and 8 neck items, the Diamond crown, and 16 seasonal ones", () => {
+  assert.equal(HEAD_ITEMS.length, 13);
+  assert.equal(HEAD_ITEMS.at(-1), "diamondCrown");
+  assert.equal(FACE_ITEMS.length, 8);
+  assert.equal(NECK_ITEMS.length, 8);
+  assert.equal(SEASONAL_ITEMS.length, 16);
+  assert.equal(new Set(ACCESSORIES).size, 45);
+  for (const id of ACCESSORIES) {
+    assert.ok(OUTFIT_KEYS[id], `${id} has a name`);
+    const art = itemArt(id);
+    assert.ok(art && (art.front?.length || art.body?.length), `${id} is drawn`);
   }
-  assert.ok(!isAccessory("auto"));
-  assert.ok(!isAccessory("pumpkin"));
 });
 
-test("a stored outfit is an accessory or nothing", () => {
-  assert.equal(parseOutfit("witchHat"), "witchHat");
-  for (const v of ["auto", "pumpkin", "topHat", "", null, 3, undefined]) assert.equal(parseOutfit(v), "none");
+test("no Mochi outfit is left", () => {
+  for (const id of ["partyHat", "beanie", "crown", "sunglasses", "roundGlasses", "bow", "scarf", "witchHat", "santaHat", "bunnyEars", "pumpkin", "auto"]) {
+    assert.ok(!isAccessory(id), id);
+  }
+  for (const name of Object.values(OUTFIT_KEYS)) assert.doesNotMatch(name, /^(Party hat|Beanie|Crown|Witch hat|Santa hat|Bunny ears|Bow|Sunglasses|Round glasses|Scarf)$/);
+});
+
+test("a stored outfit is an item, its nearest new one, or nothing", () => {
+  assert.equal(parseOutfit("acornCap"), "acornCap");
+  assert.equal(parseOutfit("beanie"), "bucketHat");
+  assert.equal(parseOutfit("bow"), "bowTie");
+  for (const v of ["auto", "pumpkin", "witchHat", "crown", "toString", "", null, 3, undefined]) assert.equal(parseOutfit(v), "none", String(v));
+});
+
+test("stage items wait for their stage and never lock again", () => {
+  assert.deepEqual(STAGE_LOCK, { seedPendant: 1, flowerCrown: 2, miniTopHat: 3, cloudBuddy: 4, goldChain: 5, diamondCrown: 6 });
+  assert.ok(!available("flowerCrown", 1, []));
+  assert.ok(available("flowerCrown", 2, []));
+  assert.ok(available("flowerCrown", 6, []));
+  assert.ok(!available("diamondCrown", 5, []));
+  assert.ok(available("diamondCrown", 6, []));
+  assert.ok(available("leafCrown", 0, []), "the rest are there from the start");
+  // Seasonal items only once earned.
+  assert.ok(!available("pumpkinCap", 6, []));
+  assert.ok(available("pumpkinCap", 0, ["pumpkinCap"]));
 });
 
 test("new installs wear nothing", () => {
   assert.equal(DEFAULT_OUTFIT, "none");
   assert.equal(DEFAULT_SETTINGS.mochiOutfit, "none");
+  assert.deepEqual(DEFAULT_SETTINGS.seasonalEarned, []);
 });

@@ -183,6 +183,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         // Two windows hold a copy: growth only ever moves forward, and the
         // stage shown is save_growth's to change.
         settings.growth = settings::merge_growth(&settings.growth, &current.growth);
+        settings.seasonal_earned = settings::merge_earned(&current.seasonal_earned, &settings.seasonal_earned);
         let (look, look_at) = settings::keep_newer_look((&current.groovy_look, current.look_at), (&settings.groovy_look, settings.look_at));
         settings.groovy_look = look;
         settings.look_at = look_at;

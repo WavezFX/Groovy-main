@@ -1,5 +1,7 @@
 // Settings → Wardrobe Studio: Groovy's look, his Head, Face and Neck items
-// (each slot on its own, with its own None — FIXES_ROUND3 item 5) and
+// (each slot on its own, with its own None — FIXES_ROUND3 item 5), the
+// Seasonal tab (round 5 item 4; items earned in their season, kept for good),
+// items that wait for a stage (dashed, "Stage N", round 5 item 3) and
 // colours, with a live preview, search, favourites, presets, randomise,
 // reset and wardrobe packs (docs/WARDROBE_PACKS.md). Every change is saved at
 // once, so the real Groovy on the island and the desktop follows it live.
@@ -8,7 +10,8 @@ import { Bridge } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { clear, h } from "../views/dom";
 import { BotEngine } from "../mochi/engine";
-import { ACCESSORIES, OUTFIT_KEYS, type Outfit } from "../mochi/wardrobe";
+import { ACCESSORIES, OUTFIT_KEYS, available, isSeasonal, type Accessory, type Outfit } from "../mochi/wardrobe";
+import { SEASONS, SEASON_ITEMS, lockLabel, parseEarned, type Season } from "../mochi/seasons";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
@@ -20,11 +23,22 @@ import {
 import { N_, t } from "../i18n/i18n";
 import { confirmClick } from "./parts";
 
-const SLOT_LABELS: Record<Slot, string> = {
+type Tab = Slot | "seasonal";
+
+const TAB_LABELS: Record<Tab, string> = {
   head: N_("Head"),
   face: N_("Face"),
   neck: N_("Neck"),
+  seasonal: N_("Seasonal"),
 };
+
+const SEASON_LABELS: Record<Season, string> = {
+  halloween: N_("Halloween"),
+  winter: N_("Winter & Christmas"),
+  easter: N_("Easter"),
+  summer: N_("Summer"),
+};
+
 
 /** The growth bar's marks: when each stage comes (docs/design/settings-v2/Groovy). */
 const STAGE_MARKS = [N_("Seed"), N_("1 d"), N_("3 d"), N_("1 wk"), N_("2 wk"), N_("1 mo"), N_("6 mo")];
@@ -123,6 +137,10 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     return b;
   };
 
+  // What he can wear: stages reached, seasonal items earned.
+  const reached = () => parseGrowth(settings.growth).reached;
+  const earned = () => parseEarned(settings.seasonalEarned);
+  const can = (item: Accessory) => available(item, reached(), earned());
   const matches = (id: string, label: string) =>
     (!favouritesOnly || prefs.favourites.includes(id)) && (!query || folded(t(label)).includes(query) || folded(id).includes(query));
 
@@ -172,43 +190,65 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     }
   }
 
-  // Head / Face / Neck as tabs over one grid of items, as approved.
-  let slotShown: Slot = SLOTS[0];
+  // Head / Face / Neck / Seasonal as tabs over one grid of items, as approved.
+  let slotShown: Tab = SLOTS[0];
   const slotTabs = h("div", { class: "hub-w-seg", role: "tablist", "aria-label": t("Wardrobe") });
+  const itemButton = (item: Accessory, worn: readonly Outfit[]) => {
+    const on = worn.includes(item);
+    const lock = lockLabel(item, reached(), earned());
+    const cls = `hub-w-item${on ? " on" : ""}${lock ? " locked" : ""}`;
+    const b = h("button", { class: cls, type: "button", title: lock ? `${t(OUTFIT_KEYS[item])} · ${lock}` : t(OUTFIT_KEYS[item]), "aria-pressed": String(on), "aria-disabled": lock ? "true" : "false" },
+      iconCanvas(item, 34), h("span", { text: t(OUTFIT_KEYS[item]) }), lock ? h("small", { class: "hub-w-lock", text: lock }) : star(item)) as HTMLButtonElement;
+    b.addEventListener("click", () => {
+      // Still locked: it says when it comes, and nothing changes.
+      if (lock && !on) return say(`${t(OUTFIT_KEYS[item])}: ${lock}`, "warn");
+      const next = wear(prefs.appearance.layers, item);
+      prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
+      commit();
+      if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: t(OUTFIT_KEYS[item]) }));
+    });
+    return b;
+  };
   function drawSlots() {
     clear(slots);
     clear(slotTabs);
     const worn = wornOf(prefs.appearance.layers);
-    for (const slot of SLOTS) {
-      const b = h("button", { class: slot === slotShown ? "on" : "", type: "button", role: "tab", "aria-selected": String(slot === slotShown), text: t(SLOT_LABELS[slot]) });
+    for (const tab of [...SLOTS, "seasonal"] as const) {
+      const b = h("button", { class: tab === slotShown ? "on" : "", type: "button", role: "tab", "aria-selected": String(tab === slotShown), text: t(TAB_LABELS[tab]) });
       b.addEventListener("click", () => {
-        slotShown = slot;
+        slotShown = tab;
         drawSlots();
       });
       slotTabs.append(b);
     }
     const grid = h("div", { class: "hub-card hub-w-items" });
-    const items = ACCESSORIES.filter((o) => SLOT_OF[o] === slotShown && matches(o, OUTFIT_KEYS[o]));
+    if (slotShown === "seasonal") {
+      // Each season's four, earned while Groovy runs during it and kept for good.
+      for (const season of SEASONS) {
+        const items = SEASON_ITEMS[season].filter((o) => matches(o, OUTFIT_KEYS[o]));
+        if (!items.length) continue;
+        grid.append(h("span", { class: "hub-w-season", text: t(SEASON_LABELS[season]) }));
+        for (const item of items) grid.append(itemButton(item, worn));
+      }
+      const auto = h("input", { type: "checkbox", checked: prefs.autoSeason }) as HTMLInputElement;
+      auto.addEventListener("change", () => {
+        prefs = { ...prefs, autoSeason: auto.checked };
+        commit();
+      });
+      slots.append(grid, h("label", { class: "row hub-w-auto" }, auto, h("span", { text: t("Dress for the season: on its first day he puts on one of its hats.") })));
+      return;
+    }
+    const slot = slotShown;
+    const items = ACCESSORIES.filter((o) => SLOT_OF[o] === slot && !isSeasonal(o) && matches(o, OUTFIT_KEYS[o]));
     // This slot's None: empties it, the others stay.
-    const empty = !worn.some((w) => w !== "none" && SLOT_OF[w] === slotShown);
+    const empty = !worn.some((w) => w !== "none" && SLOT_OF[w] === slot);
     const none = h("button", { class: empty ? "hub-w-item on" : "hub-w-item", type: "button", "aria-pressed": String(empty) }, iconCanvas("none", 34), h("span", { text: t("None") })) as HTMLButtonElement;
     none.addEventListener("click", () => {
-      prefs = { ...prefs, appearance: { ...prefs.appearance, layers: clearSlot(prefs.appearance.layers, slotShown) } };
+      prefs = { ...prefs, appearance: { ...prefs.appearance, layers: clearSlot(prefs.appearance.layers, slot) } };
       commit();
     });
     grid.append(none);
-    for (const item of items) {
-      const on = worn.includes(item);
-      const b = h("button", { class: on ? "hub-w-item on" : "hub-w-item", type: "button", title: t(OUTFIT_KEYS[item]), "aria-pressed": String(on) },
-        iconCanvas(item, 34), h("span", { text: t(OUTFIT_KEYS[item]) }), star(item)) as HTMLButtonElement;
-      b.addEventListener("click", () => {
-        const next = wear(prefs.appearance.layers, item);
-        prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
-        commit();
-        if (next.did === "replaced") say(t("{item} replaces what was worn there.", { item: t(OUTFIT_KEYS[item]) }));
-      });
-      grid.append(b);
-    }
+    for (const item of items) grid.append(itemButton(item, worn));
     slots.append(grid);
   }
 
@@ -245,7 +285,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       const wear = h("button", { text: t("Wear") }) as HTMLButtonElement;
       wear.addEventListener("click", () => {
         settings.groovyLook = p.look;
-        prefs = { ...prefs, appearance: p.appearance };
+        // Only what he can wear now: a locked item in a preset waits.
+        prefs = { ...prefs, appearance: { ...p.appearance, layers: wornOf(p.appearance.layers).filter((o) => o !== "none" && can(o)) } };
         commit();
       });
       const del = h("button", { class: "danger", text: t("Delete") }) as HTMLButtonElement;
@@ -314,7 +355,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   });
   const random = h("button", { text: t("Surprise me") });
   random.addEventListener("click", () => {
-    const r = randomLook();
+    const r = randomLook(Math.random, can);
     settings.groovyLook = r.look;
     prefs = { ...prefs, appearance: r.appearance };
     commit();

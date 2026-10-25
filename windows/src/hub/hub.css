@@ -1835,3 +1835,15 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
 /* The glass choice takes its own line when the column is narrow. */
 .hub-i .hub-b-list .hub-home-row { flex-wrap: wrap; row-gap: 8px; }
 .hub-i-tile-main:disabled { color: var(--hub-text); opacity: 1; }
+
+/* Round 3E item 7: the wardrobe's locked items and the Seasonal tab. */
+.hub-w-item .hub-w-lock { font: 600 10.5px var(--font); color: var(--hub-secondary); }
+.hub-w-season { grid-column: 1 / -1; font: 700 11px var(--font); letter-spacing: 0.04em; text-transform: uppercase; color: var(--hub-secondary); padding-top: 4px; }
+.hub-w-auto { gap: 8px; padding: 8px 4px 0; font: 500 12.5px var(--font); color: var(--hub-text); }
+/* Four tabs and Remove all on one line. */
+.hub-w-bar { gap: 8px; }
+.hub-w-bar .hub-w-seg button { padding: 0 12px; }
+.hub-w-remove { white-space: nowrap; flex: none; padding: 0 12px; }
+/* A locked item says when it comes: the tile grows to fit. */
+.hub-w-item { height: auto; min-height: 92px; padding: 8px 6px; }
+.hub-w-item .hub-w-lock { line-height: 1.2; }

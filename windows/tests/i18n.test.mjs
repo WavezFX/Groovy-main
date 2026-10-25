@@ -86,11 +86,11 @@ test("plurals follow each language's rules", () => {
 });
 
 test("labels() tables and dates read in the current language", () => {
-  const table = labels({ bow: N_("Bow"), hat: N_("Party hat") });
-  assert.equal(table.bow, "Bow");
+  const table = labels({ tie: N_("Bow tie"), hat: N_("Bucket hat") });
+  assert.equal(table.tie, "Bow tie");
   inLanguage("fr", () => {
-    assert.equal(table.bow, "Nœud");
-    assert.deepEqual(Object.keys(table), ["bow", "hat"]);
+    assert.equal(table.tie, "Nœud papillon");
+    assert.deepEqual(Object.keys(table), ["tie", "hat"]);
   });
   assert.equal(weekdayShort(1), "Mon");
   assert.equal(dayMonth(8, 28), "Sep 28");

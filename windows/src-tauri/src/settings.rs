@@ -190,6 +190,9 @@ pub struct Settings {
     /// Groovy's own Do not disturb (Home, round 3D item 3): no sounds and no
     /// notification or recap pop-ups; questions from agents still come through.
     pub do_not_disturb: bool,
+    /// The seasonal wardrobe items earned so far (round 5 item 4): they are
+    /// kept for good, so two copies are merged as a union (merge_earned).
+    pub seasonal_earned: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -293,6 +296,7 @@ impl Default for Settings {
             growth: Value::Object(Map::new()),
             integrations_restored: false,
             do_not_disturb: false,
+            seasonal_earned: Vec::new(),
         }
     }
 }
@@ -429,6 +433,20 @@ pub fn merge_growth(old: &Value, new: &Value) -> Value {
     }
     if co.max(cn) > 0 {
         out["correction"] = serde_json::json!(co.max(cn));
+    }
+    out
+}
+
+/// Seasonal items earned in either copy (round 5 item 4): earned once, kept
+/// for good, so a window with an older copy never takes one away. Ids are
+/// short names; anything else is dropped, and the list stays small.
+pub fn merge_earned(old: &[String], new: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for id in old.iter().chain(new) {
+        let ok = !id.is_empty() && id.len() <= 32 && id.chars().all(|c| c.is_ascii_alphanumeric());
+        if ok && !out.contains(id) && out.len() < 64 {
+            out.push(id.clone());
+        }
     }
     out
 }
@@ -719,9 +737,9 @@ mod tests {
     "jobBrains": { "writing": "google" }
   },
   "wardrobe": {
-    "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["sunglasses"] },
+    "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["shades"] },
     "presets": [],
-    "favourites": ["crown"]
+    "favourites": ["goldChain"]
   },
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
   "closeOnLeaveOffered": true,
@@ -737,7 +755,8 @@ mod tests {
   "searchEngine": "google",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true,
-  "doNotDisturb": true
+  "doNotDisturb": true,
+  "seasonalEarned": ["pumpkinCap", "batWingBand"]
 }"##;
 
     fn custom() -> Value {
@@ -949,6 +968,17 @@ mod tests {
         let m = merge_growth(&six, &corrected);
         assert_eq!(m["reached"], 6);
         assert_eq!(m["hatchedAt"], 1700000000u64, "the earliest hatching");
+    }
+
+    #[test]
+    fn earned_seasonal_items_are_kept_from_either_copy() {
+        let ids = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let merged = merge_earned(&ids(&["pumpkinCap", "batWingBand"]), &ids(&["batWingBand", "bobbleBeanie"]));
+        assert_eq!(merged, ids(&["pumpkinCap", "batWingBand", "bobbleBeanie"]));
+        // An older copy without them never takes them away.
+        assert_eq!(merge_earned(&merged, &[]), merged);
+        // Junk is dropped.
+        assert_eq!(merge_earned(&ids(&["", "a b", "<x>", &"y".repeat(40)]), &[]), Vec::<String>::new());
     }
 
     #[test]
@@ -1407,6 +1437,7 @@ mod tests {
                 "growth",
                 "integrationsRestored",
                 "doNotDisturb",
+                "seasonalEarned",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

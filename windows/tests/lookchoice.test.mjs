@@ -53,8 +53,8 @@ test("the wardrobe's pictures are drawn once and reused", async () => {
   const b = lookSprite("night", 2, 40, 2);
   assert.equal(a, b);
   assert.notEqual(lookSprite("night", 3, 40, 2), a, "another stage is another picture");
-  itemSprite("crown", 26, 2);
-  itemSprite("crown", 26, 2);
+  itemSprite("acornCap", 26, 2);
+  itemSprite("acornCap", 26, 2);
   assert.equal(spriteCount(), before + 3);
   assert.equal(drawn, 3, "three pictures drawn, however often they were asked for");
   document.createElement = make;

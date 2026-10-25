@@ -12,25 +12,22 @@
 
 import type { SkinStyle, Skin } from "./skins";
 import { SKINS } from "./skins";
-import { ACCESSORIES, isAccessory, parseOutfit, type Accessory, type Outfit } from "./wardrobe";
+import {
+  ACCESSORIES, FACE_ITEMS, HEAD_ITEMS, NECK_ITEMS, SEASONAL_ITEMS, isAccessory, parseOutfit, type Accessory, type Outfit,
+} from "./wardrobe";
 import { N_ } from "../i18n/i18n";
 
 export type Slot = "head" | "face" | "neck";
 
 export const SLOTS: readonly Slot[] = ["head", "face", "neck"];
 
-export const SLOT_OF: Record<Accessory, Slot> = {
-  partyHat: "head",
-  beanie: "head",
-  crown: "head",
-  witchHat: "head",
-  santaHat: "head",
-  bunnyEars: "head",
-  bow: "head",
-  sunglasses: "face",
-  roundGlasses: "face",
-  scarf: "neck",
-};
+export const SLOT_OF: Record<Accessory, Slot> = Object.fromEntries([
+  ...HEAD_ITEMS.map((i) => [i, "head"]),
+  ...FACE_ITEMS.map((i) => [i, "face"]),
+  ...NECK_ITEMS.map((i) => [i, "neck"]),
+  // Each season: two for the head, then two for the neck.
+  ...SEASONAL_ITEMS.map((i, n) => [i, n % 4 < 2 ? "head" : "neck"]),
+]) as Record<Accessory, Slot>;
 
 export interface Appearance {
   /** Body gradient, top and bottom ("#RRGGBB"); "" keeps the look's. */
@@ -58,9 +55,13 @@ export interface WardrobePrefs {
   presets: WardrobePreset[];
   /** Outfit ids and look ids marked with a star. */
   favourites: string[];
+  /** On each season's first run he puts on one of its hats (round 5 item 4). */
+  autoSeason: boolean;
+  /** The season he was last dressed for, "halloween:2026", so it happens once. */
+  dressedFor: string;
 }
 
-export const DEFAULT_WARDROBE: WardrobePrefs = { appearance: DEFAULT_APPEARANCE, presets: [], favourites: [] };
+export const DEFAULT_WARDROBE: WardrobePrefs = { appearance: DEFAULT_APPEARANCE, presets: [], favourites: [], autoSeason: true, dressedFor: "" };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const MAX_PRESETS = 50;
@@ -114,7 +115,9 @@ export function styleWith(base: SkinStyle, a: Appearance | null | undefined): Sk
 /** What is worn: one item per slot (the first one named wins), head, face, neck. */
 export function combine(_unused: Outfit, layers: readonly string[]): Outfit[] {
   const bySlot = new Map<Slot, Accessory>();
-  for (const l of layers) {
+  for (const raw of layers) {
+    // A Mochi outfit of earlier versions is read as its nearest new item.
+    const l = parseOutfit(raw);
     if (!isAccessory(l)) continue;
     if (!bySlot.has(SLOT_OF[l])) bySlot.set(SLOT_OF[l], l);
   }
@@ -184,7 +187,8 @@ export function migrateSettingsOutfit(settings: { mochiOutfit: string; wardrobe:
 function cleanAppearance(raw: unknown): Appearance {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const color = (v: unknown) => (isHex(v) ? v.toLowerCase() : "");
-  const layers = Array.isArray(o.layers) ? o.layers.filter((l): l is string => typeof l === "string") : [];
+  // A Mochi outfit of earlier versions becomes its nearest new item (or nothing).
+  const layers = Array.isArray(o.layers) ? o.layers.map(parseOutfit) : [];
   return {
     body: color(o.body),
     body2: color(o.body2),
@@ -215,9 +219,15 @@ export function parseWardrobe(raw: unknown): WardrobePrefs {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const presets = Array.isArray(o.presets) ? o.presets.map(cleanPreset).filter((p): p is WardrobePreset => p !== null) : [];
   const favourites = Array.isArray(o.favourites)
-    ? [...new Set(o.favourites.filter((f): f is string => typeof f === "string" && (ITEM_SET.has(f) || (SKINS as readonly string[]).includes(f))))]
+    ? [...new Set(o.favourites.map((f) => ((SKINS as readonly unknown[]).includes(f) ? (f as string) : parseOutfit(f))).filter((f) => ITEM_SET.has(f) || (SKINS as readonly string[]).includes(f)))]
     : [];
-  return { appearance: cleanAppearance(o.appearance), presets: presets.slice(0, MAX_PRESETS), favourites };
+  return {
+    appearance: cleanAppearance(o.appearance),
+    presets: presets.slice(0, MAX_PRESETS),
+    favourites,
+    autoSeason: o.autoSeason !== false,
+    dressedFor: typeof o.dressedFor === "string" ? o.dressedFor.slice(0, 40) : "",
+  };
 }
 
 export interface PackProblem {
@@ -278,10 +288,11 @@ export function currentWardrobe(raw: unknown): WardrobePrefs {
 
 const PALETTE = ["#22c55e", "#3b82f6", "#f97316", "#ec4899", "#a855f7", "#eab308", "#14b8a6", "#ef4444", "#f5f5f5"];
 
-/** A random look, accessories and colours; `rand` returns 0…1. */
-export function randomLook(rand: () => number = Math.random): { look: Skin; appearance: Appearance } {
+/** A random look, items and colours, from the items he can wear; `rand` returns 0…1. */
+export function randomLook(rand: () => number = Math.random, can: (item: Accessory) => boolean = () => true): { look: Skin; appearance: Appearance } {
   const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length) % list.length];
-  const items = rand() < 0.15 ? [] : [pick(ACCESSORIES), pick(ACCESSORIES), pick(ACCESSORIES)];
+  const pool = ACCESSORIES.filter(can);
+  const items = rand() < 0.15 || !pool.length ? [] : [pick(pool), pick(pool), pick(pool)];
   const tinted = rand() < 0.5;
   return {
     look: pick(SKINS),

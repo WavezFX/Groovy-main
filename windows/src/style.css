@@ -2456,6 +2456,13 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* Round 3E item 7: waits for a stage or a season. */
+.wardrobe-item.locked {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.22);
+  opacity: 0.5;
+}
+
 .wardrobe-item canvas {
   width: 28px;
   height: 28px;

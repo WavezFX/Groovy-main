@@ -2,6 +2,8 @@
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
 import { MAX_STAGE, parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { available } from "../mochi/wardrobe";
+import { parseEarned } from "../mochi/seasons";
 import { flavorOf } from "../core/sounds-synth";
 import { showError } from "../views/toast";
 import { Tracked, Spring, clamp } from "../core/anim";
@@ -44,7 +46,7 @@ import { DRAG_THRESHOLD } from "../mochi/desktop-logic";
 
 const BOT_OVERHANG = 40;
 const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
-/** Extra canvas on each side of Groovy, for the witch hat's brim and the Santa hat's tip. */
+/** Extra canvas on each side of Groovy, for wide items (the straw sun hat, the pool ring). */
 const BOT_SIDE = 24;
 /** One frame in ten (10 fps) for his looping animation in the small island. */
 const SLOW_FRAME_MS = 100;
@@ -424,6 +426,13 @@ export class Island {
       dress: (change) => {
         // Head, face and neck each on their own (round 3): only that slot changes.
         const prefs = currentWardrobe(State.settings.wardrobe);
+        // A locked item (a stage to reach, a season to come) is not put on; one worn can come off.
+        const isItem = change !== "all" && change !== "head" && change !== "face" && change !== "neck";
+        if (isItem && !prefs.appearance.layers.includes(change)
+          && !available(change, parseGrowth(State.settings.growth).reached, parseEarned(State.settings.seasonalEarned))) {
+          Sound.play("blip");
+          return;
+        }
         const layers = change === "all" || change === "head" || change === "face" || change === "neck"
           ? clearSlot(prefs.appearance.layers, change)
           : wear(prefs.appearance.layers, change).layers;

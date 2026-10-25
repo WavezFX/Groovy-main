@@ -292,6 +292,8 @@ export interface Settings {
   growth: unknown;
   /** Groovy's own Do not disturb: no sounds, no notification or recap pop-ups. */
   doNotDisturb: boolean;
+  /** Seasonal wardrobe items earned for good (mochi/seasons.ts); Rust keeps the union. */
+  seasonalEarned: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -354,6 +356,7 @@ export const DEFAULT_SETTINGS: Settings = {
   searchEngine: "duckduckgo",
   growth: {},
   doNotDisturb: false,
+  seasonalEarned: [],
 };
 
 type Listener = () => void;
