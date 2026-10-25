@@ -8,8 +8,8 @@
 // - spoken numbers next to a model name become digits: "S fourteen" → "S14",
 //   "RTX forty sixty" → "RTX 4060", "iPhone fourteen pro" → "iPhone 14 Pro"
 //   (`model_numbers`);
-// - the vocabulary reaches the recognisers as a prompt (`whisper_prompt`,
-//   cloud keyterms) and the clean-up brain.
+// - the vocabulary reaches the cloud recognisers as keyterms and the
+//   clean-up brain.
 
 /// Words a dictation may teach at most, and the vocabulary's size.
 pub const MAX_LEARNED_AT_ONCE: usize = 8;
@@ -334,24 +334,6 @@ pub fn model_numbers(text: &str) -> String {
     }
 }
 
-/// Whisper's prompt: the name it must spell, then the user's words.
-#[cfg_attr(not(feature = "voice"), allow(dead_code))]
-pub fn whisper_prompt(vocabulary: &[String]) -> String {
-    let mut prompt = String::from("Hey Groovy.");
-    let mut used = 0;
-    for w in vocabulary.iter().rev() {
-        // Whisper reads at most 224 tokens of prompt: a few hundred characters.
-        if prompt.len() + w.len() + 2 > 600 || used >= 60 {
-            break;
-        }
-        prompt.push(' ');
-        prompt.push_str(w);
-        prompt.push(',');
-        used += 1;
-    }
-    prompt.trim_end_matches(',').to_string()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -418,15 +400,6 @@ mod tests {
         remember(&mut vocab, &many);
         assert_eq!(vocab.len(), MAX_VOCABULARY);
         assert_eq!(vocab.last().unwrap(), "Name599");
-    }
-
-    #[test]
-    fn whisper_hears_the_vocabulary_newest_first_within_its_prompt() {
-        assert_eq!(whisper_prompt(&[]), "Hey Groovy.");
-        let p = whisper_prompt(&v(&["Supabase", "VivoBook"]));
-        assert_eq!(p, "Hey Groovy. VivoBook, Supabase");
-        let many: Vec<String> = (0..500).map(|i| format!("Word{i}")).collect();
-        assert!(whisper_prompt(&many).len() <= 600);
     }
 
     #[test]

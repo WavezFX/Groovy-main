@@ -133,19 +133,27 @@ pub fn setup(app: &AppHandle) {
 
 /// Round 3D item 7: someone who had Parakeet on the PC (local speech set up)
 /// and is now on the small Whisper model gets it downloaded once, in the
-/// background (about 57 MB), so dictation keeps working offline.
+/// background, so dictation keeps working offline. Round 3F item 5: so does
+/// someone with a whisper.cpp model on disk, whose old file goes once the
+/// new one is in.
 fn small_speech_for_parakeet_users(app: &AppHandle, prefs: &store::Prefs) {
-    if prefs.engine != "whisper" || !speech::PARAKEET.is_present() {
+    let had_whisper_cpp = crate::voice::had_whisper_cpp();
+    if prefs.engine != "whisper" || !(speech::PARAKEET.is_present() || had_whisper_cpp) {
+        crate::voice::retire_whisper_cpp();
         return;
     }
     let Some(model) = app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().voice_model.clone()) else { return };
     if crate::voice::installed(&model) {
+        crate::voice::retire_whisper_cpp();
         return;
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         match crate::voice::download(&app, &model).await {
-            Ok(()) => crate::log::line(format!("speech: {model} downloaded (Groovy's small offline model)")),
+            Ok(()) => {
+                crate::log::line(format!("speech: {model} downloaded (Groovy's small offline model)"));
+                crate::voice::retire_whisper_cpp();
+            }
             Err(e) => crate::log::line(format!("speech: could not download {model}: {e}")),
         }
     });
@@ -453,7 +461,6 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
         let store = flow.store.lock().unwrap();
         (store.words.words.clone(), store.prefs.cloud_speech, store.prefs.learn_words)
     };
-    crate::voice::set_vocabulary(&vocabulary);
     // Cloud speech-to-text first when there is a key (round 3B item 6), the
     // PC's engine when there is none, no network or no answer in time.
     let heard = if cloud_first {

@@ -55,7 +55,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Test-only code (worktest.rs) out of the release build
 - [x] 3. One resource manager instead of six (idle, loads, ceiling, webview_memory, runtime_state, three reapers)
 - [x] 4. One event-driven scheduler instead of always-on polling loops (idle CPU ≈ 0 %, threads halved)
-- [ ] 5. One speech runtime: dictation on sherpa-onnx, drop whisper-rs
+- [x] 5. One speech runtime: dictation on sherpa-onnx, drop whisper-rs
 - [x] 6. Translations loaded per language, English bundled
 - [ ] 7. Startup does only what's needed (Phone Link, mail, tasks, music, integrations, Spotify sync dormant until used)
 - [x] 8. Merge the two Voice settings pages

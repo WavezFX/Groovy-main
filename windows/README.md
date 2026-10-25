@@ -45,7 +45,7 @@ your PC" the first time: click **More info**, then **Run anyway**.
 Turn it on in **Settings → Voice**, then pick where your words are understood:
 
 - **On this computer (Whisper)**: the default. Download a speech model once
-  (Tiny, 75 MB, fastest; or Base, 142 MB, more accurate) from the whisper.cpp
+  (Base, 155 MB, the default; Tiny, 98 MB, fastest; or Small, 358 MB, most accurate) from the sherpa-onnx
   repository on Hugging Face. Speech is turned into text on your PC and no audio
   leaves it. What you ask goes to the chat, with whichever provider is picked
   there (Claude, OpenAI, a local Ollama model…).
@@ -301,10 +301,8 @@ You need [Rust](https://rustup.rs), [Node 20+](https://nodejs.org), and the
 **MSVC build tools** (Visual Studio Build Tools with "Desktop development with
 C++"). WebView2 ships with Windows 10/11.
 
-Voice builds whisper.cpp from source, which also needs **CMake** and **LLVM**
-(for libclang): `winget install Kitware.CMake LLVM.LLVM`, then open a new
-terminal. To build without voice, pass `--no-default-features` to Cargo
-(for example `npm run tauri dev -- -- --no-default-features`).
+Speech (dictation, the wake word, Kokoro) runs on sherpa-onnx, whose build
+downloads its prebuilt library: no CMake or LLVM needed.
 
 ```powershell
 cd windows

@@ -225,18 +225,6 @@ pub fn kokoro_speaker(gender: &str) -> i32 {
     }
 }
 
-/// onnxruntime without weight prepacking, which keeps a second, repacked copy
-/// of Kokoro's weights (about 14 MB) for no speed it can measure here. Passed
-/// as sherpa-onnx's "cpu:<file>" provider; sherpa-onnx exits when the file is
-/// missing, so it is written first and left out if it can't be.
-fn low_memory_provider() -> Option<String> {
-    let dir = crate::settings::local_dir();
-    let file = dir.join("onnxruntime-kokoro.cfg");
-    crate::platform::ensure_private_dir(&dir).ok()?;
-    std::fs::write(&file, "SessionConfig.session.disable_prepacking=1\n").ok()?;
-    file.is_file().then(|| format!("cpu:{}", file.display()))
-}
-
 fn load() -> Option<Arc<OfflineTts>> {
     let mut e = engine().lock().unwrap();
     if let Some(l) = e.as_mut() {
@@ -262,7 +250,7 @@ fn load() -> Option<Arc<OfflineTts>> {
                 ..Default::default()
             },
             num_threads: 2,
-            provider: low_memory_provider(),
+            provider: super::low_memory_provider(),
             ..Default::default()
         },
         max_num_sentences: 1,

@@ -1,48 +1,66 @@
-// Voice: speech to text with Whisper (whisper.cpp through whisper-rs), on this
-// computer. The island's VoiceController sends short 16 kHz segments; nothing
-// is recorded or kept. Models are downloaded once, on request, from the
-// whisper.cpp model repository on Hugging Face, into local_dir()/models.
-//
-// Built with the "voice" Cargo feature (on by default). Without it, voice
-// reports itself unavailable and every other part of Groovy works as before.
+// Voice: speech to text with Whisper on this computer, through sherpa-onnx,
+// the speech engine Groovy already has for Parakeet, the wake word and Kokoro
+// (round 3F item 5: one speech runtime; whisper.cpp is gone). The island's
+// VoiceController sends short 16 kHz segments; nothing is recorded or kept.
+// Models are downloaded once, on request, into local_dir()/models.
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Mutex;
 
 use serde::Serialize;
+use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineWhisperModelConfig};
 use tauri::{AppHandle, Emitter};
-
-use crate::platform;
 
 /// The models Groovy offers. Anything else is refused. The ".en" ones only
 /// understand English; the others understand ~99 languages (Spanish, German,
-/// Punjabi, Hindi…), less accurately per size. The "-q5_1" ones are the same
-/// models quantized: a third of the size and memory (round 3D item 7).
-pub const MODELS: &[&str] = &["base-q5_1", "base.en-q5_1", "tiny.en", "base.en", "tiny", "base", "small"];
+/// Punjabi, Hindi…), less accurately per size. All are int8.
+pub const MODELS: &[&str] = &["base", "base.en", "tiny", "tiny.en", "small"];
 
 /// Groovy's offline speech model by default (round 3D item 7): Whisper base,
-/// quantized, ~99 languages, about 57 MB, so Groovy stays under 400 MB.
-pub const DEFAULT_MODEL: &str = "base-q5_1";
+/// ~99 languages, its weights mapped from disk so Groovy stays under 400 MB.
+pub const DEFAULT_MODEL: &str = "base";
 
-/// What each download must be, from the whisper.cpp repository on Hugging Face:
-/// (model, size in bytes, SHA-256). A file that doesn't match is deleted.
-const PINNED: &[(&str, u64, &str)] = &[
-    ("base-q5_1", 59_707_625, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
-    ("base.en-q5_1", 59_721_011, "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"),
-    ("tiny.en", 77_704_715, "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"),
-    ("base.en", 147_964_211, "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002"),
-    ("tiny", 77_691_713, "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"),
-    ("base", 147_951_465, "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe"),
-    ("small", 487_601_967, "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"),
-];
-
-fn pinned(model: &str) -> Option<(u64, &'static str)> {
-    PINNED.iter().find(|(m, _, _)| *m == model).map(|(_, size, sha)| (*size, *sha))
+/// Models chosen before round 3F item 5 (whisper.cpp's files), and what they
+/// are now. Their old files are deleted once (`retire_whisper_cpp`).
+pub fn current_name(model: &str) -> &str {
+    match model {
+        "base-q5_1" => "base",
+        "base.en-q5_1" => "base.en",
+        m => m,
+    }
 }
 
-/// A model that only understands English ("base.en", "base.en-q5_1").
+fn whisper_cpp_files() -> Vec<std::fs::DirEntry> {
+    let Ok(dir) = std::fs::read_dir(crate::speech::models_dir()) else { return Vec::new() };
+    dir.flatten()
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            name.starts_with("ggml-") && (name.ends_with(".bin") || name.ends_with(".bin.part"))
+        })
+        .collect()
+}
+
+/// A whisper.cpp model was downloaded before round 3F item 5.
+pub fn had_whisper_cpp() -> bool {
+    !whisper_cpp_files().is_empty()
+}
+
+/// whisper.cpp's model files (ggml-*.bin), no longer read by anything: deleted
+/// once to give the disk back.
+pub fn retire_whisper_cpp() {
+    for entry in whisper_cpp_files() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        {
+            if std::fs::remove_file(entry.path()).is_ok() {
+                crate::log::line(format!("voice: removed {name} (whisper.cpp's, no longer used)"));
+            }
+        }
+    }
+}
+
+/// A model that only understands English ("base.en", "tiny.en").
 pub fn english_only(model: &str) -> bool {
-    model.ends_with(".en") || model.contains(".en-")
+    model.ends_with(".en")
 }
 
 /// The language Whisper is told to expect: English for the ".en" models,
@@ -56,9 +74,6 @@ pub fn language_for(model: &str, picked: &str) -> Option<String> {
     let valid = (2..=3).contains(&code.len()) && code.chars().all(|c| c.is_ascii_lowercase());
     (valid && code != "auto").then_some(code)
 }
-
-/// The smallest a real model file can be: a cut-off download is never loaded.
-const MIN_MODEL_BYTES: u64 = 30 * 1024 * 1024;
 
 /// Longest segment accepted, in samples (30 s at 16 kHz) — Whisper's window.
 const MAX_SAMPLES: usize = 16_000 * 30;
@@ -77,95 +92,45 @@ struct Progress<'a> {
     total: u64,
 }
 
-fn models_dir() -> PathBuf {
-    platform::local_dir().join("models")
-}
-
-fn model_path(model: &str) -> Result<PathBuf, String> {
-    if !MODELS.contains(&model) {
-        return Err(format!("Unknown speech model \"{model}\"."));
-    }
-    Ok(models_dir().join(format!("ggml-{model}.bin")))
+fn set_of(model: &str) -> Result<&'static crate::speech::ModelSet, String> {
+    crate::speech::whisper_set(model).ok_or_else(|| format!("Unknown speech model \"{model}\"."))
 }
 
 pub fn installed(model: &str) -> bool {
-    model_path(model)
-        .ok()
-        .and_then(|p| std::fs::metadata(p).ok())
-        .is_some_and(|m| m.len() >= MIN_MODEL_BYTES)
+    set_of(model).is_ok_and(|s| s.is_present())
 }
 
 pub fn status(chosen: &str) -> VoiceStatus {
     let installed_list: Vec<String> = MODELS.iter().filter(|m| installed(m)).map(|m| m.to_string()).collect();
-    let available = cfg!(feature = "voice");
-    VoiceStatus {
-        ready: available && installed(chosen),
-        installed: installed_list,
-        available,
-    }
+    VoiceStatus { ready: installed(chosen), installed: installed_list, available: true }
 }
 
-/// Downloads a model, reporting progress as "voice-model-progress" events. The
-/// file is written next to its final place and renamed only once complete.
+/// Downloads a model, reporting progress as "voice-model-progress" events.
+/// Each file is checked against its size and SHA-256 before it takes its name.
 pub async fn download(app: &AppHandle, model: &str) -> Result<(), String> {
-    let path = model_path(model)?;
-    std::fs::create_dir_all(models_dir()).map_err(|e| e.to_string())?;
-    let url = format!("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{model}.bin");
-    let mut resp = reqwest::Client::new()
-        .get(&url)
-        .send()
-        .await
-        .and_then(|r| r.error_for_status())
-        .map_err(|e| format!("The download didn't start ({e})."))?;
-    let total = resp.content_length().unwrap_or(0);
-    let part = path.with_extension("bin.part");
-    let (expected_size, expected_sha) = pinned(model).ok_or("Unknown speech model.")?;
-    let mut file = std::fs::File::create(&part).map_err(|e| e.to_string())?;
-    let mut hash = ring::digest::Context::new(&ring::digest::SHA256);
-    let mut done: u64 = 0;
-    let mut last_report: u64 = 0;
-    loop {
-        let chunk = match resp.chunk().await {
-            Ok(Some(c)) => c,
-            Ok(None) => break,
-            Err(e) => {
-                let _ = std::fs::remove_file(&part);
-                return Err(format!("The download stopped ({e})."));
-            }
-        };
-        std::io::Write::write_all(&mut file, &chunk).map_err(|e| e.to_string())?;
-        hash.update(&chunk);
-        done += chunk.len() as u64;
-        if done > expected_size {
-            let _ = std::fs::remove_file(&part);
-            return Err("The download is larger than expected; it was discarded.".into());
-        }
+    let set = set_of(model)?;
+    let total = set.total_size();
+    let mut last_report = 0;
+    let app2 = app.clone();
+    let name = model.to_string();
+    crate::speech::fetch(set, &mut move |done| {
         // About every 2 MB is plenty for a progress bar.
         if done - last_report > 2 * 1024 * 1024 || done == total {
             last_report = done;
-            let _ = app.emit("voice-model-progress", Progress { model, done, total });
+            let _ = app2.emit("voice-model-progress", Progress { model: &name, done, total });
         }
-    }
-    drop(file);
-    if done < MIN_MODEL_BYTES || (total > 0 && done != total) || done != expected_size {
-        let _ = std::fs::remove_file(&part);
-        return Err("The downloaded file is incomplete.".into());
-    }
-    let got: String = hash.finish().as_ref().iter().map(|b| format!("{b:02x}")).collect();
-    if got != expected_sha {
-        let _ = std::fs::remove_file(&part);
-        return Err("The speech model failed verification (SHA-256 mismatch); it was discarded.".into());
-    }
-    std::fs::rename(&part, &path).map_err(|e| e.to_string())?;
+    })
+    .await
+    .map_err(|e| format!("The speech model didn't download ({e})."))?;
     // A model replaced on disk must be loaded again.
     *LOADED.lock().unwrap() = None;
     Ok(())
 }
 
 pub fn delete(model: &str) -> Result<(), String> {
-    let path = model_path(model)?;
+    let set = set_of(model)?;
     *LOADED.lock().unwrap() = None;
-    match std::fs::remove_file(path) {
+    match std::fs::remove_dir_all(set.dir()) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e.to_string()),
@@ -178,7 +143,6 @@ pub fn to_f32(samples: &[i16]) -> Vec<f32> {
 }
 
 /// Whisper's text, tidied: no "[BLANK_AUDIO]"-style markers, single spaces.
-#[cfg(any(feature = "voice", test))]
 pub fn clean(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut depth = 0i32;
@@ -195,16 +159,13 @@ pub fn clean(text: &str) -> String {
 
 // ── Whisper ──────────────────────────────────────────────────────────────────
 
-#[cfg(feature = "voice")]
-type Loaded = (String, whisper_rs::WhisperContext);
-#[cfg(not(feature = "voice"))]
-type Loaded = (String, ());
+/// The recognizer in memory, by model and language ("base/en"): sherpa-onnx
+/// fixes Whisper's language when it loads.
+type Loaded = (String, OfflineRecognizer);
 
-/// The model in memory, by name: loaded on the first segment, kept while used.
 static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 
 /// When Whisper was last used: freed once unused for the idle setting (round 3B item 10).
-#[cfg(feature = "voice")]
 static WHISPER_USED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
 
 /// Whether a Whisper model is in memory.
@@ -222,7 +183,6 @@ pub fn free_now() {
 }
 
 /// Frees Whisper once unused for the idle setting (the resources thread).
-#[cfg(feature = "voice")]
 pub fn free_if_idle() {
     let idle = WHISPER_USED.lock().unwrap().is_some_and(crate::resources::idle::expired);
     // A transcription in progress holds the lock: try again on the next check.
@@ -235,13 +195,6 @@ pub fn free_if_idle() {
 
 /// Transcribes up to 30 s of 16 kHz audio, on the calling thread: for
 /// dictation and notes when Whisper is chosen over Parakeet (speech/mod.rs).
-/// The dictation vocabulary Whisper is prompted with (Flow's dictionary).
-static VOCABULARY: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
-
-pub fn set_vocabulary(words: &[String]) {
-    *VOCABULARY.lock().unwrap() = words.to_vec();
-}
-
 pub fn transcribe_blocking(model: &str, language: Option<&str>, pcm: &[f32]) -> Result<String, String> {
     run(model, language, pcm, false)
 }
@@ -259,59 +212,59 @@ pub async fn transcribe(model: String, language: Option<String>, samples: Vec<i1
         .map_err(|e| e.to_string())?
 }
 
-#[cfg(feature = "voice")]
-fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<String, String> {
-    use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+/// Encoder, decoder and tokens of a model's set.
+fn files(set: &crate::speech::ModelSet, model: &str) -> (String, String, String) {
+    (set.path(&format!("{model}-encoder.int8.onnx")), set.path(&format!("{model}-decoder.int8.onnx")), set.path(&format!("{model}-tokens.txt")))
+}
 
-    let path = model_path(model)?;
+/// A weights file mapped from disk if it can be (speech/mapped.rs), else as it is.
+fn mapped(path: String) -> String {
+    crate::speech::mapped::mapped_model(Path::new(&path)).map_or(path, |p| p.display().to_string())
+}
+
+fn load(model: &str, language: Option<&str>) -> Result<OfflineRecognizer, String> {
+    let set = set_of(model)?;
+    let (encoder, decoder, tokens) = files(set, model);
+    let mut config = OfflineRecognizerConfig::default();
+    config.model_config.whisper = OfflineWhisperModelConfig {
+        encoder: Some(mapped(encoder)),
+        decoder: Some(mapped(decoder)),
+        // Empty: Whisper finds the language itself.
+        language: Some(language.unwrap_or("").to_string()),
+        task: Some("transcribe".into()),
+        tail_paddings: -1,
+        ..Default::default()
+    };
+    config.model_config.tokens = Some(tokens);
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    config.model_config.num_threads = threads.clamp(1, 4) as i32;
+    config.model_config.provider = crate::speech::low_memory_provider();
+    OfflineRecognizer::create(&config).ok_or_else(|| "The speech model couldn't be loaded.".to_string())
+}
+
+fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<String, String> {
+    let model = current_name(model);
     if !installed(model) {
         return Err("Download a speech model in Settings → Voice first.".into());
     }
+    // The wake word is always listened for as English: "Hey Groovy".
+    let language = if wake { Some("en") } else { language };
+    let key = format!("{model}/{}", language.unwrap_or(""));
     *WHISPER_USED.lock().unwrap() = Some(std::time::Instant::now());
     let mut guard = LOADED.lock().unwrap();
-    if guard.as_ref().map(|(name, _)| name.as_str()) != Some(model) {
+    if guard.as_ref().map(|(k, _)| k.as_str()) != Some(key.as_str()) {
+        // The one in memory goes first: never two Whispers at once.
+        *guard = None;
         crate::resources::ceiling::make_room("speech", crate::resources::ceiling::WHISPER_MB);
         crate::resources::loads::note(crate::resources::loads::Part::OfflineStt, "Whisper, for speech on this PC");
         crate::resources::register("whisper", free_if_idle);
-        let ctx = WhisperContext::new_with_params(&path.to_string_lossy(), WhisperContextParameters::default())
-            .map_err(|e| format!("The speech model couldn't be loaded ({e})."))?;
-        *guard = Some((model.to_string(), ctx));
+        *guard = Some((key, load(model, language)?));
     }
-    let (_, ctx) = guard.as_ref().unwrap();
-    let mut state = ctx.create_state().map_err(|e| e.to_string())?;
-
-    let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    // The wake word is always listened for as English: "Hey Groovy".
-    params.set_language(if wake { Some("en") } else { language });
-    params.set_translate(false);
-    params.set_no_context(true);
-    params.set_print_special(false);
-    params.set_print_progress(false);
-    params.set_print_realtime(false);
-    params.set_print_timestamps(false);
-    params.set_suppress_blank(true);
-    // The name, so Whisper spells it right, then the user's vocabulary (round 3B item 6).
-    let prompt = crate::flow::vocab::whisper_prompt(&VOCABULARY.lock().unwrap());
-    params.set_initial_prompt(&prompt);
-    params.set_single_segment(wake);
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
-    params.set_n_threads(threads.clamp(1, 8) as i32);
-
-    state.full(params, pcm).map_err(|e| e.to_string())?;
-    let n = state.full_n_segments().map_err(|e| e.to_string())?;
-    let mut text = String::new();
-    for i in 0..n {
-        if let Ok(segment) = state.full_get_segment_text(i) {
-            text.push_str(&segment);
-            text.push(' ');
-        }
-    }
-    Ok(clean(&text))
-}
-
-#[cfg(not(feature = "voice"))]
-fn run(_model: &str, _language: Option<&str>, _pcm: &[f32], _wake: bool) -> Result<String, String> {
-    Err("This build of Groovy has no speech engine.".into())
+    let (_, recognizer) = guard.as_ref().unwrap();
+    let stream = recognizer.create_stream();
+    stream.accept_waveform(crate::speech::SAMPLE_RATE as i32, pcm);
+    recognizer.decode(&stream);
+    Ok(clean(&stream.get_result().map(|r| r.text).unwrap_or_default()))
 }
 
 #[cfg(test)]
@@ -319,28 +272,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_the_offered_models_have_a_path() {
-        assert!(model_path("base.en").unwrap().ends_with("ggml-base.en.bin"));
-        assert!(model_path("../../evil").is_err());
-        assert!(model_path("large").is_err());
+    fn only_the_offered_models_have_files() {
+        assert!(set_of("base.en").unwrap().dir().ends_with("whisper-base.en"));
+        assert!(set_of("../../evil").is_err());
+        assert!(set_of("large").is_err());
     }
 
     #[test]
-    fn every_offered_model_is_pinned() {
+    fn every_offered_model_is_pinned_encoder_decoder_and_tokens() {
         for m in MODELS {
-            let (size, sha) = pinned(m).unwrap_or_else(|| panic!("{m} not pinned"));
-            assert!(size >= MIN_MODEL_BYTES);
-            assert_eq!(sha.len(), 64);
+            let set = set_of(m).unwrap();
+            let (encoder, decoder, tokens) = files(set, m);
+            for f in [encoder, decoder, tokens] {
+                assert!(set.files.iter().any(|x| set.path(x.name) == f && x.sha256.len() == 64 && x.url.contains("/resolve/")), "{f}");
+            }
         }
-        assert!(pinned("large").is_none());
+    }
+
+    #[test]
+    fn whisper_cpp_choices_move_to_their_twins() {
+        assert_eq!(current_name("base-q5_1"), "base");
+        assert_eq!(current_name("base.en-q5_1"), "base.en");
+        assert_eq!(current_name("small"), "small");
+        assert!(MODELS.contains(&current_name(DEFAULT_MODEL)));
     }
 
     #[test]
     fn english_models_always_hear_english() {
         assert_eq!(language_for("base.en", "es").as_deref(), Some("en"));
-        assert_eq!(language_for("base.en-q5_1", "es").as_deref(), Some("en"));
-        assert_eq!(language_for("base-q5_1", "es").as_deref(), Some("es"));
-        assert!(model_path(DEFAULT_MODEL).unwrap().ends_with("ggml-base-q5_1.bin"));
+        assert_eq!(language_for("tiny.en", "es").as_deref(), Some("en"));
         assert_eq!(language_for("base", "es").as_deref(), Some("es"));
         assert_eq!(language_for("small", "pa").as_deref(), Some("pa"));
         assert_eq!(language_for("base", "").as_deref(), None, "empty = detect");
@@ -358,5 +318,26 @@ mod tests {
     #[test]
     fn samples_become_floats() {
         assert_eq!(to_f32(&[0, 16384, -32768]), vec![0.0, 0.5, -1.0]);
+    }
+
+    /// Downloads Whisper base and hears CI's three clips, as dictation and
+    /// « OK Groovy » do: `cargo test -p groovy whisper_base_hears -- --ignored`.
+    #[test]
+    #[ignore]
+    fn whisper_base_hears_the_dictation_and_the_wake_phrase() {
+        tauri::async_runtime::block_on(crate::speech::fetch(set_of(DEFAULT_MODEL).unwrap(), &mut |_| {})).expect("download");
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/audio");
+        let hear = |name: &str| {
+            let bytes = std::fs::read(dir.join(name)).unwrap();
+            let data = bytes.windows(4).position(|w| w == b"data").unwrap() + 8;
+            let pcm: Vec<f32> = bytes[data..].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect();
+            let started = std::time::Instant::now();
+            let text = transcribe_blocking(DEFAULT_MODEL, Some("en"), &pcm).unwrap();
+            println!("{name}: “{text}” in {:?}", started.elapsed());
+            text.to_lowercase()
+        };
+        assert!(hear("dictation.wav").contains("send the report to sam"));
+        assert!(hear("ok-groovy-time.wav").contains("groovy"));
+        assert!(!hear("not-wake.wav").contains("groovy"));
     }
 }

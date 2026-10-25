@@ -110,17 +110,6 @@ jobs:
             windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-
             windows-build-cargo-v3-
 
-      # whisper.cpp (voice) builds from source and needs CMake and libclang.
-      - name: Check build tools
-        shell: pwsh
-        run: |
-          cmake --version
-          if (-not $env:LIBCLANG_PATH) {
-            $llvm = "C:\Program Files\LLVM\bin"
-            if (Test-Path "$llvm\libclang.dll") { "LIBCLANG_PATH=$llvm" >> $env:GITHUB_ENV }
-            else { throw "libclang not found: install LLVM" }
-          }
-
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
@@ -251,7 +240,7 @@ jobs:
           path: |
             ~/AppData/Local/Groovy/Models
             ~/AppData/Local/Groovy/runtime
-          key: windows-models-v2
+          key: windows-models-v3
 
       - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
         shell: pwsh
@@ -269,7 +258,7 @@ jobs:
           path: |
             ~/AppData/Local/Groovy/Models
             ~/AppData/Local/Groovy/runtime
-          key: windows-models-v2
+          key: windows-models-v3
 
       - name: Type check
         run: npx tsc --noEmit
@@ -318,6 +307,9 @@ jobs:
           cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cargo test -p groovy kws_hears_ok_groovy -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # Round 3F item 5: dictation on sherpa-onnx's Whisper hears CI's clips.
+          cargo test -p groovy whisper_base_hears -- --ignored --nocapture
           exit $LASTEXITCODE
 
       # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):

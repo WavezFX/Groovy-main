@@ -11,7 +11,9 @@ pub mod audio;
 pub mod check;
 pub mod cloud;
 mod kokoro_files;
-mod mapped;
+pub mod mapped;
+mod whisper_files;
+pub use whisper_files::set as whisper_set;
 pub mod kws;
 pub mod tts;
 
@@ -32,17 +34,17 @@ use crate::notes::builder::{TimedWord, Turn};
 /// Every model works on 16 kHz mono.
 pub const SAMPLE_RATE: u32 = 16_000;
 
-struct ModelFile {
-    name: &'static str,
-    url: &'static str,
+pub(crate) struct ModelFile {
+    pub(crate) name: &'static str,
+    pub(crate) url: &'static str,
     size: u64,
-    sha256: &'static str,
+    pub(crate) sha256: &'static str,
 }
 
 /// A set of files downloaded together.
 pub struct ModelSet {
     pub id: &'static str,
-    files: &'static [ModelFile],
+    pub(crate) files: &'static [ModelFile],
 }
 
 impl ModelSet {
@@ -50,7 +52,7 @@ impl ModelSet {
         models_dir().join(self.id)
     }
 
-    fn path(&self, name: &str) -> String {
+    pub(crate) fn path(&self, name: &str) -> String {
         self.dir().join(name).to_string_lossy().to_string()
     }
 
@@ -310,6 +312,26 @@ pub fn download_client() -> Result<reqwest::Client, String> {
         .user_agent(concat!("Groovy/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| e.to_string())
+}
+
+/// onnxruntime without weight prepacking, which keeps a second, repacked copy
+/// of a model's weights in private memory (14 MB for Kokoro, more for Whisper)
+/// for no speed it can measure here. Passed as sherpa-onnx's "cpu:<file>"
+/// provider; sherpa-onnx exits when the file is missing, so it is written
+/// first and left out if it can't be.
+pub(crate) fn low_memory_provider() -> Option<String> {
+    let dir = crate::settings::local_dir();
+    let file = dir.join("onnxruntime-low-memory.cfg");
+    crate::platform::ensure_private_dir(&dir).ok()?;
+    std::fs::write(&file, "SessionConfig.session.disable_prepacking=1\n").ok()?;
+    file.is_file().then(|| format!("cpu:{}", file.display()))
+}
+
+/// Downloads `set`'s missing files; `progress` gets the bytes done so far.
+pub(crate) async fn fetch(set: &ModelSet, progress: &mut (dyn FnMut(u64) + Send)) -> Result<(), String> {
+    let client = download_client()?;
+    let mut done = 0;
+    fetch_set(&client, set, &mut done, progress).await
 }
 
 /// Downloads a set's missing files, each checked against its size and

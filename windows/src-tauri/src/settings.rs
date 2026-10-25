@@ -69,11 +69,11 @@ pub struct Settings {
     /// "local" (Whisper on this computer) or "livekit" (a live conversation
     /// with the user's own LiveKit agent after the wake word).
     pub voice_engine: String,
-    /// The Whisper model voice.rs loads (voice::MODELS); "base-q5_1" by default.
+    /// The Whisper model voice.rs loads (voice::MODELS); "base" by default.
     pub voice_model: String,
-    /// Set once the quantized speech models were offered (round 3D item 7):
-    /// "base.en" becomes "base.en-q5_1" and "base" "base-q5_1" (the same
-    /// models, a third of the memory). Missing from an older file means false.
+    /// Set once the speech model choice was brought up to date (round 3D
+    /// item 7, then round 3F item 5: whisper.cpp's "base-q5_1" is now
+    /// "base"). Missing from an older file means false.
     #[serde(default)]
     pub small_speech_set: bool,
     /// The user's LiveKit server (wss://…) and the room Groovy joins. The API
@@ -308,19 +308,14 @@ fn settings_path() -> PathBuf {
 }
 
 /// No settings.json yet: the very first start.
-/// Once, for a file from before round 3D item 7: the Whisper base models
-/// become their quantized versions. True when something changed.
+/// A Whisper model chosen for whisper.cpp (before round 3F item 5) becomes its
+/// sherpa-onnx twin ("base-q5_1" → "base"). True when something changed.
 pub fn offer_small_speech(s: &mut Settings) -> bool {
-    if s.small_speech_set {
-        return false;
-    }
-    s.voice_model = match s.voice_model.as_str() {
-        "base.en" => "base.en-q5_1".into(),
-        "base" => "base-q5_1".into(),
-        other => other.to_string(),
-    };
+    let now = crate::voice::current_name(&s.voice_model).to_string();
+    let changed = now != s.voice_model || !s.small_speech_set;
+    s.voice_model = now;
     s.small_speech_set = true;
-    true
+    changed
 }
 
 pub fn first_run() -> bool {
@@ -777,16 +772,18 @@ mod tests {
     // ── Reading ───────────────────────────────────────────────────────────────
 
     #[test]
-    fn an_older_file_moves_to_the_quantized_speech_models_once() {
-        let mut old: Settings = serde_json::from_str(r#"{"voiceModel": "base.en"}"#).unwrap();
+    fn whisper_cpp_choices_become_their_sherpa_onnx_twins() {
+        let mut old: Settings = serde_json::from_str(r#"{"voiceModel": "base.en-q5_1", "smallSpeechSet": true}"#).unwrap();
         assert!(offer_small_speech(&mut old));
-        assert_eq!(old.voice_model, "base.en-q5_1");
-        old.voice_model = "base.en".into();
-        assert!(!offer_small_speech(&mut old), "picked again afterwards, it stays");
+        assert_eq!(old.voice_model, "base.en");
+        assert!(!offer_small_speech(&mut old), "then it stays");
+        let mut q: Settings = serde_json::from_str(r#"{"voiceModel": "base-q5_1"}"#).unwrap();
+        offer_small_speech(&mut q);
+        assert_eq!(q.voice_model, "base");
         let mut small: Settings = serde_json::from_str(r#"{"voiceModel": "small"}"#).unwrap();
         offer_small_speech(&mut small);
         assert_eq!(small.voice_model, "small");
-        assert_eq!(Settings::default().voice_model, "base-q5_1");
+        assert_eq!(Settings::default().voice_model, "base");
     }
 
     #[test]

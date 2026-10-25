@@ -13,15 +13,13 @@ import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "./speechlabels";
 
 /** Round 3D item 7: Parakeet is the accurate choice, not the default. */
 
-/** Whisper models Groovy can download (ggml format from whisper.cpp; pinned in voice.rs). */
+/** Whisper models Groovy can download (int8, for sherpa-onnx; pinned in speech/whisper_files.rs). */
 const MODELS: Array<[id: string, label: string]> = [
-  ["base-q5_1", "Base · 99 languages · light · 57 MB"],
-  ["base.en-q5_1", "Base · English · light · 57 MB"],
-  ["tiny.en", "Tiny · English · fastest · 75 MB"],
-  ["base.en", "Base · English · more accurate · 142 MB"],
-  ["tiny", "Tiny · 99 languages · 74 MB"],
-  ["base", "Base · 99 languages · 141 MB"],
-  ["small", "Small · 99 languages · most accurate · 465 MB"],
+  ["base", "Base · 99 languages · 155 MB"],
+  ["base.en", "Base · English · 155 MB"],
+  ["tiny", "Tiny · 99 languages · fastest · 98 MB"],
+  ["tiny.en", "Tiny · English · fastest · 98 MB"],
+  ["small", "Small · 99 languages · most accurate · 358 MB"],
 ];
 
 /** Languages to listen for with a multilingual model, by their own names. "" lets Whisper detect it. */
@@ -72,7 +70,7 @@ export function voiceSection(
     save();
     void refresh();
   });
-  if (![...model.options].some((o) => o.value === settings.voiceModel)) model.value = "base-q5_1";
+  if (![...model.options].some((o) => o.value === settings.voiceModel)) model.value = "base";
   const download = h("button", { class: "primary", text: t("Download") });
   const remove = h("button", { class: "danger", text: t("Remove") });
   const bar = h("progress", { max: "1", value: "0", style: "flex:1 1 auto;display:none" }) as HTMLProgressElement;

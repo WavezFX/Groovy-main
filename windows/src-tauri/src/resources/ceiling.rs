@@ -24,7 +24,6 @@ pub const CEILING_MB: f64 = 400.0;
 pub const PRESSURE_MB: f64 = 380.0;
 
 /// About what each model adds once loaded, measured on Windows (MB).
-#[allow(dead_code)] // used only with the "voice" feature
 /// Whisper while it transcribes (its buffers too), as CI's peak test saw it.
 pub const WHISPER_MB: f64 = 240.0;
 /// Kokoro loaded (about 225 MB) and speaking a sentence (up to about 90 MB

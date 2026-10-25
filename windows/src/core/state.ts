@@ -211,7 +211,7 @@ export interface Settings {
   voiceEnabled: boolean;
   /** "local" (Whisper on this computer) or "livekit". */
   voiceEngine: "local" | "livekit";
-  /** Whisper model: "tiny.en" or "base.en". */
+  /** Whisper model: "base" (the default), "base.en", "tiny", "tiny.en" or "small". */
   voiceModel: string;
   /** Set once the quantized speech models were offered (round 3D item 7). */
   smallSpeechSet: boolean;
@@ -322,7 +322,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lookAt: 0,
   voiceEnabled: false,
   voiceEngine: "local",
-  voiceModel: "base-q5_1",
+  voiceModel: "base",
   smallSpeechSet: true,
   livekitUrl: "",
   livekitRoom: "groovy",
