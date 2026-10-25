@@ -25,7 +25,10 @@ param(
   [string]$Label = "groovy",
   [int]$TimeoutSeconds = 60,
   [int]$BudgetMB = 300,
-  [int]$IdleSeconds = 75
+  [int]$IdleSeconds = 75,
+  # Round 3F item 4: idle CPU of every Groovy process, averaged over this long.
+  [int]$CpuSeconds = 60,
+  [double]$CpuBudget = 0.3
 )
 
 $ErrorActionPreference = "Stop"
@@ -120,6 +123,17 @@ try {
         $metrics["TOTAL private working set (MB, Task Manager, budget $BudgetMB)"] = $total
       }
       $results["idle total under $BudgetMB MB (was $total)"] = ($null -ne $total) -and ($total -lt $BudgetMB)
+      # Idle CPU, groovy.exe and every process under it, as a share of the
+      # whole machine (Task Manager's CPU column).
+      $cpuOf = { param($ids) ($ids | ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } | Measure-Object -Property { $_.TotalProcessorTime.TotalSeconds } -Sum).Sum }
+      $cpu0 = & $cpuOf $ids
+      $t0 = Get-Date
+      Start-Sleep -Seconds $CpuSeconds
+      $cpu = [math]::Round(100.0 * ((& $cpuOf $ids) - $cpu0) / (((Get-Date) - $t0).TotalSeconds * [Environment]::ProcessorCount), 2)
+      $metrics["idle CPU over $CpuSeconds s (% of the machine)"] = $cpu
+      $proc.Refresh()
+      $metrics["groovy.exe threads after"] = $proc.Threads.Count
+      $results["idle CPU under $CpuBudget % over $CpuSeconds s (was $cpu)"] = $cpu -lt $CpuBudget
     }
   }
 

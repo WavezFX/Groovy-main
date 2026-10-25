@@ -420,6 +420,7 @@ fn now_ms() -> f64 {
 
 fn emit_state(app: &AppHandle, state: &PlayerState) {
     use tauri::Emitter;
+    crate::scheduler::recheck_pace(app);
     let _ = app.emit_to(crate::island::WINDOW_LABEL, STATE_EVENT, state);
 }
 

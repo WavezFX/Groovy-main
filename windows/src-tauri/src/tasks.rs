@@ -61,6 +61,9 @@ pub fn add(conn: &Connection, text: &str, due_at: Option<i64>) -> Result<Task, S
         params![text, due_at, db::now()],
     )
     .map_err(sql)?;
+    if due_at.is_some() {
+        crate::scheduler::poke(REMINDERS);
+    }
     get(conn, conn.last_insert_rowid())
 }
 
@@ -82,6 +85,7 @@ pub fn list(conn: &Connection, include_done: bool) -> Result<Vec<Task>, String> 
 
 pub fn set_done(conn: &Connection, id: i64, done: bool) -> Result<Task, String> {
     conn.execute("UPDATE tasks SET done = ?2 WHERE id = ?1", params![id, done as i64]).map_err(sql)?;
+    crate::scheduler::poke(REMINDERS);
     get(conn, id)
 }
 
@@ -114,23 +118,39 @@ pub fn take_due(conn: &Connection, now: i64) -> Result<Vec<Task>, String> {
     Ok(due)
 }
 
-/// Starts the reminder loop.
-pub fn spawn(app: AppHandle) {
-    tauri::async_runtime::spawn(async move {
-        loop {
-            let due = db::conn().and_then(|c| take_due(&c, db::now()));
-            match due {
-                Ok(due) => {
-                    for t in due {
-                        crate::log::line(format!("reminder due: #{}", t.id));
-                        let _ = app.emit("reminder", &t);
-                    }
-                }
-                Err(e) => crate::log::line(format!("reminders: {e}")),
+/// The earliest reminder not yet shown, if any (seconds since 1970).
+pub fn next_due(conn: &Connection) -> Result<Option<i64>, String> {
+    conn.query_row("SELECT MIN(due_at) FROM tasks WHERE done = 0 AND notified = 0 AND due_at IS NOT NULL", [], |r| r.get(0)).map_err(sql)
+}
+
+const REMINDERS: &str = "reminders";
+
+/// Wakes exactly when the next reminder is due (a job on the scheduler,
+/// poked when one is added or changed): nothing polls in between.
+fn until_next(_: &AppHandle) -> crate::scheduler::Next {
+    match db::conn().and_then(|c| next_due(&c)) {
+        Ok(Some(at)) => crate::scheduler::Next::In(Duration::from_secs((at - db::now()).max(0) as u64)),
+        Ok(None) => crate::scheduler::Next::Idle,
+        // The database is busy or gone: look again in a while.
+        Err(_) => crate::scheduler::Next::Every(Duration::from_secs(60)),
+    }
+}
+
+fn fire_due(app: &AppHandle) {
+    match db::conn().and_then(|c| take_due(&c, db::now())) {
+        Ok(due) => {
+            for t in due {
+                crate::log::line(format!("reminder due: #{}", t.id));
+                let _ = app.emit("reminder", &t);
             }
-            tokio::time::sleep(Duration::from_secs(20)).await;
         }
-    });
+        Err(e) => crate::log::line(format!("reminders: {e}")),
+    }
+}
+
+/// Starts the reminders: what came due while Groovy was closed fires now.
+pub fn spawn(_app: AppHandle) {
+    crate::scheduler::add(REMINDERS, Duration::ZERO, until_next, fire_due);
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────────
@@ -216,6 +236,7 @@ pub fn task_edit(id: i64, text: String, due_at: Option<i64>) -> Result<(), Strin
     }
     let conn = db::conn()?;
     conn.execute("UPDATE tasks SET text = ?2, due_at = ?3, notified = 0 WHERE id = ?1", rusqlite::params![id, text, due_at]).map_err(|e| e.to_string())?;
+    crate::scheduler::poke(REMINDERS);
     Ok(())
 }
 
@@ -272,8 +293,10 @@ mod tests {
         add(&c, "todo", None).unwrap();
         let done = add(&c, "done", Some(50)).unwrap();
         set_done(&c, done.id, true).unwrap();
+        assert_eq!(next_due(&c).unwrap(), Some(100), "the scheduler wakes for the earliest, not a done one");
         let due = take_due(&c, 200).unwrap();
         assert_eq!(due.iter().map(|t| t.id).collect::<Vec<_>>(), vec![a.id]);
+        assert_eq!(next_due(&c).unwrap(), Some(500), "then for the next");
         assert!(take_due(&c, 200).unwrap().is_empty(), "never twice");
         assert_eq!(take_due(&c, 10_000).unwrap().len(), 1);
     }

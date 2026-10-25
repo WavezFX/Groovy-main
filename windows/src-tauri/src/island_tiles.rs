@@ -225,33 +225,34 @@ fn read_notifications() -> Result<Vec<MailNote>, String> {
 }
 
 /// Watches the notification feed and hands new ones to the island
-/// ("mail-notification"); the island keeps those from mail apps the user chose.
+/// ("mail-notification"); the island keeps those from mail apps the user
+/// chose. A job on the scheduler: every 10 s, every 30 s while it's quiet.
 #[cfg(windows)]
-pub fn spawn_mail_watch(app: AppHandle) {
+pub fn spawn_mail_watch(_app: AppHandle) {
+    crate::scheduler::add("mail-notifications", std::time::Duration::ZERO, |_| crate::scheduler::Next::Every(std::time::Duration::from_secs(10)), read_new);
+}
+
+/// The ids already seen, and whether the first reading (which only fills it) is done.
+#[cfg(windows)]
+static SEEN: std::sync::Mutex<(Option<std::collections::HashSet<u32>>, bool)> = std::sync::Mutex::new((None, false));
+
+#[cfg(windows)]
+fn read_new(app: &AppHandle) {
     use tauri::Emitter;
-    std::thread::Builder::new()
-        .name("groovy-notifications".into())
-        .spawn(move || {
-            let mut seen: std::collections::HashSet<u32> = std::collections::HashSet::new();
-            let mut first = true;
-            loop {
-                if let Ok(list) = read_notifications() {
-                    for n in list {
-                        if seen.insert(n.id) && !first {
-                            let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
-                        }
-                    }
-                    if seen.len() > 2000 {
-                        seen.clear();
-                        first = true;
-                        continue;
-                    }
-                    first = false;
-                }
-                std::thread::sleep(std::time::Duration::from_secs(10));
-            }
-        })
-        .ok();
+    let Ok(list) = read_notifications() else { return };
+    let mut guard = SEEN.lock().unwrap();
+    let (seen, filled) = &mut *guard;
+    let seen = seen.get_or_insert_with(Default::default);
+    for n in list {
+        if seen.insert(n.id) && *filled {
+            let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
+        }
+    }
+    *filled = true;
+    if seen.len() > 2000 {
+        seen.clear();
+        *filled = false;
+    }
 }
 
 #[cfg(not(windows))]

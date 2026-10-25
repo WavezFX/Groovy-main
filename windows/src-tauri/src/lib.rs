@@ -40,6 +40,7 @@ mod phone_link;
 mod pipe;
 mod redact;
 mod resources;
+mod scheduler;
 mod platform;
 #[cfg(target_os = "linux")]
 mod portal;
@@ -246,6 +247,7 @@ fn language_changed(app: &AppHandle) {
 fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     let pref = shared.settings.lock().unwrap().screen.clone();
     shared.gate.collapsed.store(collapsed, Ordering::Relaxed);
+    scheduler::recheck_pace(&app);
     island::apply_geometry(&app, &pref, collapsed);
     // The wake strip must always take the mouse, and a resize invalidates the flag.
     island::refresh_click_through(&app, &shared.gate);
@@ -1225,8 +1227,22 @@ fn open_settings_window(app: AppHandle, page: Option<String>) {
     show_hub(&app, page.as_deref());
 }
 
+/// Worker threads for the async runtime. Tauri's default is one per core (16
+/// on a 16-core PC), all of them parked nearly all the time: Groovy's async
+/// work is network requests and timers, which two keep up with (round 3F
+/// item 4). Blocking work has its own pool, which empties when idle.
+const ASYNC_WORKERS: usize = 2;
+
+fn use_small_async_runtime() {
+    match tokio::runtime::Builder::new_multi_thread().worker_threads(ASYNC_WORKERS).thread_name("groovy-async").enable_all().build() {
+        Ok(rt) => tauri::async_runtime::set(Box::leak(Box::new(rt)).handle().clone()),
+        Err(e) => log::line(format!("async runtime: Tauri's default kept ({e})")),
+    }
+}
+
 pub fn run() {
     resources::loads::process_started();
+    use_small_async_runtime();
     platform::prepare_environment();
     log::install_crash_handler();
     let first_run = settings::first_run();
@@ -1721,6 +1737,7 @@ pub fn run() {
                 set_setting(&handle, |s| s.close_on_leave_offered = true);
             }
             music::init(&handle);
+            scheduler::start(&handle);
             resources::start(&handle);
             #[cfg(feature = "worktest")]
             worktest::start(&handle);

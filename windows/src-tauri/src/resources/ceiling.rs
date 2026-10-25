@@ -138,7 +138,7 @@ pub fn squeezed() -> bool {
     SQUEEZED.load(std::sync::atomic::Ordering::Relaxed)
 }
 
-fn models_loaded() -> bool {
+pub(super) fn models_loaded() -> bool {
     crate::speech::is_loaded() || crate::voice::is_loaded() || crate::speech::tts::is_loaded()
 }
 

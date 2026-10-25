@@ -637,6 +637,11 @@ pub fn stop_on_exit() {
     }
 }
 
+/// Music from the folder plays now (never starts the player to find out).
+pub fn playing() -> bool {
+    PLAYER.get().is_some_and(|p| p.state.lock().unwrap().playing)
+}
+
 pub fn state() -> PlayerState {
     player().state.lock().unwrap().clone()
 }
@@ -644,6 +649,7 @@ pub fn state() -> PlayerState {
 fn publish() {
     let s = state();
     if let Some(app) = APP.get() {
+        crate::scheduler::recheck_pace(app);
         let _ = app.emit(STATE_EVENT, &s);
     }
 }

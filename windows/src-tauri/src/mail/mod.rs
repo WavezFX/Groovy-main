@@ -224,17 +224,27 @@ pub async fn refresh_all(app: Option<&AppHandle>) -> Vec<Inbox> {
     fresh
 }
 
-/// Starts the check: every CHECK_EVERY while an account is connected.
-pub fn spawn(app: AppHandle) {
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(Duration::from_secs(20)).await;
-        loop {
-            if db::conn().and_then(|c| accounts(&c)).is_ok_and(|l| !l.is_empty()) {
-                refresh_all(Some(&app)).await;
-            }
-            tokio::time::sleep(CHECK_EVERY).await;
-        }
+/// Every CHECK_EVERY while an account is connected; nothing otherwise (a job
+/// on the scheduler, looked at again within minutes of an account connecting).
+fn next(_: &AppHandle) -> crate::scheduler::Next {
+    if db::conn().and_then(|c| accounts(&c)).is_ok_and(|l| !l.is_empty()) {
+        crate::scheduler::Next::Every(CHECK_EVERY)
+    } else {
+        crate::scheduler::Next::Idle
+    }
+}
+
+fn check(app: &AppHandle) {
+    static RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    let app = app.clone();
+    crate::scheduler::spawn_once(&RUNNING, async move {
+        refresh_all(Some(&app)).await;
     });
+}
+
+/// Starts the check.
+pub fn spawn(_app: AppHandle) {
+    crate::scheduler::add("mail", Duration::from_secs(20), next, check);
 }
 
 /// "OK Groovy, any new emails?": the count and the top senders, from the last check.

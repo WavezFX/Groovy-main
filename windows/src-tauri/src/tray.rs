@@ -82,13 +82,20 @@ pub fn local_model_changed(app: &AppHandle) {
     }
 }
 
-fn spawn_local_model_watch(app: AppHandle) {
-    tauri::async_runtime::spawn(async move {
-        loop {
-            local_model_changed(&app);
-            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
-        }
-    });
+/// The tray's line about the built-in model, a job on the scheduler: every
+/// 15 s while the model runs (its memory changes), poked when it starts or
+/// stops, nothing otherwise.
+fn spawn_local_model_watch(_app: AppHandle) {
+    crate::scheduler::add(LOCAL_MODEL_JOB, std::time::Duration::ZERO, local_model_pace, local_model_changed);
+}
+
+pub const LOCAL_MODEL_JOB: &str = "tray-local-model";
+
+fn local_model_pace(_: &AppHandle) -> crate::scheduler::Next {
+    match crate::models::running_memory() {
+        Some(_) => crate::scheduler::Next::Every(std::time::Duration::from_secs(15)),
+        None => crate::scheduler::Next::Idle,
+    }
 }
 
 /// Relabels the menu in the current language.

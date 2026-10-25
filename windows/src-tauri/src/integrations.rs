@@ -60,19 +60,84 @@ pub static PAUSED: AtomicBool = AtomicBool::new(false);
 
 pub fn set_paused(on: bool) {
     PAUSED.store(on, Ordering::Relaxed);
+    crate::scheduler::poke(JOB);
 }
 
-/// Spawns every poller with the macOS delays and intervals.
+/// Each poller with its interval (the macOS ones), in seconds.
+const POLLERS: [(&str, u64); 8] = [
+    ("integration_n8n", 15),
+    ("integration_vercel", 30),
+    ("integration_stripe", 30),
+    ("integration_resend", 60),
+    ("integration_github", 300),
+    ("integration_calcom", 300),
+    ("integration_neon", 300),
+    ("integration_notion", 300),
+];
+
+const JOB: &str = "integrations";
+
+/// One job on the scheduler for every poller (round 3F item 4): at the pace of
+/// the quickest one switched on, nothing while none is or Groovy is paused.
 pub fn start(app: AppHandle) {
-    spawn(app.clone(), "integration_n8n", 3, 15, poll_n8n);
-    spawn(app.clone(), "integration_vercel", 5, 30, poll_vercel);
-    spawn(app.clone(), "integration_stripe", 6, 30, poll_stripe);
-    spawn(app.clone(), "integration_resend", 6, 60, poll_resend);
-    spawn(app.clone(), "integration_github", 7, 300, poll_github);
-    spawn_github_loops(app.clone());
-    spawn(app.clone(), "integration_calcom", 8, 300, poll_calcom);
-    spawn(app.clone(), "integration_neon", 9, 300, poll_neon);
-    spawn(app, "integration_notion", 9, 300, poll_notion);
+    crate::scheduler::add(JOB, Duration::from_secs(3), pace, poll_due);
+    spawn_github_loops(app);
+}
+
+fn pace(app: &AppHandle) -> crate::scheduler::Next {
+    let quickest = POLLERS.iter().filter(|(id, _)| enabled(app, id)).map(|(_, every)| *every).min();
+    match quickest {
+        Some(every) if !PAUSED.load(Ordering::Relaxed) => crate::scheduler::Next::Every(Duration::from_secs(every)),
+        _ => crate::scheduler::Next::Idle,
+    }
+}
+
+/// When each poller last asked its service, and those asking now.
+static POLLED: Mutex<Vec<(&'static str, std::time::Instant)>> = Mutex::new(Vec::new());
+static IN_FLIGHT: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
+
+fn poll_due(app: &AppHandle) {
+    // An integration the user switched off, or a paused app, must make no
+    // network calls at all — CLAUDE.md allows talking only to services the
+    // user configured, and a disabled one is not configured.
+    if PAUSED.load(Ordering::Relaxed) {
+        return;
+    }
+    let open = island_open(app);
+    for (id, every) in POLLERS {
+        if !enabled(app, id) || IN_FLIGHT.lock().unwrap().contains(&id) {
+            continue;
+        }
+        let last = POLLED.lock().unwrap().iter().find(|(p, _)| *p == id).map(|(_, t)| t.elapsed());
+        if !due(open, last, every) {
+            continue;
+        }
+        {
+            let mut polled = POLLED.lock().unwrap();
+            polled.retain(|(p, _)| *p != id);
+            polled.push((id, std::time::Instant::now()));
+        }
+        IN_FLIGHT.lock().unwrap().push(id);
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            poll(app, id).await;
+            IN_FLIGHT.lock().unwrap().retain(|p| *p != id);
+        });
+    }
+}
+
+async fn poll(app: AppHandle, id: &str) {
+    match id {
+        "integration_n8n" => poll_n8n(app).await,
+        "integration_vercel" => poll_vercel(app).await,
+        "integration_stripe" => poll_stripe(app).await,
+        "integration_resend" => poll_resend(app).await,
+        "integration_github" => poll_github(app).await,
+        "integration_calcom" => poll_calcom(app).await,
+        "integration_neon" => poll_neon(app).await,
+        "integration_notion" => poll_notion(app).await,
+        _ => {}
+    }
 }
 
 /// True when the user has this integration switched on in settings.
@@ -101,50 +166,13 @@ pub fn due(open: bool, since_last: Option<Duration>, every_secs: u64) -> bool {
     since_last.is_none_or(|d| d.as_secs() + 1 >= wait)
 }
 
-fn spawn<F, Fut>(app: AppHandle, id: &'static str, delay_secs: u64, every_secs: u64, poll: F)
-where
-    F: Fn(AppHandle) -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = ()> + Send,
-{
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(Duration::from_secs(delay_secs)).await;
-        let mut ticker = tokio::time::interval(Duration::from_secs(every_secs));
-        let mut last: Option<std::time::Instant> = None;
-        loop {
-            ticker.tick().await;
-            // The ticker keeps its cadence; we just decline to do the work. An
-            // integration the user switched off, or a paused app, must make no
-            // network calls at all — CLAUDE.md allows talking only to services
-            // the user configured, and a disabled one is not configured.
-            if PAUSED.load(Ordering::Relaxed) || !enabled(&app, id) {
-                continue;
-            }
-            if !due(island_open(&app), last.map(|t| t.elapsed()), every_secs) {
-                continue;
-            }
-            last = Some(std::time::Instant::now());
-            poll(app.clone()).await;
-        }
-    });
-}
-
 /// One-shot refresh from the Refresh buttons in the island.
 pub async fn poll_once(app: AppHandle, id: &str) {
-    match id {
-        "integration_stripe" => poll_stripe(app).await,
-        "integration_github" => {
-            wake_github_pulse();
-            github_refresh_if_stale("activity");
-            poll_github(app).await
-        }
-        "integration_vercel" => poll_vercel(app).await,
-        "integration_n8n" => poll_n8n(app).await,
-        "integration_resend" => poll_resend(app).await,
-        "integration_notion" => poll_notion(app).await,
-        "integration_calcom" => poll_calcom(app).await,
-        "integration_neon" => poll_neon(app).await,
-        _ => {}
+    if id == GITHUB_ID {
+        wake_github_pulse();
+        github_refresh_if_stale("activity");
     }
+    poll(app, id).await
 }
 
 /// Remembers the newest id per integration so an event fires once, not on every poll.
@@ -572,6 +600,8 @@ pub fn github_token_changed(app: &AppHandle) {
 /// Switching the pill off forgets the pulse, so switching it back on starts
 /// silent instead of alerting on everything that changed in between.
 pub fn settings_saved(app: &AppHandle, active_integrations: &[String]) {
+    // Switched on or off: the job finds its pace again now.
+    crate::scheduler::poke(JOB);
     if active_integrations.iter().any(|id| id == GITHUB_ID) {
         return;
     }

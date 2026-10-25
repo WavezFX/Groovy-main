@@ -271,39 +271,43 @@ pub fn luminance(pixels: &[(u8, u8, u8)]) -> Option<f64> {
     Some(sum / pixels.len() as f64 / 255.0)
 }
 
-/// Looks again every 30 seconds: transparency switched off, battery saver
-/// on. While the island is glass, the backdrop's brightness is sampled once a
-/// minute, or as soon as the wallpaper changes, and the page raises its tint
-/// only as far as a bright backdrop needs (round 3B item 1b).
+/// Looks again every 30 seconds (a job on the scheduler): transparency
+/// switched off, battery saver on. While the island is glass, the backdrop's
+/// brightness is sampled once a minute, or as soon as the wallpaper changes,
+/// and the page raises its tint only as far as a bright backdrop needs (round
+/// 3B item 1b).
 pub fn spawn_watch(app: AppHandle) {
     apply(&app);
-    if !cfg!(windows) {
+    if cfg!(windows) {
+        crate::scheduler::add("glass", Duration::from_secs(2), |_| crate::scheduler::Next::Every(WATCH_EVERY), watch);
+    }
+}
+
+const WATCH_EVERY: Duration = Duration::from_secs(30);
+
+/// When the backdrop was last sampled, the wallpaper then, and the tint boost.
+static SAMPLED: Mutex<(Option<std::time::Instant>, String, f64)> = Mutex::new((None, String::new(), 0.0));
+
+fn watch(app: &AppHandle) {
+    apply(app);
+    if look() == Look::Solid {
         return;
     }
-    let _ = std::thread::Builder::new().name("groovy-glass".into()).spawn(move || {
-        let mut sampled: Option<std::time::Instant> = None;
-        let mut wallpaper = String::new();
-        let mut boost = 0.0;
-        loop {
-            if look() != Look::Solid {
-                let now_wallpaper = os::wallpaper();
-                let due = sampled.is_none_or(|at| at.elapsed() >= SAMPLE_EVERY) || now_wallpaper != wallpaper;
-                if due {
-                    wallpaper = now_wallpaper;
-                    sampled = Some(std::time::Instant::now());
-                    let pixels = app.get_webview_window(WINDOW_LABEL).map(|w| os::backdrop(&w)).unwrap_or_default();
-                    let next = luminance(&pixels).map(boost_for).unwrap_or(boost);
-                    if (next - boost).abs() >= 0.05 {
-                        boost = next;
-                        crate::log::line(format!("glass tint boost: {boost:.2}"));
-                        let _ = app.emit_to(WINDOW_LABEL, "island-glass-boost", boost);
-                    }
-                }
-            }
-            std::thread::sleep(Duration::from_secs(30));
-            apply(&app);
-        }
-    });
+    let mut guard = SAMPLED.lock().unwrap();
+    let (sampled, wallpaper, boost) = &mut *guard;
+    let now_wallpaper = os::wallpaper();
+    if sampled.is_some_and(|at| at.elapsed() < SAMPLE_EVERY) && now_wallpaper == *wallpaper {
+        return;
+    }
+    *wallpaper = now_wallpaper;
+    *sampled = Some(std::time::Instant::now());
+    let pixels = app.get_webview_window(WINDOW_LABEL).map(|w| os::backdrop(&w)).unwrap_or_default();
+    let next = luminance(&pixels).map(boost_for).unwrap_or(*boost);
+    if (next - *boost).abs() >= 0.05 {
+        *boost = next;
+        crate::log::line(format!("glass tint boost: {next:.2}"));
+        let _ = app.emit_to(WINDOW_LABEL, "island-glass-boost", next);
+    }
 }
 
 /// "solid", "blur" or "css" (the page's own glass).

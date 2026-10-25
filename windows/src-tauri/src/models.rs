@@ -760,6 +760,7 @@ pub fn stop() {
         let _ = r.child.kill();
         let _ = r.child.wait();
         log::line(format!("local model stopped: {}", r.file));
+        crate::scheduler::poke(crate::tray::LOCAL_MODEL_JOB);
     }
 }
 
@@ -819,6 +820,7 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     }
     *SERVER.lock().unwrap() =
         Some(Running { child, file: wanted.clone(), port, last_used: Instant::now() });
+    crate::scheduler::poke(crate::tray::LOCAL_MODEL_JOB);
     let url = format!("http://127.0.0.1:{port}");
     let started = Instant::now();
     let client = reqwest::Client::builder().no_proxy().timeout(Duration::from_secs(3)).build().map_err(|e| e.to_string())?;
