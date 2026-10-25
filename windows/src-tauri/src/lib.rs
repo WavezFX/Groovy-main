@@ -1,8 +1,6 @@
 // Groovy for Windows — app wiring and the commands the island calls.
 
 mod agent_hooks;
-mod loads;
-mod runtime_state;
 mod agents;
 mod assistant;
 mod brain_ai;
@@ -18,11 +16,9 @@ mod glass;
 mod github;
 mod hooks;
 mod i18n;
-mod idle;
 mod pc;
 mod browser;
 mod calls;
-mod ceiling;
 #[cfg(feature = "worktest")]
 mod worktest;
 mod identity;
@@ -43,6 +39,7 @@ mod openai_compat;
 mod phone_link;
 mod pipe;
 mod redact;
+mod resources;
 mod platform;
 #[cfg(target_os = "linux")]
 mod portal;
@@ -64,7 +61,6 @@ mod tray;
 mod voice;
 #[cfg(windows)]
 mod webview_drop;
-mod webview_memory;
 
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -193,7 +189,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     };
     // A brain on this PC chosen (or a cloud one again): Offline or not (round 3D item 10).
     let chose_local = shared.settings.lock().unwrap().assistant.ai_setup == "local";
-    runtime_state::fire(&app, runtime_state::Event::ChoseLocal(chose_local));
+    resources::state::fire(&app, resources::state::Event::ChoseLocal(chose_local));
     let settings = shared.settings.lock().unwrap().clone();
     if let Err(err) = settings::save(&settings) {
         log::line(format!("could not save settings: {err}"));
@@ -214,7 +210,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     flow::sync_engine(&app);
     spotify::sync(&app, &settings.active_integrations);
     glass::apply(&app);
-    idle::set(&settings.unload_after);
+    resources::idle::set(&settings.unload_after);
     browser::configure(&settings.browser, &settings.search_engine);
     if shortcuts_changed {
         shortcuts::apply(&app, &settings.shortcuts);
@@ -256,9 +252,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     shared.gate.set_active(!collapsed);
     platform::set_pointer_watch(!collapsed);
     // Folded away: its webview keeps as little memory as it can until it opens
-    // (and while a model that only just fits is loaded, ceiling.rs).
+    // (and while a model that only just fits is loaded, resources/ceiling.rs).
     if let Some(win) = island::window(&app) {
-        webview_memory::set_low(&win, collapsed || ceiling::squeezed());
+        resources::webview::set_low(&win, collapsed || resources::ceiling::squeezed());
     }
 }
 
@@ -267,7 +263,7 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
 fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width: f64, height: f64, radius: Option<f64>) {
     shared.gate.set_rect(island::IslandRect { x, y, w: width, h: height });
     if height > 0.0 {
-        loads::island_visible();
+        resources::loads::island_visible();
     }
     glass::shape(&app, x, y, width, height, radius.unwrap_or(0.0));
     // Without the cursor poll the input region is the click-through: it follows the island.
@@ -994,7 +990,7 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
         match built {
             Ok(win) => {
                 log::line("control centre opened");
-                webview_memory::trim(&win);
+                resources::webview::trim(&win);
                 // Transparent from the start: whatever shows it early (focus,
                 // WebView2) shows nothing until the grow fades it in.
                 platform::set_window_alpha(&win, Some(0));
@@ -1146,7 +1142,7 @@ pub fn show_settings_window(app: &AppHandle) {
 /// "assistant"…: the id of one of its sections).
 pub fn show_hub(app: &AppHandle, page: Option<&str>) {
     // One panel window besides the island (round 3D item 7).
-    ceiling::one_panel(app, HUB_LABEL);
+    resources::ceiling::one_panel(app, HUB_LABEL);
     let Some(win) = app.get_webview_window(HUB_LABEL) else {
         create_hub_window(app, page);
         return;
@@ -1230,7 +1226,7 @@ fn open_settings_window(app: AppHandle, page: Option<String>) {
 }
 
 pub fn run() {
-    loads::process_started();
+    resources::loads::process_started();
     platform::prepare_environment();
     log::install_crash_handler();
     let first_run = settings::first_run();
@@ -1316,7 +1312,7 @@ pub fn run() {
         }
     }
     i18n::set_picked(&loaded.language);
-    idle::set(&loaded.unload_after);
+    resources::idle::set(&loaded.unload_after);
     browser::configure(&loaded.browser, &loaded.search_engine);
     let gate = Arc::new(PollGate::new());
 
@@ -1458,7 +1454,7 @@ pub fn run() {
             sounds::custom_sound,
             sounds::reveal_sounds_folder,
             log::reveal_logs_folder,
-            runtime_state::runtime_state,
+            resources::state::runtime_state,
             free_memory_now,
             sounds::reload_sounds,
             spotify::spotify_refresh,
@@ -1659,7 +1655,7 @@ pub fn run() {
                     }
                 });
                 platform::make_non_activating(&win);
-                webview_memory::trim(&win);
+                resources::webview::trim(&win);
                 #[cfg(windows)]
                 webview_drop::install(&handle);
                 island::apply_geometry(&handle, &loaded.screen, false);
@@ -1686,7 +1682,7 @@ pub fn run() {
             mail::spawn(handle.clone());
             brain_ai::init(&handle);
             if loaded.assistant.ai_setup == "local" {
-                runtime_state::fire(&handle, runtime_state::Event::ChoseLocal(true));
+                resources::state::fire(&handle, resources::state::Event::ChoseLocal(true));
             }
             island_tiles::spawn_mail_watch(handle.clone());
             flow::setup(&handle);
@@ -1725,9 +1721,7 @@ pub fn run() {
                 set_setting(&handle, |s| s.close_on_leave_offered = true);
             }
             music::init(&handle);
-            models::spawn_idle_reaper();
-            speech::spawn_idle_reaper();
-            ceiling::start(&handle);
+            resources::start(&handle);
             #[cfg(feature = "worktest")]
             worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);

@@ -231,7 +231,7 @@ async function main() {
   island.onWake = checkRecap;
   await onEvent<null>("recap-check", checkRecap);
 
-  // Near Groovy's 400 MB ceiling (ceiling.rs): the cached pictures go.
+  // Near Groovy's 400 MB ceiling (resources/ceiling.rs): the cached pictures go.
   void onEvent<number>("memory-pressure", () => dropSprites());
   island.launch();
   if (boot?.smokeView === "frames") void frameTest(island);

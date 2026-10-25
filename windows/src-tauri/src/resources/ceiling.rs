@@ -32,7 +32,7 @@ pub const WHISPER_MB: f64 = 240.0;
 pub const KOKORO_MB: f64 = 310.0;
 
 /// How often the watcher reads the total.
-const EVERY: Duration = Duration::from_secs(3);
+pub const EVERY: Duration = Duration::from_secs(3);
 /// At most one round of giving back per this long.
 const COOLDOWN: Duration = Duration::from_secs(20);
 
@@ -127,7 +127,7 @@ static SQUEEZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::
 fn squeeze(app: &AppHandle, now: f64) {
     let _ = app.emit("memory-pressure", now);
     if let Some(win) = app.get_webview_window(crate::island::WINDOW_LABEL) {
-        crate::webview_memory::set_low(&win, true);
+        super::webview::set_low(&win, true);
         if !SQUEEZED.swap(true, std::sync::atomic::Ordering::Relaxed) {
             crate::log::line("memory: the island runs light while the model is loaded");
         }
@@ -148,7 +148,7 @@ fn unsqueeze(app: &AppHandle) {
         let folded = app.try_state::<crate::Shared>().is_some_and(|s| s.gate.collapsed.load(std::sync::atomic::Ordering::Relaxed));
         // Folded, the island keeps its own Low target (lib.rs set_collapsed).
         if let (false, Some(win)) = (folded, app.get_webview_window(crate::island::WINDOW_LABEL)) {
-            crate::webview_memory::set_low(&win, false);
+            super::webview::set_low(&win, false);
         }
         crate::log::line("memory: the model is freed, the island is back to normal");
     }
@@ -217,7 +217,7 @@ fn relieve(app: &AppHandle, now: f64) {
     for (label, win) in app.webview_windows() {
         let visible = win.is_visible().unwrap_or(false);
         if !visible {
-            crate::webview_memory::set_low(&win, true);
+            super::webview::set_low(&win, true);
         }
         if PANELS.contains(&label.as_str()) {
             if win.is_focused().unwrap_or(false) {
@@ -259,27 +259,30 @@ pub fn peak_mb() -> f64 {
     *PEAK.lock().unwrap()
 }
 
-pub fn start(app: &AppHandle) {
+pub fn init(app: &AppHandle) {
     let _ = APP.set(app.clone());
-    let app = app.clone();
-    let _ = std::thread::Builder::new().name("groovy-memory".into()).spawn(move || {
-        let mut last: Option<Instant> = None;
-        loop {
-            std::thread::sleep(EVERY);
-            let now = total_mb();
-            {
-                let mut peak = PEAK.lock().unwrap();
-                if now > *peak {
-                    *peak = now;
-                }
-            }
-            unsqueeze(&app);
-            if now >= PRESSURE_MB && last.is_none_or(|t| t.elapsed() >= COOLDOWN) {
-                last = Some(Instant::now());
-                relieve(&app, now);
-            }
+}
+
+/// When the watcher last gave memory back.
+#[derive(Default)]
+pub struct Watch {
+    last: Option<Instant>,
+}
+
+/// One reading of the total, on the resources thread every `EVERY`.
+pub fn check(app: &AppHandle, watch: &mut Watch) {
+    let now = total_mb();
+    {
+        let mut peak = PEAK.lock().unwrap();
+        if now > *peak {
+            *peak = now;
         }
-    });
+    }
+    unsqueeze(app);
+    if now >= PRESSURE_MB && watch.last.is_none_or(|t| t.elapsed() >= COOLDOWN) {
+        watch.last = Some(Instant::now());
+        relieve(app, now);
+    }
 }
 
 #[cfg(windows)]

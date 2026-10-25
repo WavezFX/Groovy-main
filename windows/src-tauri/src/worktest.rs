@@ -26,7 +26,7 @@ pub fn start(app: &AppHandle) {
     }
     let Ok(dir) = std::env::var("GROOVY_WORK_TEST") else { return };
     // The shortest idle setting a user can choose, so CI doesn't wait 2 minutes.
-    crate::idle::set("30s");
+    crate::resources::idle::set("30s");
     let app = app.clone();
     let _ = std::thread::Builder::new().name("groovy-work-test".into()).spawn(move || {
         let mut steps: Vec<Value> = Vec::new();
@@ -63,9 +63,9 @@ pub fn start(app: &AppHandle) {
 
 /// No offline engine, local model or helper was loaded before any work asked for one.
 fn nothing_loaded() -> Result<String, String> {
-    use crate::loads::{count, Part};
+    use crate::resources::loads::{count, Part};
     let loaded: Vec<&str> = [Part::OfflineStt, Part::Kokoro, Part::LocalLlm, Part::LocalServer].into_iter().filter(|p| count(*p) > 0).map(|p| p.name()).collect();
-    let visible = crate::loads::report().island_visible_ms.map(|ms| format!("island visible after {ms} ms")).unwrap_or_default();
+    let visible = crate::resources::loads::report().island_visible_ms.map(|ms| format!("island visible after {ms} ms")).unwrap_or_default();
     if loaded.is_empty() {
         Ok(visible)
     } else {
@@ -94,7 +94,7 @@ async fn speech_models(app: &AppHandle) -> Result<(), String> {
 // Settings opens on Brains, its heaviest page, and stays open; then a mail
 // refresh, a dictation, an « OK Groovy » command and a live voice call (heard,
 // then answered out loud with Kokoro) run, the dictation and the call at the
-// same time. Groovy's own meter (ceiling.rs: the private working set of every
+// same time. Groovy's own meter (resources/ceiling.rs: the private working set of every
 // process it owns, as Task Manager counts it) is read every 250 ms the whole
 // time; peak-test.json gets the highest total and what it was made of.
 
@@ -102,7 +102,7 @@ async fn speech_models(app: &AppHandle) -> Result<(), String> {
 const PEAK_EVERY: Duration = Duration::from_millis(250);
 
 fn start_peak(app: &AppHandle, dir: PathBuf) {
-    crate::idle::set("30s");
+    crate::resources::idle::set("30s");
     let app = app.clone();
     let _ = std::thread::Builder::new().name("groovy-peak-test".into()).spawn(move || {
         let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
@@ -111,13 +111,13 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             let (running, peak) = (running.clone(), peak.clone());
             std::thread::spawn(move || {
                 while running.load(std::sync::atomic::Ordering::Relaxed) {
-                    let parts = crate::ceiling::parts();
+                    let parts = crate::resources::ceiling::parts();
                     let total: f64 = parts.iter().map(|p| p.mb).sum();
                     let mut p = peak.lock().unwrap();
                     p.2 += 1;
                     if total > p.0 {
                         p.0 = total;
-                        p.1 = crate::ceiling::by_kind(&parts);
+                        p.1 = crate::resources::ceiling::by_kind(&parts);
                     }
                     drop(p);
                     std::thread::sleep(PEAK_EVERY);
@@ -162,7 +162,7 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             "done": true,
             "ok": ok,
             "peakMb": (peak_mb * 10.0).round() / 10.0,
-            "ceilingMb": crate::ceiling::CEILING_MB,
+            "ceilingMb": crate::resources::ceiling::CEILING_MB,
             "samples": samples,
             "everyMs": PEAK_EVERY.as_millis() as u64,
             "peakParts": parts,
@@ -235,7 +235,7 @@ fn command(app: &AppHandle, dir: &Path) -> Result<String, String> {
     }
     let wake_ms = t.elapsed().as_millis();
     // Round 3D item 10: the wake word starts a conversation.
-    crate::runtime_state::fire(app, crate::runtime_state::Event::Wake);
+    crate::resources::state::fire(app, crate::resources::state::Event::Wake);
     let t = Instant::now();
     let heard = speech::transcribe(&samples).ok_or("the speech model did not load")?.text;
     let words_ms = t.elapsed().as_millis();
@@ -244,13 +244,13 @@ fn command(app: &AppHandle, dir: &Path) -> Result<String, String> {
     let t = Instant::now();
     let answer = crate::okgroovy::basic::run(app, &basic);
     let answer_ms = t.elapsed().as_millis();
-    crate::runtime_state::fire(app, crate::runtime_state::Event::ReplyDone);
+    crate::resources::state::fire(app, crate::resources::state::Event::ReplyDone);
     Ok(format!("“{heard}” → {answer} (wake heard in {wake_ms} ms, words on this PC in {words_ms} ms, answer in {answer_ms} ms)"))
 }
 
 /// The conversation ends by itself after the follow-up window, and what it held goes.
 fn back_to_standby() -> Result<String, String> {
-    use crate::runtime_state::{state, RunState, FOLLOW_UP};
+    use crate::resources::state::{state, RunState, FOLLOW_UP};
     let t = Instant::now();
     while state() == RunState::Conversation && t.elapsed() < FOLLOW_UP + Duration::from_secs(4) {
         std::thread::sleep(Duration::from_millis(200));

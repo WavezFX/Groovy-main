@@ -247,7 +247,7 @@ fn load() -> Option<Arc<OfflineTts>> {
         return None;
     }
     // Speech recognition and the voice together only when both fit (round 3D item 7).
-    crate::ceiling::make_room("voice", crate::ceiling::KOKORO_MB);
+    crate::resources::ceiling::make_room("voice", crate::resources::ceiling::KOKORO_MB);
     let started = Instant::now();
     let config = OfflineTtsConfig {
         model: OfflineTtsModelConfig {
@@ -268,25 +268,21 @@ fn load() -> Option<Arc<OfflineTts>> {
         max_num_sentences: 1,
         ..Default::default()
     };
-    crate::loads::note(crate::loads::Part::Kokoro, "the offline voice");
+    crate::resources::loads::note(crate::resources::loads::Part::Kokoro, "the offline voice");
     let tts = Arc::new(OfflineTts::create(&config)?);
     crate::log::line(format!("Kokoro loaded in {:?}", started.elapsed()));
     *e = Some(Loaded { tts: tts.clone(), used: Instant::now() });
     // Unloaded once it has been quiet for the idle setting (round 3B item 10).
-    let _ = std::thread::Builder::new().name("groovy-kokoro-idle".into()).spawn(|| loop {
-        std::thread::sleep(crate::idle::CHECK_EVERY);
-        let mut e = engine().lock().unwrap();
-        match e.as_ref() {
-            Some(l) if crate::idle::expired(l.used) => {
-                *e = None;
-                crate::log::line("Kokoro unloaded");
-                return;
-            }
-            Some(_) => {}
-            None => return,
-        }
-    });
+    crate::resources::register("kokoro", reap_idle);
     Some(tts)
+}
+
+fn reap_idle() {
+    let Ok(mut e) = engine().try_lock() else { return };
+    if e.as_ref().is_some_and(|l| crate::resources::idle::expired(l.used)) {
+        *e = None;
+        crate::log::line("Kokoro unloaded");
+    }
 }
 
 /// Kokoro is in memory now.

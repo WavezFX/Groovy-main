@@ -809,7 +809,8 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     if let Some(dir) = exe.parent() {
         cmd.current_dir(dir);
     }
-    crate::loads::note(crate::loads::Part::LocalLlm, "the built-in model was asked to answer");
+    crate::resources::loads::note(crate::resources::loads::Part::LocalLlm, "the built-in model was asked to answer");
+    crate::resources::register("local-llm", reap_idle);
     let child = platform::no_console(&mut cmd).spawn().map_err(|e| format!("Couldn't start llama-server: {e}"))?;
     platform::contain(&child);
     log::line(format!("local model starting: {wanted} (ctx {}, {} threads, port {port})", prof.context, prof.threads));
@@ -843,18 +844,14 @@ pub async fn ensure_running(prefs: &AssistantPrefs, app: Option<&AppHandle>) -> 
     Ok(url)
 }
 
-/// Stops the server once unused for the idle setting (round 3B item 10):
-/// it is its own process, so all of its memory goes back to Windows.
-pub fn spawn_idle_reaper() {
-    tauri::async_runtime::spawn(async {
-        loop {
-            tokio::time::sleep(crate::idle::CHECK_EVERY).await;
-            let idle = SERVER.lock().unwrap().as_ref().is_some_and(|r| crate::idle::expired(r.last_used));
-            if idle {
-                stop();
-            }
-        }
-    });
+/// Stops the server once unused for the idle setting (round 3B item 10, on
+/// the resources thread): it is its own process, so all of its memory goes
+/// back to Windows.
+fn reap_idle() {
+    let idle = SERVER.lock().unwrap().as_ref().is_some_and(|r| crate::resources::idle::expired(r.last_used));
+    if idle {
+        stop();
+    }
 }
 
 // ── Downloads ─────────────────────────────────────────────────────────────────

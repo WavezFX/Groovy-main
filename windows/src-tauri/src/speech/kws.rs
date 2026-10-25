@@ -121,7 +121,7 @@ pub fn heard_shared(speech: &[f32]) -> Option<bool> {
 
 pub fn free_if_idle() {
     let mut shared = SHARED.lock().unwrap();
-    if shared.as_ref().is_some_and(|(_, used)| crate::idle::expired(*used)) {
+    if shared.as_ref().is_some_and(|(_, used)| crate::resources::idle::expired(*used)) {
         *shared = None;
     }
 }
@@ -152,7 +152,8 @@ impl Spotter {
             keywords_buf: Some(KEYWORDS.to_string()),
             ..Default::default()
         };
-        crate::loads::note(crate::loads::Part::WakeWord, "« OK Groovy » is on");
+        crate::resources::loads::note(crate::resources::loads::Part::WakeWord, "« OK Groovy » is on");
+        crate::resources::register("wake-word", free_if_idle);
         KeywordSpotter::create(&config).map(|kws| Spotter { kws })
     }
 

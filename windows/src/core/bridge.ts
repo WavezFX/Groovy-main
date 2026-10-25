@@ -178,7 +178,7 @@ export interface MailInbox {
   canModify: boolean;
 }
 
-/** Groovy's operating state (runtime_state.rs, round 3D item 10). */
+/** Groovy's operating state (resources/state.rs, round 3D item 10). */
 export type RunState = "standby" | "conversation" | "offline";
 
 export interface RunReport {

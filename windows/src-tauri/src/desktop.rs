@@ -303,11 +303,11 @@ fn ensure_window(app: &AppHandle, d: &Desktop) -> bool {
     if window(app).is_some() {
         return true;
     }
-    crate::ceiling::one_panel(app, LABEL);
+    crate::resources::ceiling::one_panel(app, LABEL);
     match create_window(app, d.mode) {
         Some(win) if platform::prepare_desktop_window(&win, d.mode) => {
             crate::log::line("desktop Groovy: window made");
-            crate::webview_memory::trim(&win);
+            crate::resources::webview::trim(&win);
             *d.inner.lock().unwrap() = Inner::default();
             true
         }
@@ -459,7 +459,7 @@ fn show(app: &AppHandle, d: &Desktop, at: (f64, f64)) {
     place(app, d, at);
     d.inner.lock().unwrap().shown = true;
     if let Some(win) = window(app) {
-        crate::webview_memory::set_low(&win, false);
+        crate::resources::webview::set_low(&win, false);
         if !PARK {
             let _ = win.show();
         }
@@ -502,7 +502,7 @@ fn hide(app: &AppHandle, d: &Desktop) {
     // he stays home it goes altogether (round 3D item 10: only the island's
     // WebView in Standby); it is made again the next time he goes out.
     if let Some(win) = window(app) {
-        crate::webview_memory::set_low(&win, true);
+        crate::resources::webview::set_low(&win, true);
     }
     let _ = app.emit_to(LABEL, "desktop-visible", false);
     let app = app.clone();

@@ -71,7 +71,7 @@ export function systemPage(settings: Settings, save: () => void, version: string
   const drawMemory = (s: SystemStatus | null, r: RunReport | null) => {
     clear(card);
     const used = s?.groovyMemory ?? 0;
-    // Every process Groovy owns (ceiling.rs), and the highest since it started.
+    // Every process Groovy owns (resources/ceiling.rs), and the highest since it started.
     peak = Math.max(peak, used, s?.groovyPeak ?? 0);
     const scale = (b: number) => Math.min(1, b / MB / LIMIT_MB);
     const bar = h("div", { class: "hub-s-bar" },

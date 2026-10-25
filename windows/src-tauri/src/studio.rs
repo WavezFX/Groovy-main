@@ -767,7 +767,7 @@ pub fn open_studio_window(app: AppHandle) {
 pub const LABEL: &str = "studio";
 
 pub fn show(app: &AppHandle) {
-    crate::ceiling::one_panel(app, LABEL);
+    crate::resources::ceiling::one_panel(app, LABEL);
     if let Some(win) = app.get_webview_window(LABEL) {
         let _ = win.unminimize();
         let _ = win.show();
@@ -794,7 +794,7 @@ pub fn show(app: &AppHandle) {
         {
             Ok(win) => {
                 log::line("studio window opened");
-                crate::webview_memory::trim(&win);
+                crate::resources::webview::trim(&win);
             }
             Err(e) => log::line(format!("studio window failed: {e}")),
         }

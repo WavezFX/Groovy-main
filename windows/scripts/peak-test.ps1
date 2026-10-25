@@ -10,7 +10,7 @@
 # dictation and the call at the same time, twice. The built-in local model is
 # off, as it is by default.
 #
-# Groovy reads its own total every 250 ms (ceiling.rs, the private working
+# Groovy reads its own total every 250 ms (resources/ceiling.rs, the private working
 # set of groovy.exe, its WebView2 processes and its helpers) and writes the
 # highest to peak-test.json. This script also reads the same total from
 # Windows' performance counters as often as they answer (about once a second)

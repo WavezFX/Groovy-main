@@ -383,7 +383,7 @@ fn threads() -> i32 {
     std::thread::available_parallelism().map(|n| n.get().clamp(1, 4) as i32).unwrap_or(2)
 }
 
-/// When Parakeet was last used: it is freed once unused for the idle setting (idle.rs).
+/// When Parakeet was last used: it is freed once unused for the idle setting (resources/idle.rs).
 static LAST_USED: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn touch() {
@@ -417,9 +417,10 @@ pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
     config.model_config.tokens = Some(PARAKEET.path("tokens.txt"));
     config.model_config.model_type = Some("nemo_transducer".into());
     config.model_config.num_threads = threads();
-    crate::ceiling::make_room("speech", 670.0);
+    crate::resources::ceiling::make_room("speech", 670.0);
     let started = Instant::now();
-    crate::loads::note(crate::loads::Part::OfflineStt, "Parakeet, for speech on this PC");
+    crate::resources::loads::note(crate::resources::loads::Part::OfflineStt, "Parakeet, for speech on this PC");
+    crate::resources::register("parakeet", reap_idle);
     let r = OfflineRecognizer::create(&config).map(Arc::new);
     match &r {
         Some(_) => crate::log::line(format!("Parakeet loaded in {:?}", started.elapsed())),
@@ -473,17 +474,12 @@ pub fn unload() {
     }
 }
 
-/// Frees Parakeet, and Whisper, once unused for the idle setting.
-pub fn spawn_idle_reaper() {
-    let _ = std::thread::Builder::new().name("groovy-speech-idle".into()).spawn(|| loop {
-        std::thread::sleep(crate::idle::CHECK_EVERY);
-        let last = *LAST_USED.lock().unwrap();
-        if is_loaded() && last.is_some_and(crate::idle::expired) {
-            unload();
-        }
-        crate::voice::free_if_idle();
-        kws::free_if_idle();
-    });
+/// Frees Parakeet once unused for the idle setting (the resources thread).
+fn reap_idle() {
+    let last = *LAST_USED.lock().unwrap();
+    if is_loaded() && last.is_some_and(crate::resources::idle::expired) {
+        unload();
+    }
 }
 
 /// What was said, and each word with its place in the audio.

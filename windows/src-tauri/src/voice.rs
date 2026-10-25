@@ -204,6 +204,7 @@ type Loaded = (String, ());
 static LOADED: Mutex<Option<Loaded>> = Mutex::new(None);
 
 /// When Whisper was last used: freed once unused for the idle setting (round 3B item 10).
+#[cfg(feature = "voice")]
 static WHISPER_USED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
 
 /// Whether a Whisper model is in memory.
@@ -220,9 +221,10 @@ pub fn free_now() {
     }
 }
 
-/// Frees Whisper once unused for the idle setting (speech::spawn_idle_reaper).
+/// Frees Whisper once unused for the idle setting (the resources thread).
+#[cfg(feature = "voice")]
 pub fn free_if_idle() {
-    let idle = WHISPER_USED.lock().unwrap().is_some_and(crate::idle::expired);
+    let idle = WHISPER_USED.lock().unwrap().is_some_and(crate::resources::idle::expired);
     // A transcription in progress holds the lock: try again on the next check.
     if let (true, Ok(mut loaded)) = (idle, LOADED.try_lock()) {
         if loaded.take().is_some() {
@@ -268,8 +270,9 @@ fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<S
     *WHISPER_USED.lock().unwrap() = Some(std::time::Instant::now());
     let mut guard = LOADED.lock().unwrap();
     if guard.as_ref().map(|(name, _)| name.as_str()) != Some(model) {
-        crate::ceiling::make_room("speech", crate::ceiling::WHISPER_MB);
-        crate::loads::note(crate::loads::Part::OfflineStt, "Whisper, for speech on this PC");
+        crate::resources::ceiling::make_room("speech", crate::resources::ceiling::WHISPER_MB);
+        crate::resources::loads::note(crate::resources::loads::Part::OfflineStt, "Whisper, for speech on this PC");
+        crate::resources::register("whisper", free_if_idle);
         let ctx = WhisperContext::new_with_params(&path.to_string_lossy(), WhisperContextParameters::default())
             .map_err(|e| format!("The speech model couldn't be loaded ({e})."))?;
         *guard = Some((model.to_string(), ctx));

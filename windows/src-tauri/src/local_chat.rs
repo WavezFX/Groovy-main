@@ -390,7 +390,7 @@ pub async fn send_with(
     if model.is_empty() {
         return Err(t("Pick a model above the chat box first."));
     }
-    crate::loads::note(crate::loads::Part::LocalServer, "the chat was sent to a brain on this PC");
+    crate::resources::loads::note(crate::resources::loads::Part::LocalServer, "the chat was sent to a brain on this PC");
     // Only one local engine: Ollama on this PC takes over from Groovy's own.
     if server.id == "ollama" && crate::models::running_model().is_some() {
         crate::models::stop();

@@ -32,7 +32,7 @@ pub struct SystemStatus {
     /// WebView2 processes and its helpers), private working set, bytes.
     pub groovy_memory: u64,
     /// The same by kind ("groovy.exe", "webview2"…), MB.
-    pub groovy_parts: Vec<crate::ceiling::Part>,
+    pub groovy_parts: Vec<crate::resources::ceiling::Part>,
     /// The highest total since Groovy started, bytes.
     pub groovy_peak: u64,
     /// Groovy's ceiling, MB.
@@ -64,7 +64,7 @@ fn read() -> SystemStatus {
     // CPU usage is a difference between two samples.
     std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
     sys.refresh_cpu_usage();
-    let own = crate::ceiling::parts();
+    let own = crate::resources::ceiling::parts();
     let own_total: f64 = own.iter().map(|p| p.mb).sum();
     const MB: f64 = 1024.0 * 1024.0;
     let disks = Disks::new_with_refreshed_list()
@@ -85,9 +85,9 @@ fn read() -> SystemStatus {
         memory_total: sys.total_memory(),
         memory_available: sys.available_memory(),
         groovy_memory: (own_total * MB) as u64,
-        groovy_parts: crate::ceiling::by_kind(&own),
-        groovy_peak: (crate::ceiling::peak_mb().max(own_total) * MB) as u64,
-        groovy_ceiling: crate::ceiling::CEILING_MB,
+        groovy_parts: crate::resources::ceiling::by_kind(&own),
+        groovy_peak: (crate::resources::ceiling::peak_mb().max(own_total) * MB) as u64,
+        groovy_ceiling: crate::resources::ceiling::CEILING_MB,
         disks,
         battery: battery(),
         uptime_secs: System::uptime(),

@@ -318,7 +318,7 @@ async fn post_to(endpoint: Url, key: Option<&str>, body: &Value, timeout: Durati
 async fn openai_turn(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, who: Who, mut body: Value, timeout: Duration) -> Result<Value, String> {
     match who {
         Who::Local => {
-            crate::loads::note(crate::loads::Part::LocalServer, "a local brain answers this request");
+            crate::resources::loads::note(crate::resources::loads::Part::LocalServer, "a local brain answers this request");
             let l = local(app, s, prefs).await?;
             body["model"] = json!(l.model);
             // Ollama lets the model go when Groovy is quiet (round 3D item 5).
@@ -522,19 +522,19 @@ impl CloudTally {
     }
 
     fn answered(&self, app: &AppHandle, who: Who) {
-        if matches!(who, Who::Claude | Who::Cloud(_)) && crate::runtime_state::state() == crate::runtime_state::RunState::Offline {
-            crate::runtime_state::fire(app, crate::runtime_state::Event::NetworkUp);
+        if matches!(who, Who::Claude | Who::Cloud(_)) && crate::resources::state::state() == crate::resources::state::RunState::Offline {
+            crate::resources::state::fire(app, crate::resources::state::Event::NetworkUp);
         }
     }
 
     fn done(&self, app: &AppHandle) {
         if let Some(e) = self.verdict() {
-            crate::runtime_state::fire(app, e);
+            crate::resources::state::fire(app, e);
         }
     }
 
-    fn verdict(&self) -> Option<crate::runtime_state::Event> {
-        use crate::runtime_state::Event;
+    fn verdict(&self) -> Option<crate::resources::state::Event> {
+        use crate::resources::state::Event;
         if self.tried == 0 {
             None
         } else if self.network == self.tried {
@@ -663,7 +663,7 @@ mod tests {
 
     #[test]
     fn the_cloud_unreachable_or_used_up_means_offline() {
-        use crate::runtime_state::Event;
+        use crate::resources::state::Event;
         let mut t = CloudTally::default();
         t.failed(Who::Claude, "Network error: error sending request");
         t.failed(Who::Cloud("google"), "Network error: dns error");
