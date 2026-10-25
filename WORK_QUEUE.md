@@ -66,7 +66,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Per-window capabilities: each window can only call the commands it needs
 - [x] 3. Tighter CSP (no wildcard `wss:`, `object-src 'none'` and friends, freezePrototype)
 - [x] 4. Named pipe with an explicit current-user-only DACL
-- [ ] 5. Untrusted content (mail, web, issues) can't trigger actions without approval
+- [x] 5. Untrusted content (mail, web, issues) can't trigger actions without approval
 - [x] 6. Test environment switches compiled out of the release build
 - [x] 7. Logs redact keys and tokens
 - [x] 8. Dependabot, cargo audit, npm audit and gitleaks in CI
