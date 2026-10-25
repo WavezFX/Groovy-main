@@ -61,6 +61,18 @@ pub struct PollGate {
     pub rect: Mutex<IslandRect>,
     /// Mirrors the window flag so we only call into the OS when it changes.
     ignoring: AtomicBool,
+    /// The window's origin, scale and logical size, as last read. Asking
+    /// Tauri for them goes through the main thread, so the cursor poll reads
+    /// them only after the window moved, resized or changed scale (its events
+    /// clear this, round 3F item 4), not on every tick.
+    geom: Mutex<Option<Geom>>,
+}
+
+#[derive(Clone, Copy)]
+struct Geom {
+    origin: (i32, i32),
+    scale: f64,
+    size: (f64, f64),
 }
 
 impl PollGate {
@@ -71,7 +83,13 @@ impl PollGate {
             collapsed: AtomicBool::new(true),
             rect: Mutex::new(IslandRect::default()),
             ignoring: AtomicBool::new(false),
+            geom: Mutex::new(None),
         }
+    }
+
+    /// The window moved, resized or changed scale: read it again next tick.
+    pub fn geometry_changed(&self) {
+        *self.geom.lock().unwrap() = None;
     }
 
     pub fn set_rect(&self, rect: IslandRect) {
@@ -509,9 +527,10 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
         // Without a cursor to read (Linux) the loop only watches the display
         // layout, and twice a second is plenty for that: waking at 60 Hz just to
         // find no cursor costs CPU for nothing.
-        let (period, screen_every) = if platform::CURSOR_POLL { (16, 30) } else { (500, 1) };
+        let (period, screen_every) = if platform::CURSOR_POLL { (16, 120) } else { (500, 4) };
         loop {
             gate.wait_until_active();
+            gate.geometry_changed();
             let mut last = (f64::MIN, f64::MIN);
             let mut ticks: u32 = 0;
             let mut wait = period;
@@ -536,15 +555,25 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
                 }
 
                 let Some(win) = window(&app) else { continue };
-                let Ok(origin) = win.outer_position() else { continue };
-                let scale = win.scale_factor().unwrap_or(1.0);
                 let Some((cx, cy)) = cursor_physical() else { continue };
-                let x = (cx - origin.x as f64) / scale;
-                let y = (cy - origin.y as f64) / scale;
-                let size = match win.inner_size() {
-                    Ok(s) => (s.width as f64 / scale, s.height as f64 / scale),
-                    Err(_) => (PANEL_W, PANEL_H),
+                let known = *gate.geom.lock().unwrap();
+                let geom = match known {
+                    Some(g) => g,
+                    None => {
+                        let Ok(origin) = win.outer_position() else { continue };
+                        let scale = win.scale_factor().unwrap_or(1.0);
+                        let size = match win.inner_size() {
+                            Ok(s) => (s.width as f64 / scale, s.height as f64 / scale),
+                            Err(_) => (PANEL_W, PANEL_H),
+                        };
+                        let g = Geom { origin: (origin.x, origin.y), scale, size };
+                        *gate.geom.lock().unwrap() = Some(g);
+                        g
+                    }
                 };
+                let (scale, size) = (geom.scale, geom.size);
+                let x = (cx - geom.origin.0 as f64) / scale;
+                let y = (cy - geom.origin.1 as f64) / scale;
                 let pressed = left_button_down();
                 // Far from the island with no button held, nothing needs 60 Hz:
                 // a third of the wake-ups (round 3F item 4), still quick enough

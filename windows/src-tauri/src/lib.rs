@@ -1672,10 +1672,14 @@ pub fn run() {
             if let Some(win) = island::window(&handle) {
                 // Where Tauri takes the drop itself (Linux), its paths are the
                 // ones ingest_file may copy (files.rs).
-                win.on_window_event(|event| {
-                    if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                let moved = gate.clone();
+                win.on_window_event(move |event| match event {
+                    tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
                         files::allow_dropped(paths.iter().map(|p| p.to_string_lossy().to_string()));
                     }
+                    // The cursor poll's cached geometry (island.rs) is read again.
+                    tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. } => moved.geometry_changed(),
+                    _ => {}
                 });
                 platform::make_non_activating(&win);
                 resources::webview::trim(&win);
