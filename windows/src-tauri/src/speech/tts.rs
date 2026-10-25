@@ -11,6 +11,7 @@
 // The key goes only in the Authorization header: never in a log line, an
 // error message or the settings file.
 
+use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -251,7 +252,8 @@ fn load() -> Option<Arc<OfflineTts>> {
     let config = OfflineTtsConfig {
         model: OfflineTtsModelConfig {
             kokoro: OfflineTtsKokoroModelConfig {
-                model: Some(KOKORO.path("model.int8.onnx")),
+                // Its weights mapped from disk, not copied (mapped.rs).
+                model: Some(super::mapped::mapped_model(Path::new(&KOKORO.path("model.int8.onnx"))).map_or_else(|| KOKORO.path("model.int8.onnx"), |p| p.display().to_string())),
                 voices: Some(KOKORO.path("voices.bin")),
                 tokens: Some(KOKORO.path("tokens.txt")),
                 data_dir: Some(KOKORO.path("espeak-ng-data")),
@@ -302,13 +304,57 @@ pub fn free() {
     }
 }
 
+/// The longest piece Kokoro speaks at once. Its working memory grows with the
+/// length of what it says (about 1 MB a character), so a reply is spoken in
+/// clauses of about this size and joined (round 3D item 7).
+const CLAUSE_CHARS: usize = 40;
+
+/// `text` in clauses of at most `max` characters: cut after punctuation where
+/// it can be, between words where it must, never inside a word.
+fn clauses(text: &str, max: usize) -> Vec<String> {
+    let mut pieces: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for word in text.split_whitespace() {
+        if !cur.is_empty() && cur.chars().count() + 1 + word.chars().count() > max {
+            pieces.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.push_str(word);
+        if word.ends_with([',', ';', ':', '.', '!', '?']) {
+            pieces.push(std::mem::take(&mut cur));
+        }
+    }
+    if !cur.is_empty() {
+        pieces.push(cur);
+    }
+    // Short neighbours back together, so "Hi," isn't a clause of its own.
+    let mut out: Vec<String> = Vec::new();
+    for p in pieces {
+        match out.last_mut() {
+            Some(last) if last.chars().count() + 1 + p.chars().count() <= max => {
+                last.push(' ');
+                last.push_str(&p);
+            }
+            _ => out.push(p),
+        }
+    }
+    out
+}
+
 /// Kokoro's WAV for `text` at a speed (Settings → Speaking), if Kokoro is downloaded.
 pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     let tts = load()?;
     let config = GenerationConfig { sid: kokoro_speaker(gender), speed: clamp_speed(speed), ..Default::default() };
-    let audio = tts.generate_with_config(text, &config, None::<fn(&[f32], f32) -> bool>)?;
-    let samples = audio.samples();
-    (!samples.is_empty()).then(|| super::cloud::wav_at(samples, audio.sample_rate().max(1) as u32))
+    let mut samples: Vec<f32> = Vec::new();
+    let mut rate = 0;
+    for clause in clauses(text, CLAUSE_CHARS) {
+        let audio = tts.generate_with_config(&clause, &config, None::<fn(&[f32], f32) -> bool>)?;
+        rate = audio.sample_rate();
+        samples.extend_from_slice(audio.samples());
+    }
+    (!samples.is_empty()).then(|| super::cloud::wav_at(&samples, rate.max(1) as u32))
 }
 
 // ── Kokoro's download (asked for in Settings → Voice) ──────────────────────────
@@ -529,6 +575,18 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replies_are_spoken_in_short_clauses_cut_between_words() {
+        let reply = "Hi, I'm Groovy. It's 9:05, and the Asus VivoBook S14 is charging. Your next meeting with the design team starts in twenty minutes.";
+        let parts = super::clauses(reply, 40);
+        assert_eq!(parts.join(" "), reply, "nothing lost or reordered");
+        assert!(parts.iter().all(|p| p.chars().count() <= 40), "{parts:?}");
+        assert_eq!(parts[0], "Hi, I'm Groovy. It's 9:05,", "short clauses kept together, cut after punctuation");
+        assert_eq!(super::clauses("Hello there.", 40), ["Hello there."]);
+        assert_eq!(super::clauses("Supercalifragilisticexpialidociousness-and-more-words", 10).len(), 1, "never inside a word");
+        assert!(super::clauses("   ", 40).is_empty());
+    }
 
     #[test]
     fn the_speed_stays_in_what_the_voices_take() {

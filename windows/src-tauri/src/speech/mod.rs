@@ -11,6 +11,7 @@ pub mod audio;
 pub mod check;
 pub mod cloud;
 mod kokoro_files;
+mod mapped;
 pub mod kws;
 pub mod tts;
 
