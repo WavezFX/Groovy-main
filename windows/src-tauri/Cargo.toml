@@ -158,3 +158,7 @@ x11rb = { version = "0.13", default-features = false, features = ["xinput", "xte
 cpal = { version = "0.18", features = ["pulseaudio"] }
 # The clipboard for Flow dictation (X11, and Wayland's data-control protocol).
 arboard = { version = "3.6", default-features = false, features = ["wayland-data-control"] }
+
+[dev-dependencies]
+# Round 3G item 2: the mock runtime, to check each window's capability in a test.
+tauri = { version = "2", features = ["tray-icon", "test"] }

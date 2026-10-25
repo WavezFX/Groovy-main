@@ -63,7 +63,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 1G. Fixes round 3G: `FIXES_ROUND3G.md` (security hardening and a tidy CI). **Items 1, 2, 5 and 10 come AFTER round 3E and round 5 (owner's choice, 25 Oct: wardrobe and stage 6 first).**
 - [x] 1. Command approval decided in Rust, never trusted from the page (`studio_run` and every action tool)
-- [ ] 2. Per-window capabilities: each window can only call the commands it needs
+- [x] 2. Per-window capabilities: each window can only call the commands it needs
 - [x] 3. Tighter CSP (no wildcard `wss:`, `object-src 'none'` and friends, freezePrototype)
 - [x] 4. Named pipe with an explicit current-user-only DACL
 - [ ] 5. Untrusted content (mail, web, issues) can't trigger actions without approval

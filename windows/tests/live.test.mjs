@@ -42,10 +42,14 @@ test("OK Groovy speaks in the answer's language, with the voice asked for", () =
   assert.equal(systemVoice(voices, "de-DE", "female"), null);
 });
 
-test("there is no second window at the bottom of the screen any more", () => {
+test("there is no second window at the bottom of the screen any more", async () => {
   assert.equal(existsSync(new URL("../pill.html", import.meta.url)), false);
-  const caps = JSON.parse(readFileSync(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"));
-  assert.ok(!caps.windows.includes("pill"));
+  // One capability per window now (round 3G item 2): none is the pill's.
+  const { readdirSync } = await import("node:fs");
+  for (const f of readdirSync(new URL("../src-tauri/capabilities/", import.meta.url))) {
+    const caps = JSON.parse(readFileSync(new URL(`../src-tauri/capabilities/${f}`, import.meta.url), "utf8"));
+    assert.ok(!caps.windows.includes("pill"), f);
+  }
   assert.ok(!readFileSync(new URL("../vite.config.ts", import.meta.url), "utf8").includes("pill.html"));
 });
 
