@@ -17,6 +17,7 @@ import { drawShapes, toBoard, type Art, type Shape } from "./art/draw";
 import { GROWTH_ART } from "./art/growth";
 import { STAGE6_ART } from "./art/stage6";
 import { GEM_EYES, GOLD, drawGemFacets, drawStage6Body, drawStage6Front } from "./stage6";
+import { drawEmbers, drawFlame, drawHeat, drawWater, isWaterPart, refract, swayFlame } from "./finish";
 
 /** The last stage: the final forms. */
 const FINAL = 6;
@@ -379,7 +380,7 @@ function phase(st: SkinState): number {
   return (st.lite ? st.time * 0.5 : st.time) * 1.6;
 }
 
-/** Leaves sway round the plant's foot, the flame flickers from its base, the water bobs. */
+/** Leaves sway round the plant's foot; the flame and the water have their own motion (./finish.ts). */
 function animate(x: CanvasRenderingContext2D, s: SkinStyle, st: SkinState, layer: "behind" | "body" | "front") {
   const p = phase(st);
   if (s.nature === "leaf" && layer === "front") {
@@ -387,37 +388,86 @@ function animate(x: CanvasRenderingContext2D, s: SkinStyle, st: SkinState, layer
     x.rotate(Math.sin(p) * 0.045);
     x.translate(-50, -30);
   } else if (s.nature === "flame" && layer !== "body") {
-    const k = 1 + Math.sin(p * 3.1) * 0.035 + Math.sin(p * 5.3) * 0.02;
-    x.translate(50, 31);
-    x.scale(1 + (k - 1) * 0.4, k);
-    x.translate(-50, -31);
+    swayFlame(x, p, layer === "behind" ? 60 : 31);
   } else if (s.nature === "water" && layer === "body") {
-    x.translate(0, Math.sin(p) * 0.8);
+    refract(x, p);
   }
+}
+
+/** The board's shapes with its flat water, surface and bubbles taken out (drawn by ./finish.ts). */
+const seaLife = new WeakMap<readonly Shape[], { rest: Shape[]; deep: string; fish: Shape[] }>();
+function splitSea(shapes: readonly Shape[]) {
+  let hit = seaLife.get(shapes);
+  if (!hit) {
+    const water = shapes.find((sh) => isWaterPart(sh) && sh.f && /V9[68]/.test(sh.d));
+    // Stage 5's little orange fish swims instead of standing still.
+    const fish = shapes.filter((sh) => sh.clip && (sh.f === "#FFB347" || sh.f?.toUpperCase() === "#13241A"));
+    const rest = shapes.filter((sh) => !isWaterPart(sh) && !fish.includes(sh));
+    hit = { rest, deep: water?.f ?? "#3D9CF5", fish };
+    seaLife.set(shapes, hit);
+  }
+  return hit;
 }
 
 function drawLayer(x: CanvasRenderingContext2D, s: SkinStyle, H: Head, st: SkinState, layer: "behind" | "body" | "front", body?: Path2D) {
   const art = artFor(s);
   const shapes = art?.[layer];
-  if (!shapes?.length) return;
+  const flame = s.nature === "flame";
+  // Ember's body has no board art, only the heat of his flame.
+  if (!shapes?.length && !(flame && layer === "body" && body && s.stage >= 2)) return;
   x.save();
   x.globalAlpha *= st.shown;
   // The art turns a little with his head, as the eyes do.
   const shift = Math.sin(H.yaw) * H.rx * (layer === "body" ? 0.8 : 0.35);
+  const lite = !!st.lite;
   if (layer === "body" && body) {
     // What the board clips to his body is clipped to the real body.
     x.save();
     x.clip(body);
     toBoard(x, H.rx, H.ry, shift);
+    let rest: readonly Shape[] = shapes ?? [];
+    if (flame) drawHeat(x, s.stage);
+    else if (s.nature === "water") {
+      const sea = splitSea(rest);
+      drawWater(x, s.stage, sea.deep, phase(st), lite);
+      if (sea.fish.length) drawPondFish(x, sea.fish, phase(st));
+      rest = sea.rest;
+    }
+    x.save();
     animate(x, s, st, layer);
-    drawShapes(x, shapes, "clipped");
+    drawShapes(x, rest, "clipped");
+    x.restore();
     x.restore();
     toBoard(x, H.rx, H.ry, shift);
-    drawShapes(x, shapes, "free");
+    drawShapes(x, rest, "free");
+  } else if (flame && shapes) {
+    toBoard(x, H.rx, H.ry, shift);
+    x.save();
+    animate(x, s, st, layer);
+    drawFlame(x, shapes, (sh) => drawShapes(x, [sh]));
+    x.restore();
+    if (layer === "front" && s.stage >= 2 && s.stage < FINAL) drawEmbers(x, s.stage, phase(st), lite);
   } else {
     toBoard(x, H.rx, H.ry, shift);
     animate(x, s, st, layer);
     drawShapes(x, shapes);
   }
+  x.restore();
+}
+
+/** The board's still fish, swimming slowly to and fro across his water. */
+function drawPondFish(x: CanvasRenderingContext2D, fish: readonly Shape[], t: number) {
+  const k = (t * 0.06) % 2;
+  const p = k < 1 ? k : 2 - k;
+  const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  x.save();
+  // The board's fish is at x 54–70, nose left; it swims between x 22 and 70.
+  const dx = -32 * e;
+  const turn = k < 1 ? 1 : -1;
+  x.translate(62 + dx, 80 + Math.sin(t * 0.9) * 1.2);
+  x.scale(turn, 1);
+  x.rotate(Math.sin(t * 2.4) * 0.05);
+  x.translate(-62, -80);
+  drawShapes(x, fish);
   x.restore();
 }

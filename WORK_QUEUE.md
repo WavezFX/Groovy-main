@@ -79,7 +79,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. One clean tiles list in Settings: merge "Tiles" and "My island", drag, add-tile picker, no mini Groovy icons
 - [x] 4. Growth bug: he starts at his real stage (one-time correction of the "fully grown" migration), 7-step timeline
 - [x] 5. Stage 6: Sakura bonsai with emerald eyes, golden flame, Diamond sea with a golden shark and submarine (this does round 5 item 2)
-- [ ] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
+- [x] 6. Ember's fire and Frost's water as clean as Night (not cartoonish)
 - [ ] 7. Full wardrobe: 28 items plus the Diamond crown, stage unlocks, Seasonal tab, every Mochi item gone (this does round 5 items 3 and 4)
 - [ ] 8. Checks
 
