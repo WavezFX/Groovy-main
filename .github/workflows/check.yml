@@ -59,15 +59,19 @@ jobs:
         with:
           workspaces: windows
 
-      # rust-cache can bring back sherpa-onnx-sys's build outputs without the
-      # prebuilt speech engine its build script downloaded into target/, and the
-      # build then fails to find the library. Without the download, the build
-      # script is made to run again.
-      - name: Make sherpa-onnx fetch its library again if the cache lost it
+      # The speech engine's static library, fetched here once per run into the
+      # runner's temp folder and handed to sherpa-onnx-sys (SHERPA_ONNX_LIB_DIR),
+      # instead of its build script unpacking it into target/ — where a cached
+      # target/ and the several cargo profiles of this job disagreed about
+      # whether it was there ("could not find native static library").
+      - name: Speech engine library
         run: |
-          if [ ! -d target/sherpa-onnx-prebuilt ]; then
-            rm -rf target/*/build/sherpa-onnx-sys-* target/*/.fingerprint/sherpa-onnx-sys-*
-          fi
+          version=$(grep -A1 'name = "sherpa-onnx-sys"' Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')
+          name="sherpa-onnx-v${version}-linux-x64-static-lib"
+          mkdir -p "$RUNNER_TEMP/sherpa"
+          curl -fsSL --retry 4 "https://github.com/k2-fsa/sherpa-onnx/releases/download/v${version}/${name}.tar.bz2" | tar -xj -C "$RUNNER_TEMP/sherpa"
+          ls "$RUNNER_TEMP/sherpa/$name/lib" | head -3
+          echo "SHERPA_ONNX_LIB_DIR=$RUNNER_TEMP/sherpa/$name/lib" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
