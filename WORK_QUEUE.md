@@ -100,7 +100,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Stage 6 at six months (**done by round 3E item 5: tick it with that commit**)
 - [x] 3. (**Done by round 3E item 7: tick it with that commit.**) Wardrobe v2. **Keep round 3B item 4's speed fixes** (cached previews, one live engine).
 - [x] 4. Seasonal collection (**done by round 3E item 7: tick it with that commit**)
-- [ ] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
+- [x] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
 - [ ] 5. Tests and checks
 
 ## Later (don't start yet)

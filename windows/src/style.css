@@ -3924,6 +3924,133 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
   display: block;
 }
 
+/* Round 5 item 6: choose your Groovy and name him, after the first hatching. */
+.hatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 12px;
+  color: #fff;
+}
+.hatch-title {
+  font: 700 14px var(--font);
+}
+.hatch-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.hatch-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 168px;
+  padding: 8px 8px 9px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: 600 12.5px var(--font);
+  transition: opacity 260ms ease, transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 160ms ease;
+}
+.hatch-pick:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.hatch-art {
+  display: block;
+  width: 54px;
+  height: 54px;
+}
+.hatch-line {
+  font: 500 10.5px/1.3 var(--font);
+  color: rgba(255, 255, 255, 0.62);
+  text-align: center;
+}
+.hatch-pick.gone {
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+}
+.hatch-pick.chosen {
+  animation: hatch-hop 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+@keyframes hatch-hop {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+.hatch-naming {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.hatch-naming[hidden] {
+  display: none;
+}
+.hatch-hello {
+  font: 700 14px var(--font);
+}
+.hatch-ask {
+  font: 600 12.5px var(--font);
+  color: rgba(255, 255, 255, 0.8);
+}
+.hatch-field {
+  display: flex;
+  gap: 8px;
+}
+/* Step two: he stands beside his name. */
+.hatch.naming-step {
+  flex-direction: row;
+  justify-content: center;
+  gap: 22px;
+  padding-top: 20px;
+}
+.hatch.naming-step .hatch-title,
+.hatch.naming-step .hatch-pick.gone,
+.hatch.naming-step .hatch-line {
+  display: none;
+}
+.hatch.naming-step .hatch-pick {
+  width: 120px;
+}
+.hatch-name {
+  width: 170px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font: 600 13px var(--font);
+}
+.hatch-done {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 0;
+  background-color: #fff;
+  color: #111;
+  font: 700 12.5px var(--font);
+}
+.hatch-why {
+  text-align: left;
+  font: 500 11px var(--font);
+  color: #ffb4a8;
+  min-height: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hatch-pick,
+  .hatch-pick.chosen {
+    transition: none;
+    animation: none;
+  }
+}
+
 /* Round 3E item 7: 48 buttons now. The rows scrolled out of view aren't laid
    out or painted until they come in, so the wardrobe opens in one frame. */
 .wardrobe-slot {

@@ -187,6 +187,9 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         let (look, look_at) = settings::keep_newer_look((&current.groovy_look, current.look_at), (&settings.groovy_look, settings.look_at));
         settings.groovy_look = look;
         settings.look_at = look_at;
+        // « Also wake to his name » (round 5 item 6): the spotter hears his name too.
+        speech::kws::set_name(settings.wake_to_name.then_some(settings.assistant.name.as_str()));
+        tray::set_name(&app, &settings.assistant.name);
         *current = settings;
         (screen_changed, autostart_changed, shortcuts_changed)
     };
@@ -1255,6 +1258,7 @@ pub fn run() {
     let first_run = settings::first_run();
     let mut loaded = settings::load();
     loaded.assistant = loaded.assistant.clone().sanitised();
+    speech::kws::set_name(loaded.wake_to_name.then_some(loaded.assistant.name.as_str()));
     // A Claude chat with no key: the first cloud provider that has one, else
     // the local model only if local AI was chosen (otherwise the chat says what
     // to set up instead of quietly loading a model).
@@ -1666,6 +1670,7 @@ pub fn run() {
             let handle = app.handle().clone();
             app.manage(phone_link::Lazy::new(handle.clone()));
             tray::build(&handle)?;
+            tray::set_name(&handle, &handle.state::<Shared>().settings.lock().unwrap().assistant.name.clone());
             // Groovy's desktop window, when he is out on the desktop. The
             // Control Centre and the Studio are made only when opened.
             desktop::setup(&handle);
@@ -1747,6 +1752,18 @@ pub fn run() {
             }
             if !loaded.close_on_leave_offered {
                 set_setting(&handle, |s| s.close_on_leave_offered = true);
+            }
+            // Round 5 item 6: hatched before he could be named. They aren't asked
+            // to choose again, only told once where to name him. A first run
+            // hatches with the picker (src/views/hatch.ts), which sets it.
+            let hatched = loaded.growth.get("seen").and_then(serde_json::Value::as_i64).is_some_and(|s| s >= 0);
+            if !first_run && !loaded.hatch_done && hatched {
+                let h = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                    flow::live::announce(&h, "bolt", "#7C5CFF", i18n::t("You can now give him a name: Settings → Groovy"), Some((i18n::t("Name him"), "openWardrobe")), 20);
+                });
+                set_setting(&handle, |s| s.hatch_done = true);
             }
             music::init(&handle);
             scheduler::start(&handle);

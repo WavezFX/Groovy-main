@@ -1,8 +1,9 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
-import { MAX_STAGE, parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { MAX_STAGE, parseGrowth, shownStage } from "../mochi/growth";
 import { available } from "../mochi/wardrobe";
+import { nameOf } from "../mochi/naming";
 import { parseEarned } from "../mochi/seasons";
 import { flavorOf } from "../core/sounds-synth";
 import { showError } from "../views/toast";
@@ -458,6 +459,20 @@ export class Island {
         this.engine.triggerEmote("proud");
         State.notify();
       },
+      hatch: (look, name) => {
+        // Round 5 item 6: his look and his name, chosen as he hatches; saved once.
+        this.clearLookPreview();
+        chooseLook(State.settings, look);
+        State.settings.assistant = { ...State.settings.assistant, name };
+        State.settings.hatchDone = true;
+        void Bridge.saveSettings(State.settings);
+        Sound.setFlavor(flavorOf(look));
+        Sound.play("pop");
+        this.engine.triggerEmote("happy", 1.2);
+        this.dropPin();
+        this.setView(State.defaultView());
+        State.notify();
+      },
       previewLook: (look) => {
         State.lookPreview = look;
         // A lost mouseleave never pins a try-on: it ends by itself.
@@ -592,6 +607,9 @@ export class Island {
     const g = parseGrowth(State.settings.growth);
     const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
     const kind = seedKind(g.seen, g.reached, reduced);
+    // The very first hatching: he is chosen and named once it ends (round 5 item 6).
+    const choose = g.seen < 0 && !State.settings.hatchDone;
+    const name = nameOf(State.settings);
     const appearance = currentWardrobe(State.settings.wardrobe).appearance;
     const worn = tryOn(appearance.layers, null);
     const intro = new SeedIntro(kind, {
@@ -604,10 +622,10 @@ export class Island {
       lite: State.settings.assistant.performanceProfile === "lightweight",
     }, kind === "grew" && shownStage(g) === MAX_STAGE
       // Round 5 item 2: the final form, six months after he hatched.
-      ? { title: t("Six months together. Thank you."), sub: progressLine(g) }
+      ? { title: t("Six months together. Thank you."), sub: t("{name} is fully grown.", { name }) }
       : kind === "grew"
-      ? { title: t("I grew while you were away!"), sub: progressLine(g) }
-      : { title: t("Hi, I'm Groovy."), sub: t("I'll grow the longer we work together.") });
+      ? { title: t("{name} reached stage {n}!", { name, n: shownStage(g) }), sub: t("I grew while you were away.") }
+      : { title: choose ? t("Hi, I'm Groovy.") : t("Hi, I'm {name}.", { name }), sub: t("I'll grow the longer we work together.") });
     intro.onGrow = () => this.animateGeometry();
     intro.onComplete = () => {
       if (this.intro === intro) this.intro = null;
@@ -616,6 +634,12 @@ export class Island {
       this.greetingCanvas.height = 1;
       this.fsm.greetComplete();
       this.onGreetingDone?.();
+      if (choose) {
+        // Open on the three hatchlings until one is chosen and named.
+        this.fsm.pinned = true;
+        this.fsm.forceHome();
+        this.expand("hatch");
+      }
     };
     this.intro = intro;
     intro.start();

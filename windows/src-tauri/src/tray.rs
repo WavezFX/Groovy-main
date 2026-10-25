@@ -105,3 +105,12 @@ pub fn retitle(app: &AppHandle) {
         let _ = item.set_text(t(label));
     }
 }
+
+/// The tray's tooltip names him (round 5 item 6): "Groovy", or "Pip · Groovy" once he has his own name.
+pub fn set_name(app: &AppHandle, name: &str) {
+    let name = name.trim();
+    let tip = if name.is_empty() || name.eq_ignore_ascii_case("groovy") { "Groovy".to_string() } else { format!("{name} · Groovy") };
+    if let Some(tray) = app.tray_by_id("groovy") {
+        let _ = tray.set_tooltip(Some(tip));
+    }
+}

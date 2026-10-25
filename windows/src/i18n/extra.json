@@ -13019,17 +13019,6 @@
    "ru": "следующий примерно через {n} дн.",
    "id": "berikutnya sekitar {n} hari lagi"
   },
-  "I grew while you were away!": {
-   "zh-Hans": "你不在的时候我长大了！",
-   "hi": "आपके जाने के बाद मैं बड़ा हो गया!",
-   "es": "¡He crecido mientras no estabas!",
-   "ar": "كبرتُ أثناء غيابك!",
-   "fr": "J'ai grandi pendant ton absence !",
-   "bn": "তুমি না থাকার সময় আমি বড় হয়েছি!",
-   "pt-BR": "Eu cresci enquanto você estava fora!",
-   "ru": "Я подрос, пока тебя не было!",
-   "id": "Aku tumbuh saat kamu pergi!"
-  },
   "Hi, I'm Groovy.": {
    "zh-Hans": "你好，我是 Groovy。",
    "hi": "नमस्ते, मैं Groovy हूँ।",
@@ -19783,6 +19772,248 @@
    "pt-BR": "Inverno e Natal",
    "ru": "Зима и Рождество",
    "id": "Musim dingin & Natal"
+  },
+  "Say “{name}” or “Hey {name}” as well as « OK Groovy ».": {
+   "zh-Hans": "除了 « OK Groovy »，也可以说“{name}”或“Hey {name}”。",
+   "hi": "« OK Groovy » के साथ “{name}” या “Hey {name}” भी कहें।",
+   "es": "Di “{name}” o “Hey {name}”, además de « OK Groovy ».",
+   "ar": "قل “{name}” أو “Hey {name}” إلى جانب « OK Groovy ».",
+   "fr": "Dites « {name} » ou « Hey {name} », en plus de « OK Groovy ».",
+   "bn": "« OK Groovy »-র পাশাপাশি “{name}” বা “Hey {name}” বলুন।",
+   "pt-BR": "Diga “{name}” ou “Hey {name}”, além de « OK Groovy ».",
+   "ru": "Говорите «{name}» или «Hey {name}», а также « OK Groovy ».",
+   "id": "Ucapkan “{name}” atau “Hey {name}”, selain « OK Groovy »."
+  },
+  "He is called Groovy: « OK Groovy » already wakes him. Give him a name in Settings → Groovy.": {
+   "zh-Hans": "他叫 Groovy：« OK Groovy » 已经能唤醒他。可以在 设置 → Groovy 中给他取名。",
+   "hi": "उसका नाम Groovy है: « OK Groovy » उसे पहले से जगाता है। सेटिंग्स → Groovy में उसे नाम दें।",
+   "es": "Se llama Groovy: « OK Groovy » ya lo despierta. Ponle un nombre en Ajustes → Groovy.",
+   "ar": "اسمه Groovy: عبارة « OK Groovy » توقظه بالفعل. أعطه اسمًا في الإعدادات ← Groovy.",
+   "fr": "Il s’appelle Groovy : « OK Groovy » le réveille déjà. Donnez-lui un nom dans Réglages → Groovy.",
+   "bn": "ওর নাম Groovy: « OK Groovy » আগেই ওকে জাগায়। সেটিংস → Groovy-তে ওকে একটা নাম দিন।",
+   "pt-BR": "Ele se chama Groovy: « OK Groovy » já o acorda. Dê um nome a ele em Configurações → Groovy.",
+   "ru": "Его зовут Groovy: « OK Groovy » уже его будит. Дайте ему имя в Настройки → Groovy.",
+   "id": "Namanya Groovy: « OK Groovy » sudah membangunkannya. Beri ia nama di Pengaturan → Groovy."
+  },
+  "“{name}” is short: a name of two syllables or more is heard more reliably.": {
+   "zh-Hans": "“{name}”比较短：两个音节以上的名字更容易被听清。",
+   "hi": "“{name}” छोटा है: दो या अधिक शब्दांश वाला नाम ज़्यादा भरोसे से सुना जाता है।",
+   "es": "“{name}” es corto: un nombre de dos sílabas o más se oye mejor.",
+   "ar": "“{name}” قصير: الاسم المكوّن من مقطعين أو أكثر يُسمع بشكل أوثق.",
+   "fr": "« {name} » est court : un nom de deux syllabes ou plus est mieux entendu.",
+   "bn": "“{name}” ছোট: দুই বা তার বেশি সিলেবলের নাম ভালো শোনা যায়।",
+   "pt-BR": "“{name}” é curto: um nome de duas sílabas ou mais é ouvido com mais segurança.",
+   "ru": "«{name}» — короткое имя: имя из двух слогов и больше слышно надёжнее.",
+   "id": "“{name}” pendek: nama dengan dua suku kata atau lebih lebih andal terdengar."
+  },
+  "The wake word spotter knows English letters only, so “{name}” can't be listened for.": {
+   "zh-Hans": "唤醒词识别只认识英文字母，所以无法监听“{name}”。",
+   "hi": "वेक वर्ड पहचानने वाला सिर्फ़ अंग्रेज़ी अक्षर जानता है, इसलिए “{name}” नहीं सुना जा सकता।",
+   "es": "El detector de la palabra de activación solo conoce letras inglesas, así que no puede escuchar “{name}”.",
+   "ar": "كاشف كلمة التنبيه يعرف الحروف الإنجليزية فقط، لذا لا يمكنه الاستماع إلى “{name}”.",
+   "fr": "Le détecteur du mot d’éveil ne connaît que les lettres anglaises : « {name} » ne peut pas être écouté.",
+   "bn": "জাগানোর শব্দ চেনার যন্ত্র শুধু ইংরেজি অক্ষর চেনে, তাই “{name}” শোনা যাবে না।",
+   "pt-BR": "O detector da palavra de ativação só conhece letras do inglês, então “{name}” não pode ser ouvido.",
+   "ru": "Детектор слова пробуждения знает только английские буквы, поэтому «{name}» он не услышит.",
+   "id": "Pendeteksi kata pemicu hanya mengenal huruf Inggris, jadi “{name}” tidak bisa didengarkan."
+  },
+  "Also wake to his name": {
+   "zh-Hans": "也用他的名字唤醒",
+   "hi": "उसके नाम से भी जगाएँ",
+   "es": "Despertar también con su nombre",
+   "ar": "التنبيه باسمه أيضًا",
+   "fr": "Le réveiller aussi par son nom",
+   "bn": "ওর নাম শুনেও জাগবে",
+   "pt-BR": "Acordar também pelo nome dele",
+   "ru": "Просыпаться и на его имя",
+   "id": "Bangun juga dengan namanya"
+  },
+  "{name} is fully grown.": {
+   "zh-Hans": "{name}已经完全长大了。",
+   "hi": "{name} पूरी तरह बड़ा हो गया है।",
+   "es": "{name} ha crecido del todo.",
+   "ar": "{name} اكتمل نموه.",
+   "fr": "{name} a fini de grandir.",
+   "bn": "{name} পুরোপুরি বড় হয়ে গেছে।",
+   "pt-BR": "{name} cresceu por completo.",
+   "ru": "{name} полностью вырос.",
+   "id": "{name} sudah tumbuh sepenuhnya."
+  },
+  "{name} reached stage {n}!": {
+   "zh-Hans": "{name}到达了第 {n} 阶段！",
+   "hi": "{name} चरण {n} पर पहुँच गया!",
+   "es": "¡{name} llegó a la etapa {n}!",
+   "ar": "وصل {name} إلى المرحلة {n}!",
+   "fr": "{name} a atteint l’étape {n} !",
+   "bn": "{name} ধাপ {n}-এ পৌঁছেছে!",
+   "pt-BR": "{name} chegou à fase {n}!",
+   "ru": "{name} достиг этапа {n}!",
+   "id": "{name} mencapai tahap {n}!"
+  },
+  "I grew while you were away.": {
+   "zh-Hans": "你不在的时候我长大了。",
+   "hi": "तुम्हारे जाने के बाद मैं बड़ा हो गया।",
+   "es": "Crecí mientras no estabas.",
+   "ar": "كبرت أثناء غيابك.",
+   "fr": "J’ai grandi pendant ton absence.",
+   "bn": "তুমি না থাকার সময় আমি বড় হয়েছি।",
+   "pt-BR": "Cresci enquanto você estava fora.",
+   "ru": "Я подрос, пока тебя не было.",
+   "id": "Aku tumbuh selagi kamu pergi."
+  },
+  "Hi, I'm {name}.": {
+   "zh-Hans": "嗨，我是{name}。",
+   "hi": "नमस्ते, मैं {name} हूँ।",
+   "es": "Hola, soy {name}.",
+   "ar": "مرحبًا، أنا {name}.",
+   "fr": "Salut, je suis {name}.",
+   "bn": "হাই, আমি {name}।",
+   "pt-BR": "Oi, eu sou {name}.",
+   "ru": "Привет, я {name}.",
+   "id": "Hai, aku {name}."
+  },
+  "Give him a name: one letter at least.": {
+   "zh-Hans": "给他取个名字：至少一个字。",
+   "hi": "उसे नाम दें: कम से कम एक अक्षर।",
+   "es": "Ponle un nombre: una letra como mínimo.",
+   "ar": "أعطه اسمًا: حرف واحد على الأقل.",
+   "fr": "Donnez-lui un nom : une lettre au moins.",
+   "bn": "ওকে একটা নাম দিন: অন্তত একটি অক্ষর।",
+   "pt-BR": "Dê um nome a ele: pelo menos uma letra.",
+   "ru": "Дайте ему имя: хотя бы одну букву.",
+   "id": "Beri ia nama: minimal satu huruf."
+  },
+  "20 characters at most.": {
+   "zh-Hans": "最多 20 个字符。",
+   "hi": "अधिकतम 20 अक्षर।",
+   "es": "20 caracteres como máximo.",
+   "ar": "20 حرفًا على الأكثر.",
+   "fr": "20 caractères au plus.",
+   "bn": "সর্বোচ্চ ২০টি অক্ষর।",
+   "pt-BR": "No máximo 20 caracteres.",
+   "ru": "Не больше 20 символов.",
+   "id": "Maksimal 20 karakter."
+  },
+  "Letters, numbers, spaces and simple punctuation only.": {
+   "zh-Hans": "只能使用字母、数字、空格和简单的标点。",
+   "hi": "सिर्फ़ अक्षर, अंक, स्पेस और सामान्य विराम चिह्न।",
+   "es": "Solo letras, números, espacios y puntuación sencilla.",
+   "ar": "حروف وأرقام ومسافات وعلامات ترقيم بسيطة فقط.",
+   "fr": "Lettres, chiffres, espaces et ponctuation simple uniquement.",
+   "bn": "শুধু অক্ষর, সংখ্যা, স্পেস আর সাধারণ যতিচিহ্ন।",
+   "pt-BR": "Apenas letras, números, espaços e pontuação simples.",
+   "ru": "Только буквы, цифры, пробелы и простые знаки препинания.",
+   "id": "Hanya huruf, angka, spasi, dan tanda baca sederhana."
+  },
+  "His name": {
+   "zh-Hans": "他的名字",
+   "hi": "उसका नाम",
+   "es": "Su nombre",
+   "ar": "اسمه",
+   "fr": "Son nom",
+   "bn": "ওর নাম",
+   "pt-BR": "O nome dele",
+   "ru": "Его имя",
+   "id": "Namanya"
+  },
+  "Calm and green. Grows into Grove, a little bonsai.": {
+   "zh-Hans": "安静又翠绿。会长成 Grove，一棵小盆景。",
+   "hi": "शांत और हरा। बड़ा होकर Grove बनता है, एक छोटा बोनसाई।",
+   "es": "Tranquilo y verde. Crece hasta ser Grove, un pequeño bonsái.",
+   "ar": "هادئ وأخضر. يكبر ليصبح Grove، شجرة بونساي صغيرة.",
+   "fr": "Calme et vert. Devient Grove, un petit bonsaï.",
+   "bn": "শান্ত আর সবুজ। বড় হয়ে Grove হয়, ছোট্ট এক বনসাই।",
+   "pt-BR": "Calmo e verde. Cresce e vira Grove, um pequeno bonsai.",
+   "ru": "Спокойный и зелёный. Вырастет в Grove — маленький бонсай.",
+   "id": "Tenang dan hijau. Tumbuh menjadi Grove, bonsai kecil."
+  },
+  "Warm and bright. Grows into Blaze, a golden flame.": {
+   "zh-Hans": "温暖又明亮。会长成 Blaze，一团金色火焰。",
+   "hi": "गर्म और चमकीला। बड़ा होकर Blaze बनता है, एक सुनहरी लौ।",
+   "es": "Cálido y brillante. Crece hasta ser Blaze, una llama dorada.",
+   "ar": "دافئ ومشرق. يكبر ليصبح Blaze، شعلة ذهبية.",
+   "fr": "Chaleureux et lumineux. Devient Blaze, une flamme dorée.",
+   "bn": "উষ্ণ আর উজ্জ্বল। বড় হয়ে Blaze হয়, এক সোনালি শিখা।",
+   "pt-BR": "Quente e brilhante. Cresce e vira Blaze, uma chama dourada.",
+   "ru": "Тёплый и яркий. Вырастет в Blaze — золотое пламя.",
+   "id": "Hangat dan cerah. Tumbuh menjadi Blaze, nyala api keemasan."
+  },
+  "Cool and clear. Grows into Tide, a sea of his own.": {
+   "zh-Hans": "清凉又通透。会长成 Tide，一片属于他的海。",
+   "hi": "ठंडा और साफ़। बड़ा होकर Tide बनता है, उसका अपना समुद्र।",
+   "es": "Fresco y claro. Crece hasta ser Tide, un mar propio.",
+   "ar": "بارد وصافٍ. يكبر ليصبح Tide، بحرًا خاصًا به.",
+   "fr": "Frais et limpide. Devient Tide, une mer à lui.",
+   "bn": "শীতল আর স্বচ্ছ। বড় হয়ে Tide হয়, ওর নিজের এক সমুদ্র।",
+   "pt-BR": "Fresco e claro. Cresce e vira Tide, um mar só dele.",
+   "ru": "Прохладный и чистый. Вырастет в Tide — своё маленькое море.",
+   "id": "Sejuk dan jernih. Tumbuh menjadi Tide, lautnya sendiri."
+  },
+  "Who hatched? Pick your Groovy.": {
+   "zh-Hans": "谁孵出来了？选择你的 Groovy。",
+   "hi": "कौन निकला? अपना Groovy चुनें।",
+   "es": "¿Quién ha nacido? Elige tu Groovy.",
+   "ar": "من فقس؟ اختر Groovy الخاص بك.",
+   "fr": "Qui a éclos ? Choisissez votre Groovy.",
+   "bn": "কে ফুটে বেরোল? তোমার Groovy বেছে নাও।",
+   "pt-BR": "Quem nasceu? Escolha o seu Groovy.",
+   "ru": "Кто вылупился? Выберите своего Groovy.",
+   "id": "Siapa yang menetas? Pilih Groovy-mu."
+  },
+  "What will you call him?": {
+   "zh-Hans": "你想叫他什么？",
+   "hi": "तुम उसे क्या कहोगे?",
+   "es": "¿Cómo lo vas a llamar?",
+   "ar": "ماذا ستسميه؟",
+   "fr": "Comment allez-vous l’appeler ?",
+   "bn": "ওকে কী নামে ডাকবে?",
+   "pt-BR": "Como você vai chamá-lo?",
+   "ru": "Как вы его назовёте?",
+   "id": "Mau kamu panggil apa dia?"
+  },
+  "Hello, little one.": {
+   "zh-Hans": "你好呀，小家伙。",
+   "hi": "नमस्ते, नन्हे।",
+   "es": "Hola, pequeño.",
+   "ar": "مرحبًا يا صغيري.",
+   "fr": "Bonjour, petit.",
+   "bn": "হ্যালো, ছোট্টটি।",
+   "pt-BR": "Olá, pequenino.",
+   "ru": "Привет, малыш.",
+   "id": "Halo, si kecil."
+  },
+  "That's him": {
+   "zh-Hans": "就是他",
+   "hi": "यही है वो",
+   "es": "Es él",
+   "ar": "هذا هو",
+   "fr": "C’est lui",
+   "bn": "এই তো ও",
+   "pt-BR": "É ele",
+   "ru": "Это он",
+   "id": "Itu dia"
+  },
+  "You can now give him a name: Settings → Groovy": {
+   "zh-Hans": "现在可以给他取名了：设置 → Groovy",
+   "hi": "अब आप उसे नाम दे सकते हैं: सेटिंग्स → Groovy",
+   "es": "Ahora puedes ponerle un nombre: Ajustes → Groovy",
+   "ar": "يمكنك الآن أن تعطيه اسمًا: الإعدادات ← Groovy",
+   "fr": "Vous pouvez maintenant lui donner un nom : Réglages → Groovy",
+   "bn": "এখন ওকে একটা নাম দিতে পারেন: সেটিংস → Groovy",
+   "pt-BR": "Agora você pode dar um nome a ele: Configurações → Groovy",
+   "ru": "Теперь ему можно дать имя: Настройки → Groovy",
+   "id": "Sekarang kamu bisa memberinya nama: Pengaturan → Groovy"
+  },
+  "Name him": {
+   "zh-Hans": "给他取名",
+   "hi": "नाम दें",
+   "es": "Ponle nombre",
+   "ar": "سمِّه",
+   "fr": "Le nommer",
+   "bn": "নাম দিন",
+   "pt-BR": "Dar nome",
+   "ru": "Дать имя",
+   "id": "Beri nama"
   }
  }
 }

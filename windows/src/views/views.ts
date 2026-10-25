@@ -19,6 +19,7 @@ import { buildDiffCard } from "./diff";
 import { lastTextStep } from "../core/diff";
 import { Bridge } from "../core/bridge";
 import { buildRecap } from "./recap";
+import { buildHatch } from "./hatch";
 import { buildWardrobe } from "./wardrobe";
 import { buildSpotifyCard } from "./spotify";
 import { SPOTIFY_ID } from "../core/spotify";
@@ -72,6 +73,8 @@ export interface ViewActions {
   chooseLook(look: Skin): void;
   /** Wardrobe hover on a look: shows it without keeping it; null ends it. */
   previewLook(look: Skin | null): void;
+  /** Round 5 item 6: the hatchling chosen and his name, at the first hatching. */
+  hatch(look: Skin, name: string): void;
 }
 
 export interface ViewHost {
@@ -875,6 +878,7 @@ export function buildViews(
   map.set("choose", buildChoose(actions));
   map.set("recap", buildRecap(actions));
   map.set("wardrobe", buildWardrobe(actions));
+  map.set("hatch", buildHatch(actions));
   map.set("home", buildHome(actions));
   map.set("notify", buildNotify((v) => actions.setView(v), () => actions.collapse()));
   // Not in the Windows v1: sending a file by email, window attach + web result.

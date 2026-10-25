@@ -3,6 +3,7 @@
 // page on the right with tabs for the merged pages. It remembers the last
 // page. Ported from Groovy 0.5.0's hub (MIT).
 
+import { nameOf } from "../mochi/naming";
 import "./fonts/manrope.css";
 import "./hub.css";
 import { h, clear } from "../views/dom";
@@ -280,7 +281,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     const bar = h("div", { class: "hub-me-bar" }, h("i", { style: `transform:scaleX(${stageProgress(g).toFixed(3)})` }));
     clear(card);
     card.append(portrait, h("div", { class: "hub-me-text" },
-      h("div", { class: "hub-me-name", text: "Groovy" }),
+      h("div", { class: "hub-me-name", text: settings ? nameOf(settings) : "Groovy" }),
       h("div", { class: "hub-me-stage", text: t("{look} · Stage {stage}", { look: t(SKIN_KEYS[look]), stage: shownStage(g) }) }),
       bar,
     ));

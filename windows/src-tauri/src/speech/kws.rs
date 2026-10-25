@@ -29,6 +29,58 @@ const FILES: &[(&str, u64, &str)] = &[
 
 /// The wake phrases in the model's BPE pieces (its bpe.model, by sentencepiece).
 const KEYWORDS: &str = "▁O K ▁G RO O V Y @OK_GROOVY\n▁OKAY ▁G RO O V Y @OKAY_GROOVY\n▁HE Y ▁G RO O V Y @HEY_GROOVY";
+/// « Also wake to his name » (round 5 item 6): the name he was given, and a
+/// count that moves on each change so a loaded spotter knows to load again.
+static NAME: std::sync::Mutex<(Option<String>, u64)> = std::sync::Mutex::new((None, 0));
+
+/// The name to wake to as well, or None. Settings call it at launch and on each save.
+pub fn set_name(name: Option<&str>) {
+    let name = name.map(str::trim).filter(|n| !n.is_empty() && !n.eq_ignore_ascii_case("groovy")).map(str::to_string);
+    let mut current = NAME.lock().unwrap();
+    if current.0 != name {
+        *current = (name, current.1 + 1);
+        drop(current);
+        *SHARED.lock().unwrap() = None;
+    }
+}
+
+fn name_generation() -> u64 {
+    NAME.lock().unwrap().1
+}
+
+/// A name in the model's BPE pieces, longest piece first, as sentencepiece
+/// splits it: "PIPPA" → "▁PI PP A". None when a letter isn't the model's
+/// (it knows English letters and the apostrophe) or no piece fits.
+pub fn pieces(name: &str, vocab: &std::collections::HashSet<String>) -> Option<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in name.split_whitespace() {
+        let word = word.trim_matches(|c: char| matches!(c, '.' | ',' | '!' | '?' | '-')).to_ascii_uppercase();
+        if word.is_empty() {
+            continue;
+        }
+        if !word.chars().all(|c| c.is_ascii_uppercase() || c == '\'') {
+            return None;
+        }
+        let chars: Vec<char> = format!("▁{word}").chars().collect();
+        let mut at = 0;
+        while at < chars.len() {
+            let end = (at + 1..=chars.len()).rev().find(|&end| vocab.contains(&chars[at..end].iter().collect::<String>()))?;
+            out.push(chars[at..end].iter().collect());
+            at = end;
+        }
+    }
+    (!out.is_empty()).then(|| out.join(" "))
+}
+
+/// The wake phrases, with his name (alone and after "Hey") when one is set and fits.
+fn keywords(vocab: &std::collections::HashSet<String>) -> String {
+    let mut all = KEYWORDS.to_string();
+    if let Some(p) = NAME.lock().unwrap().0.as_deref().and_then(|n| pieces(n, vocab)) {
+        all.push_str(&format!("\n{p} @HIS_NAME\n▁HE Y {p} @HEY_HIS_NAME"));
+    }
+    all
+}
+
 /// Tuned on synthetic voices: 14 of 16 wake phrases heard, none of 16 other
 /// sentences ("OK, let's go…", "…really groovy") taken for one.
 const SCORE: f32 = 1.5;
@@ -129,6 +181,8 @@ pub fn free_if_idle() {
 /// The spotter, loaded while « OK Groovy » listens (a few MB).
 pub struct Spotter {
     kws: KeywordSpotter,
+    /// The name it was loaded with (name_generation): another means load again.
+    generation: u64,
 }
 
 impl Spotter {
@@ -136,6 +190,12 @@ impl Spotter {
         if !is_present() {
             return None;
         }
+        let vocab: std::collections::HashSet<String> = std::fs::read_to_string(dir().join("tokens.txt"))
+            .unwrap_or_default()
+            .lines()
+            .filter_map(|l| l.split_whitespace().next().map(str::to_string))
+            .collect();
+        let generation = name_generation();
         let config = KeywordSpotterConfig {
             model_config: sherpa_onnx::OnlineModelConfig {
                 transducer: OnlineTransducerModelConfig {
@@ -149,12 +209,17 @@ impl Spotter {
             },
             keywords_score: SCORE,
             keywords_threshold: THRESHOLD,
-            keywords_buf: Some(KEYWORDS.to_string()),
+            keywords_buf: Some(keywords(&vocab)),
             ..Default::default()
         };
         crate::resources::loads::note(crate::resources::loads::Part::WakeWord, "« OK Groovy » is on");
         crate::resources::register("wake-word", free_if_idle);
-        KeywordSpotter::create(&config).map(|kws| Spotter { kws })
+        KeywordSpotter::create(&config).map(|kws| Spotter { kws, generation })
+    }
+
+    /// His name changed (or « Also wake to his name » did) since this one was loaded.
+    pub fn stale(&self) -> bool {
+        self.generation != name_generation()
     }
 
     /// The wake phrase is in this stretch of speech (16 kHz mono).
@@ -184,6 +249,34 @@ mod tests {
         assert_eq!(lines.len(), 3);
         assert!(lines.iter().all(|l| l.contains("▁G RO O V Y @")));
         assert_eq!(FILES.iter().map(|f| f.1).sum::<u64>(), 5_253_530);
+    }
+
+    #[test]
+    fn a_name_is_split_into_the_models_pieces() {
+        let vocab: std::collections::HashSet<String> = ["▁PI", "▁P", "P", "PP", "A", "▁MO", "CH", "I", "▁", "O", "'"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(pieces("Pippa", &vocab).as_deref(), Some("▁PI PP A"));
+        assert_eq!(pieces("  mochi! ", &vocab).as_deref(), Some("▁MO CH I"));
+        assert_eq!(pieces("Pi Mochi", &vocab).as_deref(), Some("▁PI ▁MO CH I"));
+        // Letters the model doesn't know: no keyword, rather than a wrong one.
+        assert_eq!(pieces("Zoë", &vocab), None);
+        assert_eq!(pieces("小明", &vocab), None);
+        assert_eq!(pieces("Xu", &vocab), None);
+        assert_eq!(pieces("", &vocab), None);
+    }
+
+    #[test]
+    fn the_name_joins_the_wake_phrases_and_groovy_is_not_added_twice() {
+        let vocab: std::collections::HashSet<String> = ["▁PI", "PP", "A"].iter().map(|s| s.to_string()).collect();
+        set_name(Some("Pippa"));
+        let with = keywords(&vocab);
+        assert!(with.ends_with("\n▁PI PP A @HIS_NAME\n▁HE Y ▁PI PP A @HEY_HIS_NAME"), "{with}");
+        let before = name_generation();
+        set_name(Some(" Pippa "));
+        assert_eq!(name_generation(), before, "the same name: nothing to reload");
+        set_name(Some("Groovy"));
+        assert_eq!(keywords(&vocab), KEYWORDS);
+        set_name(None);
+        assert_eq!(keywords(&vocab), KEYWORDS);
     }
 
     #[test]

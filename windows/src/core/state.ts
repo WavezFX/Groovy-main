@@ -294,6 +294,10 @@ export interface Settings {
   doNotDisturb: boolean;
   /** Seasonal wardrobe items earned for good (mochi/seasons.ts); Rust keeps the union. */
   seasonalEarned: string[];
+  /** Round 5 item 6: he was hatched with a chosen look and name (or told he can be named now). */
+  hatchDone: boolean;
+  /** « Also wake to his name »: the spotter hears his name as well as « OK Groovy ». */
+  wakeToName: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -357,6 +361,8 @@ export const DEFAULT_SETTINGS: Settings = {
   growth: {},
   doNotDisturb: false,
   seasonalEarned: [],
+  hatchDone: false,
+  wakeToName: false,
 };
 
 type Listener = () => void;

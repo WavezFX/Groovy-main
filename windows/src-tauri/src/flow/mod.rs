@@ -835,6 +835,7 @@ pub fn live_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: O
                     Some("openAssistant") => crate::show_hub(&app, Some("assistant")),
                     Some("openSpeechSetup") => crate::show_hub(&app, Some("speechsetup")),
                     Some("openVoice") => crate::show_hub(&app, Some("voice")),
+                    Some("openWardrobe") => crate::show_hub(&app, Some("wardrobe")),
                     Some("closeOnLeave") => crate::set_setting(&app, |s| s.auto_close_interval = 0.0),
                     _ => {}
                 }

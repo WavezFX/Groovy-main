@@ -1847,3 +1847,6 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
 /* A locked item says when it comes: the tile grows to fit. */
 .hub-w-item { height: auto; min-height: 92px; padding: 8px 6px; }
 .hub-w-item .hub-w-lock { line-height: 1.2; }
+/* Round 5 item 6: his name, above the look. */
+.hub-w-name-row { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+.hub-w-name { height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--v2-hair); background: var(--v2-card); color: var(--hub-text); font: 600 13.5px var(--font); }

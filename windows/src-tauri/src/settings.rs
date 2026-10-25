@@ -193,6 +193,11 @@ pub struct Settings {
     /// The seasonal wardrobe items earned so far (round 5 item 4): they are
     /// kept for good, so two copies are merged as a union (merge_earned).
     pub seasonal_earned: Vec<String>,
+    /// He was hatched with a chosen look and name, or, for those hatched
+    /// before round 5 item 6, told once that he can be named now.
+    pub hatch_done: bool,
+    /// « Also wake to his name »: the spotter listens for his name as well as « OK Groovy ».
+    pub wake_to_name: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -297,6 +302,8 @@ impl Default for Settings {
             integrations_restored: false,
             do_not_disturb: false,
             seasonal_earned: Vec::new(),
+            hatch_done: false,
+            wake_to_name: false,
         }
     }
 }
@@ -756,7 +763,9 @@ mod tests {
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
   "integrationsRestored": true,
   "doNotDisturb": true,
-  "seasonalEarned": ["pumpkinCap", "batWingBand"]
+  "seasonalEarned": ["pumpkinCap", "batWingBand"],
+  "hatchDone": true,
+  "wakeToName": true
 }"##;
 
     fn custom() -> Value {
@@ -1438,6 +1447,8 @@ mod tests {
                 "integrationsRestored",
                 "doNotDisturb",
                 "seasonalEarned",
+                "hatchDone",
+                "wakeToName",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

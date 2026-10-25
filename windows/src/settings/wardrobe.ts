@@ -22,6 +22,7 @@ import {
 } from "../mochi/appearance";
 import { N_, t } from "../i18n/i18n";
 import { confirmClick } from "./parts";
+import { DEFAULT_NAME, checkName, nameOf } from "../mochi/naming";
 
 type Tab = Slot | "seasonal";
 
@@ -368,6 +369,22 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     commit();
   });
 
+  // His name (round 5 item 6): chosen at hatching, changed here at any time.
+  const nameInput = h("input", { type: "text", class: "hub-w-name", value: nameOf(settings), maxlength: 40, "aria-label": t("His name"), placeholder: DEFAULT_NAME }) as HTMLInputElement;
+  const nameWhy = h("span", { class: "hub-b-detail" });
+  nameInput.addEventListener("change", () => {
+    const check = checkName(nameInput.value);
+    if (!check.ok) {
+      nameWhy.textContent = t(check.why);
+      return;
+    }
+    nameWhy.textContent = "";
+    nameInput.value = check.name;
+    settings.assistant = { ...settings.assistant, name: check.name };
+    save();
+  });
+  const nameRow = h("label", { class: "hub-w-name-row" }, h("span", { class: "hub-label", text: t("His name") }), nameInput, nameWhy);
+
   drawAll();
   removeAll.className = "hub-w-remove";
   const stage = h("div", { class: "hub-w-stage-box" }, preview);
@@ -376,7 +393,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     { id: "wardrobe", class: "hub-w", "data-own": "" },
     message,
     h("div", { class: "hub-w-grid" },
-      h("div", { class: "hub-card hub-w-left", "aria-label": t("Look and growth") }, stage, lookSeg, growthRow),
+      h("div", { class: "hub-card hub-w-left", "aria-label": t("Look and growth") }, stage, nameRow, lookSeg, growthRow),
       h("div", { class: "hub-w-right", "aria-label": t("Wardrobe") },
         h("div", { class: "hub-w-bar" }, slotTabs, removeAll),
         slots,

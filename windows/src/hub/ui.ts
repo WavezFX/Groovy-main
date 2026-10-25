@@ -93,8 +93,8 @@ export function button(text: string, onclick: () => void, kind: "" | "primary" |
 }
 
 /** The settings window's switch, so both windows look alike. */
-export function toggle(on: boolean, onChange: (v: boolean) => void): HTMLElement {
-  const el = h("button", { class: on ? "switch on" : "switch", "aria-pressed": on });
+export function toggle(on: boolean, onChange: (v: boolean) => void, disabled = false): HTMLElement {
+  const el = h("button", { class: on ? "switch on" : "switch", "aria-pressed": on, disabled });
   el.addEventListener("click", () => {
     const next = !el.classList.contains("on");
     el.classList.toggle("on", next);

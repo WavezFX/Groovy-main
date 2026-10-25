@@ -237,7 +237,8 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             if segment.len() < speech::SAMPLE_RATE as usize * 35 / 100 {
                 continue;
             }
-            if spotter.is_none() && speech::kws::is_present() {
+            // Not loaded yet, or his name (to wake to) changed since: load it again.
+            if (spotter.is_none() || spotter.as_ref().is_some_and(|k| k.stale())) && speech::kws::is_present() {
                 spotter = speech::kws::Spotter::load();
             }
             let spotted = matches!(mode, Mode::Wake) && spotter.is_some();

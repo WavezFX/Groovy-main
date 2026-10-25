@@ -11,6 +11,7 @@ import { button, card, divider, label, row, segmented, select, toggle } from "..
 import { showError } from "../../views/toast";
 import { speak } from "../../voice/speak";
 import { modelsControl } from "./flowsettings";
+import { nameOf, wakeName } from "../../mochi/naming";
 
 const ELEVEN = "elevenlabs-api-key";
 /** Where secrets.rs keeps the keys on this OS (same words as Groovy → Chat). */
@@ -177,6 +178,22 @@ export async function listeningPage(page: HTMLElement, ctx: HubContext) {
   );
   if (prefs.voice && !ready) {
     main.append(h("div", { class: "hub-warn", text: t("Download the voice model so Groovy can hear you.") }));
+  }
+  // Round 5 item 6: his own name as a wake word too; « OK Groovy » always works.
+  const settings = (await Bridge.boot())?.settings;
+  if (settings) {
+    const name = nameOf(settings);
+    const fit = wakeName(name);
+    const hint = h("div", { class: "hub-note" });
+    hint.textContent = fit === "ok" ? t("Say “{name}” or “Hey {name}” as well as « OK Groovy ».", { name })
+      : fit === "groovy" ? t("He is called Groovy: « OK Groovy » already wakes him. Give him a name in Settings → Groovy.")
+      : fit === "short" ? t("“{name}” is short: a name of two syllables or more is heard more reliably.", { name })
+      : t("The wake word spotter knows English letters only, so “{name}” can't be listened for.", { name });
+    main.append(divider(), row(t("Also wake to his name"), null,
+      toggle(!!settings.wakeToName && fit === "ok", (on) => {
+        settings.wakeToName = on;
+        void Bridge.saveSettings(settings);
+      }, fit !== "ok")), hint);
   }
   page.append(main);
   page.append(label(t("Check")));
