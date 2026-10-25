@@ -20091,6 +20091,17 @@
    "pt-BR": "Visual de cada fase",
    "ru": "Облик на каждом этапе",
    "id": "Tampilan tiap tahap"
+  },
+  "Not started": {
+   "zh-Hans": "尚未开始",
+   "hi": "अभी शुरू नहीं",
+   "es": "Sin empezar",
+   "ar": "لم يبدأ",
+   "fr": "Pas commencé",
+   "bn": "এখনো শুরু হয়নি",
+   "pt-BR": "Não começou",
+   "ru": "Ещё не начат",
+   "id": "Belum dimulai"
   }
  }
 }

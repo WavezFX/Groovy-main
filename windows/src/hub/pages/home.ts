@@ -4,7 +4,7 @@
 
 import { Bridge } from "../../core/bridge";
 import { FlowBridge } from "../../core/flow";
-import { parseGrowth, progressLine, shownStage } from "../../mochi/growth";
+import { lookGrowth, parseGrowth, progressLine, shownStage } from "../../mochi/growth";
 import { lookSprite, spriteCanvas } from "../../mochi/sprites";
 import { GROWS_INTO, parseSkin } from "../../mochi/skins";
 import { t } from "../../i18n/i18n";
@@ -69,7 +69,7 @@ export async function homePage(page: HTMLElement, ctx: HubContext) {
 
   // ── Him: his look, how far he has grown, and what runs him ──
   const look = parseSkin(settings?.groovyLook);
-  const g = parseGrowth(settings?.growth);
+  const g = settings ? lookGrowth(settings) : parseGrowth(undefined);
   const portrait = h("span", { class: "hub-home-portrait" });
   requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(g), 150, Math.min(2, window.devicePixelRatio || 1)), 150)));
   const ready = (quick?.ai ?? []).filter((x) => x.state === "ready");

@@ -288,8 +288,10 @@ export interface Settings {
   browser: string;
   /** Round 4 item 4: the search engine's id, DuckDuckGo by default. */
   searchEngine: string;
-  /** How far the look has grown (mochi/growth.ts); read it through parseGrowth. */
+  /** The single growth record of earlier versions: read once, to move it to his look (mochi/growth.ts). */
   growth: unknown;
+  /** Each look's own growth (round 3E item 12); read it through lookGrowth. */
+  growths: unknown;
   /** Groovy's own Do not disturb: no sounds, no notification or recap pop-ups. */
   doNotDisturb: boolean;
   /** Seasonal wardrobe items earned for good (mochi/seasons.ts); Rust keeps the union. */
@@ -359,6 +361,7 @@ export const DEFAULT_SETTINGS: Settings = {
   browser: "default",
   searchEngine: "duckduckgo",
   growth: {},
+  growths: {},
   doNotDisturb: false,
   seasonalEarned: [],
   hatchDone: false,

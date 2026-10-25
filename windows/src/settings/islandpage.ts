@@ -9,7 +9,7 @@ import { AUTO_CLOSE_CHOICES, CLICK_AWAY, nearestChoice } from "../core/autoclose
 import { glassStrength } from "../core/glass";
 import { availablePills, sanitizeDeclared } from "../core/pills";
 import { currentTiles, withServices } from "../core/tiles";
-import { parseGrowth, shownStage } from "../mochi/growth";
+import { lookGrowth, shownStage } from "../mochi/growth";
 import { parseSkin } from "../mochi/skins";
 import { lookSprite, spriteCanvas } from "../mochi/sprites";
 import { N_, t } from "../i18n/i18n";
@@ -59,7 +59,7 @@ export async function islandPage(settings: Settings, save: () => Promise<void> |
     // ── Preview ──
     const look = parseSkin(settings.groovyLook);
     const portrait = h("div", { class: "hub-i-face" });
-    requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(parseGrowth(settings.growth)), 38, Math.min(2, window.devicePixelRatio || 1)), 38)));
+    requestAnimationFrame(() => portrait.append(spriteCanvas(lookSprite(look, shownStage(lookGrowth(settings)), 38, Math.min(2, window.devicePixelRatio || 1)), 38)));
     const shown = cur.tiles.slice(0, 5);
     const solid = settings.islandStyle === "solid";
     const strength = glassStrength(settings.glassStrength);

@@ -85,7 +85,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 9. Frost's water leaves blank spots when he faces sideways (owner's screenshot, 25 Oct): water drawn wider than his body, same check for the heat glow and golden swimmer
 - [x] 10. Wardrobe items fit and track his head at every angle (face items on the eyes, no blank spots, placement like Coucou's), contact-sheet test
 - [x] 11. Preview the growth looks and locked wardrobe items for 5 seconds, each stage unlocking at its minimum (preview only, not a picker)
-- [ ] 12. Night, Ember and Frost each grow on their own: separate time, stage and start date per look, only the look he is wearing grows
+- [x] 12. Night, Ember and Frost each grow on their own: separate time, stage and start date per look, only the look he is wearing grows
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI

@@ -1,7 +1,7 @@
 // The island: DOM shell, sizing animation, Groovy placement, mouse handling.
 // Mirrors IslandRootView.swift + IslandWindowController.swift.
 
-import { MAX_STAGE, parseGrowth, shownStage } from "../mochi/growth";
+import { MAX_STAGE, freshGrowth, highestReached, lookGrowth, lookStarted, setLookGrowth, shownStage } from "../mochi/growth";
 import { available } from "../mochi/wardrobe";
 import { nameOf } from "../mochi/naming";
 import { parseEarned } from "../mochi/seasons";
@@ -430,7 +430,7 @@ export class Island {
         // A locked item (a stage to reach, a season to come) is not put on; one worn can come off.
         const isItem = change !== "all" && change !== "head" && change !== "face" && change !== "neck";
         if (isItem && !prefs.appearance.layers.includes(change)
-          && !available(change, parseGrowth(State.settings.growth).reached, parseEarned(State.settings.seasonalEarned))) {
+          && !available(change, highestReached(State.settings), parseEarned(State.settings.seasonalEarned))) {
           Sound.play("blip");
           return;
         }
@@ -462,6 +462,9 @@ export class Island {
       hatch: (look, name) => {
         // Round 5 item 6: his look and his name, chosen as he hatches; saved once.
         this.clearLookPreview();
+        // Only the chosen hatchling's clock starts (round 3E item 12): the
+        // minute the intro gave the look he hatched as is not kept.
+        State.settings.growths = { [look]: freshGrowth(undefined, 0) };
         chooseLook(State.settings, look);
         State.settings.assistant = { ...State.settings.assistant, name };
         State.settings.hatchDone = true;
@@ -604,7 +607,7 @@ export class Island {
   private startIntro(): boolean {
     if (this.introUsed) return false;
     this.introUsed = true;
-    const g = parseGrowth(State.settings.growth);
+    const g = lookGrowth(State.settings);
     const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
     const kind = seedKind(g.seen, g.reached, reduced);
     // The very first hatching: he is chosen and named once it ends (round 5 item 6).
@@ -646,10 +649,11 @@ export class Island {
     intro.start();
     // Greeted at this stage: the next launch knows what is new. The first
     // hatching is also when his six months start (round 5 item 2): saved now.
-    const stored = State.settings.growth as { hatchedAt?: unknown } | null;
-    if (g.seen !== g.reached || typeof stored?.hatchedAt !== "number") {
-      State.settings.growth = { ...g, seen: g.reached };
-      void Bridge.saveGrowth(State.settings.growth);
+    // Each look has its own record (round 3E item 12): the one he wears.
+    const look = parseSkin(State.settings.groovyLook);
+    if (g.seen !== g.reached || !lookStarted(State.settings, look)) {
+      setLookGrowth(State.settings, look, { ...g, seen: g.reached });
+      void Bridge.saveGrowth(State.settings.growths);
     }
     return true;
   }
@@ -1549,7 +1553,7 @@ export class Island {
     this.engine.layers = showOutfit ? worn.slice(1) : [];
     this.engine.appearance = appearance;
     this.engine.setSkin(shownLook(State.lookPreview, State.settings.groovyLook), !inWardrobe);
-    this.engine.setStage(shownStage(parseGrowth(State.settings.growth)), !inWardrobe);
+    this.engine.setStage(shownStage(lookGrowth(State.settings)), !inWardrobe);
     // Fewer particles and calmer motion when asked to, and in the small island.
     this.engine.lite = State.settings.assistant.performanceProfile === "lightweight" || State.mode !== "expanded";
     // Dances while music plays: always in the compact island, expanded only on

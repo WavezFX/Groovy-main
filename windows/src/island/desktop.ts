@@ -3,7 +3,7 @@
 // to show, and handles the drag out of the island. The window itself lives in
 // src-tauri/src/desktop.rs and draws him in src/desktop/main.ts.
 
-import { parseGrowth, shownStage } from "../mochi/growth";
+import { lookGrowth, shownStage } from "../mochi/growth";
 import { currentWardrobe, tryOn } from "../mochi/appearance";
 import { Bridge, emitToWindow, onEvent, type DesktopMode } from "../core/bridge";
 import type { BotEmoteName } from "../core/layout";
@@ -178,7 +178,7 @@ export class DesktopLink {
       state: State.effectiveState,
       ...this.dressed(),
       look: shownLook(State.lookPreview, State.settings.groovyLook),
-      stage: shownStage(parseGrowth(State.settings.growth)),
+      stage: shownStage(lookGrowth(State.settings)),
       soundEnabled: State.settings.soundEnabled,
       soundVolume: State.settings.soundVolume,
       paused: State.paused,

@@ -1861,3 +1861,6 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
 .hub-w-strip-art { display: block; width: 40px; height: 40px; }
 .hub-w-strip-stage.locked { opacity: 0.5; border-style: dashed; }
 .hub-w-strip-stage.on { border-color: var(--hub-accent); opacity: 1; }
+/* Round 3E item 12: each look's own stage under its name. */
+.hub-w-seg button.hub-w-look { height: auto; min-height: 34px; padding: 4px 14px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.hub-w-look small { font: 500 10.5px var(--font); color: var(--hub-secondary); }

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAX_STAGE, SAVE_EVERY_SECONDS, STAGE_AFTER, TICK_SECONDS, grow, mergeGrowth, migrateGrownLook, parseGrowth,
+  GROWTH_CORRECTION, MAX_STAGE, SAVE_EVERY_SECONDS, STAGE_AFTER, TICK_SECONDS, grow, mergeGrowth, migrateGrownLook, parseGrowth,
   SIX_MONTHS, progressLine, shownStage, stageAt, stageFor, startGrowthClock, untilNext,
 } from "../src/mochi/growth.ts";
 import { GROWN_STYLES, SKINS, SKIN_STYLES, parseSkin, styleAt } from "../src/mochi/skins.ts";
@@ -82,7 +82,7 @@ test("Grove, Blaze and Tide become their base look at the stage he really reache
     const s = { groovyLook: old, growth: { activeSeconds: 120, reached: 0, shown: null } };
     assert.equal(migrateGrownLook(s, NOW), true);
     assert.equal(s.groovyLook, base);
-    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 0, shown: null, seen: 0, hatchedAt: NOW - 120, correction: 1 });
+    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 0, shown: null, seen: 0, hatchedAt: NOW - 120, correction: GROWTH_CORRECTION });
     assert.equal(migrateGrownLook(s, NOW), false, "once");
     assert.equal(parseSkin(old), base);
   }

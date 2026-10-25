@@ -10,7 +10,7 @@ import { h, clear } from "../views/dom";
 import { t } from "../i18n/i18n";
 import { Bridge, onEvent } from "../core/bridge";
 import { FlowBridge, type FlowPrefs, type FlowStatus, type ModelsStatus } from "../core/flow";
-import { parseGrowth, shownStage, stageProgress } from "../mochi/growth";
+import { lookGrowth, parseGrowth, shownStage, stageProgress } from "../mochi/growth";
 import { SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
 import { lookSprite, spriteCanvas } from "../mochi/sprites";
 import { ALL_PAGES, SECTIONS, TABS, greeting, pageDef, parentOf, resolvePage, search, sectionOf, type Place } from "./nav";
@@ -273,7 +273,7 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     const boot = await Bridge.boot();
     const settings = boot?.settings;
     const look = parseSkin(settings?.groovyLook);
-    const g = parseGrowth(settings?.growth);
+    const g = settings ? lookGrowth(settings) : parseGrowth(undefined);
     document.body.style.setProperty("--hub-accent", LOOK_ACCENT[look]);
     document.body.style.setProperty("--hub-accent-soft", `${LOOK_ACCENT[look]}21`);
     const portrait = h("span", { class: "hub-me-portrait" });

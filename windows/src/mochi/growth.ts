@@ -4,9 +4,14 @@
 // since he hatched, once he is at stage 5 (round 5 item 2).
 //
 // The clock counts the time the island is actually running (a sleeping PC
-// suspends the timer, and a long gap counts as one tick at most), is saved in
-// settings (`growth`), is shared by the three looks, and never goes back:
-// Rust keeps the furthest of two copies (settings::merge_growth).
+// suspends the timer, and a long gap counts as one tick at most) and never
+// goes back: Rust keeps the furthest of two copies (settings::merge_growth).
+//
+// Each look grows on its own (round 3E item 12): `settings.growths` holds one
+// record per look (Night, Ember, Frost), and only the look he wears grows. A
+// look without a record is "Not started": stage 0, its clock and its six
+// months start the first time it is worn. The single `growth` record of
+// earlier versions moves, once, to the look he wears (migrateToPerLook).
 
 import { GROWN_FROM, parseSkin, type Skin } from "./skins";
 import { t } from "../i18n/i18n";
@@ -19,11 +24,12 @@ export const STAGE_AFTER = [DAY, 3 * DAY, 7 * DAY, 14 * DAY, 30 * DAY] as const;
 export const SIX_MONTHS = 182 * DAY;
 export const MAX_STAGE = STAGE_AFTER.length + 1;
 /**
- * The one-time correction of round 3E item 4: before it, the old Grove,
- * Blaze and Tide looks were granted "fully grown". A record below this
- * version has its stage worked out again from what really happened.
+ * The one-time corrections: 1, round 3E item 4 (the old Grove, Blaze and
+ * Tide looks were granted "fully grown"); 2, round 3E item 12 (one record per
+ * look). A record below this version has its stage worked out again from
+ * what really happened, which may be lower, once.
  */
-export const GROWTH_CORRECTION = 1;
+export const GROWTH_CORRECTION = 2;
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
@@ -218,4 +224,78 @@ export function stageStrip(g: Growth, now: number = nowSeconds()): { stage: numb
     const left = untilStage(g, stage, now);
     return { stage, unlocked: left === null, left };
   });
+}
+
+// ── One record per look (round 3E item 12) ─────────────────────────────────
+
+const LOOKS: readonly Skin[] = ["night", "ember", "frost"];
+
+type WithGrowths = { growths?: unknown; groovyLook: string };
+
+/** The stored records, by look; anything else is dropped. */
+export function growthsOf(settings: { growths?: unknown }): Partial<Record<Skin, unknown>> {
+  const o = settings.growths && typeof settings.growths === "object" ? (settings.growths as Record<string, unknown>) : {};
+  const out: Partial<Record<Skin, unknown>> = {};
+  for (const look of LOOKS) if (o[look] && typeof o[look] === "object") out[look] = o[look];
+  return out;
+}
+
+/** Whether this look's clock has started (it has been worn). */
+export function lookStarted(settings: { growths?: unknown }, look: Skin): boolean {
+  return growthsOf(settings)[look] !== undefined;
+}
+
+/** A look's own growth (the look he wears, by default); a look not started is stage 0. */
+export function lookGrowth(settings: WithGrowths, look: Skin = parseSkin(settings.groovyLook), now: number = nowSeconds()): Growth {
+  const g = parseGrowth(growthsOf(settings)[look], now);
+  return lookStarted(settings, look) ? g : { ...g, correction: GROWTH_CORRECTION };
+}
+
+/** Puts a look's record back into the settings. */
+export function setLookGrowth(settings: { growths?: unknown }, look: Skin, g: Growth) {
+  settings.growths = { ...growthsOf(settings), [look]: g };
+}
+
+/** A new look's record: its clock and its six months start now. */
+export function freshGrowth(now: number = nowSeconds(), seen = 0): Growth {
+  return { activeSeconds: 0, reached: 0, shown: null, seen, hatchedAt: now, correction: GROWTH_CORRECTION };
+}
+
+/** Starts a look's clock the first time it is chosen (not before). True when it started now. */
+export function startLook(settings: { growths?: unknown }, look: Skin, now: number = nowSeconds()): boolean {
+  if (lookStarted(settings, look)) return false;
+  setLookGrowth(settings, look, freshGrowth(now));
+  return true;
+}
+
+/** The highest stage any look has reached: the wardrobe's keepsakes unlock at it. */
+export function highestReached(settings: { growths?: unknown }, now: number = nowSeconds()): number {
+  const all = growthsOf(settings);
+  return Math.max(0, ...LOOKS.filter((l) => all[l] !== undefined).map((l) => parseGrowth(all[l], now).reached));
+}
+
+/**
+ * Once: the single record of earlier versions moves to the look he wears;
+ * the other two are "Not started". Runs only while no look has a record of
+ * its own, so never twice. True when it moved something (to save).
+ */
+export function migrateToPerLook(settings: { growth?: unknown; growths?: unknown; groovyLook: string }, now: number = nowSeconds()): boolean {
+  if (Object.keys(growthsOf(settings)).length) return false;
+  const raw = settings.growth && typeof settings.growth === "object" ? (settings.growth as Record<string, unknown>) : null;
+  if (!raw || !Object.keys(raw).length) return false;
+  const { growth } = correctGrowth(parseGrowth(raw, now), now);
+  setLookGrowth(settings, parseSkin(settings.groovyLook), { ...growth, correction: GROWTH_CORRECTION });
+  return true;
+}
+
+/** Two copies of every look's record as one (as Rust keeps them): each look on its own. */
+export function mergeGrowths(older: unknown, newer: unknown, now: number = nowSeconds()): Partial<Record<Skin, Growth>> {
+  const a = growthsOf({ growths: older });
+  const b = growthsOf({ growths: newer });
+  const out: Partial<Record<Skin, Growth>> = {};
+  for (const look of LOOKS) {
+    if (a[look] === undefined && b[look] === undefined) continue;
+    out[look] = a[look] === undefined ? parseGrowth(b[look], now) : b[look] === undefined ? parseGrowth(a[look], now) : mergeGrowth(a[look], b[look], now);
+  }
+  return out;
 }

@@ -16,7 +16,7 @@ import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/ski
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
 import { Previewer } from "./preview";
-import { MAX_STAGE, parseGrowth, progressLine, shownStage, stageStrip, unlocksIn } from "../mochi/growth";
+import { MAX_STAGE, highestReached, lookGrowth, lookStarted, progressLine, shownStage, stageStrip, unlocksIn } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, tryOn, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
@@ -95,7 +95,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     const p = previewer.current;
     const worn = p?.item ? tryOn(prefs.appearance.layers, p.item) : wornOf(prefs.appearance.layers);
     engine.setSkin(p?.look ?? parseSkin(settings.groovyLook), true);
-    engine.setStage(p?.stage ?? shownStage(parseGrowth(settings.growth)), true);
+    engine.setStage(p?.stage ?? shownStage(lookGrowth(settings)), true);
     engine.setOutfit(worn[0] ?? "none", true);
     engine.layers = worn.slice(1);
     engine.appearance = prefs.appearance;
@@ -144,7 +144,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     if (stripQueue.length) requestAnimationFrame(pump);
   };
   function drawStrip() {
-    const g = parseGrowth(settings.growth);
+    // Each look's own stages (round 3E item 12): Ember's are locked until Ember grows.
+    const g = lookGrowth(settings, stripLook);
     const mine = parseSkin(settings.groovyLook);
     const shown = previewer.current;
     clear(stripSeg);
@@ -153,7 +154,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       b.addEventListener("click", () => {
         stripLook = look;
         // Another look: shown for 5 seconds at his stage; his own look is chosen above, as before.
-        if (look !== mine) previewer.show({ look, stage: shownStage(g), locked: true });
+        if (look !== mine) previewer.show({ look, stage: shownStage(lookGrowth(settings, look)), locked: true });
         else previewer.stop();
         drawStrip();
       });
@@ -196,7 +197,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   };
 
   // What he can wear: stages reached, seasonal items earned.
-  const reached = () => parseGrowth(settings.growth).reached;
+  // Keepsakes unlock at the highest stage any look has reached (round 3E item 12).
+  const reached = () => highestReached(settings);
   const earned = () => parseEarned(settings.seasonalEarned);
   const can = (item: Accessory) => available(item, reached(), earned());
   const matches = (id: string, label: string) =>
@@ -211,10 +213,13 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     clear(looks);
     clear(lookSeg);
     const current = parseSkin(settings.groovyLook);
-    const g = parseGrowth(settings.growth);
+    const g = lookGrowth(settings, current);
     const shown = shownStage(g);
     for (const look of SKINS) {
-      const b = h("button", { class: look === current ? "on" : "", type: "button", role: "radio", "aria-checked": String(look === current), text: t(SKIN_KEYS[look]) });
+      // Each look's own state under its name (round 3E item 12).
+      const state = lookStarted(settings, look) ? t("Stage {n}", { n: shownStage(lookGrowth(settings, look)) }) : t("Not started");
+      const b = h("button", { class: look === current ? "hub-w-look on" : "hub-w-look", type: "button", role: "radio", "aria-checked": String(look === current) },
+        h("span", { text: t(SKIN_KEYS[look]) }), h("small", { text: state }));
       b.addEventListener("click", () => {
         chooseLook(settings, look);
         save();

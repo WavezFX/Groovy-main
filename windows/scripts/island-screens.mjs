@@ -93,7 +93,7 @@ for (const scheme of ["dark", "light"]) {
     await page.evaluate(([look, hatchedAt]) => {
       const { island, State } = window.groovy;
       State.settings.groovyLook = look;
-      State.settings.growth = { activeSeconds: 40 * 86400, reached: 6, seen: 6, hatchedAt, correction: 1 };
+      State.settings.growths = { [look]: { activeSeconds: 40 * 86400, reached: 6, seen: 6, hatchedAt, correction: 2 } };
       State.notify();
       island.alert("wardrobe");
     }, [look, sixMonths]);

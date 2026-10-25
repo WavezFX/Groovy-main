@@ -185,6 +185,10 @@ pub struct Settings {
     /// the stage shown (round 3 item 6). The page owns its shape
     /// (src/mochi/growth.ts) and checks it on every read; it never goes back.
     pub growth: Value,
+    /// Round 3E item 12: each look's own growth, `{ night, ember, frost }`,
+    /// each a record like `growth` (which is now only read once, to move it
+    /// to the look he wore). A look without a record hasn't started.
+    pub growths: Value,
     /// The integrations a key is stored for were turned back on once (round 3B item 7).
     pub integrations_restored: bool,
     /// Groovy's own Do not disturb (Home, round 3D item 3): no sounds and no
@@ -299,6 +303,7 @@ impl Default for Settings {
             search_engine: "duckduckgo".into(),
             listening_view: "badge".into(),
             growth: Value::Object(Map::new()),
+            growths: Value::Object(Map::new()),
             integrations_restored: false,
             do_not_disturb: false,
             seasonal_earned: Vec::new(),
@@ -456,6 +461,23 @@ pub fn merge_earned(old: &[String], new: &[String]) -> Vec<String> {
         }
     }
     out
+}
+
+/// Each look's record merged on its own (round 3E item 12), by merge_growth's
+/// rules; a look only one copy has keeps that copy's record, and a look
+/// neither has stays not started. Other keys are dropped.
+pub fn merge_growths(old: &Value, new: &Value) -> Value {
+    let mut out = Map::new();
+    for look in ["night", "ember", "frost"] {
+        let (a, b) = (old.get(look).filter(|v| v.is_object()), new.get(look).filter(|v| v.is_object()));
+        let merged = match (a, b) {
+            (Some(a), Some(b)) => merge_growth(a, b),
+            (Some(one), None) | (None, Some(one)) => merge_growth(one, one),
+            (None, None) => continue,
+        };
+        out.insert(look.to_string(), merged);
+    }
+    Value::Object(out)
 }
 
 /// The settings held in the bytes of a settings.json, or `None` when there is
@@ -761,6 +783,7 @@ mod tests {
   "browser": "duckduckgo",
   "searchEngine": "google",
   "growth": { "activeSeconds": 90000, "reached": 1, "shown": null },
+  "growths": { "night": { "activeSeconds": 90000, "reached": 1, "shown": null, "seen": 1, "hatchedAt": 1790000000, "correction": 2 } },
   "integrationsRestored": true,
   "doNotDisturb": true,
   "seasonalEarned": ["pumpkinCap", "batWingBand"],
@@ -977,6 +1000,28 @@ mod tests {
         let m = merge_growth(&six, &corrected);
         assert_eq!(m["reached"], 6);
         assert_eq!(m["hatchedAt"], 1700000000u64, "the earliest hatching");
+    }
+
+    #[test]
+    fn each_look_merges_on_its_own_and_none_goes_back() {
+        let old = serde_json::json!({
+            "night": { "activeSeconds": 2_600_000.0, "reached": 5, "seen": 5, "hatchedAt": 1_780_000_000u64, "correction": 2 },
+            "ember": { "activeSeconds": 100.0, "reached": 0, "seen": 0, "hatchedAt": 1_790_000_000u64, "correction": 2 },
+        });
+        // A window that saw Ember grow to stage 2, and an older Night.
+        let new = serde_json::json!({
+            "night": { "activeSeconds": 50.0, "reached": 0, "seen": 0, "hatchedAt": 1_789_000_000u64, "correction": 2 },
+            "ember": { "activeSeconds": 260_000.0, "reached": 2, "seen": 1, "hatchedAt": 1_790_000_000u64, "correction": 2 },
+            "grove": { "activeSeconds": 9.0 },
+        });
+        let m = merge_growths(&old, &new);
+        assert_eq!(m["night"]["reached"], 5, "Night isn't lowered by the other copy");
+        assert_eq!(m["night"]["activeSeconds"], 2_600_000.0);
+        assert_eq!(m["night"]["hatchedAt"], 1_780_000_000u64, "the earliest start of that look");
+        assert_eq!(m["ember"]["reached"], 2);
+        assert!(m.get("frost").is_none(), "Frost hasn't started in either");
+        assert!(m.get("grove").is_none(), "unknown looks are dropped");
+        assert_eq!(merge_growths(&m, &serde_json::json!({})), m, "a copy without them takes nothing away");
     }
 
     #[test]
@@ -1444,6 +1489,7 @@ mod tests {
                 "browser",
                 "searchEngine",
                 "growth",
+                "growths",
                 "integrationsRestored",
                 "doNotDisturb",
                 "seasonalEarned",

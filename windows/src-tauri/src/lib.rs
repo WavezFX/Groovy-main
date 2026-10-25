@@ -183,6 +183,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         // Two windows hold a copy: growth only ever moves forward, and the
         // stage shown is save_growth's to change.
         settings.growth = settings::merge_growth(&settings.growth, &current.growth);
+        settings.growths = settings::merge_growths(&current.growths, &settings.growths);
         settings.seasonal_earned = settings::merge_earned(&current.seasonal_earned, &settings.seasonal_earned);
         let (look, look_at) = settings::keep_newer_look((&current.groovy_look, current.look_at), (&settings.groovy_look, settings.look_at));
         settings.groovy_look = look;
@@ -281,20 +282,21 @@ fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width:
     }
 }
 
-/// The island's growth clock (round 3 item 6): only this field, merged so it
-/// never goes back, without redrawing every window (no settings-changed). The
-/// Control Centre hears it as growth-changed for its look cards.
+/// The island's growth clock (round 3 item 6): only these records, one per
+/// look (round 3E item 12), merged so none goes back, without redrawing
+/// every window (no settings-changed). The Control Centre hears it as
+/// growth-changed for its look cards.
 #[tauri::command]
-fn save_growth(app: AppHandle, shared: State<Shared>, growth: serde_json::Value) {
+fn save_growth(app: AppHandle, shared: State<Shared>, growths: serde_json::Value) {
     let settings = {
         let mut s = shared.settings.lock().unwrap();
-        s.growth = settings::merge_growth(&s.growth, &growth);
+        s.growths = settings::merge_growths(&s.growths, &growths);
         s.clone()
     };
     if let Err(err) = settings::save(&settings) {
         log::line(format!("could not save settings: {err}"));
     }
-    let _ = app.emit("growth-changed", settings.growth);
+    let _ = app.emit("growth-changed", settings.growths);
 }
 
 /// The island page asks for the window to be the island's size (round 3 §8 B).
@@ -1756,7 +1758,8 @@ pub fn run() {
             // Round 5 item 6: hatched before he could be named. They aren't asked
             // to choose again, only told once where to name him. A first run
             // hatches with the picker (src/views/hatch.ts), which sets it.
-            let hatched = loaded.growth.get("seen").and_then(serde_json::Value::as_i64).is_some_and(|s| s >= 0);
+            let seen = |g: &serde_json::Value| g.get("seen").and_then(serde_json::Value::as_i64).is_some_and(|s| s >= 0);
+            let hatched = seen(&loaded.growth) || loaded.growths.as_object().is_some_and(|o| o.values().any(seen));
             if !first_run && !loaded.hatch_done && hatched {
                 let h = handle.clone();
                 tauri::async_runtime::spawn(async move {

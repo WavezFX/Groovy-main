@@ -4,16 +4,20 @@
 // (settings::keep_newer_look), so a slower save never undoes a newer choice.
 
 import { parseSkin, type Skin } from "../mochi/skins";
+import { startLook } from "../mochi/growth";
 
 export interface LookChoice {
   groovyLook: string;
   lookAt: number;
+  /** Each look's growth (round 3E item 12): a look's clock starts the first time it is chosen. */
+  growths?: unknown;
 }
 
 /** Applies a look choice to `settings`, stamped later than any before it. */
 export function chooseLook(settings: LookChoice, look: Skin, now = Date.now()): void {
   settings.groovyLook = look;
   settings.lookAt = Math.max(now, (settings.lookAt || 0) + 1);
+  startLook(settings, look, Math.floor(now / 1000));
 }
 
 /** The look on screen: a hover try-on, else the saved one. */

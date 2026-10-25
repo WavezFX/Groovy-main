@@ -13,7 +13,7 @@ import { SLOTS, SLOT_OF, currentWardrobe, worn, type Slot } from "../mochi/appea
 import type { ViewActions, ViewHost } from "./views";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
 import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
-import { parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { highestReached, lookGrowth, progressLine, shownStage } from "../mochi/growth";
 import { N_, t, tl } from "../i18n/i18n";
 
 const ICON = 26;
@@ -119,7 +119,7 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
     };
     idle(one);
   };
-  prewarm(shownStage(parseGrowth(State.settings.growth)));
+  prewarm(shownStage(lookGrowth(State.settings)));
 
   // Locks change with the stage, the season or the language: worked out then
   // only. The first time is slow (dates in the language), so it is done while
@@ -136,12 +136,12 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
       button.title = lock ? `${t(OUTFIT_KEYS[item])} · ${lock}` : t(OUTFIT_KEYS[item]);
     }
   };
-  if (typeof requestIdleCallback === "function") requestIdleCallback(() => relock(parseGrowth(State.settings.growth).reached), { timeout: 5000 });
-  else setTimeout(() => relock(parseGrowth(State.settings.growth).reached), 300);
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => relock(highestReached(State.settings)), { timeout: 5000 });
+  else setTimeout(() => relock(highestReached(State.settings)), 300);
   return {
     el,
     sync() {
-      const g = parseGrowth(State.settings.growth);
+      const g = lookGrowth(State.settings);
       const shown = shownStage(g);
       drawLooks(shown);
       progress.textContent = progressLine(g);
@@ -151,7 +151,8 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
         button.title = `${t(SKIN_KEYS[l])} → ${t(GROWS_INTO[l])} · ${progressLine(g)}`;
       }
       const on = worn(currentWardrobe(State.settings.wardrobe).appearance.layers);
-      relock(g.reached);
+      // Wardrobe keepsakes unlock at the highest stage any look has reached (round 3E item 12).
+      relock(highestReached(State.settings));
       for (const [item, button] of items) button.classList.toggle("on", on.includes(item));
       for (const [slot, button] of nones) button.classList.toggle("on", !on.some((o) => o !== "none" && SLOT_OF[o] === slot));
       removeAll.disabled = on.length === 0;

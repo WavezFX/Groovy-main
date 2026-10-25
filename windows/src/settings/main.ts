@@ -20,7 +20,7 @@ import {
 } from "../core/pills";
 import { currentTiles, withServices } from "../core/tiles";
 import { migrateSettingsOutfit } from "../mochi/appearance";
-import { migrateGrownLook } from "../mochi/growth";
+import { migrateGrownLook, migrateToPerLook } from "../mochi/growth";
 import { seasonalLaunch } from "../mochi/seasons";
 import { h, clear } from "../views/dom";
 import { startHub, type GroovyPageId, type PageId } from "../hub/shell";
@@ -1357,7 +1357,7 @@ async function main() {
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
   // The island's growth clock saves on its own (save_growth): keep this copy level.
   void onEvent<unknown>("growth-changed", (g) => {
-    settings.growth = g;
+    settings.growths = g;
   });
   void onEvent<Settings>("settings-changed", (s) => {
     const before = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;
@@ -1476,6 +1476,8 @@ async function render() {
   migrateSettingsOutfit(settings);
   // Grove, Blaze and Tide are now their base look fully grown (round 3 item 6).
   if (migrateGrownLook(settings)) void Bridge.saveSettings(settings);
+  // Each look grows on its own (round 3E item 12): the old record moves to his look, once.
+  if (migrateToPerLook(settings)) void Bridge.saveGrowth(settings.growths);
   // The season's items are earned here too, so the wardrobe never shows them locked in season.
   if (seasonalLaunch(settings, new Date())) void Bridge.saveSettings(settings);
   const connected: Record<string, boolean> = { ...(hookStatus ?? {}) };
@@ -1538,7 +1540,7 @@ async function render() {
       const { systemPage, systemSection } = await PAGE.system();
       return [systemPage(settings, () => void save(), version, () => {
       // Everything back to how it came, but he stays as grown as he is.
-      settings = { ...DEFAULT_SETTINGS, growth: settings.growth, groovyLook: settings.groovyLook };
+      settings = { ...DEFAULT_SETTINGS, growth: settings.growth, growths: settings.growths, groovyLook: settings.groovyLook };
       void save();
       hub?.redraw();
     }), systemSection()];
