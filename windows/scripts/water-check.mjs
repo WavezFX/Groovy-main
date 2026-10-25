@@ -23,10 +23,12 @@ await page.goto(`${base}/index.html`, { waitUntil: "load" });
 await page.waitForFunction(() => window.groovy?.island, null, { timeout: 20000 });
 
 const found = await page.evaluate(async () => {
-  const { BotEngine } = await import("/src/mochi/engine.ts");
-  const { drawSkinBody, styleAt } = await import("/src/mochi/skins.ts");
-  const { makeHead } = await import("/src/mochi/outfits.ts");
-  const { WATER_LEVEL } = await import("/src/mochi/finish.ts");
+  // Served by vite, in the page (not files for knip to follow).
+  const SRC = "/src/mochi/";
+  const { BotEngine } = await import(SRC + "engine.ts");
+  const { drawSkinBody, styleAt } = await import(SRC + "skins.ts");
+  const { makeHead } = await import(SRC + "outfits.ts");
+  const { WATER_LEVEL } = await import(SRC + "finish.ts");
   const W = 240;
   const bad = [];
   const sheet = document.createElement("canvas");

@@ -193,3 +193,29 @@ export function startGrowthClock(
   }, TICK_SECONDS * 1000);
   return () => clearInterval(id);
 }
+
+/** Seconds until stage `n` is reached (running time, or the calendar for stage 6); null once reached. */
+export function untilStage(g: Growth, n: number, now: number = nowSeconds()): number | null {
+  if (g.reached >= n) return null;
+  if (n <= STAGE_AFTER.length) return Math.max(0, STAGE_AFTER[n - 1] - g.activeSeconds);
+  const toFive = Math.max(0, STAGE_AFTER[STAGE_AFTER.length - 1] - g.activeSeconds);
+  const calendar = g.hatchedAt > 0 ? Math.max(0, g.hatchedAt + SIX_MONTHS - now) : SIX_MONTHS;
+  return Math.max(toFive, calendar);
+}
+
+/** "unlocks in about 3 days": rough, like progressLine. */
+export function unlocksIn(left: number): string {
+  if (left < 3600) return t("unlocks in under an hour");
+  if (left < 1.5 * DAY) return t("unlocks in about {n} hours", { n: Math.max(1, Math.round(left / 3600)) });
+  if (left < 45 * DAY) return t("unlocks in about {n} days", { n: Math.round(left / DAY) });
+  return t("unlocks in about {n} months", { n: Math.round(left / (30.4 * DAY)) });
+}
+
+/** The six stage looks for the preview strip (round 3E item 11): reached, or when each comes. */
+export function stageStrip(g: Growth, now: number = nowSeconds()): { stage: number; unlocked: boolean; left: number | null }[] {
+  return Array.from({ length: MAX_STAGE }, (_, i) => {
+    const stage = i + 1;
+    const left = untilStage(g, stage, now);
+    return { stage, unlocked: left === null, left };
+  });
+}

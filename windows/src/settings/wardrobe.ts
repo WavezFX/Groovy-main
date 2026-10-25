@@ -12,12 +12,13 @@ import { clear, h } from "../views/dom";
 import { BotEngine } from "../mochi/engine";
 import { ACCESSORIES, OUTFIT_KEYS, available, isSeasonal, type Accessory, type Outfit } from "../mochi/wardrobe";
 import { SEASONS, SEASON_ITEMS, lockLabel, parseEarned, type Season } from "../mochi/seasons";
-import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin } from "../mochi/skins";
+import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/skins";
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
-import { MAX_STAGE, parseGrowth, progressLine, shownStage } from "../mochi/growth";
+import { Previewer } from "./preview";
+import { MAX_STAGE, parseGrowth, progressLine, shownStage, stageStrip, unlocksIn } from "../mochi/growth";
 import {
-  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, wear, worn as wornOf, randomLook, readPack, writePack,
+  DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, tryOn, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
 } from "../mochi/appearance";
 import { N_, t } from "../i18n/i18n";
@@ -82,10 +83,19 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const engine = new BotEngine();
   let last = performance.now();
   let raf = 0;
+  // A stage, a look or a locked item tried for 5 seconds (round 3E item 11):
+  // the preview engine only; nothing is saved and the island never sees it.
+  const previewNote = h("span", { class: "hub-w-preview-only", text: t("Preview only"), hidden: true });
+  const previewer = new Previewer(() => {
+    previewNote.hidden = !previewer.current?.locked;
+    drawStrip();
+    kick();
+  });
   const dressPreview = () => {
-    const worn = wornOf(prefs.appearance.layers);
-    engine.setSkin(parseSkin(settings.groovyLook), true);
-    engine.setStage(shownStage(parseGrowth(settings.growth)), true);
+    const p = previewer.current;
+    const worn = p?.item ? tryOn(prefs.appearance.layers, p.item) : wornOf(prefs.appearance.layers);
+    engine.setSkin(p?.look ?? parseSkin(settings.groovyLook), true);
+    engine.setStage(p?.stage ?? shownStage(parseGrowth(settings.growth)), true);
     engine.setOutfit(worn[0] ?? "none", true);
     engine.layers = worn.slice(1);
     engine.appearance = prefs.appearance;
@@ -116,6 +126,53 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     if (!raf) raf = requestAnimationFrame(frame);
   };
   preview.addEventListener("click", () => engine.triggerEmote("happy", 1.2));
+
+  // ── The stage strip (round 3E item 11): his six stage looks to preview ──
+  // Drawn as small cached pictures, one per frame, only while the page shows.
+  let stripLook: Skin = parseSkin(settings.groovyLook);
+  const stripSeg = h("div", { class: "hub-w-seg hub-w-strip-looks", role: "radiogroup", "aria-label": t("Preview a look") });
+  const strip = h("div", { class: "hub-w-strip", "aria-label": t("Stage looks") });
+  const stripBox = h("div", { class: "hub-w-strip-box" }, stripSeg, strip);
+  let stripQueue: (() => void)[] = [];
+  const pump = () => {
+    const next = stripQueue.shift();
+    if (!next || !strip.isConnected) {
+      stripQueue = [];
+      return;
+    }
+    next();
+    if (stripQueue.length) requestAnimationFrame(pump);
+  };
+  function drawStrip() {
+    const g = parseGrowth(settings.growth);
+    const mine = parseSkin(settings.groovyLook);
+    const shown = previewer.current;
+    clear(stripSeg);
+    for (const look of SKINS) {
+      const b = h("button", { class: look === stripLook ? "on" : "", type: "button", role: "radio", "aria-checked": String(look === stripLook), text: t(SKIN_KEYS[look]) });
+      b.addEventListener("click", () => {
+        stripLook = look;
+        // Another look: shown for 5 seconds at his stage; his own look is chosen above, as before.
+        if (look !== mine) previewer.show({ look, stage: shownStage(g), locked: true });
+        else previewer.stop();
+        drawStrip();
+      });
+      stripSeg.append(b);
+    }
+    clear(strip);
+    stripQueue = [];
+    for (const s of stageStrip(g)) {
+      const art = h("span", { class: "hub-w-strip-art" });
+      const label = s.unlocked ? t("Stage {n}", { n: s.stage }) : `${t("Stage {n}", { n: s.stage })} · ${unlocksIn(s.left ?? 0)}`;
+      const on = shown?.stage === s.stage && (shown.look ?? mine) === stripLook;
+      const b = h("button", { class: `hub-w-strip-stage${s.unlocked ? " unlocked" : " locked"}${on ? " on" : ""}`, type: "button", title: label, "aria-label": label },
+        art, h("small", { text: s.unlocked ? `✓ ${s.stage}` : `${s.stage}` })) as HTMLButtonElement;
+      b.addEventListener("click", () => previewer.show({ look: stripLook, stage: s.stage, locked: !s.unlocked || stripLook !== mine }));
+      strip.append(b);
+      stripQueue.push(() => art.replaceChildren(spriteCanvas(lookSprite(stripLook, s.stage, 40, Math.min(2, window.devicePixelRatio || 1)), 40)));
+    }
+    requestAnimationFrame(pump);
+  }
 
   // ── Looks ──
   const looks = h("div", { class: "studio-grid" });
@@ -175,7 +232,9 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
         h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[current]) }) })),
       marks,
       h("span", { class: "hub-b-detail", text: progressLine(g) }),
+      stripBox,
     );
+    drawStrip();
     // Favourite looks, as before, for the search.
     for (const look of SKINS) {
       if (!query && !favouritesOnly) break;
@@ -202,7 +261,11 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       iconCanvas(item, 34), h("span", { text: t(OUTFIT_KEYS[item]) }), lock ? h("small", { class: "hub-w-lock", text: lock }) : star(item)) as HTMLButtonElement;
     b.addEventListener("click", () => {
       // Still locked: it says when it comes, and nothing changes.
-      if (lock && !on) return say(`${t(OUTFIT_KEYS[item])}: ${lock}`, "warn");
+      // Still locked: tried on for 5 seconds, then it comes off (round 3E item 11).
+      if (lock && !on) {
+        previewer.show({ item, locked: true });
+        return say(`${t(OUTFIT_KEYS[item])}: ${lock}`, "warn");
+      }
       const next = wear(prefs.appearance.layers, item);
       prefs = { ...prefs, appearance: { ...prefs.appearance, layers: next.layers } };
       commit();
@@ -387,7 +450,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
 
   drawAll();
   removeAll.className = "hub-w-remove";
-  const stage = h("div", { class: "hub-w-stage-box" }, preview);
+  const stage = h("div", { class: "hub-w-stage-box" }, preview, previewNote);
   return h(
     "section",
     { id: "wardrobe", class: "hub-w", "data-own": "" },

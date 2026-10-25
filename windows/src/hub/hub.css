@@ -1850,3 +1850,14 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
 /* Round 5 item 6: his name, above the look. */
 .hub-w-name-row { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
 .hub-w-name { height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--v2-hair); background: var(--v2-card); color: var(--hub-text); font: 600 13.5px var(--font); }
+/* Round 3E item 11: preview every stage look (preview only, 5 s). */
+.hub-w-stage-box { position: relative; }
+.hub-w-preview-only { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 3px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 600 11px var(--font); }
+.hub-w-preview-only[hidden] { display: none; }
+.hub-w-strip-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.hub-w-strip-looks button { height: 28px; padding: 0 10px; font-size: 12px; }
+.hub-w-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.hub-w-strip-stage { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 3px; border-radius: 10px; border: 1px solid var(--v2-hair); background: var(--v2-card); color: var(--hub-text); font: 600 10.5px var(--font); }
+.hub-w-strip-art { display: block; width: 40px; height: 40px; }
+.hub-w-strip-stage.locked { opacity: 0.5; border-style: dashed; }
+.hub-w-strip-stage.on { border-color: var(--hub-accent); opacity: 1; }

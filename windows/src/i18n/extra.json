@@ -20014,6 +20014,83 @@
    "pt-BR": "Dar nome",
    "ru": "Дать имя",
    "id": "Beri nama"
+  },
+  "unlocks in under an hour": {
+   "zh-Hans": "不到一小时后解锁",
+   "hi": "एक घंटे से कम में खुलेगा",
+   "es": "se desbloquea en menos de una hora",
+   "ar": "يُفتح خلال أقل من ساعة",
+   "fr": "se débloque dans moins d’une heure",
+   "bn": "এক ঘণ্টার কম সময়ে খুলবে",
+   "pt-BR": "desbloqueia em menos de uma hora",
+   "ru": "откроется меньше чем через час",
+   "id": "terbuka dalam kurang dari satu jam"
+  },
+  "unlocks in about {n} hours": {
+   "zh-Hans": "约 {n} 小时后解锁",
+   "hi": "लगभग {n} घंटे में खुलेगा",
+   "es": "se desbloquea en unas {n} horas",
+   "ar": "يُفتح خلال {n} ساعة تقريبًا",
+   "fr": "se débloque dans environ {n} heures",
+   "bn": "প্রায় {n} ঘণ্টায় খুলবে",
+   "pt-BR": "desbloqueia em cerca de {n} horas",
+   "ru": "откроется примерно через {n} ч",
+   "id": "terbuka dalam sekitar {n} jam"
+  },
+  "unlocks in about {n} days": {
+   "zh-Hans": "约 {n} 天后解锁",
+   "hi": "लगभग {n} दिन में खुलेगा",
+   "es": "se desbloquea en unos {n} días",
+   "ar": "يُفتح خلال {n} يوم تقريبًا",
+   "fr": "se débloque dans environ {n} jours",
+   "bn": "প্রায় {n} দিনে খুলবে",
+   "pt-BR": "desbloqueia em cerca de {n} dias",
+   "ru": "откроется примерно через {n} дн.",
+   "id": "terbuka dalam sekitar {n} hari"
+  },
+  "unlocks in about {n} months": {
+   "zh-Hans": "约 {n} 个月后解锁",
+   "hi": "लगभग {n} महीने में खुलेगा",
+   "es": "se desbloquea en unos {n} meses",
+   "ar": "يُفتح خلال {n} شهر تقريبًا",
+   "fr": "se débloque dans environ {n} mois",
+   "bn": "প্রায় {n} মাসে খুলবে",
+   "pt-BR": "desbloqueia em cerca de {n} meses",
+   "ru": "откроется примерно через {n} мес.",
+   "id": "terbuka dalam sekitar {n} bulan"
+  },
+  "Preview only": {
+   "zh-Hans": "仅预览",
+   "hi": "सिर्फ़ झलक",
+   "es": "Solo vista previa",
+   "ar": "معاينة فقط",
+   "fr": "Aperçu seulement",
+   "bn": "শুধু প্রিভিউ",
+   "pt-BR": "Só uma prévia",
+   "ru": "Только предпросмотр",
+   "id": "Pratinjau saja"
+  },
+  "Preview a look": {
+   "zh-Hans": "预览一种外观",
+   "hi": "एक लुक की झलक",
+   "es": "Ver un aspecto",
+   "ar": "معاينة مظهر",
+   "fr": "Aperçu d’une apparence",
+   "bn": "একটি চেহারার প্রিভিউ",
+   "pt-BR": "Prévia de um visual",
+   "ru": "Предпросмотр облика",
+   "id": "Pratinjau tampilan"
+  },
+  "Stage looks": {
+   "zh-Hans": "各阶段外观",
+   "hi": "हर चरण का लुक",
+   "es": "Aspecto de cada etapa",
+   "ar": "مظهر كل مرحلة",
+   "fr": "Apparence de chaque étape",
+   "bn": "প্রতিটি ধাপের চেহারা",
+   "pt-BR": "Visual de cada fase",
+   "ru": "Облик на каждом этапе",
+   "id": "Tampilan tiap tahap"
   }
  }
 }

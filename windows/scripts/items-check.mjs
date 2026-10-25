@@ -24,10 +24,12 @@ await page.goto(`${base}/index.html`, { waitUntil: "load" });
 await page.waitForFunction(() => window.groovy?.island, null, { timeout: 20000 });
 
 const found = await page.evaluate(async () => {
-  const { BotEngine } = await import("/src/mochi/engine.ts");
-  const { ACCESSORIES } = await import("/src/mochi/wardrobe.ts");
-  const { SLOT_OF } = await import("/src/mochi/appearance.ts");
-  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt } = await import("/src/mochi/outfits.ts");
+  // Served by vite, in the page (not files for knip to follow).
+  const SRC = "/src/mochi/";
+  const { BotEngine } = await import(SRC + "engine.ts");
+  const { ACCESSORIES } = await import(SRC + "wardrobe.ts");
+  const { SLOT_OF } = await import(SRC + "appearance.ts");
+  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt } = await import(SRC + "outfits.ts");
   const POSES = [[-1, 0], [-0.5, 0], [0, 0], [0.5, 0], [1, 0], [0, -0.3], [0, 0.3]];
   const W = 160;
   const bad = [];
