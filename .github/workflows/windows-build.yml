@@ -366,7 +366,7 @@ jobs:
           Get-ChildItem $stage -File | ForEach-Object {
             "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
           } | Set-Content "$stage/SHA256SUMS.txt"
-          $short = $SHA.Substring(0, 7)
+          $short = $env:SHA.Substring(0, 7)
           $notes = "The last green full build: version $v, commit $short, built $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')) UTC. Setup.exe is the installer, the Portable zip runs without installing, the MSI is the other installer. This page is replaced by every green full build."
           gh release view $tag -R $env:REPO 2>$null | Out-Null
           if ($LASTEXITCODE -ne 0) {
