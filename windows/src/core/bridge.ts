@@ -525,6 +525,8 @@ export const Bridge = {
   /** "My island" (island_tiles.rs): apps that can go on it, opening a tile, mail pop-ups. */
   islandApps: () => call<{ name: string; target: string }[]>("island_apps"),
   islandLaunch: (kind: string, target: string) => callOrThrow<void>("island_launch", { kind, target }),
+  /** A tile's real icon as a data: URL, `px` square (round 3E item 2); null when there is none. */
+  tileIcon: (kind: string, target: string, px: number) => call<string | null>("tile_icon", { kind, target, px }),
   islandPickFolder: () => callOrThrow<string | null>("island_pick_folder"),
   mailAccess: () => call<"allowed" | "denied" | "unspecified" | "unsupported">("mail_access"),
   mailOpen: (appId: string) => callOrThrow<void>("mail_open", { appId }),

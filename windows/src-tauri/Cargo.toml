@@ -82,6 +82,8 @@ bzip2 = "0.5"
 tar = { version = "0.4", default-features = false }
 # Mail accounts (mail/): RFC 2047 headers and OAuth PKCE (already in the tree).
 base64 = "0.22"
+# Round 3E item 2: tile icons from Windows saved as small PNGs (already in the tree through Tauri).
+png = "0.18"
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }

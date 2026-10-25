@@ -25,6 +25,7 @@ mod identity;
 mod integrations;
 mod island;
 mod island_tiles;
+mod tile_icons;
 mod livekit;
 mod local_chat;
 mod log;
@@ -1554,6 +1555,7 @@ pub fn run() {
             context_menu,
             island_tiles::island_apps,
             island_tiles::island_launch,
+            tile_icons::tile_icon,
             island_tiles::island_pick_folder,
             island_tiles::mail_access,
             island_tiles::mail_open,

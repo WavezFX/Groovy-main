@@ -1850,6 +1850,7 @@ dependencies = [
  "libc",
  "lofty",
  "mdns-sd",
+ "png 0.18.1",
  "qrcode",
  "rcgen",
  "reqwest 0.12.28",

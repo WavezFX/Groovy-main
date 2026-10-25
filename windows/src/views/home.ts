@@ -31,6 +31,7 @@ import { Mail, face, refreshSlowData, upcomingReminder } from "./tiles";
 import { once } from "../core/lazy";
 import type { Grown } from "./expand";
 import { playOrOpen } from "./spotify";
+import { brandMark, tileIcon } from "./tileicon";
 import { showError } from "./toast";
 import type { ViewActions, ViewHost } from "./views";
 
@@ -161,7 +162,7 @@ function musicCell(): HTMLElement {
   const cover = currentArtwork();
   const art = cover
     ? h("img", { class: "home-mark art", src: cover, alt: "", draggable: "false" })
-    : h("span", { class: "home-mark", style: "background:#1DB954" });
+    : brandMark("integration_spotify") ?? h("span", { class: "home-mark", style: "background:#1DB954" });
   const cell = h("div", { class: "home-cell music", title: track ? `Spotify — ${track.title}` : "Spotify", role: "button", tabindex: "0" },
     h("div", { class: "home-cell-head" }, art, iconBtn(playing ? ICONS.pause : ICONS.play, playing ? t("Pause") : t("Play"), playOrOpen, "main")),
     h("span", { class: "home-cell-text" }, h("b", { text: track?.title ?? "Spotify" }), h("span", { text: track?.artist ?? t("Music") })),
@@ -192,13 +193,14 @@ function cellBody(tile: Tile, setView: (v: IslandViewName) => void): HTMLElement
     const line = serviceLine(tile.target);
     const open = face(tile, setView).open;
     return h("button", { class: "home-cell", title: `${def?.name ?? tile.target} — ${line.text}`, onclick: open },
-      h("span", { class: "home-mark", style: `background:${def?.color ?? "#8E939C"}` }),
+      brandMark(tile.target) ?? h("span", { class: "home-mark", style: `background:${def?.color ?? "#8E939C"}` }),
       h("span", { class: "home-cell-text" }, h("b", { text: tile.label || def?.name || tile.target }), h("span", { class: line.good ? "good" : "", text: line.text })),
     );
   }
   const f = face(tile, setView);
+  const real = tile.kind === "app" || tile.kind === "site" || tile.kind === "folder";
   return h("button", { class: "home-cell", title: `${f.title} — ${f.sub}`, onclick: f.open },
-    h("span", { class: "home-mark letter", style: `background:${f.color}`, text: f.icon }),
+    real ? tileIcon(tile.kind, tile.target, f.icon, f.color) : h("span", { class: "home-mark letter", style: `background:${f.color}`, text: f.icon }),
     h("span", { class: "home-cell-text" }, h("b", { text: f.title }), h("span", { text: f.sub })),
   );
 }

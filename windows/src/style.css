@@ -3907,3 +3907,12 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
   border-radius: 14px;
   padding: 0 11px;
 }
+
+/* Round 3E item 2: real icons and logo marks, all the same size. */
+.home-mark.icon {
+  object-fit: contain;
+  background: transparent;
+}
+.home-mark.brand svg {
+  display: block;
+}
