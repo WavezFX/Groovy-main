@@ -193,3 +193,16 @@ test("every look draws every stage, lite or not, and each stage adds something",
     assert.ok(counts[MAX_STAGE] > counts[0], `${skin}: stage 5 draws more than stage 0`);
   }
 });
+
+test("round 5 item 5: stage 6 comes exactly at 182 days, and two copies keep the earliest hatching", () => {
+  assert.equal(SIX_MONTHS, 182 * DAY);
+  assert.equal(stageAt(31 * DAY, NOW - 182 * DAY + 1, NOW), 5, "a second short of 182 days");
+  assert.equal(stageAt(31 * DAY, NOW - 182 * DAY, NOW), 6, "182 days to the second");
+  const a = { activeSeconds: 31 * DAY, reached: 5, seen: 5, hatchedAt: NOW - 100 * DAY, correction: 2 };
+  const b = { activeSeconds: 31 * DAY, reached: 5, seen: 5, hatchedAt: NOW - 190 * DAY, correction: 2 };
+  const m = mergeGrowth(a, b, NOW);
+  assert.equal(m.hatchedAt, NOW - 190 * DAY, "the earliest hatching is kept");
+  assert.equal(m.reached, 6, "and with it, six months: stage 6");
+  // A record from before hatchedAt counts back from its running time.
+  assert.equal(parseGrowth({ activeSeconds: 31 * DAY, reached: 5 }, NOW).hatchedAt, NOW - 31 * DAY);
+});

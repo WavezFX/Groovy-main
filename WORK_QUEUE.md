@@ -101,7 +101,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. (**Done by round 3E item 7: tick it with that commit.**) Wardrobe v2. **Keep round 3B item 4's speed fixes** (cached previews, one live engine).
 - [x] 4. Seasonal collection (**done by round 3E item 7: tick it with that commit**)
 - [x] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
-- [ ] 5. Tests and checks
+- [x] 5. Tests and checks
 
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.
