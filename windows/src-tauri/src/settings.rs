@@ -395,19 +395,42 @@ pub fn keep_newer_look(current: (&str, f64), incoming: (&str, f64)) -> (String, 
 /// seconds and the highest stage reached win, so a window with an older copy
 /// never makes Groovy smaller. There is no chosen stage any more (round 3B
 /// item 5): a saved one is dropped. Anything unreadable counts as nothing.
+///
+/// Round 5 item 2 and round 3E item 4: stages go to 6, the earliest
+/// `hatchedAt` is kept, and a record with a newer one-time `correction` (the
+/// page recomputed the stage from the real record, which may be lower) wins
+/// the stage over one without it.
 pub fn merge_growth(old: &Value, new: &Value) -> Value {
+    const MAX_STAGE: u64 = 6;
     let seconds = |v: &Value| v.get("activeSeconds").and_then(Value::as_f64).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
-    let stage = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).filter(|s| *s <= 5);
-    let reached = stage(old, "reached").unwrap_or(0).max(stage(new, "reached").unwrap_or(0));
+    let stage = |v: &Value, k: &str| v.get(k).and_then(Value::as_u64).filter(|s| *s <= MAX_STAGE);
+    let correction = |v: &Value| v.get("correction").and_then(Value::as_u64).unwrap_or(0);
+    let hatched = |v: &Value| v.get("hatchedAt").and_then(Value::as_f64).filter(|s| s.is_finite() && *s > 0.0);
+    let (co, cn) = (correction(old), correction(new));
+    let reached = match co.cmp(&cn) {
+        std::cmp::Ordering::Equal => stage(old, "reached").unwrap_or(0).max(stage(new, "reached").unwrap_or(0)),
+        std::cmp::Ordering::Less => stage(new, "reached").unwrap_or(0),
+        std::cmp::Ordering::Greater => stage(old, "reached").unwrap_or(0),
+    };
     // The stage the launch intro last greeted him at (-1: never).
     let seen = stage(old, "seen").max(stage(new, "seen")).map_or(-1, |s| s.min(reached) as i64);
-    serde_json::json!({
+    let mut out = serde_json::json!({
         "activeSeconds": seconds(old).max(seconds(new)),
         "reached": reached,
         // No stage picking any more (round 3B item 5): a saved choice is dropped.
         "shown": null,
         "seen": seen,
-    })
+    });
+    if let Some(at) = match (hatched(old), hatched(new)) {
+        (Some(a), Some(b)) => Some(a.min(b)),
+        (a, b) => a.or(b),
+    } {
+        out["hatchedAt"] = serde_json::json!(at.floor() as u64);
+    }
+    if co.max(cn) > 0 {
+        out["correction"] = serde_json::json!(co.max(cn));
+    }
+    out
 }
 
 /// The settings held in the bytes of a settings.json, or `None` when there is
@@ -909,6 +932,23 @@ mod tests {
         // The intro's stage is kept from whichever copy has it.
         let a = serde_json::json!({ "activeSeconds": 1.0, "reached": 3, "seen": 3 });
         assert_eq!(merge_growth(&a, &serde_json::json!({}))["seen"], 3);
+    }
+
+    #[test]
+    fn the_one_time_correction_may_lower_the_stage_and_stage_six_is_kept() {
+        // Round 3E item 4: granted "fully grown" with 2 days of running time.
+        let granted = serde_json::json!({ "activeSeconds": 172800.0, "reached": 5, "seen": 5 });
+        let corrected = serde_json::json!({ "activeSeconds": 172800.0, "reached": 1, "seen": 1, "correction": 1, "hatchedAt": 1760000000 });
+        let merged = merge_growth(&granted, &corrected);
+        assert_eq!((merged["reached"].as_u64(), merged["seen"].as_i64(), merged["correction"].as_u64()), (Some(1), Some(1), Some(1)));
+        // An older window saving its uncorrected copy afterwards changes nothing.
+        let again = merge_growth(&merged, &granted);
+        assert_eq!((again["reached"].as_u64(), again["correction"].as_u64()), (Some(1), Some(1)));
+        // Between corrected copies the stage never goes back, up to 6.
+        let six = serde_json::json!({ "activeSeconds": 9.0e6, "reached": 6, "correction": 1, "hatchedAt": 1700000000 });
+        let m = merge_growth(&six, &corrected);
+        assert_eq!(m["reached"], 6);
+        assert_eq!(m["hatchedAt"], 1700000000u64, "the earliest hatching");
     }
 
     #[test]

@@ -19288,6 +19288,17 @@
    "pt-BR": "Escolha uma pasta…",
    "ru": "Выберите папку…",
    "id": "Pilih folder…"
+  },
+  "next in about {n} months": {
+   "zh-Hans": "大约 {n} 个月后升级",
+   "hi": "लगभग {n} महीनों में अगला",
+   "es": "el siguiente en unos {n} meses",
+   "ar": "التالي بعد نحو {n} أشهر",
+   "fr": "le prochain dans environ {n} mois",
+   "bn": "প্রায় {n} মাসে পরেরটি",
+   "pt-BR": "o próximo em cerca de {n} meses",
+   "ru": "следующий примерно через {n} мес.",
+   "id": "berikutnya sekitar {n} bulan lagi"
   }
  }
 }

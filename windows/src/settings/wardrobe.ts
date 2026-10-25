@@ -153,8 +153,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     }
     growthRow.replaceChildren(
       h("div", { class: "hub-w-growth-head" },
-        h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[current]) }) }),
-        h("span", { class: "hub-b-detail", text: t("Stage {n} of {max}", { n: shown, max: MAX_STAGE }) })),
+        h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[current]) }) })),
       marks,
       h("span", { class: "hub-b-detail", text: progressLine(g) }),
     );

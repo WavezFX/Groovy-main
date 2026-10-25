@@ -607,8 +607,10 @@ export class Island {
     };
     this.intro = intro;
     intro.start();
-    // Greeted at this stage: the next launch knows what is new.
-    if (g.seen !== g.reached) {
+    // Greeted at this stage: the next launch knows what is new. The first
+    // hatching is also when his six months start (round 5 item 2): saved now.
+    const stored = State.settings.growth as { hatchedAt?: unknown } | null;
+    if (g.seen !== g.reached || typeof stored?.hatchedAt !== "number") {
       State.settings.growth = { ...g, seen: g.reached };
       void Bridge.saveGrowth(State.settings.growth);
     }

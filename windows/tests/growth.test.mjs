@@ -5,44 +5,57 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAX_STAGE, SAVE_EVERY_SECONDS, STAGE_AFTER, TICK_SECONDS, grow, mergeGrowth, migrateGrownLook, parseGrowth,
-  progressLine, shownStage, stageFor, startGrowthClock, untilNext,
+  SIX_MONTHS, progressLine, shownStage, stageAt, stageFor, startGrowthClock, untilNext,
 } from "../src/mochi/growth.ts";
 import { GROWN_STYLES, SKINS, SKIN_STYLES, parseSkin, styleAt } from "../src/mochi/skins.ts";
 
 const DAY = 86400;
+const NOW = 1_790_000_000;
 
-test("the stage follows the time he has run: 1 day, 3 days, 1 week, 2 weeks, 1 month", () => {
+test("the stage follows the time he has run: 1 day, 3 days, 1 week, 2 weeks, 1 month, then six months on the calendar", () => {
   assert.deepEqual([...STAGE_AFTER], [DAY, 3 * DAY, 7 * DAY, 14 * DAY, 30 * DAY]);
-  assert.equal(MAX_STAGE, 5);
+  assert.equal(MAX_STAGE, 6);
   assert.equal(stageFor(0), 0);
   assert.equal(stageFor(DAY - 1), 0);
   assert.equal(stageFor(DAY), 1);
   assert.equal(stageFor(3 * DAY + 5), 2);
   assert.equal(stageFor(7 * DAY), 3);
   assert.equal(stageFor(14 * DAY), 4);
-  assert.equal(stageFor(400 * DAY), 5);
+  assert.equal(stageFor(400 * DAY), 5, "running time alone stops at 5");
+  // Stage 6: at stage 5 and six months since he hatched.
+  assert.equal(stageAt(31 * DAY, NOW - 181 * DAY, NOW), 5);
+  assert.equal(stageAt(31 * DAY, NOW - SIX_MONTHS, NOW), 6);
+  assert.equal(stageAt(20 * DAY, NOW - 400 * DAY, NOW), 4, "the calendar alone isn't enough");
 });
 
 test("growing counts running time only, never more than two ticks at once, and never goes back", () => {
-  let g = parseGrowth({});
-  assert.deepEqual(g, { activeSeconds: 0, reached: 0, shown: null, seen: -1 });
-  g = grow(g, 60);
+  let g = parseGrowth({}, NOW);
+  assert.deepEqual(g, { activeSeconds: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
+  g = grow(g, 60, NOW);
   assert.equal(g.activeSeconds, 60);
   // A night asleep (the timer was suspended) is one gap: at most two ticks.
-  g = grow(g, 9 * 3600);
+  g = grow(g, 9 * 3600, NOW);
   assert.equal(g.activeSeconds, 60 + 2 * TICK_SECONDS);
-  for (const bad of [-500, Number.NaN, -Infinity]) assert.equal(grow(g, bad).activeSeconds, g.activeSeconds);
+  for (const bad of [-500, Number.NaN, -Infinity]) assert.equal(grow(g, bad, NOW).activeSeconds, g.activeSeconds);
   // A stage once reached stays, even if the seconds read back lower.
-  assert.equal(parseGrowth({ activeSeconds: 10, reached: 4 }).reached, 4);
-  assert.equal(parseGrowth({ activeSeconds: 8 * DAY, reached: 1 }).reached, 3);
+  assert.equal(parseGrowth({ activeSeconds: 10, reached: 4 }, NOW).reached, 4);
+  assert.equal(parseGrowth({ activeSeconds: 8 * DAY, reached: 1 }, NOW).reached, 3);
+  // Without a hatching time, it counts back from his running time.
+  assert.equal(parseGrowth({ activeSeconds: 8 * DAY }, NOW).hatchedAt, NOW - 8 * DAY);
 });
 
-test("the furthest of two copies wins, as Rust keeps them", () => {
-  const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3 };
-  const stale = { activeSeconds: 2 * DAY, reached: 1, shown: null };
-  assert.deepEqual(mergeGrowth(island, stale), { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3 });
-  assert.deepEqual(mergeGrowth(stale, island), { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3 });
-  assert.deepEqual(mergeGrowth("junk", null), { activeSeconds: 0, reached: 0, shown: null, seen: -1 });
+test("the furthest of two copies wins, as Rust keeps them, and a corrected copy wins the stage", () => {
+  const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3, hatchedAt: NOW - 20 * DAY };
+  const stale = { activeSeconds: 2 * DAY, reached: 1, shown: null, hatchedAt: NOW - 10 * DAY };
+  const want = { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3, hatchedAt: NOW - 20 * DAY, correction: 0 };
+  assert.deepEqual(mergeGrowth(island, stale, NOW), want);
+  assert.deepEqual(mergeGrowth(stale, island, NOW), want);
+  assert.deepEqual(mergeGrowth("junk", null, NOW), { activeSeconds: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
+  // Round 3E item 4: the granted 5 loses to the corrected record, whichever way round.
+  const granted = { activeSeconds: 2 * DAY, reached: 5, seen: 5 };
+  const corrected = { activeSeconds: 2 * DAY, reached: 1, seen: 1, correction: 1, hatchedAt: NOW - 2 * DAY };
+  assert.equal(mergeGrowth(granted, corrected, NOW).reached, 1);
+  assert.equal(mergeGrowth(corrected, granted, NOW).reached, 1);
 });
 
 test("no stage picking: he always shows the stage he has grown to, and an old choice is dropped", () => {
@@ -53,26 +66,48 @@ test("no stage picking: he always shows the stage he has grown to, and an old ch
 });
 
 test("the progress line is rough and says when he is fully grown", () => {
-  assert.equal(progressLine(parseGrowth({ activeSeconds: 4 * DAY })), "Stage 2 of 5 · next in about 3 days");
-  assert.equal(progressLine(parseGrowth({ activeSeconds: DAY - 1800 })), "Stage 0 of 5 · next in less than an hour");
-  assert.equal(progressLine(parseGrowth({ activeSeconds: DAY - 3700 })), "Stage 0 of 5 · next in about an hour");
-  assert.equal(progressLine(parseGrowth({ activeSeconds: DAY - 5 * 3600 })), "Stage 0 of 5 · next in about 5 hours");
-  assert.equal(progressLine(parseGrowth({ activeSeconds: 31 * DAY })), "Stage 5 of 5 · fully grown");
-  assert.equal(untilNext(parseGrowth({ activeSeconds: 31 * DAY })), null);
+  const at = (activeSeconds, hatchedAt = NOW - activeSeconds) => parseGrowth({ activeSeconds, hatchedAt }, NOW);
+  assert.equal(progressLine(at(4 * DAY), NOW), "Stage 2 of 6 · next in about 3 days");
+  assert.equal(progressLine(at(DAY - 1800), NOW), "Stage 0 of 6 · next in less than an hour");
+  assert.equal(progressLine(at(DAY - 3700), NOW), "Stage 0 of 6 · next in about an hour");
+  assert.equal(progressLine(at(DAY - 5 * 3600), NOW), "Stage 0 of 6 · next in about 5 hours");
+  // Stage 5: the rest of his six months, in months.
+  assert.equal(progressLine(at(31 * DAY, NOW - 60 * DAY), NOW), "Stage 5 of 6 · next in about 4 months");
+  assert.equal(progressLine(at(31 * DAY, NOW - 200 * DAY), NOW), "Stage 6 of 6 · fully grown");
+  assert.equal(untilNext(at(31 * DAY, NOW - 200 * DAY), NOW), null);
 });
 
-test("Grove, Blaze and Tide become their base look, fully grown", () => {
+test("Grove, Blaze and Tide become their base look at the stage he really reached", () => {
   for (const [old, base] of [["grove", "night"], ["blaze", "ember"], ["tide", "frost"]]) {
     const s = { groovyLook: old, growth: { activeSeconds: 120, reached: 0, shown: null } };
-    assert.equal(migrateGrownLook(s), true);
+    assert.equal(migrateGrownLook(s, NOW), true);
     assert.equal(s.groovyLook, base);
-    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 5, shown: null, seen: 5 });
-    assert.equal(migrateGrownLook(s), false, "once");
+    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 0, shown: null, seen: 0, hatchedAt: NOW - 120, correction: 1 });
+    assert.equal(migrateGrownLook(s, NOW), false, "once");
     assert.equal(parseSkin(old), base);
   }
-  const s = { groovyLook: "frost", growth: {} };
-  assert.equal(migrateGrownLook(s), false);
   assert.deepEqual(SKINS, ["night", "ember", "frost"], "three looks to choose from");
+});
+
+test("round 3E item 4: a profile granted 'fully grown' goes back to its real stage, once", () => {
+  // Migrated from Grove with 2 days of running time: stage 1, not 5.
+  const migrated = { groovyLook: "night", growth: { activeSeconds: 2 * DAY, reached: 5, shown: null, seen: 5 } };
+  assert.equal(migrateGrownLook(migrated, NOW), true);
+  assert.equal(parseGrowth(migrated.growth, NOW).reached, 1);
+  assert.equal(parseGrowth(migrated.growth, NOW).seen, 1);
+  // It runs once: a later stage 5 earned for real is never taken away again.
+  const later = { ...migrated.growth, activeSeconds: 31 * DAY, reached: 5 };
+  migrated.growth = later;
+  assert.equal(migrateGrownLook(migrated, NOW), false);
+  assert.equal(parseGrowth(migrated.growth, NOW).reached, 5);
+  // A real 35-day profile shows stage 5.
+  const real = { groovyLook: "frost", growth: { activeSeconds: 35 * DAY, reached: 5 } };
+  migrateGrownLook(real, NOW);
+  assert.equal(parseGrowth(real.growth, NOW).reached, 5);
+  // A fresh profile stays a seed.
+  const fresh = { groovyLook: "ember", growth: {} };
+  migrateGrownLook(fresh, NOW);
+  assert.equal(parseGrowth(fresh.growth, NOW).reached, 0);
 });
 
 test("the colours move from the look to its grown one", () => {
