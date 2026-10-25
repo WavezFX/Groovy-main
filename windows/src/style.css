@@ -3923,3 +3923,10 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
 .home-mark.brand svg {
   display: block;
 }
+
+/* Round 3E item 7: 48 buttons now. The rows scrolled out of view aren't laid
+   out or painted until they come in, so the wardrobe opens in one frame. */
+.wardrobe-slot {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}

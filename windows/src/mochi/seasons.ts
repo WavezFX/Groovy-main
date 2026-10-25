@@ -119,12 +119,18 @@ export function seasonalLaunch(settings: { seasonalEarned: unknown; wardrobe: un
   return changed;
 }
 
+/** Month names, one formatter per language (making one is slow: the wardrobe asks for 16). */
+const months = new Map<string, Intl.DateTimeFormat>();
+function monthName(d: Date): string {
+  const lang = language();
+  let f = months.get(lang);
+  if (!f) months.set(lang, (f = new Intl.DateTimeFormat(lang, { month: "long" })));
+  return f.format(d);
+}
+
 /** Why an item can't be worn yet ("Stage 3", "Comes back in December"), or null. */
 export function lockLabel(item: Accessory, reached: number, earned: readonly string[], now = new Date()): string | null {
   if (available(item, reached, earned)) return null;
-  if (isSeasonal(item)) {
-    const month = nextStart(seasonOf(item), now).toLocaleDateString(language(), { month: "long" });
-    return t("Comes back in {month}", { month });
-  }
+  if (isSeasonal(item)) return t("Comes back in {month}", { month: monthName(nextStart(seasonOf(item), now)) });
   return t("Stage {n}", { n: STAGE_LOCK[item] ?? 0 });
 }

@@ -121,6 +121,23 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
   };
   prewarm(shownStage(parseGrowth(State.settings.growth)));
 
+  // Locks change with the stage, the season or the language: worked out then
+  // only. The first time is slow (dates in the language), so it is done while
+  // the island is idle, never in the frame the wardrobe opens in.
+  let locksFor = "";
+  const relock = (reached: number) => {
+    const earned = parseEarned(State.settings.seasonalEarned);
+    const key = `${reached}|${earned.join()}|${t("None")}|${new Date().toDateString()}`;
+    if (key === locksFor) return;
+    locksFor = key;
+    for (const [item, button] of items) {
+      const lock = lockLabel(item, reached, earned);
+      button.classList.toggle("locked", !!lock);
+      button.title = lock ? `${t(OUTFIT_KEYS[item])} · ${lock}` : t(OUTFIT_KEYS[item]);
+    }
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => relock(parseGrowth(State.settings.growth).reached), { timeout: 5000 });
+  else setTimeout(() => relock(parseGrowth(State.settings.growth).reached), 300);
   return {
     el,
     sync() {
@@ -134,13 +151,8 @@ export function buildWardrobe(actions: ViewActions): ViewHost {
         button.title = `${t(SKIN_KEYS[l])} → ${t(GROWS_INTO[l])} · ${progressLine(g)}`;
       }
       const on = worn(currentWardrobe(State.settings.wardrobe).appearance.layers);
-      const earned = parseEarned(State.settings.seasonalEarned);
-      for (const [item, button] of items) {
-        button.classList.toggle("on", on.includes(item));
-        const lock = lockLabel(item, g.reached, earned);
-        button.classList.toggle("locked", !!lock);
-        button.title = lock ? `${t(OUTFIT_KEYS[item])} · ${lock}` : t(OUTFIT_KEYS[item]);
-      }
+      relock(g.reached);
+      for (const [item, button] of items) button.classList.toggle("on", on.includes(item));
       for (const [slot, button] of nones) button.classList.toggle("on", !on.some((o) => o !== "none" && SLOT_OF[o] === slot));
       removeAll.disabled = on.length === 0;
     },
