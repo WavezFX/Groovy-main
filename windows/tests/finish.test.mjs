@@ -24,3 +24,19 @@ test("the board's flat flames and water are the parts drawn softly", () => {
   // Seaweed stays as the board draws it.
   assert.ok(!GROWTH_ART.frost[4].body.filter((sh) => sh.s === "#2FBF8F").some(isWaterPart));
 });
+
+test("the sea and the heat glow reach past his body at any turn (round 3E item 9)", async () => {
+  const { SEA_L, SEA_R, SEA_FLOOR, drawHeat } = await import("../src/mochi/finish.ts");
+  const { BOARD } = await import("../src/mochi/art/draw.ts");
+  // The board slides by up to 0.8 of his half-width each way as he turns.
+  const slide = BOARD.hw * 0.8;
+  assert.ok(SEA_L <= BOARD.cx - BOARD.hw - slide - 10, "the left edge");
+  assert.ok(SEA_R >= BOARD.cx + BOARD.hw + slide + 10, "the right edge");
+  assert.ok(SEA_FLOOR >= BOARD.cy + BOARD.hh + 20, "under his body");
+  const rects = [];
+  const gradient = { addColorStop() {} };
+  const ctx = new Proxy({ fillRect: (...a) => rects.push(a) }, { get: (t, k) => (k in t ? t[k] : k === "createRadialGradient" ? () => gradient : () => {}), set: () => true });
+  drawHeat(ctx, 4);
+  const [x, y, w, h] = rects[0];
+  assert.ok(x <= SEA_L && x + w >= SEA_R && y <= BOARD.cy - BOARD.hh && y + h >= SEA_FLOOR, "the glow's rectangle covers the same reach");
+});

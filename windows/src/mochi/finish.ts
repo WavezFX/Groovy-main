@@ -124,7 +124,8 @@ export function drawHeat(x: CanvasRenderingContext2D, stage: number) {
     g.addColorStop(1, "rgba(255,110,30,0)");
     return g;
   });
-  x.fillRect(8, 26, 84, 70);
+  // Far wider than his body: the board slides as he turns (round 3E item 9).
+  x.fillRect(SEA_L, 0, SEA_R - SEA_L, SEA_FLOOR);
   x.restore();
 }
 
@@ -163,13 +164,24 @@ function wave(px: number, t: number, calm: number): number {
   return (Math.sin(px * 0.16 + t * 1.3) * 1.0 + Math.sin(px * 0.07 - t * 0.8) * 0.6) * calm;
 }
 
+/**
+ * How far the sea reaches, in board x (round 3E item 9). His body is x 14-86,
+ * but the board slides with his head by up to 0.8 of his half-width (about
+ * 29 board units) each way, so a sea only as wide as the body left a blank
+ * strip on the side he turned from. The clip to his body decides what shows.
+ */
+export const SEA_L = -70;
+export const SEA_R = 170;
+/** Well under his body (y 92) at any squash. */
+export const SEA_FLOOR = 140;
+
 function surface(level: number, t: number, calm: number, closed: boolean): Path2D {
   const p = new Path2D();
-  p.moveTo(8, level + wave(8, t, calm));
-  for (let px = 12; px <= 92; px += 4) p.lineTo(px, level + wave(px, t, calm));
+  p.moveTo(SEA_L, level + wave(SEA_L, t, calm));
+  for (let px = SEA_L + 6; px <= SEA_R; px += 6) p.lineTo(px, level + wave(px, t, calm));
   if (closed) {
-    p.lineTo(92, 98);
-    p.lineTo(8, 98);
+    p.lineTo(SEA_R, SEA_FLOOR);
+    p.lineTo(SEA_L, SEA_FLOOR);
     p.closePath();
   }
   return p;
@@ -205,9 +217,9 @@ export function drawWater(x: CanvasRenderingContext2D, stage: number, deep: stri
     const sx = (noise(tt * 0.25 + i * 13) - 0.5) * 18;
     x.lineWidth = 1.2 + TABLE[i + 20] * 1.4;
     x.beginPath();
-    x.moveTo(10 + sx, y);
-    x.quadraticCurveTo(30 + sx, y - 3 + Math.sin(tt * 0.9 + i) * 2, 50 + sx, y);
-    x.quadraticCurveTo(70 + sx, y + 3 - Math.sin(tt * 0.7 + i) * 2, 90 + sx, y);
+    x.moveTo(-50 + sx, y);
+    x.quadraticCurveTo(0 + sx, y - 3 + Math.sin(tt * 0.9 + i) * 2, 50 + sx, y);
+    x.quadraticCurveTo(100 + sx, y + 3 - Math.sin(tt * 0.7 + i) * 2, 150 + sx, y);
     x.stroke();
   }
   x.restore();

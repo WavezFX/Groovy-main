@@ -284,6 +284,9 @@ jobs:
           # Round 3E item 1: the island's tiles, both pages, long names, hit areas.
           node --import ./tests/setup.mjs scripts/island-screens.mjs http://127.0.0.1:1420 settings-screens/island
           if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3E item 9: Frost's water fills his body at yaw -1, 0 and +1, every stage.
+          node --import ./tests/setup.mjs scripts/water-check.mjs http://127.0.0.1:1420 settings-screens/water
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
           taskkill /PID $vite.Id /T /F | Out-Null
           exit $code
 
