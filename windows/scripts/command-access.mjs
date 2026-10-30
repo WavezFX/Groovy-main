@@ -13,7 +13,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const read = (p) => readFileSync(join(ROOT, p), "utf8");
+// Line endings don't count: a Windows checkout has CRLF.
+const read = (p) => readFileSync(join(ROOT, p), "utf8").replaceAll("\r\n", "\n");
 
 /** Window label → its page's entry. */
 export const WINDOWS = {

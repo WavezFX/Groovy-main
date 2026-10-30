@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { access, files, registeredCommands } from "../scripts/command-access.mjs";
 
 test("the capability files are the ones the code calls for (run scripts/command-access.mjs)", () => {
-  for (const [path, text] of Object.entries(files())) assert.equal(readFileSync(path, "utf8"), text, path);
+  for (const [path, text] of Object.entries(files())) assert.equal(readFileSync(path, "utf8").replaceAll("\r\n", "\n"), text, path);
 });
 
 test("shell and Studio commands only in the Studio; keys, accounts and permissions only in Settings", () => {
