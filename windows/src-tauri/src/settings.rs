@@ -1025,6 +1025,19 @@ mod tests {
         assert_eq!(m["hatchedAt"], 1700000000u64, "the earliest hatching");
     }
 
+    /// Round 3D item 6: the 0.5.1 settings file (every value changed from its
+    /// default) still loads, and every value in it is kept as it was. The page
+    /// moves two of them later (tests/settings-keys.test.mjs): the old outfit
+    /// into the wardrobe and Tide to Frost; it also checks every key has a place.
+    #[test]
+    fn an_old_settings_file_loads_with_its_values() {
+        let old: Value = serde_json::from_str(include_str!("../../tests/fixtures/settings-0.5.1.json")).unwrap();
+        let loaded = shown(&parse(old.to_string().as_bytes()).expect("the 0.5.1 file loads"));
+        for (key, value) in old.as_object().unwrap() {
+            assert_eq!(loaded.get(key), Some(value), "{key} kept");
+        }
+    }
+
     #[test]
     fn days_worn_and_todays_time_are_kept_by_a_merge() {
         // Round 3H item 3: the growth clock's numbers survive an older window's save.

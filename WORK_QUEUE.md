@@ -48,7 +48,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 10. Three operating states (Standby, Conversation, Offline) with pre-warm on the wake word and release after, plus a WebView2 audit (one island WebView in Standby, other windows destroyed on close)
 - [ ] 11. Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
 - [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
-- [ ] 6. Checks
+- [x] 6. Checks
 
 ## 1F. Fixes round 3F: `FIXES_ROUND3F.md` (dead code, duplicate logic and bloat). **Do this first, before 3E.** No user-facing feature is removed.
 - [x] 1. Delete what's provably dead (backdrop.rs, `load_report`, unused exports, clippy/machete/knip sweep)
