@@ -1,0 +1,846 @@
+// Flow dictation: hold a key anywhere, speak, let go, and the words are pasted
+// where you type. Port of FlowDictation.swift for Windows and Linux.
+//
+// One thread owns the dictation: the key's events come in from the OS listener
+// (os_windows.rs / os_linux.rs) and the island's buttons, KeyLogic turns them
+// into start / lock / finish / cancel, the microphone is opened on the first
+// press, and when you let go the words go to Parakeet on this computer, then
+// through the dictionary, the snippets and (if turned on) Claude's clean-up,
+// and are pasted. The thread sleeps on its channel while nothing happens.
+
+pub mod cleanup;
+pub mod logic;
+pub mod paste;
+pub mod live;
+pub mod store;
+pub mod text;
+pub mod vocab;
+#[cfg(test)]
+mod accuracy;
+
+#[cfg(windows)]
+#[path = "os_windows.rs"]
+pub mod os;
+#[cfg(target_os = "linux")]
+#[path = "os_linux.rs"]
+pub mod os;
+#[cfg(target_os = "linux")]
+pub mod wayland;
+
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::i18n::t;
+use crate::speech::{self, audio};
+use logic::{Action, KeyLogic};
+use store::{AppStyle, Entry, Prefs, Store, Words};
+use text::Snippet;
+
+/// What reaches the dictation thread.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyEvent {
+    Down,
+    Up,
+    /// Another key while the dictation key is held: a shortcut.
+    Other,
+    Escape,
+    /// The island's Dictate button: hands-free straight away.
+    HandsFree,
+    /// The island's ✓: paste now.
+    Finish,
+    /// The island's ✕.
+    Cancel,
+    Quit,
+}
+
+pub struct Flow {
+    pub store: Mutex<Store>,
+    running: Mutex<Option<Running>>,
+}
+
+struct Running {
+    tx: Sender<(KeyEvent, Instant)>,
+    /// The OS's key listener (or, on Wayland, the portal's shortcut); dropping it stops it.
+    _listener: Option<Box<dyn std::any::Any + Send>>,
+}
+
+impl Flow {
+    fn send(&self, event: KeyEvent) {
+        if let Some(r) = self.running.lock().unwrap().as_ref() {
+            let _ = r.tx.send((event, Instant::now()));
+        }
+    }
+}
+
+pub fn get(app: &AppHandle) -> Option<Arc<Flow>> {
+    app.try_state::<Arc<Flow>>().map(|s| s.inner().clone())
+}
+
+/// A program's name as people know it: "outlook" → "Outlook".
+pub fn display_name(stem: &str) -> String {
+    let id = stem.to_lowercase();
+    if let Some(s) = store::default_app_styles().into_iter().find(|s| s.id == id) {
+        return s.name;
+    }
+    let mut chars = stem.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
+/// Parts of the desktop itself, never a place to dictate into.
+pub fn is_shell(id: &str) -> bool {
+    matches!(
+        id,
+        "explorer" | "applicationframehost" | "textinputhost" | "shellexperiencehost" | "searchhost"
+            | "startmenuexperiencehost" | "lockapp" | "groovy" | "gnome-shell" | "plasmashell" | "xfdesktop"
+    )
+}
+
+fn is_terminal(id: &str) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        os::is_terminal(id)
+    }
+    #[cfg(windows)]
+    {
+        // Windows Terminal, conhost and the rest paste with Ctrl+V.
+        let _ = id;
+        false
+    }
+}
+
+// ── Setup, on and off ─────────────────────────────────────────────────────────
+
+pub fn setup(app: &AppHandle) {
+    let flow = Arc::new(Flow { store: Mutex::new(Store::load()), running: Mutex::new(None) });
+    app.manage(flow.clone());
+    live::setup(app);
+    let prefs = flow.store.lock().unwrap().prefs.clone();
+    live::update(app, |s| s.key = key_id(prefs.key));
+    if prefs.enabled {
+        enable(app, &flow);
+    }
+    sync_engine(app);
+    small_speech_for_parakeet_users(app, &prefs);
+}
+
+/// Round 3D item 7: someone who had Parakeet on the PC (local speech set up)
+/// and is now on the small Whisper model gets it downloaded once, in the
+/// background, so dictation keeps working offline. Round 3F item 5: so does
+/// someone with a whisper.cpp model on disk, whose old file goes once the
+/// new one is in.
+fn small_speech_for_parakeet_users(app: &AppHandle, prefs: &store::Prefs) {
+    let had_whisper_cpp = crate::voice::had_whisper_cpp();
+    if prefs.engine != "whisper" || !(speech::PARAKEET.is_present() || had_whisper_cpp) {
+        crate::voice::retire_whisper_cpp();
+        return;
+    }
+    let Some(model) = app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().voice_model.clone()) else { return };
+    if crate::voice::installed(&model) {
+        crate::voice::retire_whisper_cpp();
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        match crate::voice::download(&app, &model).await {
+            Ok(()) => {
+                crate::log::line(format!("speech: {model} downloaded (Groovy's small offline model)"));
+                crate::voice::retire_whisper_cpp();
+            }
+            Err(e) => crate::log::line(format!("speech: could not download {model}: {e}")),
+        }
+    });
+}
+
+/// The key as the pages write it ("right_ctrl"…), or "wayland" where the
+/// desktop holds the shortcut.
+fn key_id(key: logic::FlowKey) -> String {
+    if os::keys_supported() == Err("wayland") {
+        return "wayland".into();
+    }
+    serde_json::to_value(key).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()
+}
+
+fn enable(app: &AppHandle, flow: &Arc<Flow>) {
+    let mut running = flow.running.lock().unwrap();
+    if running.is_some() {
+        return;
+    }
+    let prefs = flow.store.lock().unwrap().prefs.clone();
+    let (tx, rx) = mpsc::channel::<(KeyEvent, Instant)>();
+    let listener: Option<Box<dyn std::any::Any + Send>> = match os::keys_supported() {
+        Ok(()) => match os::listen(prefs.key, tx.clone()) {
+            Ok(l) => Some(Box::new(l)),
+            Err(err) => {
+                crate::log::line(format!("flow: the key can't be watched: {err}"));
+                None
+            }
+        },
+        #[cfg(target_os = "linux")]
+        Err("wayland") => wayland::listen(tx.clone()).map(|h| Box::new(h) as Box<dyn std::any::Any + Send>),
+        Err(why) => {
+            crate::log::line(format!("flow: no key on this desktop ({why}); the island's buttons still work"));
+            None
+        }
+    };
+    let app2 = app.clone();
+    let flow2 = flow.clone();
+    std::thread::Builder::new()
+        .name("groovy-flow".into())
+        .spawn(move || run(app2, flow2, rx))
+        .ok();
+    *running = Some(Running { tx, _listener: listener });
+    drop(running);
+    live::update(app, |s| s.enabled = true);
+    crate::log::line(format!("flow dictation on ({})", prefs.key.label()));
+}
+
+fn disable(app: &AppHandle, flow: &Arc<Flow>) {
+    let running = flow.running.lock().unwrap().take();
+    if let Some(r) = running {
+        let _ = r.tx.send((KeyEvent::Quit, Instant::now()));
+    }
+    live::update(app, |s| {
+        s.enabled = false;
+        s.phase = "idle".into();
+    });
+    if !crate::notes::is_recording(app) && !crate::okgroovy::is_listening() {
+        speech::unload();
+    }
+}
+
+// ── The dictation thread ──────────────────────────────────────────────────────
+
+struct Listening {
+    capture: audio::Capture,
+    take: Arc<Mutex<audio::Take>>,
+    started: Instant,
+    app: Option<(String, String)>,
+}
+
+fn run(app: AppHandle, flow: Arc<Flow>, rx: mpsc::Receiver<(KeyEvent, Instant)>) {
+    let epoch = Instant::now();
+    let secs = |at: Instant| at.saturating_duration_since(epoch).as_secs_f64();
+    let mut logic = KeyLogic::default();
+    let mut listening: Option<Listening> = None;
+    let busy = Arc::new(AtomicBool::new(false));
+    loop {
+        let active = listening.is_some() || logic.is_active();
+        let received = if active {
+            match rx.recv_timeout(Duration::from_millis(33)) {
+                Ok(m) => Some(m),
+                Err(RecvTimeoutError::Timeout) => None,
+                Err(RecvTimeoutError::Disconnected) => break,
+            }
+        } else {
+            match rx.recv() {
+                Ok(m) => Some(m),
+                Err(_) => break,
+            }
+        };
+        let action = match received {
+            Some((KeyEvent::Quit, _)) => {
+                drop(listening.take());
+                break;
+            }
+            Some((KeyEvent::Down, at)) => {
+                // The Dictation page's key check: the hook did see the key.
+                let _ = app.emit_to(crate::HUB_LABEL, "flow-key-seen", ());
+                logic.key_down(secs(at))
+            }
+            Some((KeyEvent::Up, at)) => logic.key_up(secs(at)),
+            Some((KeyEvent::Other, _)) => logic.other_key(),
+            Some((KeyEvent::Escape, _)) => logic.escape(),
+            Some((KeyEvent::HandsFree, _)) => {
+                if logic.is_active() {
+                    Action::None
+                } else {
+                    logic.lock();
+                    if listening.is_none() {
+                        listening = begin(&app, &flow);
+                        if listening.is_none() {
+                            logic.reset();
+                        }
+                    }
+                    if listening.is_some() {
+                        live::update(&app, |s| s.phase = "locked".into());
+                    }
+                    Action::None
+                }
+            }
+            Some((KeyEvent::Finish, _)) => {
+                if logic.is_active() || listening.is_some() {
+                    logic.reset();
+                    Action::Finish
+                } else {
+                    Action::None
+                }
+            }
+            Some((KeyEvent::Cancel, _)) => {
+                logic.reset();
+                Action::Cancel
+            }
+            None => logic.tick(secs(Instant::now())),
+        };
+        match action {
+            Action::None => {}
+            Action::Start => {
+                listening = begin(&app, &flow);
+                if listening.is_none() {
+                    logic.reset();
+                }
+            }
+            Action::Restart => {
+                drop(listening.take());
+                listening = begin(&app, &flow);
+                if listening.is_none() {
+                    logic.reset();
+                }
+            }
+            Action::Lock => live::update(&app, |s| s.phase = "locked".into()),
+            Action::Cancel => {
+                drop(listening.take());
+                live::update(&app, |s| s.phase = "idle".into());
+            }
+            Action::Finish => {
+                if let Some(l) = listening.take() {
+                    finish(&app, &flow, l, busy.clone());
+                } else {
+                    live::update(&app, |s| s.phase = "idle".into());
+                }
+            }
+        }
+        // The island's bars, about 30 times a second while you speak.
+        if let Some(l) = &listening {
+            let levels = l.take.lock().unwrap().meter.levels;
+            live::bands(&app, &levels);
+        }
+    }
+    live::update(&app, |s| s.phase = "idle".into());
+}
+
+/// Opens the microphone. None (and the island says why) when it can't.
+fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
+    if !speech::is_ready() {
+        live::announce(
+            app,
+            "download",
+            "#3B9EFF",
+            t("Dictation needs its speech model: set it up once (about 2 minutes)."),
+            Some((t("Set up"), "openSpeechSetup")),
+            10,
+        );
+        return None;
+    }
+    let mic = flow.store.lock().unwrap().prefs.mic.clone();
+    let take = Arc::new(Mutex::new(audio::Take::default()));
+    let sink_take = take.clone();
+    let source = audio::Source::Mic(if mic.is_empty() { None } else { Some(mic) });
+    let capture = audio::Capture::start(source, move |samples| {
+        let mut t = sink_take.lock().unwrap();
+        // Ten minutes at most: a dictation left open by mistake stops growing.
+        if t.samples.len() < 16_000 * 600 {
+            t.samples.extend_from_slice(samples);
+        }
+        t.peak = samples.iter().fold(t.peak, |m, &s| m.max(s.abs()));
+        t.meter.feed(samples);
+    });
+    match capture {
+        Ok(capture) => {
+            let app_front = os::foreground_app().filter(|(id, _)| !is_shell(id));
+            live::update(app, |s| s.phase = "listening".into());
+            crate::resources::state::fire(app, crate::resources::state::Event::Wake);
+            // The PC's engine is loaded now, while you speak, unless the cloud one answers first.
+            let cloud_first = flow.store.lock().unwrap().prefs.cloud_speech && !speech::cloud::available().is_empty();
+            if !cloud_first {
+                speech::get_ready(app);
+            }
+            Some(Listening { capture, take, started: Instant::now(), app: app_front })
+        }
+        Err(err) => {
+            crate::log::line(format!("flow: microphone: {err}"));
+            live::update(app, |s| s.phase = "failed".into());
+            live::rest_after(app, "failed", 1800);
+            live::announce(
+                app,
+                "mic",
+                "#FF6B6B",
+                t("Groovy can't hear you: the microphone is not allowed or not available."),
+                None,
+                8,
+            );
+            None
+        }
+    }
+}
+
+/// Stops listening and turns what was said into pasted text, on a worker
+/// thread so the key works again at once.
+fn finish(app: &AppHandle, flow: &Arc<Flow>, mut l: Listening, busy: Arc<AtomicBool>) {
+    l.capture.stop();
+    let seconds = l.started.elapsed().as_secs_f64();
+    let (samples, peak) = {
+        let mut t = l.take.lock().unwrap();
+        (std::mem::take(&mut t.samples), t.peak)
+    };
+    // Too short or silent: nothing to send to the model.
+    if samples.len() < 16_000 / 4 || peak < 0.004 {
+        live::update(app, |s| s.phase = "idle".into());
+        crate::resources::state::fire(app, crate::resources::state::Event::ReplyDone);
+        return;
+    }
+    live::update(app, |s| s.phase = "thinking".into());
+    let app = app.clone();
+    let flow = flow.clone();
+    let front = l.app.clone();
+    std::thread::spawn(move || {
+        busy.store(true, Ordering::Relaxed);
+        let result = process(&app, &flow, &samples, front.as_ref(), seconds);
+        busy.store(false, Ordering::Relaxed);
+        // Typed: the follow-up window starts (round 3D item 10).
+        crate::resources::state::fire(&app, crate::resources::state::Event::ReplyDone);
+        if let Err(err) = result {
+            crate::log::line(format!("flow: {err}"));
+            live::update(&app, |s| s.phase = "idle".into());
+        }
+    });
+}
+
+/// A minute after a dictation, what the user corrected in it teaches the
+/// vocabulary its names and models (round 3B item 6). Only while the same app
+/// is in front; the field's text is compared and dropped, never kept.
+fn watch_corrections(app: AppHandle, flow: Arc<Flow>, inserted: String, front: Option<String>) {
+    static GENERATION: AtomicU64 = AtomicU64::new(0);
+    let mine = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    std::thread::spawn(move || {
+        // Checked a few times in the minute, the last look counting: the user
+        // may still be typing, or dictate again (a newer dictation takes over).
+        let mut last = None;
+        for _ in 0..6 {
+            std::thread::sleep(Duration::from_secs(10));
+            if GENERATION.load(Ordering::SeqCst) != mine {
+                return;
+            }
+            if os::foreground_app().map(|(id, _)| id) != front {
+                break;
+            }
+            if let Some(text) = os::focused_text() {
+                last = Some(text);
+            }
+        }
+        let Some(field) = last else { return };
+        let learned = vocab::learn(&inserted, &field);
+        if learned.is_empty() {
+            return;
+        }
+        let words = {
+            let mut store = flow.store.lock().unwrap();
+            let mut words = store.words.clone();
+            if !vocab::remember(&mut words.words, &learned) {
+                return;
+            }
+            store.words = words.clone();
+            store.save_words();
+            words
+        };
+        crate::log::line(format!("flow: learned {} word(s) from a correction", learned.len()));
+        let _ = app.emit_to(crate::HUB_LABEL, "flow-words", words);
+    });
+}
+
+fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(String, String)>, seconds: f64) -> Result<(), String> {
+    let started = Instant::now();
+    let (vocabulary, cloud_first, learn_words) = {
+        let store = flow.store.lock().unwrap();
+        (store.words.words.clone(), store.prefs.cloud_speech, store.prefs.learn_words)
+    };
+    // Cloud speech-to-text first when there is a key (round 3B item 6), the
+    // PC's engine when there is none, no network or no answer in time.
+    let heard = if cloud_first {
+        tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &vocabulary, None)).map(|(text, _)| text)
+    } else {
+        None
+    };
+    let heard = match heard {
+        Some(text) => text,
+        None => speech::transcribe(samples).ok_or("the voice model is not loaded")?.text,
+    };
+    // Names heard in pieces and spoken model numbers, offline, for every engine.
+    let raw = vocab::model_numbers(&vocab::join_split(heard.trim(), &vocabulary));
+    if raw.is_empty() {
+        live::update(app, |s| s.phase = "idle".into());
+        return Ok(());
+    }
+    let (prepared, style, cleanup, words, key) = {
+        let store = flow.store.lock().unwrap();
+        let app_id = front.map(|(id, _)| id.as_str());
+        (store.prepare(&raw), store.style_for(app_id), store.prefs.cleanup, store.words.words.clone(), store.prefs.key)
+    };
+    let mut written = prepared.text.clone();
+    if cleanup && style != store::Style::Verbatim && cleanup::has_key() {
+        let app_name = front.map(|(_, n)| n.clone());
+        let title = os::foreground_title();
+        let cleaned = tauri::async_runtime::block_on(cleanup::clean(&prepared.text, style, app_name.as_deref(), title.as_deref(), &words));
+        if text::keeps_marks(&cleaned, &prepared.snippets) {
+            written = cleaned;
+        }
+    }
+    let final_text = text::finish(&written, &prepared.snippets);
+    crate::log::line(format!("flow: {} words in {:?}", text::word_count(&final_text), started.elapsed()));
+
+    os::wait_key_released(key);
+    let terminal = front.is_some_and(|(id, _)| is_terminal(id));
+    let outcome = paste::paste(&final_text, terminal);
+    let entry = {
+        let mut store = flow.store.lock().unwrap();
+        store.record(&final_text, front.map(|(_, n)| n.as_str()), seconds, store::today(), store::now_ms())
+    };
+    let _ = app.emit_to(crate::HUB_LABEL, "flow-history", entry);
+    if learn_words && matches!(outcome, paste::Outcome::Pasted) {
+        watch_corrections(app.clone(), flow.clone(), final_text.clone(), front.map(|(id, _)| id.clone()));
+    }
+    match outcome {
+        paste::Outcome::Pasted => live::update(app, |s| s.phase = "idle".into()),
+        paste::Outcome::Copied => {
+            live::update(app, |s| s.phase = "copied".into());
+            live::rest_after(app, "copied", 1800);
+            live::announce(
+                app,
+                "clipboard",
+                "#F7B32B",
+                t("Your words are copied: click where you want them and press Ctrl+V."),
+                None,
+                8,
+            );
+        }
+        paste::Outcome::Failed => {
+            live::update(app, |s| s.phase = "idle".into());
+            return Err("the clipboard refused the text".into());
+        }
+    }
+    Ok(())
+}
+
+/// "Paste again": the last dictation, in the app in front now.
+fn paste_again(app: &AppHandle, flow: &Arc<Flow>) {
+    let Some(text) = flow.store.lock().unwrap().last_text() else { return };
+    os::wait_modifiers_released();
+    let front = os::foreground_app();
+    let terminal = front.as_ref().is_some_and(|(id, _)| is_terminal(id));
+    if paste::paste(&text, terminal) == paste::Outcome::Pasted {
+        live::update(app, |s| s.phase = "pastedAgain".into());
+        live::rest_after(app, "pastedAgain", 1600);
+    }
+}
+
+/// The shortcut (and the island's button): paste the last dictation again.
+fn paste_last(app: &AppHandle) {
+    let Some(flow) = app.try_state::<Arc<Flow>>().map(|f| f.inner().clone()) else { return };
+    let app = app.clone();
+    std::thread::spawn(move || paste_again(&app, &flow));
+}
+
+// ── Commands ──────────────────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowStatus {
+    prefs: Prefs,
+    models: speech::ModelsStatus,
+    /// "ok", or why the key can't be watched here ("wayland", "no-display").
+    keys: String,
+    ai_ready: bool,
+    /// Speech can be turned into text with the engine chosen.
+    engine_ready: bool,
+    mics: Vec<audio::InputDevice>,
+    platform: &'static str,
+    /// Groovy started with the computer.
+    autostarted: bool,
+    /// The user's first name, for "Hello Louis".
+    user_name: Option<String>,
+}
+
+/// Points the speech layer at Parakeet or Whisper, from Flow's preferences and
+/// the voice settings (model and language). Called at start, and when either changes.
+/// Whisper is the chosen speech engine (Flow's preference), else Parakeet.
+pub fn uses_whisper(app: &AppHandle) -> bool {
+    get(app).map(|f| f.store.lock().unwrap().prefs.engine == "whisper").unwrap_or(false)
+}
+
+pub fn sync_engine(app: &AppHandle) {
+    let whisper = get(app).map(|f| f.store.lock().unwrap().prefs.engine == "whisper").unwrap_or(false);
+    let choice = whisper.then(|| {
+        let (model, language) = app
+            .try_state::<crate::Shared>()
+            .map(|s| {
+                let s = s.settings.lock().unwrap();
+                (s.voice_model.clone(), s.voice_language.clone())
+            })
+            .unwrap_or_else(|| ("base".into(), String::new()));
+        let lang = crate::voice::language_for(&model, &language);
+        (model, lang)
+    });
+    speech::use_whisper(choice);
+    crate::okgroovy::sync(app);
+}
+
+#[tauri::command]
+pub fn flow_status(flow: State<Arc<Flow>>) -> FlowStatus {
+    FlowStatus {
+        prefs: flow.store.lock().unwrap().prefs.clone(),
+        models: speech::status(),
+        keys: match os::keys_supported() {
+            Ok(()) => "ok".into(),
+            Err(why) => why.into(),
+        },
+        ai_ready: cleanup::has_key(),
+        engine_ready: speech::is_ready(),
+        mics: audio::input_devices(),
+        platform: if cfg!(windows) { "windows" } else { "linux" },
+        autostarted: crate::launched_at_login(),
+        user_name: crate::platform::user_full_name()
+            .and_then(|n| n.split_whitespace().next().map(String::from))
+            .filter(|n| !n.is_empty()),
+    }
+}
+
+#[tauri::command]
+pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
+    let flow = flow.inner().clone();
+    let before = {
+        let mut store = flow.store.lock().unwrap();
+        let before = store.prefs.clone();
+        store.prefs = prefs.clone();
+        store.save_prefs();
+        if before.keep_days != prefs.keep_days {
+            store.prune(store::now_ms());
+        }
+        before
+    };
+    live::update(&app, |s| s.key = key_id(prefs.key));
+    sync_engine(&app);
+    let restart = before.key != prefs.key;
+    if before.enabled && (!prefs.enabled || restart) {
+        disable(&app, &flow);
+    }
+    if prefs.enabled && (!before.enabled || restart) {
+        enable(&app, &flow);
+    }
+    if before.voice != prefs.voice || before.mic != prefs.mic {
+        if before.mic != prefs.mic {
+            crate::okgroovy::restart(&app);
+        } else {
+            crate::okgroovy::sync(&app);
+        }
+    }
+    let _ = app.emit("flow-prefs", &prefs);
+}
+
+#[tauri::command]
+pub fn flow_history(flow: State<Arc<Flow>>) -> Vec<Entry> {
+    flow.store.lock().unwrap().history.clone()
+}
+
+#[tauri::command]
+pub fn flow_delete(flow: State<Arc<Flow>>, id: String) {
+    flow.store.lock().unwrap().delete(&id);
+}
+
+#[tauri::command]
+pub fn flow_clear(flow: State<Arc<Flow>>, everything: bool) {
+    let mut store = flow.store.lock().unwrap();
+    if everything {
+        store.clear_everything();
+    } else {
+        store.clear_history();
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Totals {
+    words: u64,
+    seconds: f64,
+    dictations: u64,
+    words_per_minute: u64,
+    minutes_saved: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsView {
+    week: Totals,
+    month: Totals,
+    all: Totals,
+    /// The words of the last 30 days, oldest first: ("2026-10-14", words).
+    daily: Vec<(String, u64)>,
+    apps: std::collections::BTreeMap<String, u64>,
+    streak: u32,
+}
+
+#[tauri::command]
+pub fn flow_stats(flow: State<Arc<Flow>>) -> StatsView {
+    let store = flow.store.lock().unwrap();
+    let today = store::today();
+    let totals = |from: Option<text::Day>| {
+        let (words, seconds, dictations) = store.totals(from);
+        Totals {
+            words,
+            seconds,
+            dictations,
+            words_per_minute: text::words_per_minute(words, seconds),
+            minutes_saved: text::minutes_saved(words, seconds),
+        }
+    };
+    let daily = (0..30)
+        .rev()
+        .map(|back| {
+            let key = today.minus(back).key();
+            let words = store.stats.days.get(&key).map(|d| d.words).unwrap_or(0);
+            (key, words)
+        })
+        .collect();
+    StatsView {
+        week: totals(Some(today.minus(6))),
+        month: totals(Some(today.minus(29))),
+        all: totals(None),
+        daily,
+        apps: store.stats.apps.clone(),
+        streak: store.streak(today),
+    }
+}
+
+#[tauri::command]
+pub fn flow_words(flow: State<Arc<Flow>>) -> Words {
+    flow.store.lock().unwrap().words.clone()
+}
+
+/// The cloud services dictation would try now, in order (round 3B item 6).
+#[tauri::command]
+pub fn speech_cloud_services() -> Vec<&'static str> {
+    speech::cloud::available().into_iter().map(|s| s.name()).collect()
+}
+
+#[tauri::command]
+pub fn flow_set_words(flow: State<Arc<Flow>>, words: Words) {
+    let mut store = flow.store.lock().unwrap();
+    store.words = words;
+    store.save_words();
+}
+
+#[tauri::command]
+pub fn flow_snippets(flow: State<Arc<Flow>>) -> Vec<Snippet> {
+    flow.store.lock().unwrap().snippets.clone()
+}
+
+#[tauri::command]
+pub fn flow_set_snippets(flow: State<Arc<Flow>>, snippets: Vec<Snippet>) {
+    let mut store = flow.store.lock().unwrap();
+    store.snippets = snippets;
+    store.save_snippets();
+}
+
+#[tauri::command]
+pub fn flow_styles(flow: State<Arc<Flow>>) -> Vec<AppStyle> {
+    flow.store.lock().unwrap().app_styles.clone()
+}
+
+#[tauri::command]
+pub fn flow_set_styles(flow: State<Arc<Flow>>, styles: Vec<AppStyle>) {
+    let mut store = flow.store.lock().unwrap();
+    store.app_styles = styles;
+    store.save_styles();
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RunningApp {
+    id: String,
+    name: String,
+}
+
+#[tauri::command]
+pub async fn flow_running_apps() -> Vec<RunningApp> {
+    tauri::async_runtime::spawn_blocking(|| os::running_apps().into_iter().map(|(id, name)| RunningApp { id, name }).collect())
+        .await
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn flow_copy(text: String) -> bool {
+    paste::copy(&text)
+}
+
+#[tauri::command]
+pub fn flow_paste_again(app: AppHandle, flow: State<Arc<Flow>>) {
+    let flow = flow.inner().clone();
+    std::thread::spawn(move || paste_again(&app, &flow));
+}
+
+#[tauri::command]
+pub fn flow_models_download(app: AppHandle) {
+    speech::download(app);
+}
+
+#[tauri::command]
+pub fn flow_models_remove(app: AppHandle) {
+    speech::remove(&app);
+}
+
+// ── The island's live strip ───────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn live_state(app: AppHandle) -> Option<live::LiveState> {
+    live::get(&app).map(|p| p.state())
+}
+
+#[tauri::command]
+pub fn live_notices(app: AppHandle) -> Vec<live::Notice> {
+    live::pending(&app)
+}
+
+#[tauri::command]
+pub fn live_action(app: AppHandle, flow: State<Arc<Flow>>, action: String, id: Option<u64>) {
+    let flow = flow.inner().clone();
+    match action.as_str() {
+        "dictate" => {
+            // The island's Dictate button works with the hotkey off too: the
+            // dictation worker starts for this session (the setting is unchanged).
+            let off = flow.running.lock().unwrap().is_none();
+            if off {
+                crate::log::line("flow: started from the island's Dictate button");
+                enable(&app, &flow);
+            }
+            flow.send(KeyEvent::HandsFree);
+        }
+        "finish" => flow.send(KeyEvent::Finish),
+        "cancel" => flow.send(KeyEvent::Cancel),
+        "note" => crate::notes::toggle(&app),
+        "stopNote" => crate::notes::stop(&app),
+        "hub" => crate::show_hub(&app, None),
+        "pasteAgain" => paste_last(&app),
+        "announcement" | "dismiss" => {
+            let Some(n) = id.and_then(|id| live::dismiss(&app, id)) else { return };
+            if action == "announcement" {
+                match n.action_id.as_deref() {
+                    Some("openSettings") => crate::show_hub(&app, Some("settings")),
+                    Some("openNotes") => crate::show_hub(&app, Some("notes")),
+                    Some("openSkills") => crate::show_hub(&app, Some("skills")),
+                    Some("openAssistant") => crate::show_hub(&app, Some("assistant")),
+                    Some("openSpeechSetup") => crate::show_hub(&app, Some("speechsetup")),
+                    Some("openVoice") => crate::show_hub(&app, Some("voice")),
+                    Some("openWardrobe") => crate::show_hub(&app, Some("wardrobe")),
+                    Some("closeOnLeave") => crate::set_setting(&app, |s| s.auto_close_interval = 0.0),
+                    _ => {}
+                }
+            }
+        }
+        _ => {}
+    }
+}

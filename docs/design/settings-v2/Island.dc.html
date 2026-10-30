@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groovy settings: Island</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px}
+.lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7E8883}
+.btn{height:32px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#EEF3F0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.seg{height:32px;padding:0 14px;border-radius:8px;border:0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.tile{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px;cursor:pointer;font-family:inherit;color:#EEF3F0;text-align:left;height:70px;box-sizing:border-box}
+.pill{font-size:11.5px;font-weight:700;border-radius:10px;padding:3px 9px;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; display: flex; background: #0A0C0E; font-family: Manrope, system-ui, sans-serif; color: #EEF3F0; overflow: hidden">
+  <dc-import name="Sidebar" active="layout" hint-size="272px,800px"></dc-import>
+  <main style="flex-grow: 1; min-width: 0; padding: 32px 40px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; box-sizing: border-box">
+    <header style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 12px; color: #7E8883">Island › Layout &amp; tiles</div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700">Your island</h1>
+      <p style="margin: 0; font-size: 13.5px; color: #9AA59F">What the island shows, how it looks and when it opens. Changes appear live.</p>
+    </header>
+
+    <section aria-label="Preview" style="height: 170px; border-radius: 16px; background: linear-gradient(120deg, #1B3A4A, #3B2A4F 55%, #4A3A22); display: flex; align-items: flex-start; justify-content: center; padding-top: 14px; box-sizing: border-box">
+      <div style="width: 560px; display: flex; gap: 10px; padding: 12px; border-radius: 22px; background: {{glass}}; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 10px 30px rgba(0,0,0,0.35)">
+        <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center"><svg width="40" height="44" viewBox="0 -14 100 114" aria-hidden="true"><path d="M51 16C42 12 36 14 33 8C42 5 48 9 51 16ZM51 13C59 7 66 8 70 3C64 0 56 3 51 13Z" fill="#5FC46A"></path><rect x="14" y="30" width="72" height="62" rx="28" fill="#E4F6E8"></rect><ellipse cx="38" cy="62" rx="7" ry="4" transform="rotate(-12 38 62)" fill="#1F7A44"></ellipse><ellipse cx="62" cy="62" rx="7" ry="4" transform="rotate(12 62 62)" fill="#1F7A44"></ellipse></svg></div>
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 2px; flex-grow: 1"><span style="font-size: 10px; font-weight: 800; color: #7FF0A4; letter-spacing: .08em">UP NEXT</span><span style="font-size: 14px; font-weight: 700">Good morning</span><span style="font-size: 11.5px; color: #C4CBC7">2 reminders today</span></div>
+        <sc-for list="{{preview}}" as="p" hint-placeholder-count="4"><div style="width: 54px; height: 54px; border-radius: 12px; background: rgba(255,255,255,0.10); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><span style="width: 18px; height: 18px; border-radius: 6px; background: {{p.c}}"></span><span style="font-size: 9.5px; font-weight: 600">{{p.n}}</span></div></sc-for>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lbl">Tiles · tap to show or hide</span>
+        <div class="card" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px">
+          <sc-for list="{{tiles}}" as="t" hint-placeholder-count="8">
+            <button type="button" class="tile" aria-pressed="{{t.on}}" onClick="{{t.flip}}" style="background: {{t.bg}}; border: {{t.bd}}"><span style="width: 20px; height: 20px; border-radius: 6px; background: {{t.c}}; opacity: {{t.op}}"></span><span style="font-size: 12px; font-weight: 600; opacity: {{t.op}}">{{t.n}}</span></button>
+          </sc-for>
+        </div>
+        <span class="lbl" style="padding-top: 8px">Look and feel</span>
+        <div class="card" style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px"><span style="font-size: 14px; font-weight: 600; flex-grow: 1">Glass</span><div role="radiogroup" aria-label="Glass strength" style="display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05)"><sc-for list="{{strengths}}" as="g" hint-placeholder-count="4"><button type="button" role="radio" class="seg" aria-checked="{{g.sel}}" onClick="{{g.pick}}" style="background: {{g.bg}}; color: {{g.fg}}">{{g.label}}</button></sc-for></div></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Opens</span><span style="font-size: 12px; color: #8C9691">On hover, after 150 ms</span></div><button type="button" class="btn">On hover</button></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Closes</span><span style="font-size: 12px; color: #8C9691">When the pointer leaves</span></div><button type="button" class="btn">When I leave</button></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lbl">Accounts</span>
+        <div class="card" style="display: flex; flex-direction: column">
+          <sc-for list="{{accounts}}" as="a" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border-top: {{a.border}}">
+              <span style="width: 30px; height: 30px; border-radius: 9px; background: {{a.c}}; flex-shrink: 0"></span>
+              <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span style="font-size: 14px; font-weight: 600">{{a.n}}</span><span style="font-size: 12px; color: #8C9691">{{a.d}}</span></div>
+              <span class="pill" style="background: {{a.pbg}}; color: {{a.pfg}}">{{a.s}}</span>
+            </div>
+          </sc-for>
+          <div style="padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.06)"><button type="button" class="btn" style="width: 100%">+ Connect an account</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { g: 'Balanced', off: { 'Calendar': true, 'Vercel': true, 'Neon': true } }; }
+  renderVals() {
+    const s = this.state;
+    const T = [['Mail', '#4C8DF6'], ['Spotify', '#1ED760'], ['Reminders', '#F5A524'], ['This PC', '#3FC1C9'], ['Claude Code', '#E8A27C'], ['GitHub', '#C9D1CD'], ['Calendar', '#E5484D'], ['Vercel', '#EEEEEE'], ['Neon', '#3EE6B0'], ['Resend', '#9AA59F'], ['Notes', '#F5C842'], ['Weather', '#7FC8FF']];
+    const tiles = T.map(([n, c]) => { const on = !s.off[n]; return { n, c, on: on ? 'true' : 'false', op: on ? '1' : '0.4', bg: on ? 'rgba(255,255,255,0.06)' : 'transparent', bd: on ? '1px solid rgba(255,255,255,0.10)' : '1px dashed rgba(255,255,255,0.14)', flip: () => this.setState({ off: { ...s.off, [n]: on } }) }; });
+    const preview = T.filter(([n]) => !s.off[n]).slice(0, 5).map(([n, c]) => ({ n: n.split(' ')[0], c }));
+    const G = { Clear: 'rgba(30,34,40,0.25)', Balanced: 'rgba(22,26,32,0.45)', Frosted: 'rgba(22,26,32,0.62)', Solid: '#15181C' };
+    const strengths = Object.keys(G).map((label) => ({ label, sel: s.g === label ? 'true' : 'false', bg: s.g === label ? 'rgba(255,255,255,0.12)' : 'transparent', fg: s.g === label ? '#EEF3F0' : '#9AA59F', pick: () => this.setState({ g: label }) }));
+    const ok = ['rgba(70,235,120,0.15)', '#7FF0A4'], warn = ['rgba(245,184,75,0.16)', '#F5C66B'];
+    const A = [['Gmail', 'you@gmail.com', 'Sign in again', warn, '#E5484D'], ['iCloud Mail', 'App-specific password', 'Connected', ok, '#4C8DF6'], ['Outlook', 'you@outlook.com', 'Connected', ok, '#2F6FD1'], ['Spotify', 'Playing on this PC', 'Connected', ok, '#1ED760'], ['GitHub', 'WavezFX', 'Connected', ok, '#C9D1CD']];
+    const accounts = A.map(([n, d, st, p, c], i) => ({ n, d, s: st, pbg: p[0], pfg: p[1], c, border: i ? '1px solid rgba(255,255,255,0.06)' : '0' }));
+    return { tiles, preview, strengths, glass: G[s.g], accounts };
+  }
+}
+</script>
+</body>
+</html>

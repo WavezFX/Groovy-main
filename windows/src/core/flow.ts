@@ -1,0 +1,330 @@
+// Flow dictation, the voice models and the Notetaker, as the Groovy window and
+// the island see them (src-tauri/src/flow, speech, notes).
+
+import { invoke } from "@tauri-apps/api/core";
+import { showError } from "../views/toast";
+
+const QUIET = new Set([
+  "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
+  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_audio", "tts_status",
+]);
+
+const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
+  if (!IS_TAURI) return null;
+  try {
+    return await invoke<T>(cmd, args);
+  } catch (err) {
+    console.error(`[groovy] ${cmd} failed`, err);
+    // Reading state is background work; everything else here is a click.
+    if (!QUIET.has(cmd)) showError(err);
+    return null;
+  }
+}
+
+async function callOrThrow<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  if (!IS_TAURI) throw new Error("not running inside Groovy");
+  return invoke<T>(cmd, args);
+}
+
+export type FlowKey = "right_ctrl" | "right_alt" | "right_shift" | "left_ctrl_super";
+export type Style = "verbatim" | "natural" | "polished";
+
+export interface FlowPrefs {
+  enabled: boolean;
+  key: FlowKey;
+  mic: string;
+  keepDays: number;
+  cleanup: boolean;
+  defaultStyle: Style;
+  summaryEngine: "ai" | "off";
+  /** Parakeet (25 European languages) or Whisper (≈99, Settings → Voice calls' model). */
+  engine: "parakeet" | "whisper";
+  /** Set once the small speech model was made the default (round 3D item 7). */
+  smallSpeechSet?: boolean;
+  /** The guided speech setup was done once. */
+  speechSetupDone: boolean;
+  openAtLaunch: boolean;
+  /** « OK Groovy »: listen for it and answer with Groovy's AI (local by default). */
+  voice: boolean;
+  voiceOutput: VoiceOutput;
+  voiceGender: "female" | "male";
+  /** Fish Audio's voice id (its `reference_id`) and model; the key is in the OS store. */
+  fishVoice: string;
+  fishModel: string;
+  /** Who speaks first (Settings → Speaking): Fish Audio, Kokoro on this PC, or Windows' voice. */
+  voicePick: "fish" | "kokoro" | "system";
+  /** How fast Fish Audio and Kokoro speak, 0.5–2.0. */
+  voiceSpeed: number;
+  /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
+  cloudSpeech: boolean;
+  /** Learn names and models from corrections made within a minute. */
+  learnWords: boolean;
+}
+
+export type ModelState =
+  | { state: "missing" }
+  | { state: "downloading"; fraction: number }
+  | { state: "ready" }
+  | { state: "failed"; error: string };
+
+export interface ModelsStatus {
+  parakeet: ModelState;
+  downloadMb: number;
+}
+
+export interface FlowStatus {
+  prefs: FlowPrefs;
+  models: ModelsStatus;
+  /** "ok", or why the key can't be watched ("wayland", "no-display"). */
+  keys: string;
+  aiReady: boolean;
+  /** Speech can be turned into text with the engine chosen. */
+  engineReady: boolean;
+  mics: { name: string; default: boolean }[];
+  platform: "windows" | "linux";
+  autostarted: boolean;
+  userName?: string | null;
+}
+
+export interface FlowEntry {
+  id: string;
+  date: number;
+  text: string;
+  app?: string | null;
+  words: number;
+  seconds: number;
+}
+
+export interface Totals {
+  words: number;
+  seconds: number;
+  dictations: number;
+  wordsPerMinute: number;
+  minutesSaved: number;
+}
+
+export interface FlowStats {
+  week: Totals;
+  month: Totals;
+  all: Totals;
+  daily: [string, number][];
+  apps: Record<string, number>;
+  streak: number;
+}
+
+export interface Replacement {
+  id: string;
+  from: string;
+  to: string;
+}
+
+export interface Snippet {
+  id: string;
+  trigger: string;
+  text: string;
+}
+
+export interface AppStyle {
+  id: string;
+  name: string;
+  style: Style;
+}
+
+export interface Speaker {
+  id: string;
+  name: string;
+  color: number;
+  isMe: boolean;
+}
+
+export interface NoteLine {
+  id: string;
+  speaker: string;
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface Todo {
+  id: string;
+  text: string;
+  owner?: string | null;
+  due?: string | null;
+  done: boolean;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  titleEdited: boolean;
+  start: number;
+  end?: number | null;
+  app?: string | null;
+  status: "recording" | "processing" | "ready" | "failed";
+  speakers: Speaker[];
+  lines: NoteLine[];
+  summary?: string | null;
+  keyPoints: string[];
+  todos: Todo[];
+  error?: string | null;
+  startLocal: string;
+}
+
+export interface NotesState {
+  notes: Note[];
+  recording: string | null;
+  working: string[];
+}
+
+/** A message in the island, with an optional button (flow/live.rs). */
+export interface Notice {
+  id: number;
+  icon: string;
+  tint: string;
+  text: string;
+  action?: string | null;
+  actionId?: string | null;
+  /** How long it stays when nobody looks at it. */
+  seconds: number;
+}
+
+/** What the island shows of dictation, a recorded call and « OK Groovy ». */
+export interface LiveState {
+  phase: "idle" | "listening" | "thinking" | "locked" | "copied" | "failed" | "pastedAgain";
+  /** "wayland" where the desktop holds the shortcut. */
+  key: FlowKey | "wayland" | "";
+  noteStartedAt: number | null;
+  enabled: boolean;
+  /** « OK Groovy » is talking with you. */
+  voice: VoiceView | null;
+}
+
+export interface VoiceView {
+  phase: "listening" | "thinking" | "speaking";
+  heard: string;
+  answer: string;
+}
+
+export type VoiceOutput = "system" | "elevenlabs" | "off";
+
+export interface TtsAudio {
+  mime: string;
+  /** Base64. */
+  data: string;
+  provider: "fish" | "kokoro";
+}
+
+export type DownloadState =
+  | { state: "missing" }
+  | { state: "downloading"; fraction: number }
+  | { state: "ready" }
+  | { state: "failed"; error: string };
+
+export interface TtsStatus {
+  fishReady: boolean;
+  fishKey: boolean;
+  fishNote: string | null;
+  fishModels: string[];
+  monthChars: number;
+  monthGbp: number;
+  kokoro: DownloadState;
+  kokoroMb: number;
+  /** Who speaks now. */
+  speaking: "fish" | "kokoro" | "system";
+}
+
+export interface OkStatus {
+  on: boolean;
+  listening: boolean;
+  speech: boolean;
+  mic: string;
+  micError: string | null;
+  ai: string | null;
+}
+
+export interface QuickStatus {
+  ai: { name: string; state: "ready" | "no key" | "on" | "off" }[];
+  ok: OkStatus;
+  voice: "fish" | "kokoro" | "system";
+}
+
+/** One step of "Test OK Groovy": "wake", "words", "answer", "spoken". */
+export interface OkTestStep {
+  step: "wake" | "words" | "answer" | "spoken";
+  ok: boolean;
+  detail: string;
+}
+
+export const FlowBridge = {
+  status: () => call<FlowStatus>("flow_status"),
+  /** The cloud services dictation would try now, in order (empty: this computer only). */
+  cloudServices: () => call<string[]>("speech_cloud_services"),
+  setPrefs: (prefs: FlowPrefs) => call<void>("flow_set_prefs", { prefs }),
+  history: () => call<FlowEntry[]>("flow_history"),
+  deleteEntry: (id: string) => call<void>("flow_delete", { id }),
+  clear: (everything: boolean) => call<void>("flow_clear", { everything }),
+  stats: () => call<FlowStats>("flow_stats"),
+  words: () => call<{ words: string[]; replacements: Replacement[] }>("flow_words"),
+  setWords: (words: { words: string[]; replacements: Replacement[] }) => call<void>("flow_set_words", { words }),
+  snippets: () => call<Snippet[]>("flow_snippets"),
+  setSnippets: (snippets: Snippet[]) => call<void>("flow_set_snippets", { snippets }),
+  styles: () => call<AppStyle[]>("flow_styles"),
+  setStyles: (styles: AppStyle[]) => call<void>("flow_set_styles", { styles }),
+  runningApps: () => call<{ id: string; name: string }[]>("flow_running_apps"),
+  copy: (text: string) => call<boolean>("flow_copy", { text }),
+  pasteAgain: () => call<void>("flow_paste_again"),
+  download: () => call<void>("flow_models_download"),
+  removeModels: () => call<void>("flow_models_remove"),
+
+  notes: () => call<NotesState>("notes_state"),
+  startNote: () => callOrThrow<string>("notes_start"),
+  stopNote: () => call<void>("notes_stop"),
+  renameNote: (id: string, title: string) => call<void>("notes_rename", { id, title }),
+  renameSpeaker: (id: string, speaker: string, name: string) => call<void>("notes_rename_speaker", { id, speaker, name }),
+  toggleTodo: (id: string, todo: string) => call<void>("notes_toggle_todo", { id, todo }),
+  deleteNote: (id: string) => call<void>("notes_delete", { id }),
+  summarize: (id: string) => call<void>("notes_summarize", { id }),
+  retryNote: (id: string) => call<void>("notes_retry", { id }),
+  markdown: (id: string) => call<string>("notes_markdown", { id }),
+  exportNote: (id: string) => callOrThrow<string>("notes_export", { id }),
+
+  liveState: () => call<LiveState>("live_state"),
+  liveNotices: () => call<Notice[]>("live_notices"),
+  liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
+  /** The island has said what « OK Groovy » answered. */
+  /** Groovy's voice for one sentence (Fish Audio, then Kokoro); null: the page's own voice says it. */
+  ttsAudio: (text: string) => call<TtsAudio>("tts_audio", { text }),
+  ttsStatus: () => call<TtsStatus>("tts_status"),
+  /** Fish Audio alone, so its own error shows; throws why it couldn't. */
+  fishTest: () => callOrThrow<TtsAudio>("fish_test"),
+  kokoroDownload: () => call<void>("kokoro_download"),
+  /** Kokoro's voice for a Speaking card. */
+  kokoroPreview: (gender: "female" | "male") => callOrThrow<TtsAudio>("kokoro_preview", { gender }),
+  kokoroRemove: () => call<void>("kokoro_remove"),
+  /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
+  okStatus: () => call<OkStatus>("okgroovy_status"),
+  /** Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice. */
+  quickStatus: () => call<QuickStatus>("quick_status"),
+  /** Reports each step of the next « OK Groovy » ("okgroovy-test" events); throws why it can't. */
+  okTest: () => callOrThrow<void>("okgroovy_test"),
+  voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),
+  /** speech-dispatcher or espeak-ng, where the webview has no voice. */
+  sayNative: (text: string, lang: string | null) => call<boolean>("voice_say_native", { text, lang }),
+};
+
+/** One colour per person in a call: you first, then the others. */
+export const SPEAKER_COLORS = ["#3B9EFF", "#34D399", "#A78BFA", "#F7B32B", "#F472B6", "#22D3EE"];
+
+export function speakerColor(index: number): string {
+  return SPEAKER_COLORS[Math.max(0, index) % SPEAKER_COLORS.length];
+}
+
+/** 75 → "1:15", 3725 → "1:02:05". */
+export function clock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const two = (n: number) => String(n).padStart(2, "0");
+  if (s >= 3600) return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
+  return `${Math.floor(s / 60)}:${two(s % 60)}`;
+}

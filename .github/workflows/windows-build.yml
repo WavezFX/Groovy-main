@@ -1,0 +1,409 @@
+name: Windows
+
+# The full Windows build: installers, smoke, memory, peak, frame-time and
+# screenshot tests (round 3G item 9). It is slow, so it does NOT run on every
+# push (the fast "Check" workflow does that). It runs:
+#   - when started by hand (Actions → Windows → Run workflow),
+#   - on a push whose commit message contains [build],
+#   - once a night, if the branch changed in the last 25 hours.
+# A green run replaces the three downloads on ONE page, the pre-release
+# "Groovy latest build" (tag latest-build): Setup, Portable zip and MSI.
+# Publishing real versions stays in windows-release.yml (tags only).
+#
+# The nightly schedule only fires from the default branch's copy of this file.
+
+# Started by a push or a pull request, a run keeps GitHub's own title (the
+# commit's first line); the other two say what they are.
+run-name: "${{ github.event_name == 'schedule' && 'Nightly build' || github.event_name == 'workflow_dispatch' && 'Build (started by hand)' || '' }}"
+
+on:
+  push:
+    branches: [main, 'groovy-ai-*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-build.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  # Decides whether this run builds at all (a push without [build] doesn't).
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.g.outputs.build }}
+      ref: ${{ steps.g.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: g
+        shell: bash
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          branch=groovy-ai-phase1
+          ref="$GITHUB_SHA"
+          build=false
+          case "$EVENT" in
+            workflow_dispatch) build=true ;;
+            push) if [[ "$MESSAGE" == *"[build]"* ]]; then build=true; fi ;;
+            schedule)
+              # The nightly builds the working branch, only if it changed.
+              git fetch -q origin "$branch" || true
+              ref=$(git rev-parse "origin/$branch" 2>/dev/null || echo "")
+              if [ -n "$ref" ] && [ -n "$(git log --since='25 hours ago' --format=%h -1 "origin/$branch")" ]; then build=true; fi ;;
+          esac
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "event=$EVENT build=$build ref=$ref"
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 90
+    # Only to replace the assets of the "Groovy latest build" release at the end.
+    permissions:
+      contents: write
+    # One full build per branch at a time; a newer one replaces a running one.
+    concurrency:
+      group: windows-build-${{ github.ref }}
+      cancel-in-progress: true
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Restored here and saved at the end even when a later step fails, so a
+      # red run doesn't throw away a 20-minute compile.
+      - name: Restore the cargo cache
+        id: cargo-cache
+        uses: actions/cache/restore@v6
+        with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            windows/target
+          # Bump the version when a C/C++ build setting changes (v3: static CRT
+          # for whisper.cpp): build scripts don't rerun for it, cached objects would.
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-
+            windows-build-cargo-v3-
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build the relay
+        run: cargo build --release -p groovy-hook
+
+      - name: Build and pack the installers
+        id: pack
+        shell: pwsh
+        run: |
+          npm run pack
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Copy-Item target/release/groovy.exe release/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/groovy-hook.exe
+          Get-ChildItem release | Format-Table Name, Length
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File | Where-Object Name -ne SHA256SUMS.txt | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+          Copy-Item ../CHANGELOG.md release/CHANGELOG.md -ErrorAction SilentlyContinue
+
+      - name: Smoke test the portable executable
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
+
+      # Rounds 3F item 2 and 3G item 6: everything CI steers by environment
+      # variable (GROOVY_SMOKE_VIEW, GROOVY_WORK_TEST, GROOVY_PEAK_TEST) is a
+      # cargo feature, `ci`, that is off in everything shipped. It is built into
+      # a separate exe, here, for the corner, frame-time, realistic-idle and
+      # peak steps; the shipped exe is checked not to contain any of it.
+      - name: Build the CI exe (ci feature) and check the shipped exe has none of it
+        shell: pwsh
+        run: |
+          $has = { param($path, $text) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains($text) }
+          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW"
+          foreach ($v in $switches) { if (& $has release/groovy.exe $v) { throw "the shipped groovy.exe reads $v" } }
+          npx tauri build --no-bundle --features ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force release/test | Out-Null
+          Copy-Item target/release/groovy.exe release/test/groovy.exe
+          Copy-Item target/release/groovy-hook.exe release/test/groovy-hook.exe -ErrorAction SilentlyContinue
+          foreach ($v in $switches) { if (-not (& $has release/test/groovy.exe $v)) { throw "the CI exe was built without $v" } }
+          "shipped exe: none of the switches; CI exe: all of them"
+
+      - name: Nothing but the island is drawn, and it is frosted (F and E)
+        shell: pwsh
+        run: ./scripts/corner-test.ps1 -Exe release/test/groovy.exe -OutDir corner-shots
+
+      - name: Upload the corner screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: island-corners
+          path: windows/corner-shots/
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
+        shell: pwsh
+        run: ./scripts/frame-test.ps1 -Exe release/test/groovy.exe -Trace frame-trace.json
+
+      - name: Upload the frame trace
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frame-trace
+          path: windows/frame-trace.json
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Settings grows out of the island and fades in (no flash), and folds back
+        shell: pwsh
+        run: ./scripts/settings-anim-test.ps1 -Exe release/groovy.exe -Out settings-anim.json
+
+      - name: Upload the Settings animation samples
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: settings-anim
+          path: windows/settings-anim.json
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Install with the NSIS installer and smoke test it offline
+        shell: pwsh
+        run: |
+          $v = "${{ steps.pack.outputs.version }}"
+          $setup = "release/Groovy-AI-$v-Windows-Setup.exe"
+          $p = Start-Process -FilePath $setup -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exited with $($p.ExitCode)" }
+          $entry = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall |
+            Get-ItemProperty | Where-Object DisplayName -like "Groovy*" | Select-Object -First 1
+          if (-not $entry) { throw "no uninstall entry registered" }
+          "Registered: $($entry.DisplayName) $($entry.DisplayVersion)"
+          $dir = if ($entry.InstallLocation) { $entry.InstallLocation.Trim('"') } else { Split-Path ($entry.UninstallString.Trim('"')) }
+          "dir=$dir" >> $env:GITHUB_ENV
+          $installed = Join-Path $dir "groovy.exe"
+          if (-not (Test-Path $installed)) { throw "groovy.exe not installed at $installed" }
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "Groovy*.lnk"
+          if (-not $lnk) { throw "no Start menu shortcut" }
+          "Start menu: $($lnk.FullName -join ', ')"
+          ./scripts/smoke-test.ps1 -Exe $installed -Offline -Label installed
+
+      - name: Uninstall
+        shell: pwsh
+        run: |
+          $un = Join-Path $env:dir "uninstall.exe"
+          if (-not (Test-Path $un)) { throw "no uninstaller at $un" }
+          $p = Start-Process -FilePath $un -ArgumentList "/S" -Wait -PassThru
+          # The NSIS uninstaller copies itself to %TEMP% and returns at once.
+          Start-Sleep -Seconds 10
+          if (Test-Path (Join-Path $env:dir "groovy.exe")) { throw "groovy.exe still present after uninstall" }
+          "uninstalled"
+
+      # Round 3B item 10: the budget is for a real PC with the models on it.
+      # The small Whisper model, the wake word spotter, Kokoro, llama.cpp and
+      # the smallest local model are cached between runs (round 3D item 7).
+      - name: Restore the downloaded models
+        id: models-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v3
+
+      - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
+        shell: pwsh
+        run: ./scripts/work-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
+
+      # Round 3D item 7: never over 400 MB, even at peak (sampled every 250 ms).
+      - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, OK Groovy, mail)
+        shell: pwsh
+        run: ./scripts/peak-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
+
+      - name: Save the downloaded models
+        if: always() && steps.models-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/AppData/Local/Groovy/Models
+            ~/AppData/Local/Groovy/runtime
+          key: windows-models-v3
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Front-end tests
+        run: npm test
+
+      # Round 3D item 3: every Settings page and tab, dark and light, for the
+      # owner to look through (download "settings-screens" from the run page).
+      - name: Settings screenshots (every page, dark and light)
+        shell: pwsh
+        run: |
+          npm run gen:i18n
+          npm i --no-save playwright-core@1.48.2
+          $vite = Start-Process -PassThru -NoNewWindow -FilePath cmd.exe -ArgumentList "/c", "npx", "vite", "--port", "1420", "--strictPort", "--host", "127.0.0.1"
+          $up = $false
+          for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing http://127.0.0.1:1420/settings.html | Out-Null; $up = $true } catch { Start-Sleep 1 }
+          }
+          if (-not $up) { taskkill /PID $vite.Id /T /F | Out-Null; throw "The page server didn't start" }
+          node --import ./tests/setup.mjs scripts/settings-screens.mjs http://127.0.0.1:1420 settings-screens
+          $code = $LASTEXITCODE
+          # Round 3E item 1: the island's tiles, both pages, long names, hit areas.
+          node --import ./tests/setup.mjs scripts/island-screens.mjs http://127.0.0.1:1420 settings-screens/island
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3E item 9: Frost's water fills his body at yaw -1, 0 and +1, every stage.
+          node --import ./tests/setup.mjs scripts/water-check.mjs http://127.0.0.1:1420 settings-screens/water
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3E item 10: every wardrobe item on his head at every angle, with a contact sheet.
+          node --import ./tests/setup.mjs scripts/items-check.mjs http://127.0.0.1:1420 settings-screens/items
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3H item 2: the Groovy page for each look, both widths, no layout shift, smooth previews.
+          node --import ./tests/setup.mjs scripts/growth-screens.mjs http://127.0.0.1:1420 settings-screens/growth
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          taskkill /PID $vite.Id /T /F | Out-Null
+          exit $code
+
+      - name: Upload the Settings screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: settings-screens
+          path: windows/settings-screens/
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Rust tests
+        shell: pwsh
+        run: |
+          cargo test --workspace 2>&1 | Tee-Object -FilePath rust-tests.txt
+          exit $LASTEXITCODE
+
+      # Groovy's offline voice (round 3B item 8c): Kokoro downloaded as
+      # Settings would, then a sentence spoken through the same path.
+      - name: Kokoro speaks
+        shell: pwsh
+        run: |
+          cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo test -p groovy kws_hears_ok_groovy -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # Round 3F item 5: dictation on sherpa-onnx's Whisper hears CI's clips.
+          cargo test -p groovy whisper_base_hears -- --ignored --nocapture
+          exit $LASTEXITCODE
+
+      # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):
+      # add a local skill, list it, remove it with a backup.
+      - name: Skills CLI end-to-end
+        shell: pwsh
+        run: |
+          cargo test -p groovy skills_cli -- --ignored 2>&1 | Tee-Object -FilePath skills-cli-test.txt
+          exit $LASTEXITCODE
+
+      - name: Save the cargo cache
+        # Not after a cancel: a cancelled run's files may be half written.
+        if: (success() || failure()) && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          # Downloaded crates only, never their extracted sources: cargo
+          # re-extracts those, so a half-written cache can't break a build.
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            windows/target
+          key: windows-build-cargo-v3-${{ hashFiles('windows/Cargo.lock') }}-${{ github.sha }}
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-logs
+          path: |
+            windows/rust-tests.txt
+            windows/skills-cli-test.txt
+          retention-days: 3
+
+      # The one download place (round 3G item 9): a green full build replaces
+      # the assets of the pre-release "Groovy latest build" (tag latest-build).
+      # Needs contents: write, so it is the only job-level grant, and it runs
+      # only for this repo's own push, dispatch and nightly runs.
+      - name: Publish to "Groovy latest build"
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ needs.gate.outputs.ref }}
+        run: |
+          $v = "${{ steps.pack.outputs.version }}"
+          $tag = "latest-build"
+          # GitHub's API sometimes answers 500 for a moment (build 197: replacing an asset):
+          # each call that must succeed is tried up to 4 times.
+          function Retry([scriptblock] $call) {
+            for ($i = 1; $i -le 4; $i++) {
+              & $call
+              if ($LASTEXITCODE -eq 0) { return }
+              if ($i -lt 4) { Write-Host "retrying in $(5 * $i) s"; Start-Sleep -Seconds (5 * $i) }
+            }
+            exit $LASTEXITCODE
+          }
+          $stage = "release/latest"
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory $stage | Out-Null
+          Copy-Item "release/Groovy-AI-$v-Windows-Setup.exe" $stage
+          Copy-Item "release/Groovy-AI-$v-Windows.msi" $stage
+          Compress-Archive -Path release/groovy.exe, release/groovy-hook.exe -DestinationPath "$stage/Groovy-AI-$v-Windows-Portable.zip"
+          Get-ChildItem $stage -File | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content "$stage/SHA256SUMS.txt"
+          $short = $env:SHA.Substring(0, 7)
+          $notes = "The last green full build: version $v, commit $short, built $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')) UTC. Setup.exe is the installer, the Portable zip runs without installing, the MSI is the other installer. This page is replaced by every green full build."
+          gh release view $tag -R $env:REPO 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Retry { gh release create $tag -R $env:REPO --prerelease --title "Groovy latest build" --notes $notes --target $env:SHA }
+          } else {
+            Retry { gh release edit $tag -R $env:REPO --prerelease --title "Groovy latest build" --notes $notes }
+            # The tag moves to the commit that was built. GitHub sometimes refuses
+            # this to the workflow's token (build 198: HTTP 403); the notes name
+            # the commit anyway, so the files are still uploaded.
+            gh api -X PATCH "repos/$env:REPO/git/refs/tags/$tag" -f sha=$env:SHA -F force=true | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::the latest-build tag couldn't move to $short; the release notes name the commit built" }
+          }
+          # Assets from an earlier version's names go; same names are replaced.
+          $keep = (Get-ChildItem $stage -File).Name
+          foreach ($a in (gh release view $tag -R $env:REPO --json assets --jq ".assets[].name")) {
+            if ($keep -notcontains $a) { gh release delete-asset $tag $a -R $env:REPO -y }
+          }
+          Retry { gh release upload $tag (Get-ChildItem $stage -File).FullName -R $env:REPO --clobber }

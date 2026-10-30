@@ -1,0 +1,22 @@
+# cargo audit (run from windows/; CI's "Security" job) fails on any advisory
+# with a patched version except the ones below, each with its reason.
+
+[advisories]
+ignore = [
+  # zip 2.4.2: ZipArchive::extract writes symlinks / SUID bits. The only copy
+  # left is a *build* dependency of sherpa-onnx-sys (its build script unpacks
+  # the speech engine's own prebuilt archive, on the build machine, from the
+  # release it pins). Nothing shipped links it, and Groovy's own zip use is
+  # zip 9 (models.rs unzip_into, which never creates links or sets modes).
+  # Remove these when sherpa-onnx-sys moves to zip >= 9.
+  "RUSTSEC-2026-0367",
+  "RUSTSEC-2026-0368",
+  "RUSTSEC-2026-0369",
+  # zstd 0.13.3 / zstd-safe 7.3.0: the same build-only path (zip 2.4.2's
+  # zstd support, used by sherpa-onnx-sys's build script). The fixes are in
+  # zstd 0.14 / zstd-safe 8, which zip 2.4.2 can't take; nothing shipped links
+  # zstd. zstd-sys is already on the fixed 2.1.2. Remove with the zip entries.
+  "RUSTSEC-2026-0391",
+  "RUSTSEC-2026-0398",
+  "RUSTSEC-2026-0403",
+]

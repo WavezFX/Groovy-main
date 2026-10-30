@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Island tiles that expand</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.tile{display:flex;flex-direction:column;justify-content:space-between;padding:10px;border-radius:14px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.12);color:#F2F5F3;font-family:inherit;text-align:left;cursor:pointer;box-sizing:border-box;min-width:0;min-height:0;overflow:hidden}
+.tile:hover{background:rgba(255,255,255,0.15)}
+.panel{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.14);box-sizing:border-box;min-width:0;min-height:0;overflow:hidden}
+.cb{width:40px;height:40px;border-radius:20px;border:0;background:rgba(255,255,255,0.14);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.cb:hover{background:rgba(255,255,255,0.24)}
+.play{width:52px;height:52px;border-radius:26px;background:#fff;color:#111}
+.play:hover{background:#E8E8E8}
+.back{height:30px;padding:0 10px 0 6px;border-radius:15px;border:0;background:rgba(255,255,255,0.12);color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer}
+.mrow{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;border:0;background:transparent;color:#F2F5F3;font-family:inherit;text-align:left;cursor:pointer;width:100%}
+.mrow:hover{background:rgba(255,255,255,0.08)}
+.sbtn{height:30px;padding:0 12px;border-radius:9px;border:0;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,0.12);overflow:hidden}
+</style>
+</helmet>
+<div style="width: 900px; height: 300px; box-sizing: border-box; padding: 24px; background: linear-gradient(115deg, #1B3A4A, #3B2A4F 55%, #4A3A22); font-family: Manrope, system-ui, sans-serif; display: flex; justify-content: center; align-items: flex-start">
+  <div style="display: flex; gap: 12px; padding: 12px; border-radius: 26px; background: rgba(20,24,30,0.48); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 14px 40px rgba(0,0,0,0.4)">
+    <div style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 4px; box-sizing: border-box">
+      <div style="display: flex; gap: 10px; align-items: center">
+        <svg width="56" height="64" viewBox="0 -14 100 114" aria-hidden="true" style="filter: drop-shadow(0 0 10px rgba(70,235,120,0.55))"><path d="M51 16C42 12 36 14 33 8C42 5 48 9 51 16ZM51 13C59 7 66 8 70 3C64 0 56 3 51 13Z" fill="#5FC46A"></path><rect x="14" y="30" width="72" height="62" rx="28" fill="#E4F6E8"></rect><ellipse cx="38" cy="62" rx="7" ry="4" transform="rotate(-12 38 62)" fill="#1F7A44"></ellipse><ellipse cx="62" cy="62" rx="7" ry="4" transform="rotate(12 62 62)" fill="#1F7A44"></ellipse></svg>
+        <div style="display: flex; flex-direction: column; gap: 2px; color: #F2F5F3"><span style="font-size: 10px; font-weight: 800; letter-spacing: .08em; color: #7FF0A4">UP NEXT</span><span style="font-size: 15px; font-weight: 700">Good morning</span><span style="font-size: 11.5px; color: #C4CBC7">Nothing urgent. Ask me anything.</span></div>
+      </div>
+      <div style="display: flex; gap: 6px"><button type="button" class="sbtn" style="background: rgba(255,255,255,0.12); color: #fff">Dictate</button><button type="button" class="sbtn" style="background: rgba(255,255,255,0.12); color: #fff">Call</button><button type="button" class="sbtn" style="background: rgba(255,255,255,0.12); color: #fff">Record</button></div>
+    </div>
+
+    <div style="width: 404px; height: 220px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px">
+
+      <sc-if value="{{showBigMusic}}" hint-placeholder-val="{{false}}">
+        <div class="panel" style="grid-column: 1 / span 2; grid-row: 1 / span 2; background: rgba(30,215,96,0.16); border-color: rgba(30,215,96,0.35)">
+          <div style="display: flex; gap: 10px; align-items: center">
+            <div style="width: 54px; height: 54px; border-radius: 10px; background: linear-gradient(135deg, #F59E0B, #DB2777); flex-shrink: 0"></div>
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; color: #fff"><span style="font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Midnight City</span><span style="font-size: 11.5px; color: #CDEFD8">M83</span></div>
+          </div>
+          <div class="bar" style="margin-top: 4px"><div style="width: 42%; height: 6px; background: #fff"></div></div>
+          <div style="display: flex; justify-content: center; align-items: center; gap: 12px; flex-grow: 1">
+            <button type="button" class="cb" aria-label="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"></path></svg></button>
+            <button type="button" class="cb play" aria-label="{{playLabel}}" onClick="{{togglePlay}}"><sc-if value="{{playing}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg></sc-if><sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></sc-if></button>
+            <button type="button" class="cb" aria-label="Next"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"></path></svg></button>
+          </div>
+          <button type="button" class="back" onClick="{{goGrid}}" style="align-self: flex-start"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>Back</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showSideMusic}}" hint-placeholder-val="{{false}}">
+        <div class="panel" style="grid-column: 4; grid-row: 1 / span 2; align-items: center; justify-content: space-between; padding: 10px 6px; background: rgba(30,215,96,0.16); border-color: rgba(30,215,96,0.35)">
+          <div style="width: 52px; height: 52px; border-radius: 10px; background: linear-gradient(135deg, #F59E0B, #DB2777)"></div>
+          <span style="font-size: 11px; font-weight: 800; color: #fff; text-align: center; line-height: 1.2">Midnight City</span>
+          <button type="button" class="cb play" style="width: 44px; height: 44px" aria-label="{{playLabel}}" onClick="{{togglePlay}}"><sc-if value="{{playing}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg></sc-if><sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></sc-if></button>
+          <div style="display: flex; gap: 6px"><button type="button" class="cb" style="width: 34px; height: 34px" aria-label="Previous"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"></path></svg></button><button type="button" class="cb" style="width: 34px; height: 34px" aria-label="Next"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"></path></svg></button></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showMail}}" hint-placeholder-val="{{false}}">
+        <div class="panel" style="grid-column: {{mailCols}}; grid-row: 1 / span 2">
+          <div style="display: flex; align-items: center; gap: 8px; color: #fff">
+            <button type="button" class="back" onClick="{{mailBack}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>{{mailBackLabel}}</button>
+            <span style="font-size: 13px; font-weight: 800; flex-grow: 1">{{mailTitle}}</span>
+            <button type="button" class="back" onClick="{{toggleFull}}" aria-label="Change mail size">{{sizeLabel}}</button>
+          </div>
+          <sc-if value="{{mailList}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden">
+              <sc-for list="{{mails}}" as="m" hint-placeholder-count="3">
+                <button type="button" class="mrow" onClick="{{m.open}}"><span style="width: 28px; height: 28px; border-radius: 14px; background: {{m.c}}; color: #111; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{m.i}}</span><span style="display: flex; flex-direction: column; gap: 1px; min-width: 0; flex-grow: 1"><span style="display: flex; justify-content: space-between; gap: 6px; font-size: 12.5px; font-weight: 800"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{m.from}}</span><span style="font-weight: 600; color: #B9C2BD; flex-shrink: 0">{{m.t}}</span></span><span style="font-size: 12px; color: #D5DBD8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{m.subj}}</span></span></button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{mailRead}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0; color: #F2F5F3">
+              <span style="font-size: 13.5px; font-weight: 800">{{cur.subj}}</span>
+              <span style="font-size: 12px; line-height: 1.45; color: #D5DBD8; overflow: hidden">{{cur.body}}</span>
+              <div style="display: flex; gap: 6px; margin-top: auto"><button type="button" class="sbtn" onClick="{{startReply}}" style="background: #fff; color: #111">Reply</button><button type="button" class="sbtn" style="background: rgba(255,255,255,0.14); color: #fff">Archive</button><button type="button" class="sbtn" style="background: rgba(255,255,255,0.14); color: #fff">Open in Gmail</button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{mailReply}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0">
+              <label for="rp" style="font-size: 12px; color: #D5DBD8">Reply to {{cur.from}}</label>
+              <textarea id="rp" style="flex-grow: 1; min-height: 0; resize: none; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.25); color: #fff; font-family: inherit; font-size: 12.5px; padding: 8px">Sounds good, see you Thursday.</textarea>
+              <div style="display: flex; gap: 6px"><button type="button" class="sbtn" onClick="{{sendReply}}" style="background: #46EB78; color: #08210F">Send</button><button type="button" class="sbtn" style="background: rgba(255,255,255,0.14); color: #fff">Groovy, polish it</button></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showPC}}" hint-placeholder-val="{{false}}">
+        <div class="panel" style="grid-column: 1 / span 3; grid-row: 1 / span 2; color: #F2F5F3">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <button type="button" class="back" onClick="{{goGrid}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>Back</button>
+            <span style="font-size: 13px; font-weight: 800; flex-grow: 1">This PC</span>
+            <span style="font-size: 11.5px; color: #B9C2BD">Battery 78% · Wi-Fi</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px">
+            <sc-for list="{{meters}}" as="mt" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 4px"><div style="display: flex; justify-content: space-between; font-size: 11.5px"><span style="font-weight: 700">{{mt.n}}</span><span style="color: #D5DBD8">{{mt.v}}</span></div><div class="bar"><div style="height: 6px; width: {{mt.w}}; background: {{mt.c}}; border-radius: 3px"></div></div></div>
+            </sc-for>
+          </div>
+          <span style="font-size: 10.5px; font-weight: 800; letter-spacing: .08em; color: #B9C2BD; margin-top: 2px">TOP APPS BY MEMORY</span>
+          <sc-for list="{{apps}}" as="a" hint-placeholder-count="2">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px"><span style="flex-grow: 1; font-weight: 700">{{a.n}}</span><span style="color: #D5DBD8">{{a.m}}</span><button type="button" class="sbtn" style="height: 26px; padding: 0 10px; background: rgba(255,255,255,0.14); color: #fff">End</button></div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="8">
+        <button type="button" class="tile" onClick="{{t.open}}" style="grid-column: {{t.col}}; grid-row: {{t.row}}"><span style="width: 24px; height: 24px; border-radius: 7px; background: {{t.c}}"></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 12px; font-weight: 800">{{t.n}}</span><span style="font-size: 10.5px; color: #C4CBC7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.s}}</span></span></button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["grid","music","mail","mailfull","mailread","mailreply","pc"],"default":"grid"},"$preview":{"width":900,"height":300}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const v = p.view || 'grid';
+    this.state = { view: v === 'mailread' || v === 'mailreply' || v === 'mailfull' ? 'mail' : v, full: v === 'mailfull', open: v === 'mailread' || v === 'mailreply' ? 0 : -1, reply: v === 'mailreply', playing: true };
+  }
+  renderVals() {
+    const s = this.state;
+    const set = (o) => () => this.setState(o);
+    const mails = [
+      ['Ava Chen', 'Thursday plan?', 'Are we still on for Thursday at 6? I can book the table if you want.', 'A', '#F5B84B', '08:41'],
+      ['GitHub', 'Build #112 passed', 'All checks passed on groovy-ai-phase1. Installers are ready to download.', 'G', '#C9D1CD', '08:12'],
+      ['Currys', 'Your student discount', 'Your student discount code is ready to use in store and online.', 'C', '#7FC8FF', 'Yesterday']
+    ].map(([from, subj, body, i, c, t], k) => ({ from, subj, body, i, c, t, open: set({ open: k, reply: false }) }));
+    const all = [
+      ['Mail', '3 unread', '#4C8DF6', set({ view: 'mail', open: -1, reply: false })],
+      ['Spotify', 'Midnight City', '#1ED760', set({ view: 'music' })],
+      ['Reminders', '2 today', '#F5A524', null],
+      ['This PC', 'CPU 12% · RAM 61%', '#3FC1C9', set({ view: 'pc' })],
+      ['Claude Code', 'Hooks installed', '#E8A27C', null],
+      ['GitHub', 'Build passed', '#C9D1CD', null],
+      ['Calendar', 'Free all day', '#E5484D', null],
+      ['Add tile', 'Choose', 'rgba(255,255,255,0.35)', null]
+    ];
+    let tiles = [];
+    const cells = { grid: [[1,1],[2,1],[3,1],[4,1],[1,2],[2,2],[3,2],[4,2]], music: [[3,1],[4,1],[3,2],[4,2]] };
+    if (s.view === 'grid') tiles = all.map((t, i) => ({ n: t[0], s: t[1], c: t[2], open: t[3] || (() => {}), col: String(cells.grid[i][0]), row: String(cells.grid[i][1]) }));
+    if (s.view === 'music') tiles = all.filter((t) => t[0] !== 'Spotify').slice(0, 4).map((t, i) => ({ n: t[0], s: t[1], c: t[2], open: t[3] || (() => {}), col: String(cells.music[i][0]), row: String(cells.music[i][1]) }));
+    const inMail = s.view === 'mail';
+    const cur = mails[Math.max(0, s.open)];
+    return {
+      tiles, mails, cur,
+      showBigMusic: s.view === 'music',
+      showSideMusic: (inMail && !s.full) || s.view === 'pc',
+      showMail: inMail, showPC: s.view === 'pc',
+      mailCols: s.full ? '1 / span 4' : '1 / span 3',
+      mailList: inMail && s.open < 0, mailRead: inMail && s.open >= 0 && !s.reply, mailReply: inMail && s.reply,
+      mailTitle: s.open < 0 ? 'Inbox · 3 unread' : (s.reply ? 'Reply' : cur.from),
+      mailBackLabel: s.open < 0 ? 'Back' : 'Inbox',
+      mailBack: s.open < 0 ? set({ view: 'grid' }) : set({ open: -1, reply: false }),
+      sizeLabel: s.full ? '6 tiles' : 'All 8',
+      toggleFull: set({ full: !s.full }),
+      startReply: set({ reply: true }), sendReply: set({ open: -1, reply: false }),
+      meters: [['Memory', '9.8 / 16 GB', '61%', '#7FC8FF'], ['CPU', '12%', '12%', '#46EB78'], ['Disk', '412 / 954 GB', '43%', '#F5B84B'], ['Groovy', '212 / 400 MB', '53%', '#46EB78']].map(([n, v, w, c]) => ({ n, v, w, c })),
+      apps: [['DuckDuckGo', '1.5 GB'], ['Spotify', '327 MB']].map(([n, m]) => ({ n, m })),
+      goGrid: set({ view: 'grid' }),
+      playing: s.playing, paused: !s.playing, playLabel: s.playing ? 'Pause' : 'Play', togglePlay: set({ playing: !s.playing })
+    };
+  }
+}
+</script>
+</body>
+</html>

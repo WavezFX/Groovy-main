@@ -1,0 +1,256 @@
+// Settings → System: what this computer has and what Groovy uses (system.rs),
+// read when the section is drawn or refreshed, never in the background.
+
+import { Bridge, type RunReport, type SystemStatus } from "../core/bridge";
+import type { Settings } from "../core/state";
+import { clear, h } from "../views/dom";
+import { N_, t } from "../i18n/i18n";
+import { formatBytes } from "./models";
+import { btn, dangerBtn } from "../hub/ui";
+
+export const SYSTEM_STRINGS = {
+  freeNow: N_("Free memory now"),
+  nowPeak: N_("now · highest since start {peak}"),
+  core: N_("Groovy core"),
+  windowsPart: N_("Island and windows"),
+  speechPart: N_("Speech and voice"),
+  modelPart: N_("Built-in AI model"),
+  inCore: N_("Loaded, counted in the core"),
+  unloaded: N_("Model unloaded"),
+  off: N_("Off"),
+  idleTarget: N_("Idle target {mb}"),
+  limit: N_("Limit {mb}"),
+  performance: N_("Performance"),
+  help: N_("Help and diagnostics"),
+  cpuLine: N_("{pct}% for the whole PC · animations pause when hidden"),
+  good: N_("Good"),
+  busy: N_("Busy"),
+  unload: N_("Unload models when idle"),
+  after: N_("After {time}"),
+  keepLoaded: N_("Kept loaded"),
+  notCounted: N_("Not counted"),
+  notCountedLine: N_("Ollama, LM Studio and Spotify are your own apps"),
+  logs: N_("Logs"),
+  logsLine: N_("Kept on this PC only"),
+  openFolder: N_("Open folder"),
+  feedback: N_("Send feedback"),
+  feedbackLine: N_("Opens a pre-filled report"),
+  report: N_("Report"),
+  reset: N_("Reset Groovy"),
+  resetLine: N_("Keeps his growth; asks first"),
+  resetButton: N_("Reset"),
+  sure: N_("Sure?"),
+  details: N_("This PC"),
+  state: N_("Right now"),
+  standby: N_("Standby"),
+  conversation: N_("Conversation"),
+  offline: N_("Offline"),
+  standbyLine: N_("Only the island and the wake word: nothing else is loaded"),
+  conversationLine: N_("Talking: cloud speech, the brain and the voice are ready"),
+  offlineNetwork: N_("No network: thinking on this PC, its engines load per request"),
+  offlineLimits: N_("Every cloud brain is out of its limit: thinking on this PC"),
+  offlineLocal: N_("You chose a brain on this PC: its engines load per request"),
+};
+
+const IDLE_MB = 300;
+const LIMIT_MB = 400;
+const MB = 1024 * 1024;
+const UNLOAD: Record<string, [string, string]> = {
+  "30s": [N_("30 s"), N_("30 seconds")],
+  "2m": [N_("2 min"), N_("2 minutes")],
+  "5m": [N_("5 min"), N_("5 minutes")],
+  keep: [N_("Keep"), N_("Keep loaded")],
+};
+
+/** The memory card and the performance and help rows (docs/design/settings-v2/System, round 3D item 3). */
+export function systemPage(settings: Settings, save: () => void, version: string, resetAll: () => void): HTMLElement {
+  const root = h("div", { class: "hub-s", "data-own": "" });
+  let peak = 0;
+
+  const card = h("div", { class: "hub-card hub-s-mem" });
+  const drawMemory = (s: SystemStatus | null, r: RunReport | null) => {
+    clear(card);
+    const used = s?.groovyMemory ?? 0;
+    // Every process Groovy owns (resources/ceiling.rs), and the highest since it started.
+    peak = Math.max(peak, used, s?.groovyPeak ?? 0);
+    const scale = (b: number) => Math.min(1, b / MB / LIMIT_MB);
+    const bar = h("div", { class: "hub-s-bar" },
+      h("i", { class: used / MB > IDLE_MB ? "warn" : "", style: `transform:scaleX(${scale(used).toFixed(3)})` }),
+      h("b", { class: "hub-s-idle", style: `left:${(IDLE_MB / LIMIT_MB) * 100}%` }),
+      h("b", { class: "hub-s-limit" }));
+    card.append(
+      h("div", { class: "hub-s-big" }, h("strong", { text: s ? formatBytes(used) : "—" }), s ? h("span", { text: t(SYSTEM_STRINGS.nowPeak, { peak: formatBytes(peak) }) }) : null),
+      bar,
+      h("div", { class: "hub-s-scale" }, h("span", { text: "0" }), h("span", { class: "hub-s-mid", text: t(SYSTEM_STRINGS.idleTarget, { mb: `${IDLE_MB} MB` }) }), h("span", { text: t(SYSTEM_STRINGS.limit, { mb: `${LIMIT_MB} MB` }) })),
+    );
+    if (s?.groovyParts?.length) {
+      const mb = (kind: string) => s.groovyParts.filter((p) => p.kind === kind).reduce((n, p) => n + p.mb, 0);
+      const tile = (name: string, value: string, line: string | null) =>
+        h("div", { class: "hub-s-part" }, h("span", { class: "hub-label", text: name }), h("b", { text: value }), line ? h("span", { class: "hub-b-detail", text: line }) : null);
+      const model = mb("built-in model");
+      card.append(h("div", { class: "hub-s-parts" },
+        tile(t(SYSTEM_STRINGS.core), `${Math.round(mb("groovy.exe"))} MB`, null),
+        tile(t(SYSTEM_STRINGS.windowsPart), `${Math.round(mb("webview2"))} MB`, null),
+        tile(t(SYSTEM_STRINGS.speechPart), r?.speechLoaded || r?.voiceLoaded ? t(SYSTEM_STRINGS.inCore) : "0 MB", r?.speechLoaded || r?.voiceLoaded ? null : t(SYSTEM_STRINGS.unloaded)),
+        tile(t(SYSTEM_STRINGS.modelPart), model > 0 ? `${Math.round(model)} MB` : t(SYSTEM_STRINGS.off), null),
+      ));
+    }
+    cpu.textContent = s ? t(SYSTEM_STRINGS.cpuLine, { pct: s.cpuUsage.toFixed(1) }) : "";
+    cpuState.textContent = s && s.cpuUsage > 50 ? t(SYSTEM_STRINGS.busy) : t(SYSTEM_STRINGS.good);
+    cpuState.className = s && s.cpuUsage > 50 ? "hub-s-state warn" : "hub-s-state";
+  };
+
+  const runName = h("span", { class: "hub-s-state" });
+  const runLine = h("span", { class: "hub-b-detail" });
+  const drawRun = (r: RunReport | null) => {
+    if (!r) return;
+    runName.textContent = t(r.state === "conversation" ? SYSTEM_STRINGS.conversation : r.state === "offline" ? SYSTEM_STRINGS.offline : SYSTEM_STRINGS.standby);
+    runName.className = r.state === "offline" ? "hub-s-state warn" : "hub-s-state";
+    runLine.textContent = t(r.state === "conversation" ? SYSTEM_STRINGS.conversationLine
+      : r.state === "standby" ? SYSTEM_STRINGS.standbyLine
+      : r.offlineChoseLocal ? SYSTEM_STRINGS.offlineLocal
+      : r.offlineLimits ? SYSTEM_STRINGS.offlineLimits
+      : SYSTEM_STRINGS.offlineNetwork);
+  };
+  const cpu = h("span", { class: "hub-b-detail" });
+  const cpuState = h("span", { class: "hub-s-state" });
+  const row = (name: string, line: HTMLElement | string, control: HTMLElement | null, cls = "") =>
+    h("div", { class: `hub-home-row ${cls}` }, h("div", { class: "hub-b-text" }, h("span", { class: "hub-b-name", text: name }), typeof line === "string" ? h("span", { class: "hub-b-detail", text: line }) : line), control);
+
+  const unloadKey = UNLOAD[settings.unloadAfter] ? settings.unloadAfter : "2m";
+  const unload = h("select", { "aria-label": t(SYSTEM_STRINGS.unload) },
+    ...Object.entries(UNLOAD).map(([v, [short]]) => h("option", { value: v, text: t(short) }))) as HTMLSelectElement;
+  unload.value = unloadKey;
+  const unloadLine = h("span", { class: "hub-b-detail" });
+  const lineFor = (v: string) => (v === "keep" ? t(SYSTEM_STRINGS.keepLoaded) : t(SYSTEM_STRINGS.after, { time: t(UNLOAD[v][1]) }));
+  unloadLine.textContent = lineFor(unloadKey);
+  unload.addEventListener("change", () => {
+    settings.unloadAfter = unload.value as typeof settings.unloadAfter;
+    unloadLine.textContent = lineFor(unload.value);
+    save();
+  });
+
+  const report = () => {
+    const body = encodeURIComponent(`Groovy ${version}\n${navigator.userAgent}\n\nWhat happened:\n`);
+    void Bridge.openUrl(`https://github.com/WavezFX/Groovy-main/issues/new?title=${encodeURIComponent("Feedback")}&body=${body}`);
+  };
+
+  const free = btn(t(SYSTEM_STRINGS.freeNow), async () => {
+    free.disabled = true;
+    await Bridge.freeMemoryNow();
+    await load();
+    free.disabled = false;
+  });
+  root.append(
+    h("div", { class: "hub-s-actions" }, free),
+    card,
+    h("div", { class: "hub-home-two" },
+      h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t(SYSTEM_STRINGS.performance) }),
+        h("div", { class: "hub-card hub-b-list" },
+          row(t(SYSTEM_STRINGS.state), runLine, runName),
+          row(t("CPU"), cpu, cpuState),
+          row(t(SYSTEM_STRINGS.unload), unloadLine, unload),
+          row(t(SYSTEM_STRINGS.notCounted), t(SYSTEM_STRINGS.notCountedLine), null))),
+      h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t(SYSTEM_STRINGS.help) }),
+        h("div", { class: "hub-card hub-b-list" },
+          row(t(SYSTEM_STRINGS.logs), t(SYSTEM_STRINGS.logsLine), btn(t(SYSTEM_STRINGS.openFolder), () => void Bridge.revealLogsFolder())),
+          row(t(SYSTEM_STRINGS.feedback), t(SYSTEM_STRINGS.feedbackLine), btn(t(SYSTEM_STRINGS.report), report)),
+          row(t(SYSTEM_STRINGS.reset), t(SYSTEM_STRINGS.resetLine), dangerBtn(t(SYSTEM_STRINGS.resetButton), t(SYSTEM_STRINGS.sure), resetAll), "hub-s-danger")))),
+  );
+
+  async function load() {
+    const [s, r] = await Promise.all([Bridge.systemStatus(), Bridge.runtimeState()]);
+    drawMemory(s, r);
+    drawRun(r);
+  }
+  void load();
+  // The action sits in the page header, as designed, once the page is on screen.
+  requestAnimationFrame(() => {
+    const head = root.closest(".hub-page")?.querySelector(".hub-head");
+    if (head && !head.querySelector(".hub-head-actions")) head.append(h("div", { class: "hub-head-actions" }, free));
+  });
+  return root;
+}
+
+export function meter(used: number, total: number): HTMLElement {
+  const pct = total > 0 ? Math.max(0, Math.min(100, (used / total) * 100)) : 0;
+  const cls = pct > 90 ? "meter err" : pct > 75 ? "meter warn" : "meter";
+  return h("div", { class: cls, role: "meter", "aria-valuenow": Math.round(pct), "aria-valuemin": 0, "aria-valuemax": 100 }, h("i", { style: `width:${pct.toFixed(1)}%` }));
+}
+
+/** "app 62 MB · windows 140 MB · highest since start 210 MB". */
+export function groovyParts(s: SystemStatus): string {
+  const names: Record<string, string> = { "groovy.exe": t("main app"), webview2: t("windows"), "built-in model": t("built-in AI model") };
+  const parts = (s.groovyParts ?? []).map((p) => `${names[p.kind] ?? p.kind} ${Math.round(p.mb)} MB`);
+  parts.push(t("highest since start {mb}", { mb: formatBytes(s.groovyPeak ?? 0) }));
+  return parts.join(" · ");
+}
+
+export function systemSection(): HTMLElement {
+  const body = h("div", { class: "stack" });
+  const refresh = h("button", { text: t("Refresh") }) as HTMLButtonElement;
+
+  function draw(s: SystemStatus, usage: number | null) {
+    clear(body);
+    const used = s.memoryTotal - s.memoryAvailable;
+    body.append(
+      h("div", { class: "hint", text: `${s.os} · ${s.cpuName} · ${t("{cpus} threads", { cpus: s.cpus })}` }),
+      h("div", { class: "row" }, h("label", { text: t("CPU") }), meter(s.cpuUsage, 100), h("span", { class: "hint", text: `${Math.round(s.cpuUsage)}%` })),
+      h(
+        "div",
+        { class: "row" },
+        h("label", { text: t("Memory") }),
+        meter(used, s.memoryTotal),
+        h("span", { class: "hint", text: t("{used} of {total}", { used: formatBytes(used), total: formatBytes(s.memoryTotal) }) }),
+      ),
+      h(
+        "div",
+        { class: "row" },
+        h("label", { text: t("Groovy uses") }),
+        meter(s.groovyMemory, (s.groovyCeiling || 400) * 1024 * 1024),
+        h("span", { class: "hint", text: t("{used} of its {limit} MB limit", { used: formatBytes(s.groovyMemory), limit: s.groovyCeiling || 400 }) }),
+      ),
+      h("div", { class: "hint", text: groovyParts(s) }),
+      h("div", { class: "hint", text: t("That counts every process Groovy owns: the app, its windows and the helpers it starts. Apps you installed yourself, such as Ollama, LM Studio or Spotify, run as their own processes and don't count.") }),
+    );
+    for (const d of s.disks) {
+      body.append(
+        h(
+          "div",
+          { class: "row" },
+          h("label", { text: t("Disk {name}", { name: d.mount }) }),
+          meter(d.total - d.available, d.total),
+          h("span", { class: "hint", text: t("{free} free", { free: formatBytes(d.available) }) }),
+        ),
+      );
+    }
+    body.append(
+      h(
+        "div",
+        { class: "row" },
+        h("label", { text: t("Battery") }),
+        h("span", {
+          class: "hint",
+          text: s.battery ? `${s.battery.percent}%${s.battery.charging ? ` · ${t("charging")}` : ""}` : t("No battery"),
+        }),
+      ),
+    );
+    if (usage !== null) {
+      body.append(h("div", { class: "row" }, h("label", { text: t("Online messages today") }), h("span", { class: "hint", text: String(usage) })));
+    }
+  }
+
+  async function load() {
+    refresh.disabled = true;
+    const [s, usage] = await Promise.all([Bridge.systemStatus(), Bridge.usageToday()]);
+    refresh.disabled = false;
+    if (s) draw(s, usage);
+    else {
+      clear(body);
+      body.append(h("div", { class: "hint", text: t("Open Groovy's settings from the app to see the system status.") }));
+    }
+  }
+  refresh.addEventListener("click", () => void load());
+  void load();
+  return h("section", { id: "system" }, h("h2", {}, h("span", { text: t(SYSTEM_STRINGS.details) }), h("span", { class: "spacer" }), refresh), body);
+}
