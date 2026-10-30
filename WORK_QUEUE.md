@@ -87,6 +87,12 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 11. Preview the growth looks and locked wardrobe items for 5 seconds, each stage unlocking at its minimum (preview only, not a picker)
 - [x] 12. Night, Ember and Frost each grow on their own: separate time, stage and start date per look, only the look he is wearing grows
 
+## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this FIRST, before 3D item 11 and the checks.**
+- [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
+- [ ] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
+- [ ] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
+- [ ] 4. Checks
+
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
@@ -105,5 +111,6 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.
-- **Discord on Groovy:** plan in `docs/plans/DISCORD.md` (owner to approve the approach first).
+- **Discord and Instagram messaging:** plans in `docs/plans/DISCORD.md` and `docs/plans/MESSAGING.md` (owner to approve first): Round 6 Discord, Round 7 Instagram.
+- **Linux edition:** the owner wants Linux kept and expanded later. Don't remove or break the Linux code (`portal.rs`, `flow/os_linux.rs`, `platform/linux*.rs`, `linux/arch`); a Linux round comes after the Windows rounds.
 - The phone edition (Android smoothness, iOS and Mac): waiting on the owner for the Android app's source.
