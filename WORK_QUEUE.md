@@ -91,7 +91,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
 - [x] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
-- [ ] 4. Checks
+- [ ] 4. Checks (done except item 1's: the contact sheet, and frame and memory checks with the new item rendering; see STATUS)
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
