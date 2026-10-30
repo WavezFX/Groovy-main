@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  GROWTH_CORRECTION, MAX_STAGE, SAVE_EVERY_SECONDS, STAGE_AFTER, TICK_SECONDS, grow, mergeGrowth, migrateGrownLook, parseGrowth,
-  SIX_MONTHS, progressLine, shownStage, stageAt, stageFor, startGrowthClock, untilNext,
+  GROWTH_CORRECTION, GROWTH_RULE, MAX_STAGE, STAGE_AFTER, clockLines, hoursMinutes, localDay, lookGrowth, lookStarted, mergeGrowth, migrateGrownLook, parseGrowth,
+  parseRule, SIX_MONTHS, progressLine, shownStage, stageAt, stageFor, untilNext,
 } from "../src/mochi/growth.ts";
 import { GROWN_STYLES, SKINS, SKIN_STYLES, parseSkin, styleAt } from "../src/mochi/skins.ts";
 
@@ -28,29 +28,69 @@ test("the stage follows the time he has run: 1 day, 3 days, 1 week, 2 weeks, 1 m
   assert.equal(stageAt(20 * DAY, NOW - 400 * DAY, NOW), 4, "the calendar alone isn't enough");
 });
 
-test("growing counts running time only, never more than two ticks at once, and never goes back", () => {
-  let g = parseGrowth({}, NOW);
-  assert.deepEqual(g, { activeSeconds: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
-  g = grow(g, 60, NOW);
-  assert.equal(g.activeSeconds, 60);
-  // A night asleep (the timer was suspended) is one gap: at most two ticks.
-  g = grow(g, 9 * 3600, NOW);
-  assert.equal(g.activeSeconds, 60 + 2 * TICK_SECONDS);
-  for (const bad of [-500, Number.NaN, -Infinity]) assert.equal(grow(g, bad, NOW).activeSeconds, g.activeSeconds);
+test("a record reads back as saved, and never goes back", () => {
+  const g = parseGrowth({}, NOW);
+  assert.deepEqual(g, { activeSeconds: 0, daysWorn: 0, today: null, counted: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
   // A stage once reached stays, even if the seconds read back lower.
   assert.equal(parseGrowth({ activeSeconds: 10, reached: 4 }, NOW).reached, 4);
   assert.equal(parseGrowth({ activeSeconds: 8 * DAY, reached: 1 }, NOW).reached, 3);
   // Without a hatching time, it counts back from his running time.
   assert.equal(parseGrowth({ activeSeconds: 8 * DAY }, NOW).hatchedAt, NOW - 8 * DAY);
+  // The clock's own numbers (growth_clock.rs), checked.
+  assert.deepEqual(parseGrowth({ daysWorn: 2, today: { day: "2026-10-30", seconds: 600 } }, NOW).today, { day: "2026-10-30", seconds: 600 });
+  assert.equal(parseGrowth({ daysWorn: -1, today: { day: "yesterday", seconds: 5 } }, NOW).today, null);
+  assert.equal(parseGrowth({ daysWorn: 2.5 }, NOW).daysWorn, 0);
+});
+
+test("round 3H item 3: the rule is one constant, running time by default; days worn counts a day each", () => {
+  assert.equal(GROWTH_RULE, "running");
+  assert.equal(parseRule(undefined), "running");
+  assert.equal(parseRule("days"), "days");
+  assert.equal(parseRule("weeks"), "running");
+  const record = { activeSeconds: 6 * 3600, daysWorn: 3, hatchedAt: NOW - 3 * DAY, correction: 2 };
+  assert.equal(parseGrowth(record, NOW, "running").reached, 0, "6 h of running isn't a day");
+  assert.equal(parseGrowth(record, NOW, "days").reached, 2, "three days worn reach the 3-day stage");
+  const settings = { groovyLook: "night", growths: { night: record }, growthRule: "days" };
+  assert.equal(lookGrowth(settings).reached, 2);
+  assert.equal(lookGrowth({ ...settings, growthRule: undefined }).reached, 0);
+});
+
+test("round 3H item 3: a look worn 2 h on three evenings shows 6 h counted; the other two stay at 0 and Not started", () => {
+  // What growth_clock.rs leaves after three evenings of two hours.
+  const settings = { groovyLook: "night", growths: { night: { activeSeconds: 6 * 3600, daysWorn: 3, today: { day: "2026-10-29", seconds: 7200 }, reached: 0, seen: 0, hatchedAt: NOW - 3 * DAY, correction: 2 } } };
+  const night = clockLines(lookGrowth(settings, "night", NOW), "Night", "running", "2026-10-29");
+  assert.equal(night.main, "Time with Night: 6 h of 24 h for Stage 1 · counts only while Groovy is running");
+  assert.equal(night.today, "today: 2 h");
+  assert.equal(clockLines(lookGrowth(settings, "night", NOW), "Night", "running", "2026-10-30").today, "today: 0 m", "a new day starts at 0");
+  for (const look of ["ember", "frost"]) {
+    assert.equal(lookStarted(settings, look), false);
+    const g = lookGrowth(settings, look, NOW);
+    assert.equal(g.activeSeconds, 0);
+    assert.equal(g.reached, 0);
+  }
+  const days = clockLines(lookGrowth({ ...settings, growthRule: "days" }, "night", NOW), "Night", "days", "2026-10-29");
+  assert.equal(days.main, "Days with Night: 3 of 7 for Stage 3 · a day counts once he wears it 30 minutes");
+  assert.equal(days.today, "today: 2 h (the day counts at 30 m)");
+  // Stage 6 is the calendar's, and then he is fully grown.
+  assert.equal(clockLines(parseGrowth({ activeSeconds: 31 * DAY, hatchedAt: NOW - 40 * DAY }, NOW), "Night", "running").main, "Stage 6 comes six months after Night hatched.");
+  assert.equal(clockLines(parseGrowth({ activeSeconds: 31 * DAY, hatchedAt: NOW - 200 * DAY }, NOW), "Night", "running").main, "Night is fully grown.");
+});
+
+test("hours and minutes, and the local day", () => {
+  assert.equal(hoursMinutes(0), "0 m");
+  assert.equal(hoursMinutes(25 * 60 + 59), "25 m");
+  assert.equal(hoursMinutes(2 * 3600 + 10 * 60), "2 h 10 m");
+  assert.equal(hoursMinutes(14 * 3600), "14 h");
+  assert.equal(localDay(new Date(2026, 0, 5, 23, 59)), "2026-01-05");
 });
 
 test("the furthest of two copies wins, as Rust keeps them, and a corrected copy wins the stage", () => {
   const island = { activeSeconds: 8 * DAY, reached: 3, shown: 1, seen: 3, hatchedAt: NOW - 20 * DAY };
   const stale = { activeSeconds: 2 * DAY, reached: 1, shown: null, hatchedAt: NOW - 10 * DAY };
-  const want = { activeSeconds: 8 * DAY, reached: 3, shown: null, seen: 3, hatchedAt: NOW - 20 * DAY, correction: 0 };
+  const want = { activeSeconds: 8 * DAY, daysWorn: 0, today: null, counted: 8 * DAY, reached: 3, shown: null, seen: 3, hatchedAt: NOW - 20 * DAY, correction: 0 };
   assert.deepEqual(mergeGrowth(island, stale, NOW), want);
   assert.deepEqual(mergeGrowth(stale, island, NOW), want);
-  assert.deepEqual(mergeGrowth("junk", null, NOW), { activeSeconds: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
+  assert.deepEqual(mergeGrowth("junk", null, NOW), { activeSeconds: 0, daysWorn: 0, today: null, counted: 0, reached: 0, shown: null, seen: -1, hatchedAt: NOW, correction: 0 });
   // Round 3E item 4: the granted 5 loses to the corrected record, whichever way round.
   const granted = { activeSeconds: 2 * DAY, reached: 5, seen: 5 };
   const corrected = { activeSeconds: 2 * DAY, reached: 1, seen: 1, correction: 1, hatchedAt: NOW - 2 * DAY };
@@ -82,7 +122,7 @@ test("Grove, Blaze and Tide become their base look at the stage he really reache
     const s = { groovyLook: old, growth: { activeSeconds: 120, reached: 0, shown: null } };
     assert.equal(migrateGrownLook(s, NOW), true);
     assert.equal(s.groovyLook, base);
-    assert.deepEqual(s.growth, { activeSeconds: 120, reached: 0, shown: null, seen: 0, hatchedAt: NOW - 120, correction: GROWTH_CORRECTION });
+    assert.deepEqual(s.growth, { activeSeconds: 120, daysWorn: 0, today: null, counted: 120, reached: 0, shown: null, seen: 0, hatchedAt: NOW - 120, correction: GROWTH_CORRECTION });
     assert.equal(migrateGrownLook(s, NOW), false, "once");
     assert.equal(parseSkin(old), base);
   }
@@ -116,34 +156,6 @@ test("the colours move from the look to its grown one", () => {
     assert.deepEqual(styleAt(skin, 5).body, GROWN_STYLES[skin].body);
     assert.equal(styleAt(skin, 3).stage, 3);
     assert.equal(styleAt(skin, 3), styleAt(skin, 3), "kept, not rebuilt every frame");
-  }
-});
-
-test("the clock saves every five minutes, and at once when a stage is reached", async () => {
-  const realSet = globalThis.setInterval;
-  const realClear = globalThis.clearInterval;
-  let tick = null;
-  globalThis.setInterval = (fn) => ((tick = fn), 1);
-  globalThis.clearInterval = () => (tick = null);
-  try {
-    let now = 0;
-    let stored = { activeSeconds: DAY - 90, reached: 0, shown: null };
-    const saves = [];
-    const grew = [];
-    const stop = startGrowthClock(() => stored, (g, did) => { stored = g; grew.push(did); }, (g) => saves.push(g), () => now);
-    now += 60_000; tick();
-    assert.equal(saves.length, 0);
-    now += 60_000; tick();
-    assert.equal(stored.reached, 1);
-    assert.deepEqual(grew, [false, true]);
-    assert.equal(saves.length, 1, "a new stage is saved at once");
-    for (let i = 0; i < SAVE_EVERY_SECONDS / 60; i++) { now += 60_000; tick(); }
-    assert.equal(saves.length, 2);
-    stop();
-    assert.equal(tick, null);
-  } finally {
-    globalThis.setInterval = realSet;
-    globalThis.clearInterval = realClear;
   }
 });
 

@@ -1884,3 +1884,8 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
   .hub-w-looks button.hub-w-look { min-width: 0; flex: 1; padding: 4px 8px; }
   .hub-w-looks { align-self: stretch; }
 }
+/* Round 3H item 3: the growth clock in words, and what grows him. */
+.hub-w-clock, .hub-w-clock-today { min-height: 1.3em; }
+.hub-w-rule-row { display: flex; flex-direction: column; gap: 6px; }
+.hub-w-rule { align-self: flex-start; max-width: 100%; }
+.hub-w-rule button { height: 30px; padding: 0 12px; font-size: 12.5px; }

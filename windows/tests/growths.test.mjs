@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  GROWTH_CORRECTION, SIX_MONTHS, grow, highestReached, lookGrowth, lookStarted, mergeGrowths, migrateToPerLook,
+  GROWTH_CORRECTION, SIX_MONTHS, highestReached, lookGrowth, lookStarted, mergeGrowths, migrateToPerLook,
   setLookGrowth, startLook,
 } from "../src/mochi/growth.ts";
 import { chooseLook } from "../src/core/lookchoice.ts";
@@ -11,11 +11,10 @@ import { chooseLook } from "../src/core/lookchoice.ts";
 const DAY = 86400;
 const NOW = 1_790_000_000;
 
-/** Runs the look he wears for `days`, a tick at a time, as the island's clock does. */
+/** Runs the look he wears for `days`, as the clock (growth_clock.rs) counts it. */
 function run(settings, days, now) {
-  let g = lookGrowth(settings, undefined, now);
-  for (let s = 0; s < days * DAY; s += 120) g = grow(g, 120, now);
-  setLookGrowth(settings, settings.groovyLook, g);
+  const g = lookGrowth(settings, undefined, now);
+  setLookGrowth(settings, settings.groovyLook, { ...g, activeSeconds: g.activeSeconds + days * DAY });
 }
 
 test("30 days as Night: Night at stage 5, Ember and Frost not started at stage 0", () => {

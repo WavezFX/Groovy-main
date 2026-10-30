@@ -20256,6 +20256,149 @@
    "pt-BR": "Usar este visual",
    "ru": "Надеть этот облик",
    "id": "Pakai tampilan ini"
+  },
+  "Days he wears it": {
+   "zh-Hans": "他穿着的天数",
+   "hi": "जितने दिन वह इसे पहने",
+   "es": "Los días que lo lleva",
+   "ar": "الأيام التي يرتديه فيها",
+   "fr": "Les jours où il la porte",
+   "bn": "যত দিন সে এটি পরে",
+   "pt-BR": "Os dias em que ele o usa",
+   "ru": "Дни, когда он его носит",
+   "id": "Hari ia memakainya"
+  },
+  "Days he wears it: a day counts once he has worn that look for 30 minutes.": {
+   "zh-Hans": "按穿着天数：他穿这个外观满 30 分钟，当天才算一天。",
+   "hi": "पहनने के दिन: वह लुक 30 मिनट पहनने के बाद ही वह दिन गिना जाता है।",
+   "es": "Días que lo lleva: un día cuenta cuando ha llevado ese aspecto 30 minutos.",
+   "ar": "أيام ارتدائه: يُحتسب اليوم بعد أن يرتدي ذلك المظهر 30 دقيقة.",
+   "fr": "Jours où il la porte : une journée compte dès qu’il a porté cette apparence 30 minutes.",
+   "bn": "পরার দিন: সে ওই চেহারা ৩০ মিনিট পরলে তবেই দিনটি গোনা হয়।",
+   "pt-BR": "Dias em que ele usa: um dia conta quando ele usou esse visual por 30 minutos.",
+   "ru": "Дни в облике: день засчитывается, когда он провёл в этом облике 30 минут.",
+   "id": "Hari ia memakainya: satu hari dihitung setelah ia memakai tampilan itu 30 menit."
+  },
+  "Days with {look}: {n} of {of} for Stage {stage} · a day counts once he wears it 30 minutes": {
+   "zh-Hans": "与 {look} 的天数：第 {stage} 阶段需 {of} 天，已有 {n} 天 · 穿满 30 分钟才算一天",
+   "hi": "{look} के साथ दिन: चरण {stage} के लिए {of} में से {n} · 30 मिनट पहनने पर एक दिन गिना जाता है",
+   "es": "Días con {look}: {n} de {of} para la etapa {stage} · un día cuenta cuando lo lleva 30 minutos",
+   "ar": "أيام مع {look}: {n} من {of} للمرحلة {stage} · يُحتسب اليوم بعد 30 دقيقة من ارتدائه",
+   "fr": "Jours avec {look} : {n} sur {of} pour l’étape {stage} · une journée compte après 30 minutes portée",
+   "bn": "{look}-এর সঙ্গে দিন: ধাপ {stage}-এর জন্য {of}-এর মধ্যে {n} · ৩০ মিনিট পরলে একটি দিন গোনা হয়",
+   "pt-BR": "Dias com {look}: {n} de {of} para a fase {stage} · um dia conta quando ele usa por 30 minutos",
+   "ru": "Дни с обликом {look}: {n} из {of} до этапа {stage} · день засчитывается после 30 минут",
+   "id": "Hari dengan {look}: {n} dari {of} untuk Tahap {stage} · satu hari dihitung setelah dipakai 30 menit"
+  },
+  "He grows with": {
+   "zh-Hans": "他的成长依据",
+   "hi": "वह किससे बढ़ता है",
+   "es": "Crece con",
+   "ar": "ينمو بحسب",
+   "fr": "Il grandit avec",
+   "bn": "সে যেভাবে বাড়ে",
+   "pt-BR": "Ele cresce com",
+   "ru": "Он растёт за счёт",
+   "id": "Ia tumbuh dengan"
+  },
+  "Stage 6 comes six months after {look} hatched.": {
+   "zh-Hans": "第 6 阶段在 {look} 孵化六个月后到来。",
+   "hi": "चरण 6, {look} के निकलने के छह महीने बाद आता है।",
+   "es": "La etapa 6 llega seis meses después de que {look} naciera.",
+   "ar": "تأتي المرحلة 6 بعد ستة أشهر من فقس {look}.",
+   "fr": "L’étape 6 arrive six mois après l’éclosion de {look}.",
+   "bn": "{look} ফোটার ছয় মাস পরে ধাপ ৬ আসে।",
+   "pt-BR": "A fase 6 chega seis meses depois que {look} nasceu.",
+   "ru": "Этап 6 наступит через полгода после того, как {look} вылупился.",
+   "id": "Tahap 6 datang enam bulan setelah {look} menetas."
+  },
+  "Time with {look}: {n} h of {of} h for Stage {stage} · counts only while Groovy is running": {
+   "zh-Hans": "与 {look} 的时间：第 {stage} 阶段需 {of} 小时，已有 {n} 小时 · 仅在 Groovy 运行时计时",
+   "hi": "{look} के साथ समय: चरण {stage} के लिए {of} घं में से {n} घं · सिर्फ़ Groovy चलने पर गिना जाता है",
+   "es": "Tiempo con {look}: {n} h de {of} h para la etapa {stage} · solo cuenta mientras Groovy está abierto",
+   "ar": "الوقت مع {look}: {n} س من {of} س للمرحلة {stage} · يُحتسب فقط أثناء تشغيل Groovy",
+   "fr": "Temps avec {look} : {n} h sur {of} h pour l’étape {stage} · compte seulement quand Groovy tourne",
+   "bn": "{look}-এর সঙ্গে সময়: ধাপ {stage}-এর জন্য {of} ঘ-এর মধ্যে {n} ঘ · শুধু Groovy চলার সময় গোনা হয়",
+   "pt-BR": "Tempo com {look}: {n} h de {of} h para a fase {stage} · só conta enquanto o Groovy está aberto",
+   "ru": "Время с обликом {look}: {n} ч из {of} ч до этапа {stage} · считается, только пока Groovy работает",
+   "id": "Waktu dengan {look}: {n} j dari {of} j untuk Tahap {stage} · dihitung hanya saat Groovy berjalan"
+  },
+  "While Groovy runs": {
+   "zh-Hans": "Groovy 运行的时间",
+   "hi": "Groovy के चलने का समय",
+   "es": "Mientras Groovy está abierto",
+   "ar": "أثناء تشغيل Groovy",
+   "fr": "Quand Groovy tourne",
+   "bn": "Groovy চলার সময়",
+   "pt-BR": "Enquanto o Groovy está aberto",
+   "ru": "Пока Groovy работает",
+   "id": "Selama Groovy berjalan"
+  },
+  "today: {time} (the day counts at 30 m)": {
+   "zh-Hans": "今天：{time}（满 30 分钟算一天）",
+   "hi": "आज: {time} (30 मि पर दिन गिना जाएगा)",
+   "es": "hoy: {time} (el día cuenta a los 30 min)",
+   "ar": "اليوم: {time} (يُحتسب اليوم عند 30 د)",
+   "fr": "aujourd’hui : {time} (la journée compte à 30 min)",
+   "bn": "আজ: {time} (৩০ মি হলে দিনটি গোনা হবে)",
+   "pt-BR": "hoje: {time} (o dia conta aos 30 min)",
+   "ru": "сегодня: {time} (день засчитывается с 30 мин)",
+   "id": "hari ini: {time} (hari dihitung pada 30 m)"
+  },
+  "today: {time}": {
+   "zh-Hans": "今天：{time}",
+   "hi": "आज: {time}",
+   "es": "hoy: {time}",
+   "ar": "اليوم: {time}",
+   "fr": "aujourd’hui : {time}",
+   "bn": "আজ: {time}",
+   "pt-BR": "hoje: {time}",
+   "ru": "сегодня: {time}",
+   "id": "hari ini: {time}"
+  },
+  "{h} h {m} m": {
+   "zh-Hans": "{h} 小时 {m} 分",
+   "hi": "{h} घं {m} मि",
+   "es": "{h} h {m} min",
+   "ar": "{h} س {m} د",
+   "fr": "{h} h {m} min",
+   "bn": "{h} ঘ {m} মি",
+   "pt-BR": "{h} h {m} min",
+   "ru": "{h} ч {m} мин",
+   "id": "{h} j {m} m"
+  },
+  "{h} h": {
+   "zh-Hans": "{h} 小时",
+   "hi": "{h} घं",
+   "es": "{h} h",
+   "ar": "{h} س",
+   "fr": "{h} h",
+   "bn": "{h} ঘ",
+   "pt-BR": "{h} h",
+   "ru": "{h} ч",
+   "id": "{h} j"
+  },
+  "{look} is fully grown.": {
+   "zh-Hans": "{look} 已完全长大。",
+   "hi": "{look} पूरी तरह बड़ा हो गया है।",
+   "es": "{look} ha crecido del todo.",
+   "ar": "اكتمل نمو {look}.",
+   "fr": "{look} a fini de grandir.",
+   "bn": "{look} পুরোপুরি বড় হয়ে গেছে।",
+   "pt-BR": "{look} cresceu por completo.",
+   "ru": "{look} полностью вырос.",
+   "id": "{look} sudah tumbuh penuh."
+  },
+  "{m} m": {
+   "zh-Hans": "{m} 分",
+   "hi": "{m} मि",
+   "es": "{m} min",
+   "ar": "{m} د",
+   "fr": "{m} min",
+   "bn": "{m} মি",
+   "pt-BR": "{m} min",
+   "ru": "{m} мин",
+   "id": "{m} m"
   }
  }
 }

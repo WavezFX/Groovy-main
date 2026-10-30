@@ -11,8 +11,7 @@ import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { migrateSettingsOutfit } from "./mochi/appearance";
 import { seasonalLaunch } from "./mochi/seasons";
-import { lookGrowth, mergeGrowths, migrateGrownLook, migrateToPerLook, setLookGrowth, startGrowthClock } from "./mochi/growth";
-import { parseSkin } from "./mochi/skins";
+import { lookGrowth, mergeGrowths, migrateGrownLook, migrateToPerLook, shownStage } from "./mochi/growth";
 import { registerHookHandlers } from "./island/hooks";
 import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
@@ -64,23 +63,18 @@ async function main() {
     // The season's wardrobe items are earned, and he dresses for it once (round 5 item 4).
     if (seasonalLaunch(State.settings, new Date())) void Bridge.saveSettings(State.settings);
   }
-  // Groovy's look grows with the time he runs here (round 3 item 6); only the
-  // look he wears (round 3E item 12), whose clock starts on its first tick.
-  startGrowthClock(
-    () => lookGrowth(State.settings),
-    (g, grew) => {
-      setLookGrowth(State.settings, parseSkin(State.settings.groovyLook), g);
-      if (grew) State.notify();
-    },
-    () => {
-      void Bridge.saveGrowth(State.settings.growths);
-      // Left running into a new season: it is earned (and dressed for) then too.
-      if (seasonalLaunch(State.settings, new Date())) {
-        void Bridge.saveSettings(State.settings);
-        State.notify();
-      }
-    },
-  );
+  // Groovy's look grows while he runs here (round 3 item 6); only the look he
+  // wears (round 3E item 12). The clock is Rust's (round 3H item 3): each
+  // minute's records come here, kept level with this copy.
+  void onEvent<unknown>("growth-changed", (g) => {
+    const before = shownStage(lookGrowth(State.settings));
+    State.settings.growths = mergeGrowths(State.settings.growths, g);
+    const grew = shownStage(lookGrowth(State.settings)) > before;
+    // Left running into a new season: it is earned (and dressed for) then too.
+    const season = seasonalLaunch(State.settings, new Date());
+    if (season) void Bridge.saveSettings(State.settings);
+    if (grew || season) State.notify();
+  });
   // A language change redraws the island in place: the texts given as tl(…)
   // relabel themselves (views/dom.ts) and the views redraw the rest on this
   // sync. Nothing is rebuilt, so tasks, steps and the chat stay as they are.

@@ -25,6 +25,8 @@ pub fn start(app: &AppHandle) {
         return;
     }
     let Ok(dir) = std::env::var("GROOVY_WORK_TEST") else { return };
+    // Hatched, so the growth clock counts and logs each tick (round 3H item 3).
+    crate::set_setting(app, |s| s.hatch_done = true);
     // The shortest idle setting a user can choose, so CI doesn't wait 2 minutes.
     crate::resources::idle::set("30s");
     let app = app.clone();

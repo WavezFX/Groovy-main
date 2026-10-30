@@ -252,6 +252,7 @@ const CHECKED = ["src/views", "src/settings", "src/island", "src/upload", "src/r
 const NOT_TEXT = new Set([
   "file", // the kind of a chat context: { kind: "file" }
   "finished", // a task state and a pill badge
+  "running", // the growth rule (settings.growthRule, round 3H item 3)
   "failed", // dictation's phase (flow/live.rs)
   "unknown", // a CI state
   "Resend", // the service's name (the Mac's "Resend" is a button: send again)

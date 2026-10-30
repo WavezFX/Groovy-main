@@ -300,6 +300,8 @@ export interface Settings {
   hatchDone: boolean;
   /** « Also wake to his name »: the spotter hears his name as well as « OK Groovy ». */
   wakeToName: boolean;
+  /** What grows his looks (round 3H item 3): "running" (the default) or "days". */
+  growthRule: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -366,6 +368,7 @@ export const DEFAULT_SETTINGS: Settings = {
   seasonalEarned: [],
   hatchDone: false,
   wakeToName: false,
+  growthRule: "running",
 };
 
 type Listener = () => void;

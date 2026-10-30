@@ -80,6 +80,7 @@ function Get-CpuSeconds([int[]]$ids) {
 $results = [ordered]@{}
 $env:GROOVY_WORK_TEST = $Audio
 $proc = Start-Process -FilePath $Exe -PassThru
+$launched = Get-Date
 Remove-Item Env:GROOVY_WORK_TEST
 $peak = @{ total = 0.0 }
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -118,6 +119,13 @@ finally {
   Get-Process -Name groovy, llama-server -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
+# Round 3H item 3: the growth clock ticked every minute while Groovy ran, the
+# island folded away for most of it (the CI build logs each tick).
+$ran = ((Get-Date) - $launched).TotalMinutes
+$ticks = if (Test-Path $log) { @(Get-Content $log | Select-String "growth tick:").Count } else { 0 }
+$want = [math]::Max(1, [math]::Floor($ran) - 2)
+$results["the growth clock ticked each minute ($ticks ticks in $([math]::Round($ran, 1)) min, at least $want)"] = $ticks -ge $want
+
 Write-Host ""
 Write-Host "Realistic test (models downloaded, real work, then idle):"
 if ($done) {
@@ -142,7 +150,7 @@ if ($idle) {
 if (Test-Path $log) {
   Write-Host ""
   Write-Host "groovy.log:"
-  Get-Content $log | Select-String "work test|freed|loaded|Parakeet|Whisper|Kokoro|local model|spotter" | Select-Object -Last 40 | ForEach-Object { Write-Host "  $_" }
+  Get-Content $log | Select-String "work test|freed|loaded|Parakeet|Whisper|Kokoro|local model|spotter|growth tick" | Select-Object -Last 40 | ForEach-Object { Write-Host "  $_" }
 }
 if ($env:GITHUB_STEP_SUMMARY) {
   "### Realistic idle: $(if ($idle) { "$($idle.total) MB, $cpu% CPU" } else { 'not measured' }) (peak while working $($peak.total) MB)" | Out-File -Append $env:GITHUB_STEP_SUMMARY

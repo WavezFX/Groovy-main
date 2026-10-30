@@ -202,6 +202,10 @@ pub struct Settings {
     pub hatch_done: bool,
     /// « Also wake to his name »: the spotter listens for his name as well as « OK Groovy ».
     pub wake_to_name: bool,
+    /// How his looks grow (round 3H item 3, the owner's choice): "running"
+    /// (the time Groovy runs, the default) or "days" (calendar days the look
+    /// was worn for at least 30 minutes). The page's GROWTH_RULE is the default.
+    pub growth_rule: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -309,6 +313,7 @@ impl Default for Settings {
             seasonal_earned: Vec::new(),
             hatch_done: false,
             wake_to_name: false,
+            growth_rule: "running".into(),
         }
     }
 }
@@ -445,6 +450,23 @@ pub fn merge_growth(old: &Value, new: &Value) -> Value {
     }
     if co.max(cn) > 0 {
         out["correction"] = serde_json::json!(co.max(cn));
+    }
+    // Round 3H item 3: the days the look was worn (the most), and today's time
+    // (the later day, or the most of the same day).
+    if let Some(days) = old.get("daysWorn").and_then(Value::as_u64).max(new.get("daysWorn").and_then(Value::as_u64)) {
+        out["daysWorn"] = serde_json::json!(days);
+    }
+    let today = |v: &Value| {
+        let t = v.get("today")?;
+        let day = t.get("day").and_then(Value::as_str).filter(|d| d.len() == 10)?;
+        Some((day.to_string(), t.get("seconds").and_then(Value::as_f64).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0)))
+    };
+    if let Some((day, seconds)) = match (today(old), today(new)) {
+        (Some(a), Some(b)) if a.0 == b.0 => Some((a.0, a.1.max(b.1))),
+        (Some(a), Some(b)) => Some(if a.0 > b.0 { a } else { b }),
+        (a, b) => a.or(b),
+    } {
+        out["today"] = serde_json::json!({ "day": day, "seconds": seconds });
     }
     out
 }
@@ -788,7 +810,8 @@ mod tests {
   "doNotDisturb": true,
   "seasonalEarned": ["pumpkinCap", "batWingBand"],
   "hatchDone": true,
-  "wakeToName": true
+  "wakeToName": true,
+  "growthRule": "days"
 }"##;
 
     fn custom() -> Value {
@@ -1000,6 +1023,20 @@ mod tests {
         let m = merge_growth(&six, &corrected);
         assert_eq!(m["reached"], 6);
         assert_eq!(m["hatchedAt"], 1700000000u64, "the earliest hatching");
+    }
+
+    #[test]
+    fn days_worn_and_todays_time_are_kept_by_a_merge() {
+        // Round 3H item 3: the growth clock's numbers survive an older window's save.
+        let clock = serde_json::json!({ "activeSeconds": 900.0, "daysWorn": 3, "today": { "day": "2026-10-30", "seconds": 900.0 } });
+        let older = serde_json::json!({ "activeSeconds": 300.0, "daysWorn": 2, "today": { "day": "2026-10-29", "seconds": 4000.0 } });
+        let m = merge_growth(&older, &clock);
+        assert_eq!((m["daysWorn"].as_u64(), &m["today"]), (Some(3), &serde_json::json!({ "day": "2026-10-30", "seconds": 900.0 })), "the later day wins");
+        let same = serde_json::json!({ "today": { "day": "2026-10-30", "seconds": 600.0 } });
+        assert_eq!(merge_growth(&clock, &same)["today"]["seconds"], 900.0, "the most of the same day");
+        assert!(merge_growth(&same, &same).get("daysWorn").is_none());
+        let bad = serde_json::json!({ "today": { "day": 5, "seconds": "x" } });
+        assert!(merge_growth(&bad, &bad).get("today").is_none());
     }
 
     #[test]
@@ -1495,6 +1532,7 @@ mod tests {
                 "seasonalEarned",
                 "hatchDone",
                 "wakeToName",
+                "growthRule",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

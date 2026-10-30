@@ -1355,9 +1355,11 @@ async function main() {
   });
 
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
-  // The island's growth clock saves on its own (save_growth): keep this copy level.
+  // The growth clock (Rust, each minute) and the island's saves: keep this copy level.
   void onEvent<unknown>("growth-changed", (g) => {
     settings.growths = g;
+    // The Groovy page's clock shows each minute counted (round 3H item 3).
+    window.dispatchEvent(new Event("groovy-growth"));
   });
   void onEvent<Settings>("settings-changed", (s) => {
     const before = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;

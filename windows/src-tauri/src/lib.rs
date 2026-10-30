@@ -13,6 +13,7 @@ mod desktop;
 mod files;
 mod flow;
 mod glass;
+mod growth_clock;
 mod github;
 mod hooks;
 mod i18n;
@@ -1771,6 +1772,8 @@ pub fn run() {
             music::init(&handle);
             scheduler::start(&handle);
             resources::start(&handle);
+            // Round 3H item 3: his looks grow in Rust, whatever the windows do.
+            growth_clock::start(&handle);
             #[cfg(feature = "worktest")]
             worktest::start(&handle);
             hooks::ensure_hook_exe(&handle);
