@@ -89,7 +89,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this FIRST, before 3D item 11 and the checks.**
 - [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
-- [ ] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
+- [x] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
 - [ ] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
 - [ ] 4. Checks
 

@@ -1630,7 +1630,7 @@ body.hub-window a:hover { color: var(--v2-link-hover); }
 .hub-segmented button.on { background: var(--v2-tab-on); color: var(--hub-text); }
 .hub-panel { margin: 0; border: 0; border-radius: 0; background: var(--hub-ground); }
 .hub-card { padding: 0; gap: 0; }
-.hub-card:not([class*="hub-b-"]):not([class*="hub-home-"]):not([class*="hub-i-"]):not([class*="hub-s-"]) > :not(.hub-row):not(.hub-divider):not(:empty) { margin: 14px 18px; }
+.hub-card:not([class*="hub-b-"]):not([class*="hub-home-"]):not([class*="hub-i-"]):not([class*="hub-s-"]):not(.hub-w-items):not(.hub-w-top) > :not(.hub-row):not(.hub-divider):not(:empty) { margin: 14px 18px; }
 .hub-btn, .hub-t-btn, .hub-tab, .hub-segmented button { white-space: nowrap; }
 
 /* ── Brains (docs/design/settings-v2/Brains, round 3D item 3) ── */
@@ -1708,9 +1708,9 @@ body.hub-window a:hover { color: var(--v2-link-hover); }
 
 /* ── Character & wardrobe (docs/design/settings-v2/Groovy, round 3D item 3) ── */
 section.hub-w, section.hub-w > * { background: none; border: 0; padding: 0; box-shadow: none; }
+section.hub-w > .hub-w-top.hub-card { background: var(--v2-card); border: 1px solid var(--v2-hair); padding: 20px; }
+section.hub-w > .hub-w-looks { background: var(--v2-card); padding: 4px; }
 .hub-w { display: flex; flex-direction: column; gap: 20px; }
-.hub-w-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
-.hub-w-left { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px; }
 .hub-w-stage-box { width: 100%; height: 250px; border-radius: 14px; background: rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; }
 .hub-w-stage-box canvas { width: 200px; height: 200px; cursor: pointer; background: none; border: 0; box-shadow: none; }
 .hub-w .studio-growth { flex-direction: column; align-items: stretch; }
@@ -1736,7 +1736,6 @@ section.hub-w, section.hub-w > * { background: none; border: 0; padding: 0; box-
 .hub-w-item .fav.on { color: #f5c66b; }
 .hub-w-more { display: flex; flex-direction: column; gap: 8px; }
 .hub-w-pad, .hub-w-find { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
-@media (max-width: 980px) { .hub-w-grid { grid-template-columns: minmax(0, 1fr); } }
 .hub-w-item { width: 100%; box-sizing: border-box; }
 
 /* ── Settings v2: Island → Layout & tiles (round 3D item 3) ── */
@@ -1854,13 +1853,34 @@ div.hub-i-tile[draggable="true"] { cursor: grab; }
 .hub-w-stage-box { position: relative; }
 .hub-w-preview-only { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 3px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 600 11px var(--font); }
 .hub-w-preview-only[hidden] { display: none; }
-.hub-w-strip-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-.hub-w-strip-looks button { height: 28px; padding: 0 10px; font-size: 12px; }
+.hub-w-strip-box { display: flex; flex-direction: column; gap: 8px; }
 .hub-w-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
 .hub-w-strip-stage { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 3px; border-radius: 10px; border: 1px solid var(--v2-hair); background: var(--v2-card); color: var(--hub-text); font: 600 10.5px var(--font); }
-.hub-w-strip-art { display: block; width: 40px; height: 40px; }
+.hub-w-strip-art { display: block; width: 40px; height: 40px; max-width: 100%; }
+.hub-w-strip-art canvas { display: block; max-width: 100%; }
 .hub-w-strip-stage.locked { opacity: 0.5; border-style: dashed; }
 .hub-w-strip-stage.on { border-color: var(--hub-accent); opacity: 1; }
 /* Round 3E item 12: each look's own stage under its name. */
 .hub-w-seg button.hub-w-look { height: auto; min-height: 34px; padding: 4px 14px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .hub-w-look small { font: 500 10.5px var(--font); color: var(--hub-secondary); }
+
+/* Round 3H item 2: one look switch at the top of the page; the big preview on
+   the left, its timeline on the right, the six stages in one row below. Every
+   box keeps its size whatever it shows, so nothing moves when a preview starts. */
+.hub-w-looks { align-self: flex-start; max-width: 100%; }
+.hub-w-looks button.hub-w-look { position: relative; min-width: 92px; }
+.hub-w-looks .hub-w-wearing { position: absolute; top: -7px; right: -4px; padding: 1px 6px; border-radius: 99px; background: var(--hub-accent); color: #0b0c0e; font: 700 9.5px var(--font); font-style: normal; }
+.hub-w-top { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 18px 20px; padding: 20px; align-items: start; }
+.hub-w-top .hub-w-stage-box { height: 230px; }
+.hub-w-top .hub-w-strip-box { grid-column: 1 / -1; }
+.hub-w-timeline { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.hub-w-timeline .hub-w-name-row { margin: 0; }
+.hub-w-wear { display: flex; align-items: center; min-height: 34px; }
+.hub-w-wear .hub-w-wearing { font: 600 12.5px var(--font); color: var(--hub-accent); font-style: normal; }
+.hub-w-strip-note { min-height: 1.3em; }
+.hub-w-strip-stage { min-width: 0; overflow: hidden; }
+@media (max-width: 640px) {
+  section.hub-w > .hub-w-top.hub-card { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+  .hub-w-looks button.hub-w-look { min-width: 0; flex: 1; padding: 4px 8px; }
+  .hub-w-looks { align-self: stretch; }
+}

@@ -20070,17 +20070,6 @@
    "ru": "Только предпросмотр",
    "id": "Pratinjau saja"
   },
-  "Preview a look": {
-   "zh-Hans": "预览一种外观",
-   "hi": "एक लुक की झलक",
-   "es": "Ver un aspecto",
-   "ar": "معاينة مظهر",
-   "fr": "Aperçu d’une apparence",
-   "bn": "একটি চেহারার প্রিভিউ",
-   "pt-BR": "Prévia de um visual",
-   "ru": "Предпросмотр облика",
-   "id": "Pratinjau tampilan"
-  },
   "Stage looks": {
    "zh-Hans": "各阶段外观",
    "hi": "हर चरण का लुक",
@@ -20212,6 +20201,61 @@
    "pt-BR": "As permissões são alteradas em Configurações → Permissões.",
    "ru": "Разрешения меняются в Настройки → Разрешения.",
    "id": "Izin diubah di Pengaturan → Izin."
+  },
+  "Not started: {look} starts growing when he wears it.": {
+   "zh-Hans": "尚未开始：他穿上 {look} 后，它才开始成长。",
+   "hi": "अभी शुरू नहीं हुआ: जब वह {look} पहनेगा, तब यह बढ़ना शुरू होगा।",
+   "es": "Sin empezar: {look} empieza a crecer cuando él lo lleva.",
+   "ar": "لم يبدأ بعد: يبدأ {look} بالنمو عندما يرتديه.",
+   "fr": "Pas commencé : {look} commence à grandir quand il le porte.",
+   "bn": "শুরু হয়নি: সে {look} পরলে এটি বাড়তে শুরু করবে।",
+   "pt-BR": "Não começou: {look} começa a crescer quando ele o usa.",
+   "ru": "Не начат: {look} начнёт расти, когда он его наденет.",
+   "id": "Belum dimulai: {look} mulai tumbuh saat ia memakainya."
+  },
+  "Fully grown": {
+   "zh-Hans": "已完全长大",
+   "hi": "पूरी तरह बड़ा हो गया",
+   "es": "Totalmente crecido",
+   "ar": "اكتمل نموه",
+   "fr": "Adulte",
+   "bn": "পুরোপুরি বড় হয়েছে",
+   "pt-BR": "Totalmente crescido",
+   "ru": "Полностью вырос",
+   "id": "Sudah dewasa penuh"
+  },
+  "Wearing": {
+   "zh-Hans": "穿着中",
+   "hi": "पहना है",
+   "es": "Puesto",
+   "ar": "يرتديه",
+   "fr": "Porté",
+   "bn": "পরেছে",
+   "pt-BR": "Em uso",
+   "ru": "Надет",
+   "id": "Dipakai"
+  },
+  "He's wearing this look": {
+   "zh-Hans": "他正穿着这个外观",
+   "hi": "उसने यही लुक पहना है",
+   "es": "Lleva este aspecto",
+   "ar": "إنه يرتدي هذا المظهر",
+   "fr": "Il porte cette apparence",
+   "bn": "সে এই চেহারাটি পরেছে",
+   "pt-BR": "Ele está usando este visual",
+   "ru": "Он в этом облике",
+   "id": "Ia memakai tampilan ini"
+  },
+  "Wear this look": {
+   "zh-Hans": "穿上这个外观",
+   "hi": "यह लुक पहनाएँ",
+   "es": "Llevar este aspecto",
+   "ar": "ارتدِ هذا المظهر",
+   "fr": "Porter cette apparence",
+   "bn": "এই চেহারাটি পরাও",
+   "pt-BR": "Usar este visual",
+   "ru": "Надеть этот облик",
+   "id": "Pakai tampilan ini"
   }
  }
 }

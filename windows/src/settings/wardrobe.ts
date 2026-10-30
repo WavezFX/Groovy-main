@@ -22,6 +22,7 @@ import {
   type Appearance, type Slot, type WardrobePrefs,
 } from "../mochi/appearance";
 import { N_, t } from "../i18n/i18n";
+import { EASE_OUT, MOTION, duration } from "../core/motion";
 import { confirmClick } from "./parts";
 import { DEFAULT_NAME, checkName, nameOf } from "../mochi/naming";
 
@@ -77,6 +78,11 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     commit();
   };
 
+  // The look the page is about (round 3H item 2): the tabs at the top choose
+  // it; only "Wear this look" changes what he wears on the island.
+  let viewing: Skin = parseSkin(settings.groovyLook);
+  const wearing = () => parseSkin(settings.groovyLook);
+
   // ── Live preview ──
   const PREVIEW = 200;
   const preview = h("canvas", { class: "studio-preview", width: PREVIEW, height: PREVIEW, "aria-label": t("Preview") }) as HTMLCanvasElement;
@@ -94,8 +100,8 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const dressPreview = () => {
     const p = previewer.current;
     const worn = p?.item ? tryOn(prefs.appearance.layers, p.item) : wornOf(prefs.appearance.layers);
-    engine.setSkin(p?.look ?? parseSkin(settings.groovyLook), true);
-    engine.setStage(p?.stage ?? shownStage(lookGrowth(settings)), true);
+    engine.setSkin(p?.look ?? viewing, true);
+    engine.setStage(p?.stage ?? shownStage(lookGrowth(settings, viewing)), true);
     engine.setOutfit(worn[0] ?? "none", true);
     engine.layers = worn.slice(1);
     engine.appearance = prefs.appearance;
@@ -127,12 +133,13 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   };
   preview.addEventListener("click", () => engine.triggerEmote("happy", 1.2));
 
-  // ── The stage strip (round 3E item 11): his six stage looks to preview ──
-  // Drawn as small cached pictures, one per frame, only while the page shows.
-  let stripLook: Skin = parseSkin(settings.groovyLook);
-  const stripSeg = h("div", { class: "hub-w-seg hub-w-strip-looks", role: "radiogroup", "aria-label": t("Preview a look") });
+  // ── The stage strip (round 3E item 11): the viewed look's six stages ──
+  // Small pictures, each drawn once and kept: a redraw reuses them (no
+  // flicker); new ones are drawn one per frame, only while the page shows.
   const strip = h("div", { class: "hub-w-strip", "aria-label": t("Stage looks") });
-  const stripBox = h("div", { class: "hub-w-strip-box" }, stripSeg, strip);
+  const stripNote = h("span", { class: "hub-b-detail hub-w-strip-note" });
+  const stripBox = h("div", { class: "hub-w-strip-box" }, strip, stripNote);
+  const stripArt = new Map<string, HTMLCanvasElement>();
   let stripQueue: (() => void)[] = [];
   const pump = () => {
     const next = stripQueue.shift();
@@ -145,34 +152,35 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   };
   function drawStrip() {
     // Each look's own stages (round 3E item 12): Ember's are locked until Ember grows.
-    const g = lookGrowth(settings, stripLook);
-    const mine = parseSkin(settings.groovyLook);
+    const look = viewing;
+    const g = lookGrowth(settings, look);
     const shown = previewer.current;
-    clear(stripSeg);
-    for (const look of SKINS) {
-      const b = h("button", { class: look === stripLook ? "on" : "", type: "button", role: "radio", "aria-checked": String(look === stripLook), text: t(SKIN_KEYS[look]) });
-      b.addEventListener("click", () => {
-        stripLook = look;
-        // Another look: shown for 5 seconds at his stage; his own look is chosen above, as before.
-        if (look !== mine) previewer.show({ look, stage: shownStage(lookGrowth(settings, look)), locked: true });
-        else previewer.stop();
-        drawStrip();
-      });
-      stripSeg.append(b);
-    }
     clear(strip);
     stripQueue = [];
-    for (const s of stageStrip(g)) {
+    const cells = stageStrip(g);
+    for (const s of cells) {
       const art = h("span", { class: "hub-w-strip-art" });
       const label = s.unlocked ? t("Stage {n}", { n: s.stage }) : `${t("Stage {n}", { n: s.stage })} · ${unlocksIn(s.left ?? 0)}`;
-      const on = shown?.stage === s.stage && (shown.look ?? mine) === stripLook;
+      const on = shown?.stage === s.stage && (shown.look ?? wearing()) === look;
       const b = h("button", { class: `hub-w-strip-stage${s.unlocked ? " unlocked" : " locked"}${on ? " on" : ""}`, type: "button", title: label, "aria-label": label },
         art, h("small", { text: s.unlocked ? `✓ ${s.stage}` : `${s.stage}` })) as HTMLButtonElement;
-      b.addEventListener("click", () => previewer.show({ look: stripLook, stage: s.stage, locked: !s.unlocked || stripLook !== mine }));
+      b.addEventListener("click", () => previewer.show({ look, stage: s.stage, locked: !s.unlocked || look !== wearing() }));
       strip.append(b);
-      stripQueue.push(() => art.replaceChildren(spriteCanvas(lookSprite(stripLook, s.stage, 40, Math.min(2, window.devicePixelRatio || 1)), 40)));
+      const key = `${look}:${s.stage}`;
+      const cached = stripArt.get(key);
+      if (cached) art.append(cached);
+      else stripQueue.push(() => {
+        const c = spriteCanvas(lookSprite(look, s.stage, 40, Math.min(2, window.devicePixelRatio || 1)), 40);
+        stripArt.set(key, c);
+        art.append(c);
+      });
     }
-    requestAnimationFrame(pump);
+    // The next stage to come, in words (the cells are too small for them).
+    const next = cells.find((s) => !s.unlocked);
+    stripNote.textContent = !lookStarted(settings, look)
+      ? t("Not started: {look} starts growing when he wears it.", { look: t(SKIN_KEYS[look]) })
+      : next ? `${t("Stage {n}", { n: next.stage })} · ${unlocksIn(next.left ?? 0)}` : t("Fully grown");
+    if (stripQueue.length) requestAnimationFrame(pump);
   }
 
   // ── Looks ──
@@ -207,47 +215,69 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   // Drawn once, then copied (round 3B item 4: the wardrobe lagged).
   const iconCanvas = (sel: Outfit, size = 30) => spriteCanvas(itemSprite(sel, size, Math.min(2, window.devicePixelRatio || 1)), size);
 
-  // The look (Night, Ember, Frost) and how far he has grown (docs/design/settings-v2/Groovy).
-  const lookSeg = h("div", { class: "hub-w-seg", role: "radiogroup", "aria-label": t("Look") });
+  // The look the page is about (Night, Ember, Frost) and how far it has grown
+  // (docs/design/settings-v2/Groovy; one switch, round 3H item 2).
+  const lookSeg = h("div", { class: "hub-w-seg hub-w-looks", role: "tablist", "aria-label": t("Look") });
+  const wearRow = h("div", { class: "hub-w-wear" });
+  const settle = (el: HTMLElement) => el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: duration(MOTION.small), easing: EASE_OUT });
   function drawLooks() {
     clear(looks);
     clear(lookSeg);
-    const current = parseSkin(settings.groovyLook);
-    const g = lookGrowth(settings, current);
+    const worn = wearing();
+    const g = lookGrowth(settings, viewing);
     const shown = shownStage(g);
+    const started = lookStarted(settings, viewing);
     for (const look of SKINS) {
-      // Each look's own state under its name (round 3E item 12).
+      // Each look's own state under its name (round 3E item 12), and which one he wears.
       const state = lookStarted(settings, look) ? t("Stage {n}", { n: shownStage(lookGrowth(settings, look)) }) : t("Not started");
-      const b = h("button", { class: look === current ? "hub-w-look on" : "hub-w-look", type: "button", role: "radio", "aria-checked": String(look === current) },
-        h("span", { text: t(SKIN_KEYS[look]) }), h("small", { text: state }));
+      const b = h("button", { class: look === viewing ? "hub-w-look on" : "hub-w-look", type: "button", role: "tab", "aria-selected": String(look === viewing) },
+        h("span", { text: t(SKIN_KEYS[look]) }), h("small", { text: state }),
+        look === worn ? h("em", { class: "hub-w-wearing", text: t("Wearing") }) : null);
       b.addEventListener("click", () => {
-        chooseLook(settings, look);
-        save();
-        drawAll();
+        if (look === viewing) return;
+        viewing = look;
+        previewer.stop();
+        drawLooks();
+        kick();
+        settle(growthRow);
+        settle(strip);
       });
       lookSeg.append(b);
     }
     // The stages: Seed, 1 d, 3 d… each lit once reached.
     const marks = h("div", { class: "hub-w-stages", style: `grid-template-columns:repeat(${MAX_STAGE + 1},minmax(0,1fr))` });
     for (let i = 0; i <= MAX_STAGE; i++) {
-      marks.append(h("div", { class: i <= shown ? "hub-w-stage on" : "hub-w-stage" }, h("span", {}), h("small", { text: t(STAGE_MARKS[i] ?? "") })));
+      marks.append(h("div", { class: started && i <= shown ? "hub-w-stage on" : "hub-w-stage" }, h("span", {}), h("small", { text: t(STAGE_MARKS[i] ?? "") })));
+    }
+    // Wearing it, or a button to: the row keeps its height either way.
+    clear(wearRow);
+    if (viewing === worn) wearRow.append(h("span", { class: "hub-w-wearing", text: t("He's wearing this look") }));
+    else {
+      const wearBtn = h("button", { class: "primary", type: "button", text: t("Wear this look") }) as HTMLButtonElement;
+      wearBtn.addEventListener("click", () => {
+        chooseLook(settings, viewing);
+        save();
+        drawAll();
+      });
+      wearRow.append(wearBtn);
     }
     growthRow.replaceChildren(
       h("div", { class: "hub-w-growth-head" },
-        h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[current]) }) })),
+        h("span", { class: "hub-w-growth-name", text: t("Growing into {name}", { name: t(GROWS_INTO[viewing]) }) })),
       marks,
-      h("span", { class: "hub-b-detail", text: progressLine(g) }),
-      stripBox,
+      h("span", { class: "hub-b-detail", text: started ? progressLine(g) : t("Not started") }),
+      wearRow,
     );
     drawStrip();
     // Favourite looks, as before, for the search.
     for (const look of SKINS) {
       if (!query && !favouritesOnly) break;
       if (!matches(look, SKIN_KEYS[look])) continue;
-      const portrait = spriteCanvas(lookSprite(look, shown, 34, Math.min(2, window.devicePixelRatio || 1)), 34);
-      const b = h("button", { class: look === current ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === current }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), star(look)) as HTMLButtonElement;
+      const portrait = spriteCanvas(lookSprite(look, shownStage(lookGrowth(settings, look)), 34, Math.min(2, window.devicePixelRatio || 1)), 34);
+      const b = h("button", { class: look === worn ? "studio-item on" : "studio-item", title: t(SKIN_KEYS[look]), "aria-pressed": look === worn }, portrait, h("span", { text: t(SKIN_KEYS[look]) }), star(look)) as HTMLButtonElement;
       b.addEventListener("click", () => {
         chooseLook(settings, look);
+        viewing = look;
         save();
         drawAll();
       });
@@ -354,6 +384,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       const wear = h("button", { text: t("Wear") }) as HTMLButtonElement;
       wear.addEventListener("click", () => {
         settings.groovyLook = p.look;
+        viewing = p.look;
         // Only what he can wear now: a locked item in a preset waits.
         prefs = { ...prefs, appearance: { ...p.appearance, layers: wornOf(p.appearance.layers).filter((o) => o !== "none" && can(o)) } };
         commit();
@@ -426,6 +457,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   random.addEventListener("click", () => {
     const r = randomLook(Math.random, can);
     settings.groovyLook = r.look;
+    viewing = r.look;
     prefs = { ...prefs, appearance: r.appearance };
     commit();
     engine.triggerEmote("happy", 1.2);
@@ -433,6 +465,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   const reset = h("button", { class: "danger", text: t("Reset to default") }) as HTMLButtonElement;
   confirmClick(reset, t("Click again: presets are kept"), () => {
     settings.groovyLook = "night";
+    viewing = "night";
     prefs = { ...prefs, appearance: DEFAULT_APPEARANCE };
     commit();
   });
@@ -460,12 +493,15 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     "section",
     { id: "wardrobe", class: "hub-w", "data-own": "" },
     message,
-    h("div", { class: "hub-w-grid" },
-      h("div", { class: "hub-card hub-w-left", "aria-label": t("Look and growth") }, stage, nameRow, lookSeg, growthRow),
-      h("div", { class: "hub-w-right", "aria-label": t("Wardrobe") },
-        h("div", { class: "hub-w-bar" }, slotTabs, removeAll),
-        slots,
-      ),
+    lookSeg,
+    h("div", { class: "hub-card hub-w-top", "aria-label": t("Look and growth") },
+      stage,
+      h("div", { class: "hub-w-timeline" }, growthRow, nameRow),
+      stripBox,
+    ),
+    h("div", { class: "hub-w-right", "aria-label": t("Wardrobe") },
+      h("div", { class: "hub-w-bar" }, slotTabs, removeAll),
+      slots,
     ),
     h("div", { class: "hub-w-more" },
       h("span", { class: "hub-label", text: t("Find") }),
