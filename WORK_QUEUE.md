@@ -71,7 +71,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 7. Logs redact keys and tokens
 - [x] 8. Dependabot, cargo audit, npm audit and gitleaks in CI
 - [x] 9. Fast check on every push; full build on demand / `[build]` / nightly into one "Groovy latest build" release; short retention and run clean-up
-- [ ] 10. Checks
+- [x] 10. Checks
 
 ## 1E. Fixes round 3E: `FIXES_ROUND3E.md` (the owner's test of the 3D build). **Do this right after 3F items 5, 7 and 9 (owner's choice, 25 Oct), before the open 3G security items 1, 2, 5 and 10. Then round 5, then 3G 1, 2, 5, 10, then 3D items 11 and 6.**
 - [x] 1. Island tiles look right at normal size: smaller text, a compact Spotify tile, a narrower Groovy area, a big page switcher
