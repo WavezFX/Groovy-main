@@ -395,8 +395,11 @@ jobs:
             Retry { gh release create $tag -R $env:REPO --prerelease --title "Groovy latest build" --notes $notes --target $env:SHA }
           } else {
             Retry { gh release edit $tag -R $env:REPO --prerelease --title "Groovy latest build" --notes $notes }
-            # The tag moves to the commit that was built.
-            Retry { gh api -X PATCH "repos/$env:REPO/git/refs/tags/$tag" -f sha=$env:SHA -F force=true }
+            # The tag moves to the commit that was built. GitHub sometimes refuses
+            # this to the workflow's token (build 198: HTTP 403); the notes name
+            # the commit anyway, so the files are still uploaded.
+            gh api -X PATCH "repos/$env:REPO/git/refs/tags/$tag" -f sha=$env:SHA -F force=true | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::the latest-build tag couldn't move to $short; the release notes name the commit built" }
           }
           # Assets from an earlier version's names go; same names are replaced.
           $keep = (Get-ChildItem $stage -File).Name
