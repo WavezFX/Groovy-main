@@ -93,6 +93,13 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
 - [ ] 4. Checks (done except item 1's: the contact sheet, and frame and memory checks with the new item rendering; see STATUS)
 
+## 1I. Fixes round 3I: `FIXES_ROUND3I.md` (memory as linked markdown notes, smarter recall). **After 3H and 3D item 11.**
+- [ ] 1. Memories as markdown files (files are the source of truth, database is the index, existing memories imported)
+- [ ] 2. Event-driven folder watcher (no polling)
+- [ ] 3. FTS5 search index and link table, built on demand
+- [ ] 4. Recall by relevance (pinned, matches, one-hop links, newest) inside the same 1500-character budget
+- [ ] 5. Checks
+
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI
 - [x] 2. The gear opens quick settings. **It must unfold out of the island using round 3B item 8's motion module.**
