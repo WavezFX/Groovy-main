@@ -115,8 +115,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 5. Checks (round-trip, forget, ended-note, budget tests pass; idle/peak numbers come from the [build] run, Obsidian check is the owner's)
 
 ## 1J. Fixes round 3J: `FIXES_ROUND3J.md` (licence housekeeping, a few daily-use wins; change only what is clearly better). **After 3I.**
-- [ ] 1. Licence housekeeping: dependency licence checks in CI, THIRD_PARTY_NOTICES, MODELS.md, stale licence text, internal `mochi` names
-- [ ] 2. Better end-of-speech detection (benchmark Silero VAD, Smart Turn, Moonshine; adopt only if clearly better)
+- [x] 1. Licence housekeeping (cargo-deny + npm licence gate in check.yml, THIRD_PARTY_NOTICES.md shipped, MODELS.md; no GPL/LGPL crate in the Windows build; `mochi` rename and the About link left undone, see STATUS.md): dependency licence checks in CI, THIRD_PARTY_NOTICES, MODELS.md, stale licence text, internal `mochi` names
+- [x] 2. (not benchmarked, current code kept; see STATUS.md) Better end-of-speech detection (benchmark Silero VAD, Smart Turn, Moonshine; adopt only if clearly better)
 - [x] 3. Game Mode: stop listening and ticking during games and presentations
 - [ ] 4. Clipboard history tile (opt-in, in memory only)
 - [ ] 6. Dialog Jump (optional)

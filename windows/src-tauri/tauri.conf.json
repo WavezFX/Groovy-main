@@ -49,7 +49,7 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "resources": { "../target/release/groovy-hook.exe": "groovy-hook.exe" },
+    "resources": { "../target/release/groovy-hook.exe": "groovy-hook.exe", "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md" },
     "copyright": "© SSD",
     "category": "DeveloperTool",
     "shortDescription": "Groovy lives at the top of your screen",

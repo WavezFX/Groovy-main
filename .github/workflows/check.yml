@@ -152,3 +152,24 @@ jobs:
       - name: cargo audit
         working-directory: windows
         run: cargo audit
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Licences (no GPL, AGPL or LGPL in the release build)
+        working-directory: windows
+        run: cargo deny check licenses bans
+
+      - name: npm licences (shipped packages: no GPL or AGPL)
+        working-directory: windows
+        run: |
+          npm ci --ignore-scripts
+          npx --yes license-checker-rseidelsohn@4.4.2 --production --excludePrivatePackages --failOn "GPL;AGPL;LGPL"
+
+      - name: THIRD_PARTY_NOTICES is up to date
+        working-directory: windows
+        run: |
+          node scripts/third-party.mjs
+          git diff --exit-code THIRD_PARTY_NOTICES.md
