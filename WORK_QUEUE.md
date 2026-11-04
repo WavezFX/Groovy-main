@@ -97,7 +97,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
 - [x] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
-- [ ] 4. Checks (done except item 1's: the contact sheet, and frame and memory checks with the new item rendering; see STATUS)
+- [x] 4. Checks (item 1 contact sheet and measured fit in `items-check`; frame and memory checks run in this [build])
 
 ## 1I. Fixes round 3I: `FIXES_ROUND3I.md` (memory as linked markdown notes, smarter recall). **After 3H and 3D item 11.**
 - [ ] 1. Memories as markdown files (files are the source of truth, database is the index, existing memories imported)
