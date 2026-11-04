@@ -219,8 +219,8 @@ function arrive(ctx: Ctx, item: Accessory, H: Head, p: number) {
 
 /** The board's eyes (Wardrobe.dc.html): what face items were drawn around. */
 const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
-/** Face items' reach from the eye line's middle, in half eye spans (lens plus arm). */
-const FACE_REACH = 1.45;
+/** How far a face item's art reaches beyond a lens on the board, in board units (arms excluded). */
+const FACE_REACH = 24;
 /** Half the width of a hat's art on the board, where it is narrower than his rim. */
 const HAT_HALF: Partial<Record<Accessory, number>> = { acornCap: 28, backwardsCap: 26, leafCrown: 31 };
 /** The board point the pool ring hangs from: his middle. */
@@ -295,6 +295,32 @@ export function narrowing(yaw: number, strength: number): number {
 }
 
 /**
+ * Where a face item sits: the board's two eyes onto his (their middle, their
+ * spacing, never under 0.6 of the full face's, and the line between them), so a
+ * lens is always on its eye. What lies beyond a lens on the board (a visor's
+ * ends, a patch's strap) is foreshortened with the turn so its outer edge stays
+ * inside his outline: `kL` and `kR` scale the board left of the left lens and
+ * right of the right lens.
+ */
+function faceFit(H: Head) {
+  const sx = H.rx / 36;
+  const sy = H.ry / 31;
+  const [l, r] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
+  const front = Math.abs(12 * sx * 2) || 1;
+  const span = Math.hypot(r[0] - l[0], r[1] - l[1]);
+  const full = H.eyes ? span / Math.max(0.05, Math.cos(H.yaw)) : front;
+  const half = (BOARD_EYES.r - BOARD_EYES.l) / 2;
+  const k = Math.max(span, full * 0.6) / (BOARD_EYES.r - BOARD_EYES.l);
+  const ky = full / (BOARD_EYES.r - BOARD_EYES.l);
+  const cx = (l[0] + r[0]) / 2;
+  const cy = (l[1] + r[1]) / 2;
+  const rot = Math.atan2(r[1] - l[1], r[0] - l[0]);
+  const hw = halfWidthAt(cy, H.rx, H.ry, BODY_EXP) * 0.98;
+  const side = (room: number) => Math.min(k, Math.max(0.1 * k, room) / FACE_REACH);
+  return { cx, cy, rot, k, ky, kL: side(hw + cx - half * k), kR: side(hw - cx - half * k) };
+}
+
+/**
  * Board space for an item, placed on its anchor (the caller drew nothing
  * yet). Exported for the placement test.
  */
@@ -305,22 +331,10 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
   const wobbleX = H.physDx * H.rx * 0.05;
   const wobbleY = H.physDy * H.ry * 0.05;
   if (slot === "face") {
-    const [l, r] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
-    // The board's two eyes onto his: their middle, their spacing (never under
-    // 0.6 of the full face's), and the line between them.
-    const front = Math.abs(12 * sx * 2) || 1;
-    const span = Math.hypot(r[0] - l[0], r[1] - l[1]);
-    const full = H.eyes ? span / Math.max(0.05, Math.cos(H.yaw)) : front;
-    const k = Math.max(span, full * 0.6) / (BOARD_EYES.r - BOARD_EYES.l);
-    const ky = full / (BOARD_EYES.r - BOARD_EYES.l);
-    const cx = (l[0] + r[0]) / 2;
-    const cy = (l[1] + r[1]) / 2;
-    // Keep the outer edge (arms included) inside his outline at every turn.
-    const room = halfWidthAt(cy, H.rx, H.ry, BODY_EXP) * 0.98 - Math.abs(cx);
-    const kMax = Math.max(0.05, room) / (((BOARD_EYES.r - BOARD_EYES.l) / 2) * FACE_REACH);
-    ctx.translate(cx, cy);
-    ctx.rotate(Math.atan2(r[1] - l[1], r[0] - l[0]));
-    ctx.scale(Math.min(k, kMax), Math.min(ky, kMax * 1.2));
+    const f = faceFit(H);
+    ctx.translate(f.cx, f.cy);
+    ctx.rotate(f.rot);
+    ctx.scale(f.k, f.ky);
     ctx.translate(-(BOARD_EYES.l + BOARD_EYES.r) / 2, -BOARD_EYES.y);
     return;
   }
@@ -398,8 +412,39 @@ function drawContactShadow(ctx: Ctx, item: Accessory, H: Head) {
 }
 
 function drawItem(ctx: Ctx, item: Accessory, art: Art, H: Head, layers: readonly ("behind" | "body" | "front")[]) {
+  if (SLOT_OF[item] === "face") {
+    const f = faceFit(H);
+    if (f.kL < f.k * 0.99 || f.kR < f.k * 0.99) {
+      drawFaceBands(ctx, art, layers, f);
+      return;
+    }
+  }
   placeItem(ctx, item, H);
   for (const l of layers) drawShapes(ctx, art[l]);
+}
+
+/** A face item in three board bands (left of the left lens, between, right of the right lens), each at its own width. */
+function drawFaceBands(ctx: Ctx, art: Art, layers: readonly ("behind" | "body" | "front")[], f: ReturnType<typeof faceFit>) {
+  const h = (BOARD_EYES.r - BOARD_EYES.l) / 2;
+  const bands: [number, number, number, number, number][] = [
+    // [clip from, clip to, board x held in place, its offset from the middle, scale]
+    [-1000, BOARD_EYES.l, BOARD_EYES.l, -h * f.k, f.kL],
+    [BOARD_EYES.l - 0.2, BOARD_EYES.r + 0.2, 50, 0, f.k],
+    [BOARD_EYES.r, 1000, BOARD_EYES.r, h * f.k, f.kR],
+  ];
+  for (const [from, to, at, off, kx] of bands) {
+    ctx.save();
+    ctx.translate(f.cx, f.cy);
+    ctx.rotate(f.rot);
+    ctx.translate(off, 0);
+    ctx.scale(kx, f.ky);
+    ctx.translate(-at, -BOARD_EYES.y);
+    ctx.beginPath();
+    ctx.rect(from, -1000, to - from, 2000);
+    ctx.clip();
+    for (const l of layers) drawShapes(ctx, art[l]);
+    ctx.restore();
+  }
 }
 
 /**
