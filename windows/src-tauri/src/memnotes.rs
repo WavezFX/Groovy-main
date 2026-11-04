@@ -425,7 +425,7 @@ pub fn recall_ids(conn: &Connection, query: &str, now: i64) -> Result<Vec<i64>, 
             .unwrap_or(false)
     };
     let mut out: Vec<i64> = Vec::new();
-    let mut push = |ids: Vec<i64>, out: &mut Vec<i64>| {
+    let push = |ids: Vec<i64>, out: &mut Vec<i64>| {
         for id in ids {
             if !out.contains(&id) && live(id) {
                 out.push(id);

@@ -9,7 +9,9 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 
+#[cfg_attr(not(windows), allow(dead_code))]
 const MAX_ITEMS: usize = 20;
+#[cfg_attr(not(windows), allow(dead_code))]
 const MAX_BYTES: usize = 10 * 1024;
 
 static HISTORY: Mutex<VecDeque<Entry>> = Mutex::new(VecDeque::new());
@@ -22,6 +24,7 @@ pub struct Entry {
 }
 
 /// Puts a copied text at the front: no empty or oversized text, no repeats (it just moves up).
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn push(history: &mut VecDeque<Entry>, text: &str, at: i64) -> bool {
     if text.trim().is_empty() || text.len() > MAX_BYTES {
         return false;
@@ -32,6 +35,7 @@ pub fn push(history: &mut VecDeque<Entry>, text: &str, at: i64) -> bool {
     true
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn record(text: &str) {
     push(&mut HISTORY.lock().unwrap(), text, crate::db::now());
 }
