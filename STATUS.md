@@ -325,3 +325,8 @@ Studied Coucou's MIT `windows/src/mochi/outfits.ts` for its *technique* only (no
 - **Dome hats (acorn, mushroom, pumpkin, beanie, eggshell, watermelon, bucket, cap):** no back piece any more (that was the disc behind them), centred on his head and at least his width. The contact shade is a thin line tight to the edge, not a band.
 - **Leaf crown and flower crown:** drawn on the head model with leaves or flowers spaced all the way round, so they wrap to his sides (no bare skin). The back ones are behind him.
 - Checked locally: `scripts/items-check.mjs` passes (only warnings beyond yaw ±0.7), wardrobe tests pass, and outfits.ts type-checks with no unused locals.
+
+## Round 3M item 8: headphones turn, caps are worn (4 Nov, from the owner's review of 92e5ccc)
+- **Headphones:** turned, the far cup now goes behind his head, so you no longer see both cups when he looks sideways. The near cup stays on his outline and grows a little. The band is drawn only outside his outline (never on his face), and its far half tucks in behind his head as he turns.
+- **Acorn, pumpkin and mushroom caps** are now drawn on the head model, not pasted from the board. Each cap is a dome sitting on the top of his head. Its edge follows the front of a ring round him, so it curves round him and turns with him, and the details lie on that surface: the acorn's rows of scales, the pumpkin's ribs and lobes, the mushroom's spots. The acorn has a stalk, the pumpkin a stem and leaf, and the mushroom is wider and overhangs. Nothing is drawn behind them, and there's no fill under them, so no inner circle and no orange head.
+- Checked locally: item-fit check passes (warnings only beyond yaw ±0.7), wardrobe tests pass, and the types check with no unused locals.

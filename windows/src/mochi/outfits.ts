@@ -362,7 +362,8 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
       ctx.stroke();
     }
   }
-  for (const st of wrapStrokes(item, H, A, art)) if (!st.onTop) strokeRuns(ctx, st, false);
+  for (const st of wrapStrokes(item, H, A, art)) if (st.back) strokeRuns(ctx, st, false, 0, true);
+    else if (!st.onTop) strokeRuns(ctx, st, false);
   if (item === "headphones") drawCups(ctx, art, H, A, false);
 }
 
@@ -400,7 +401,7 @@ function faceFit(H: Head) {
 // ── Things that go round him (round 3M item 3) ───────────────────────────────
 
 /** `onTop`: lies over the top of his head (a headband), so it is never hidden by him. */
-interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean; onTop?: boolean; clipBody?: boolean }
+interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean; onTop?: boolean; clipBody?: boolean; clipOut?: boolean; back?: boolean }
 
 
 
@@ -439,17 +440,21 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
       return [{ pts: ringPoints(H, yc, halfWidthAt(yc, H.rx, H.ry, BODY_EXP)), color: "#7A5230", lw: R * 0.07, closed: true }];
     }
     case "headphones": {
-      // Over the top of his head from ear to ear, just outside his outline: his silhouette
-      // doesn't turn, so neither does the band, and it never crosses his face.
+      // Over the top of his head from ear to ear, just outside his outline (clipped to outside him): so it
+      // never crosses his face. As he turns, the far half tucks in behind his head with its cup.
       const earY = ey;
+      const u = turnOf(H, A);
       const top: [number, number][] = [];
       for (let k = 0; k <= 120; k++) {
-        const [x, y] = pillowXY((k / 120) * Math.PI * 2, H.rx * 1.06, H.ry * 1.06, BODY_EXP);
-        if (y <= earY) top.push([x, y]);
+        const [x, y] = pillowXY((k / 120) * Math.PI * 2, H.rx, H.ry, BODY_EXP);
+        if (y > earY * 1.06) continue;
+        const far = Math.max(0, Math.sign(x) * u);
+        const k2 = 1.06 + 0.02 * Math.max(0, -Math.sign(x) * u) - 0.14 * far;
+        top.push([x * k2, y * (1.06 - 0.06 * far)]);
       }
       top.sort((p, q) => p[0] - q[0]);
       const wx = A.rim.cx;
-      return [{ pts: top.map(([x, y]) => ({ x: x + wx, y, z: 1 })), color: "#2B2F36", lw: R * 0.11, onTop: true }];
+      return [{ pts: top.map(([x, y]) => ({ x: x + wx, y, z: 1 })), color: "#2B2F36", lw: R * 0.11, onTop: true, clipOut: true }];
     }
     case "roundSpecs":
     case "shades":
@@ -473,6 +478,16 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
     default:
       return [];
   }
+}
+
+/**
+ * How far he has turned, from where his eyes have moved: -1 (looking to his left of the screen)
+ * … +1. The eyes slide towards the side that is turning away from us, so that side's ear (and
+ * headphone cup) goes behind his head and the other side's comes round to the front.
+ */
+function turnOf(H: Head, A: Anchors): number {
+  const mid = (A.eyeL[0] + A.eyeR[0]) / 2 - A.rim.cx;
+  return Math.max(-1, Math.min(1, mid / (0.35 * H.rx)));
 }
 
 /** A quadratic curve as points on his front (z = 1): straps and arms that lie on his face. */
@@ -519,23 +534,24 @@ function splitPath(pts: P3[], front: boolean): P3[][] {
 
 /** Headphone cups on his ears: the near one in front and bigger, the far one behind him, thinner as it turns away. */
 function drawCups(ctx: Ctx, art: Art, H: Head, A: Anchors, front: boolean) {
-  // On his ears: at eye height, on his outline, both in front of him (his silhouette doesn't turn).
-  if (!front) return;
+  // On his ears, at eye height. Facing us, both sit on his outline. Turned, the near ear's cup
+  // stays in front and grows a little; the far one goes behind his head (drawn behind him,
+  // so only an edge peeks past his outline, then none at all).
   const shapes = art.front ?? [];
   const ax = halfWidthAt(A.eyeLine, H.rx, H.ry, BODY_EXP);
   const sx = H.rx / 36;
   const sy = H.ry / 31;
-  const span = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]);
+  const u = turnOf(H, A);
   for (const sd of [-1, 1]) {
+    const far = Math.max(0, sd * u);
+    const isFar = far > 0.2;
+    if (isFar === front) continue;
     const cup = sd < 0 ? [shapes[0], shapes[2]] : [shapes[1], shapes[3]];
-    // When he turns, an eye slides towards that ear: the cup moves out past it, never over his eye.
-    let x = A.rim.cx + sd * (ax + sx * 1.5);
-    const eye = sd < 0 ? A.eyeL : A.eyeR;
-    const overlap = sd * (eye[0] + sd * span * 0.3 - (x - sd * sx * 5));
-    if (overlap > 0) x += sd * overlap;
+    const x = A.rim.cx + sd * (ax + sx * (1.5 - 7 * far));
+    const w = 0.95 * (1 + 0.15 * Math.max(0, -sd * u)) * (1 - 0.35 * far);
     ctx.save();
     ctx.translate(x, A.eyeLine);
-    ctx.scale(sx * 0.95, sy);
+    ctx.scale(sx * w, sy * (1 + 0.08 * Math.max(0, -sd * u)));
     ctx.translate(-(sd < 0 ? 13.5 : 86.5), -60);
     drawShapes(ctx, cup.filter(Boolean) as Shape[]);
     ctx.restore();
@@ -745,8 +761,8 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     // pale band or a grey seam: what is behind him only shows past his outline.
     l.save();
     l.clip(outsideBody(H), "evenodd");
-    if (RING_CROWN.has(outfit)) {
-      drawRingCrown(l, outfit, H, false);
+    if (RING_CROWN.has(outfit) || CAP.has(outfit)) {
+      if (RING_CROWN.has(outfit)) drawRingCrown(l, outfit, H, false);
       l.restore();
       return;
     }
@@ -846,6 +862,160 @@ function drawRingCrown(ctx: Ctx, item: Accessory, H: Head, front: boolean) {
   ctx.restore();
 }
 
+/**
+ * Caps that are worn ON his head, drawn on the head model rather than pasted from the board:
+ * the cap is the top of his head itself, a little larger, cut off along the front of a ring
+ * round his head (so its edge curves round him and turns with him), with its own details
+ * (scales, ribs, spots) lying on that surface. Nothing behind, no fill under it.
+ */
+const CAP = new Set<Accessory>(["acornCap", "pumpkinCap", "mushroomCap"]);
+/** seat: the edge's height (× ry); s: its width against his head there; h: the dome's height above it (× ry). */
+interface CapForm { seat: number; s: number; h: number; lobes: number }
+const CAP_FORM: Record<string, CapForm> = {
+  acornCap: { seat: -0.4, s: 1.07, h: 0.78, lobes: 0 },
+  pumpkinCap: { seat: -0.38, s: 1.1, h: 0.82, lobes: 7 },
+  mushroomCap: { seat: -0.46, s: 1.34, h: 0.88, lobes: 0 },
+};
+/** How round the dome is: 2 is an ellipse, higher is boxier (his head is 3). */
+const CAP_P = 2.3;
+
+/** A point on the cap's surface: `f` 0 at its edge … 1 at its top, `t` round him (0 = the front). */
+function capPoint(H: Head, cx: number, seatY: number, a: number, h: number, f: number, t: number): P3 {
+  const up = Math.sin((f * Math.PI) / 2);
+  const y = seatY - h * up;
+  const ay = a * Math.pow(Math.max(0, 1 - Math.pow(up, CAP_P)), 1 / CAP_P);
+  const q = ringPoint(H, y, Math.max(0.5, ay), t);
+  return { x: q.x + cx, y: q.y, z: q.z };
+}
+
+function capPath(H: Head, c: CapForm): { path: Path2D; front: P3[]; seatY: number; topY: number; cx: number; a: number; h: number } {
+  const A = headAnchors(H);
+  const cx = A.rim.cx;
+  const seatY = c.seat * H.ry + H.physDy * H.ry * 0.05;
+  const a = halfWidthAt(seatY, H.rx, H.ry, BODY_EXP) * c.s;
+  const h = c.h * H.ry;
+  const front = (splitRing(ringPoints(H, seatY, a, 72), true)[0] ?? []).slice().sort((p, q) => p.x - q.x);
+  const path = new Path2D();
+  if (front.length) {
+    path.moveTo(front[0].x + cx, front[0].y);
+    for (const q of front) path.lineTo(q.x + cx, q.y);
+  }
+  // The dome over the top, right to left, from the ends of the front edge.
+  const N = 96;
+  for (let k = 0; k <= N; k++) {
+    const x = a * (1 - (2 * k) / N);
+    let up = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / a), CAP_P)), 1 / CAP_P);
+    let xx = x;
+    if (c.lobes) {
+      // A pumpkin's lobes: its outline bulges between the ribs.
+      const bump = 1 + 0.04 * Math.abs(Math.sin((x / a) * c.lobes * 0.5 * Math.PI));
+      xx *= bump;
+      up *= bump;
+    }
+    path.lineTo(xx + cx, seatY - h * up);
+  }
+  path.closePath();
+  const fr = front.map((q) => ({ x: q.x + cx, y: q.y, z: q.z }));
+  return { path, front: fr, seatY, topY: seatY - h, cx, a, h };
+}
+
+function drawCap(ctx: Ctx, item: Accessory, H: Head) {
+  const c = CAP_FORM[item];
+  const { path, front, seatY, topY, cx, a, h } = capPath(H, c);
+  const R = H.R;
+  const w = a;
+  const line = (pts: P3[]) => {
+    ctx.beginPath();
+    pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+  };
+  const turn = Math.sin(H.yaw);
+  ctx.save();
+  // The cap itself, lit from the top left.
+  const g = ctx.createRadialGradient(cx - w * 0.35, topY + (seatY - topY) * 0.25, R * 0.1, cx, seatY, w * 1.25);
+  if (item === "acornCap") { g.addColorStop(0, "#C58A4E"); g.addColorStop(0.55, "#9A6232"); g.addColorStop(1, "#6A3F1C"); }
+  else if (item === "pumpkinCap") { g.addColorStop(0, "#FFB25C"); g.addColorStop(0.6, "#F57F1F"); g.addColorStop(1, "#C95A0E"); }
+  else { g.addColorStop(0, "#FF7A6E"); g.addColorStop(0.6, "#E2443A"); g.addColorStop(1, "#A9261F"); }
+  ctx.fillStyle = g;
+  ctx.fill(path);
+  ctx.save();
+  ctx.clip(path);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (item === "acornCap") {
+    // Rows of little scales, zigzags round the cap, only on the side facing us.
+    ctx.strokeStyle = "rgba(70,38,14,0.55)";
+    ctx.lineWidth = Math.max(0.8, R * 0.03);
+    for (let row = 0; row < 5; row++) {
+      const f0 = 0.08 + row * 0.18;
+      const pts: P3[] = [];
+      for (let k = 0; k <= 28; k++) {
+        const t = -Math.PI / 2 + (k / 28) * Math.PI - turn * 0.6;
+        const q = capPoint(H, cx, seatY, a, h, f0 + (k % 2 ? 0.09 : 0), t);
+        if (q.z > 0) pts.push(q);
+      }
+      if (pts.length > 1) { line(pts); ctx.stroke(); }
+    }
+  } else if (item === "pumpkinCap") {
+    // Ribs from the edge up to the stem, curving round the cap: they turn with him.
+    ctx.strokeStyle = "rgba(170,70,10,0.5)";
+    ctx.lineWidth = Math.max(0.8, R * 0.035);
+    for (let r = -3; r <= 3; r++) {
+      const t = r * 0.42 - turn * 0.6;
+      const pts: P3[] = [];
+      for (let k = 0; k <= 12; k++) {
+        const q = capPoint(H, cx, seatY, a, h, k / 12, t);
+        if (q.z > 0) pts.push(q);
+      }
+      if (pts.length > 1) { line(pts); ctx.stroke(); }
+    }
+  } else {
+    // White spots lying on the cap, smaller as they turn away.
+    const SPOTS: [number, number, number][] = [[0.25, 0, 1], [0.3, 0.9, 0.8], [0.3, -0.95, 0.85], [0.6, 0.45, 0.9], [0.6, -0.5, 0.75], [0.82, 0.05, 0.7], [0.2, 1.7, 0.7], [0.22, -1.75, 0.7], [0.55, 1.4, 0.6], [0.55, -1.4, 0.6]];
+    ctx.fillStyle = "#FFF7F0";
+    for (const [f, t0, sz] of SPOTS) {
+      const q = capPoint(H, cx, seatY, a, h, f, t0 - turn * 0.6);
+      if (q.z <= 0.05 * w) continue;
+      const k = Math.min(1, q.z / (0.8 * w)) ;
+      ctx.beginPath();
+      ctx.ellipse(q.x, q.y, R * 0.14 * sz * (0.45 + 0.55 * k), R * 0.115 * sz, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // A soft highlight near the top left.
+  const hl = ctx.createRadialGradient(cx - w * 0.3, topY + (seatY - topY) * 0.3, 0, cx - w * 0.3, topY + (seatY - topY) * 0.3, w * 0.45);
+  hl.addColorStop(0, "rgba(255,255,255,0.28)");
+  hl.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = hl;
+  ctx.fill(path);
+  ctx.restore();
+  // The edge where it sits on him: a darker lip along the front of the ring.
+  if (front.length > 1) {
+    ctx.strokeStyle = item === "acornCap" ? "#5A3417" : item === "pumpkinCap" ? "#B9540C" : "#9E231C";
+    ctx.lineWidth = R * (item === "mushroomCap" ? 0.05 : 0.07);
+    line(front);
+    ctx.stroke();
+  }
+  // What grows from the top: the acorn's stalk, the pumpkin's stem and leaf. The mushroom has none.
+  if (item !== "mushroomCap") {
+    const tip = capPoint(H, cx, seatY, a, h, 1, 0);
+    const bx = tip.x + turn * w * 0.12;
+    const by = topY + R * 0.03;
+    ctx.strokeStyle = item === "acornCap" ? "#6B4423" : "#4E7A2E";
+    ctx.lineWidth = R * (item === "acornCap" ? 0.07 : 0.1);
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx + R * 0.02, by - R * 0.16, bx + R * 0.1, by - R * 0.24);
+    ctx.stroke();
+    if (item === "pumpkinCap") {
+      ctx.fillStyle = "#5FB04A";
+      ctx.beginPath();
+      ctx.ellipse(bx + R * 0.2, by - R * 0.12, R * 0.13, R * 0.06, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
 let outside: { key: string; path: Path2D } | null = null;
 /** Everything except his body: a big box with his outline cut out (for an even-odd clip). */
 function outsideBody(H: Head): Path2D {
@@ -871,11 +1041,18 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
   // The board puts glasses that hide the eyes under them; on him they go over.
   withLayer(ctx, alpha, (l) => {
     drawContactShadow(l, outfit, H);
+    if (CAP.has(outfit)) {
+      drawCap(l, outfit, H);
+      return;
+    }
     if (DOME.has(outfit)) drawDome(l, outfit, art, H);
     const A = headAnchors(H);
     for (const st of wrapStrokes(outfit, H, A, art)) {
+      if (st.back) continue;
       l.save();
       if (st.clipBody) l.clip(bodyOutline(H));
+      // Drawn over his glow but only past his outline: what dips inside it is behind his head.
+      if (st.clipOut) l.clip(outsideBody(H), "evenodd");
       strokeRuns(l, st, true, 0, st.onTop);
       l.restore();
     }
