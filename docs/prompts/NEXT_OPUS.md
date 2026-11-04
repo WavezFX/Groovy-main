@@ -71,6 +71,14 @@ Memory: under 150 MB idle, never over 300 MB peak; springs only while visible an
 Token rules (my usage is limited): read only the item you are on; grep first, then line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40); full builds/tests once per item; final reply at most 3 lines.
 ```
 
+## Session G: Opus 5.5 (round 3N, everything left)
+
+```
+Pull groovy-ai-phase1. Read WORK_QUEUE.md (memory rule) and FIXES_ROUND3N.md only, then do round 3N items 1 to 5 in order, in one run. Item 1: make the remaining hats real caps worn on his head the same way e5115fa did the acorn, pumpkin and mushroom (CAP, CAP_FORM, capPath, capPoint, drawCap in windows/src/mochi/outfits.ts); read only those functions, don't start over. Item 2: get the peak from 330 MB to 300 MB by moving Kokoro and sherpa into on-demand helper processes, measure from the next build, then set the gates from real numbers (never blind). Items 3 and 4: the clipboard island tile, then Dialog Jump if there's time.
+Before each push: run scripts/items-check.mjs and the wardrobe tests for outfit work; node scripts/command-access.mjs if you added Tauri commands; translate any new visible text in all ten languages. Fix red builds first. One item per commit, ticked in WORK_QUEUE.md. Don't remove features, keep Linux code. Memory: under 150 MB idle, never over 300 MB peak. One [build] at the very end, and confirm the Windows build job ran (not skipped) and the release updated.
+Token rules (my usage is limited): read only the item you are on; grep first, then line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40); full builds/tests once per item; final reply at most 3 lines.
+```
+
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
 - `npx ccusage` (offline, reads local logs): shows where tokens go per session. Measuring only.
 - `rtk` (github.com/rtk-ai/rtk, MIT): shrinks shell output (git/ls/find) before the model sees it. Real saving is ~10 to 30% on mixed work; it can truncate an error trace (`rtk proxy <cmd>` gives raw). Needs the Rust toolchain or its install script; Windows support is unconfirmed. Not for CI.

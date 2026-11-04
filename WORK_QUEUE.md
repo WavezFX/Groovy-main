@@ -99,6 +99,13 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
 - [x] 4. Checks (item 1 contact sheet and measured fit in `items-check`; frame and memory checks run in this [build])
 
+## 1N. Fixes round 3N: `FIXES_ROUND3N.md` (finish the leftovers). **Do this NEXT, in one run.**
+- [ ] Item 1: the rest of the hats are worn, not pasted (bucket, beanie, eggshell, watermelon, backwards cap, straw hat; beret, top hat, antlers, ears, bat wings on his crown)
+- [ ] Item 2: peak memory down to 300 MB (speech engines in on-demand helpers, then the gates from real numbers)
+- [ ] Item 3: clipboard history island tile
+- [ ] Item 4: Dialog Jump (optional)
+- [ ] Item 5: checks, one `[build]`, release updated
+
 ## 1M. Fixes round 3M: `FIXES_ROUND3M.md` (the wardrobe is worn, not stuck on: one 3D head model, hats seated, straps wrap, ties hang down, real secondary motion). **Do this NEXT (Opus), before the peak-memory work.**
 - [x] Item 1: one head model for everything (fake 3D, drawn in 2D)
 - [x] Item 2: hats are worn
