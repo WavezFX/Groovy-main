@@ -49,6 +49,19 @@ Pull groovy-ai-phase1. Read ONLY: WORK_QUEUE.md (memory rule), FIXES_ROUND3D.md 
 Token rules (my usage is limited): read only what the step needs, grep first then line ranges, never re-read a file you just edited, no subagents, no narration between tool calls, cap command output (tail -n 40), run full builds/tests once per step, final reply at most 3 lines.
 ```
 
+## Session E: Sonnet 5.5 (fix the red wardrobe-fit check, 4 Nov 17:35)
+
+```
+Pull groovy-ai-phase1. Windows build #216 fails only at the step "Settings screenshots (every page, dark and light)": the round 3L item 5 wardrobe-fit check prints "729 problems in all" (lenses "3 to 4 % off its eye" at yaw -0.5/-1 and pitch +-0.3, face items "reach past his body width" at yaw -0.35/-0.7/+0.35, a few "px off his eyes" at yaw -1). All memory and CPU gates pass, so touch nothing else. Do this:
+1. Read the check's code (grep "off its eye" and "reaches past his body width" in windows/scripts and windows/src) and the 3L rules in FIXES_ROUND3L.md items 1 and 4. Don't read whole files.
+2. Fix the real misfits in outfits.ts first: face items (glasses, shades, visor, monocle, freckles, stickers, eye patch) must stay on his eyes and inside the body outline for yaw -0.7..0.7 and pitch -0.3..0.3 (lens centre within 2 % of the eye; the item's outer edge, arms excluded, inside the outline). Items that follow the turn must use the same yaw/pitch the eyes use.
+3. Then, only if the check is stricter than the 3L brief, set its tolerances to the brief's numbers. Check only yaw -0.7..0.7 for the "past body width" rule; outside that (yaw -1) report as warnings, not failures. Never loosen it just to go green: say in STATUS.md what changed and why.
+4. Also fix the build summary so this step's report names the worst 10 problems, not 729 lines.
+5. Run only the front-end/outfit tests locally, push, wait for the Windows build; fix red first. One [build] commit at the end. Final reply at most 3 lines.
+Rules: don't remove any user-facing feature; if you add Tauri commands run node scripts/command-access.mjs; translate any new visible text in all ten languages.
+Token rules: read only what the step needs, grep first then line ranges, never re-read a file you just edited, no subagents, no narration between tool calls, cap command output (tail -n 40).
+```
+
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
 - `npx ccusage` (offline, reads local logs): shows where tokens go per session. Measuring only.
 - `rtk` (github.com/rtk-ai/rtk, MIT): shrinks shell output (git/ls/find) before the model sees it. Real saving is ~10 to 30% on mixed work; it can truncate an error trace (`rtk proxy <cmd>` gives raw). Needs the Rust toolchain or its install script; Windows support is unconfirmed. Not for CI.
