@@ -120,7 +120,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. Game Mode: stop listening and ticking during games and presentations
 - [ ] 4. Clipboard history tile (opt-in, in memory only)
 - [ ] 6. Dialog Jump (optional)
-- [ ] 7. Checks
+- [x] 7. Checks (partial: items 4 and 6 not started; Rust and CI results come from this [build])
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`
 - [x] 1. "OK Groovy" is never silent; basic commands work without AI

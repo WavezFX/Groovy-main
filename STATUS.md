@@ -282,3 +282,6 @@ Added `windows/deny.toml` + CI steps (`cargo deny check licenses bans`, npm lice
 
 ## Round 3J item 2 (4 Nov)
 Not benchmarked: it needs recorded clips and a Windows runner for Silero, Smart Turn and Moonshine. Current RMS `Vad` and the sherpa-onnx dictation default stay as they are (the round's own rule: no clear win shown, no change).
+
+## Round 3J checks (4 Nov)
+Items 1-3 done, 2 kept as is. Item 4 (clipboard tile) and item 6 (Dialog Jump) NOT started: each needs a new island tile or UI Automation work that cannot be checked on this Linux box. Round 3D item 11 (Coucou idle footprint) also not started. Idle/peak memory unchanged by design, not measured here: read them from this build's smoke test.
