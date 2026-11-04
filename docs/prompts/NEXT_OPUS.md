@@ -38,6 +38,17 @@ Rules: don't remove any user-facing feature, keep all Linux code, one item per c
 Token rules (my usage is limited): read only the item you are on, not whole round files or whole source files; grep/glob first, then read line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40, --quiet); don't run full test/build suites more than once per item; final reply at most 3 lines.
 ```
 
+## Session D: Opus 5.5 (3D item 11, the idle footprint)
+
+```
+Pull groovy-ai-phase1. Read ONLY: WORK_QUEUE.md (memory rule), FIXES_ROUND3D.md item 11, and STATUS.md "Round 3D item 11, what to measure first". Goal: cut Groovy's real idle memory toward the owner's target of 150 MB idle / 300 MB peak (Task Manager private working set, all Groovy processes). Owner's earlier measure: groovy.exe about 80 MB plus WebView2 about 140 MB at idle; Coucou about 7.6 MB main process. Do it in this order:
+1. Get real numbers: read the latest successful Windows build run summary (smoke-test prints "private: groovy.exe", one line per WebView2 process, TOTAL private working set, idle CPU) with gh. If you can't read them, add a step that publishes them as a build artifact and a line in STATUS.md, push one [build], and read them from that. Don't guess.
+2. Find where the main process holds more than 15 MB (dhat diagnostic build or counting what is loaded at launch) and fix the biggest items first. Then move native engines (sherpa-onnx, Kokoro, ffmpeg helpers) to on-demand helper processes that exit when idle. Check every WebView2 window: nothing created until needed, destroyed when closed.
+3. After each real saving, re-measure from the next build, and only then set each CI gate (smoke test, peak test) to the measured number plus a small margin, tightening toward 150 / 300. Never lower a gate blind and never turn a build red.
+4. Don't remove any user-facing feature, keep all Linux code, one item per commit ticked in WORK_QUEUE.md, push after each, fix red builds first. Before pushing, if you added Tauri commands run `node scripts/command-access.mjs` and the capabilities test; if you added visible strings, translate all ten languages (tests/i18n.test.mjs). Finish with one [build] commit and write before/after numbers in STATUS.md.
+Token rules (my usage is limited): read only what the step needs, grep first then line ranges, never re-read a file you just edited, no subagents, no narration between tool calls, cap command output (tail -n 40), run full builds/tests once per step, final reply at most 3 lines.
+```
+
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
 - `npx ccusage` (offline, reads local logs): shows where tokens go per session. Measuring only.
 - `rtk` (github.com/rtk-ai/rtk, MIT): shrinks shell output (git/ls/find) before the model sees it. Real saving is ~10 to 30% on mixed work; it can truncate an error trace (`rtk proxy <cmd>` gives raw). Needs the Rust toolchain or its install script; Windows support is unconfirmed. Not for CI.
