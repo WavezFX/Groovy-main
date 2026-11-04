@@ -20399,6 +20399,160 @@
    "pt-BR": "{m} min",
    "ru": "{m} мин",
    "id": "{m} m"
+  },
+  "Quiet during games and presentations": {
+   "zh-Hans": "游戏和演示时保持安静",
+   "hi": "गेम और प्रस्तुति के दौरान शांत",
+   "es": "Silencio durante juegos y presentaciones",
+   "ar": "هادئ أثناء الألعاب والعروض التقديمية",
+   "fr": "Silencieux pendant les jeux et les présentations",
+   "bn": "গেম ও প্রেজেন্টেশনের সময় শান্ত",
+   "pt-BR": "Silencioso durante jogos e apresentações",
+   "ru": "Тишина во время игр и презентаций",
+   "id": "Diam saat bermain game dan presentasi"
+  },
+  "While a full-screen game or presentation runs, Groovy stops listening for « OK Groovy », pauses background checks and ignores shortcuts except Mute and the island.": {
+   "zh-Hans": "全屏游戏或演示运行时，Groovy 会停止监听“OK Groovy”，暂停后台检查，并忽略除静音和灵动岛之外的快捷键。",
+   "hi": "फ़ुल-स्क्रीन गेम या प्रस्तुति चलने पर Groovy « OK Groovy » सुनना बंद कर देता है, बैकग्राउंड जाँचें रोक देता है और म्यूट और आइलैंड को छोड़कर शॉर्टकट अनदेखे करता है।",
+   "es": "Mientras se ejecuta un juego o una presentación a pantalla completa, Groovy deja de escuchar « OK Groovy », pausa las comprobaciones en segundo plano e ignora los atajos salvo Silenciar y la isla.",
+   "ar": "أثناء تشغيل لعبة أو عرض تقديمي بملء الشاشة، يتوقف Groovy عن الاستماع إلى « OK Groovy » ويوقف الفحوصات الخلفية مؤقتًا ويتجاهل الاختصارات عدا كتم الصوت والجزيرة.",
+   "fr": "Pendant un jeu ou une présentation en plein écran, Groovy cesse d'écouter « OK Groovy », met en pause les vérifications en arrière-plan et ignore les raccourcis, sauf Muet et l'île.",
+   "bn": "ফুল-স্ক্রিন গেম বা প্রেজেন্টেশন চললে Groovy « OK Groovy » শোনা বন্ধ করে, ব্যাকগ্রাউন্ড চেক থামিয়ে দেয় এবং মিউট ও আইল্যান্ড ছাড়া শর্টকাট উপেক্ষা করে।",
+   "pt-BR": "Enquanto um jogo ou apresentação em tela cheia está em execução, o Groovy para de ouvir « OK Groovy », pausa as verificações em segundo plano e ignora atalhos, exceto Silenciar e a ilha.",
+   "ru": "Пока идёт полноэкранная игра или презентация, Groovy перестаёт слушать « OK Groovy », приостанавливает фоновые проверки и игнорирует сочетания клавиш, кроме «Без звука» и острова.",
+   "id": "Saat game atau presentasi layar penuh berjalan, Groovy berhenti mendengarkan « OK Groovy », menjeda pemeriksaan latar belakang, dan mengabaikan pintasan kecuali Bisukan dan pulau."
+  },
+  "Links to": {
+   "zh-Hans": "链接到",
+   "hi": "इनसे जुड़ा",
+   "es": "Enlaza a",
+   "ar": "يرتبط بـ",
+   "fr": "Renvoie à",
+   "bn": "লিংক করে",
+   "pt-BR": "Liga a",
+   "ru": "Ссылается на",
+   "id": "Menaut ke"
+  },
+  "Linked from": {
+   "zh-Hans": "被链接自",
+   "hi": "इनसे लिंक किया गया",
+   "es": "Enlazado desde",
+   "ar": "مرتبط من",
+   "fr": "Référencé par",
+   "bn": "যেখান থেকে লিংক",
+   "pt-BR": "Ligado de",
+   "ru": "Ссылки отсюда",
+   "id": "Ditautkan dari"
+  },
+  "Notes folder": {
+   "zh-Hans": "笔记文件夹",
+   "hi": "नोट्स फ़ोल्डर",
+   "es": "Carpeta de notas",
+   "ar": "مجلد الملاحظات",
+   "fr": "Dossier des notes",
+   "bn": "নোট ফোল্ডার",
+   "pt-BR": "Pasta de notas",
+   "ru": "Папка заметок",
+   "id": "Folder catatan"
+  },
+  "Move": {
+   "zh-Hans": "移动",
+   "hi": "स्थानांतरित करें",
+   "es": "Mover",
+   "ar": "نقل",
+   "fr": "Déplacer",
+   "bn": "সরান",
+   "pt-BR": "Mover",
+   "ru": "Переместить",
+   "id": "Pindahkan"
+  },
+  "Every memory is a markdown note in this folder. Open it in Obsidian or any editor; [[links]] connect notes.": {
+   "zh-Hans": "每条记忆都是此文件夹中的一个 Markdown 笔记。可用 Obsidian 或任何编辑器打开；[[链接]] 可连接笔记。",
+   "hi": "हर याददाश्त इस फ़ोल्डर में एक markdown नोट है। इसे Obsidian या किसी भी एडिटर में खोलें; [[लिंक]] नोट्स को जोड़ते हैं।",
+   "es": "Cada recuerdo es una nota markdown en esta carpeta. Ábrela en Obsidian o en cualquier editor; los [[enlaces]] conectan las notas.",
+   "ar": "كل ذكرى هي ملاحظة markdown في هذا المجلد. افتحها في Obsidian أو أي محرر؛ تربط [[الروابط]] الملاحظات.",
+   "fr": "Chaque souvenir est une note markdown dans ce dossier. Ouvrez-la dans Obsidian ou n'importe quel éditeur ; les [[liens]] relient les notes.",
+   "bn": "প্রতিটি স্মৃতি এই ফোল্ডারে একটি markdown নোট। Obsidian বা যেকোনো এডিটরে খুলুন; [[লিংক]] নোটগুলিকে যুক্ত করে।",
+   "pt-BR": "Cada memória é uma nota markdown nesta pasta. Abra no Obsidian ou em qualquer editor; os [[links]] conectam as notas.",
+   "ru": "Каждое воспоминание — это markdown-заметка в этой папке. Откройте её в Obsidian или любом редакторе; [[ссылки]] связывают заметки.",
+   "id": "Setiap ingatan adalah catatan markdown di folder ini. Buka di Obsidian atau editor mana pun; [[tautan]] menghubungkan catatan."
+  },
+  "Memory is off, so I'm not storing anything.": {
+   "zh-Hans": "记忆已关闭，所以我不会保存任何内容。",
+   "hi": "याददाश्त बंद है, इसलिए मैं कुछ भी सहेज नहीं रहा।",
+   "es": "La memoria está desactivada, así que no guardo nada.",
+   "ar": "الذاكرة متوقفة، لذا لا أحفظ أي شيء.",
+   "fr": "La mémoire est désactivée, je ne stocke donc rien.",
+   "bn": "মেমরি বন্ধ, তাই আমি কিছু সংরক্ষণ করছি না।",
+   "pt-BR": "A memória está desativada, então não estou guardando nada.",
+   "ru": "Память выключена, поэтому я ничего не сохраняю.",
+   "id": "Memori nonaktif, jadi saya tidak menyimpan apa pun."
+  },
+  "Done — I've forgotten it.": {
+   "zh-Hans": "好了——我已经忘掉它了。",
+   "hi": "हो गया — मैंने इसे भुला दिया।",
+   "es": "Hecho: lo he olvidado.",
+   "ar": "تم — لقد نسيته.",
+   "fr": "C'est fait : je l'ai oublié.",
+   "bn": "হয়ে গেছে — আমি এটি ভুলে গেছি।",
+   "pt-BR": "Pronto, esqueci isso.",
+   "ru": "Готово — я это забыл.",
+   "id": "Selesai — sudah saya lupakan."
+  },
+  "Done — the old note is ended and linked to the new one.": {
+   "zh-Hans": "好了——旧笔记已结束，并链接到新笔记。",
+   "hi": "हो गया — पुराना नोट समाप्त हो गया और नए से जोड़ दिया गया।",
+   "es": "Hecho: la nota antigua está terminada y enlazada a la nueva.",
+   "ar": "تم — انتهت الملاحظة القديمة وربطت بالجديدة.",
+   "fr": "C'est fait : l'ancienne note est terminée et liée à la nouvelle.",
+   "bn": "হয়ে গেছে — পুরনো নোট শেষ হয়েছে এবং নতুনটির সাথে লিংক করা হয়েছে।",
+   "pt-BR": "Pronto, a nota antiga foi encerrada e ligada à nova.",
+   "ru": "Готово — старая заметка завершена и связана с новой.",
+   "id": "Selesai — catatan lama diakhiri dan ditautkan ke yang baru."
+  },
+  "Okay, I'll keep it.": {
+   "zh-Hans": "好的，我会保留它。",
+   "hi": "ठीक है, मैं इसे रखूँगा।",
+   "es": "De acuerdo, la conservo.",
+   "ar": "حسنًا، سأحتفظ بها.",
+   "fr": "D'accord, je la garde.",
+   "bn": "ঠিক আছে, আমি এটি রেখে দেব।",
+   "pt-BR": "Certo, vou manter.",
+   "ru": "Хорошо, оставлю.",
+   "id": "Baik, saya akan menyimpannya."
+  },
+  "Forget this? “{text}” — say yes to delete it.": {
+   "zh-Hans": "忘掉这条吗？“{text}”——说“是”即可删除。",
+   "hi": "इसे भूल जाऊँ? “{text}” — हटाने के लिए हाँ कहें।",
+   "es": "¿Olvidar esto? “{text}” — di sí para borrarlo.",
+   "ar": "هل أنسى هذا؟ «{text}» — قل نعم لحذفه.",
+   "fr": "Oublier ceci ? « {text} » — dites oui pour le supprimer.",
+   "bn": "এটি ভুলে যাব? “{text}” — মুছতে হ্যাঁ বলুন।",
+   "pt-BR": "Esquecer isto? “{text}” — diga sim para apagar.",
+   "ru": "Забыть это? «{text}» — скажите «да», чтобы удалить.",
+   "id": "Lupakan ini? “{text}” — katakan ya untuk menghapus."
+  },
+  "I don't have a note like that.": {
+   "zh-Hans": "我没有这样的笔记。",
+   "hi": "मेरे पास ऐसा कोई नोट नहीं है।",
+   "es": "No tengo ninguna nota así.",
+   "ar": "ليست لدي ملاحظة كهذه.",
+   "fr": "Je n'ai pas de note de ce genre.",
+   "bn": "আমার কাছে এমন কোনো নোট নেই।",
+   "pt-BR": "Não tenho uma nota assim.",
+   "ru": "У меня нет такой заметки.",
+   "id": "Saya tidak punya catatan seperti itu."
+  },
+  "That may replace “{old}”. Say yes and I'll mark the old note as ended and link it to this one.": {
+   "zh-Hans": "这可能会取代“{old}”。说“是”，我会将旧笔记标记为已结束并链接到这条。",
+   "hi": "यह “{old}” की जगह ले सकता है। हाँ कहें तो मैं पुराने नोट को समाप्त चिह्नित करके इससे जोड़ दूँगा।",
+   "es": "Esto puede reemplazar “{old}”. Di sí y marcaré la nota antigua como terminada y la enlazaré con esta.",
+   "ar": "قد يحل هذا محل «{old}». قل نعم وسأضع علامة انتهاء على الملاحظة القديمة وأربطها بهذه.",
+   "fr": "Cela peut remplacer « {old} ». Dites oui et je marquerai l'ancienne note comme terminée en la liant à celle-ci.",
+   "bn": "এটি “{old}” প্রতিস্থাপন করতে পারে। হ্যাঁ বললে আমি পুরনো নোটটি শেষ হিসেবে চিহ্নিত করে এটির সাথে লিংক করব।",
+   "pt-BR": "Isto pode substituir “{old}”. Diga sim e marcarei a nota antiga como encerrada e a ligarei a esta.",
+   "ru": "Это может заменить «{old}». Скажите «да», и я отмечу старую заметку как завершённую и свяжу её с этой.",
+   "id": "Ini mungkin menggantikan “{old}”. Katakan ya dan saya akan menandai catatan lama sebagai berakhir dan menautkannya ke yang ini."
   }
  }
 }
