@@ -30,7 +30,7 @@ const found = await page.evaluate(async () => {
   const { ACCESSORIES } = await import(SRC + "wardrobe.ts");
   const { SLOT_OF } = await import(SRC + "appearance.ts");
   const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt, headAnchors, placeItem } = await import(SRC + "outfits.ts");
-  const POSES = [[-1, 0], [-0.5, 0], [0, 0], [0.5, 0], [1, 0], [0, -0.3], [0, 0.3]];
+  const POSES = [[-1, 0], [-0.6, 0], [-0.5, 0], [0, 0], [0.5, 0], [0.6, 0], [1, 0], [0, -0.3], [0, 0.3]];
   const W = 160;
   const bad = [];
   let renders = 0;
@@ -110,6 +110,19 @@ const found = await page.evaluate(async () => {
     }
   }
   p.setTransform(1, 0, 0, 1, 0, 0);
+
+  // Round 3L: no face item reaches past his body width at any turn from -0.7 to 0.7.
+  for (const look of ["night", "ember", "frost"]) {
+    const e = new BotEngine();
+    e.setSkin(look, false);
+    for (const item of ACCESSORIES) {
+      if (SLOT_OF[item] !== "face" || !itemArt(item)) continue;
+      for (const yaw of [-0.7, -0.35, 0, 0.35, 0.7]) {
+        const b = itemBox(e, item, yaw, 0);
+        if (b && (b.x0 < -b.rx * 1.02 || b.x1 > b.rx * 1.02)) bad.push(`${look} ${item} at yaw ${yaw}: reaches past his body width`);
+      }
+    }
+  }
 
   for (const look of ["night", "ember", "frost"]) {
     for (let stage = 0; stage <= 6; stage++) {

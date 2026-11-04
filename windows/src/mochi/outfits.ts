@@ -25,7 +25,7 @@ import { SEASONAL_ART } from "./art/seasonal";
 import { WARDROBE_ART } from "./art/wardrobe";
 import { SLOT_OF } from "./appearance";
 import type { Accessory, Outfit } from "./wardrobe";
-import { PILLOW_BOW, halfWidthAt } from "./pillow";
+import { PILLOW_BOW, halfWidthAt, pillowXY } from "./pillow";
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -219,6 +219,10 @@ function arrive(ctx: Ctx, item: Accessory, H: Head, p: number) {
 
 /** The board's eyes (Wardrobe.dc.html): what face items were drawn around. */
 const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
+/** Face items' reach from the eye line's middle, in half eye spans (lens plus arm). */
+const FACE_REACH = 1.45;
+/** Half the width of a hat's art on the board, where it is narrower than his rim. */
+const HAT_HALF: Partial<Record<Accessory, number>> = { acornCap: 28, backwardsCap: 26, leafCrown: 31 };
 /** The board point the pool ring hangs from: his middle. */
 const ANCHOR = { middle: [50, 80] } as const;
 /**
@@ -274,7 +278,9 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
     ctx.lineWidth = Math.max(1, H.R * 0.05);
     ctx.lineCap = "round";
     for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
-      const side = halfWidthAt(e[1], H.rx, H.ry, BODY_EXP) * 1.05;
+      const side = halfWidthAt(e[1], H.rx, H.ry, BODY_EXP) * 0.98;
+      // The arm on the far side fades as he turns away.
+      ctx.globalAlpha = Math.max(0, Math.min(1, 1 - sd * Math.sin(H.yaw) * 1.4));
       ctx.beginPath();
       ctx.moveTo(e[0] + sd * lens, e[1]);
       ctx.lineTo(sd * side, e[1] - H.ry * 0.06);
@@ -307,9 +313,14 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const full = H.eyes ? span / Math.max(0.05, Math.cos(H.yaw)) : front;
     const k = Math.max(span, full * 0.6) / (BOARD_EYES.r - BOARD_EYES.l);
     const ky = full / (BOARD_EYES.r - BOARD_EYES.l);
-    ctx.translate((l[0] + r[0]) / 2, (l[1] + r[1]) / 2);
+    const cx = (l[0] + r[0]) / 2;
+    const cy = (l[1] + r[1]) / 2;
+    // Keep the outer edge (arms included) inside his outline at every turn.
+    const room = halfWidthAt(cy, H.rx, H.ry, BODY_EXP) * 0.98 - Math.abs(cx);
+    const kMax = Math.max(0.05, room) / (((BOARD_EYES.r - BOARD_EYES.l) / 2) * FACE_REACH);
+    ctx.translate(cx, cy);
     ctx.rotate(Math.atan2(r[1] - l[1], r[0] - l[0]));
-    ctx.scale(k, ky);
+    ctx.scale(Math.min(k, kMax), Math.min(ky, kMax * 1.2));
     ctx.translate(-(BOARD_EYES.l + BOARD_EYES.r) / 2, -BOARD_EYES.y);
     return;
   }
@@ -320,8 +331,11 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const ring = slot === "head" ? A.rim : A.collar;
     const seat = slot === "head" ? BOARD_RIM : BOARD_COLLAR;
     const kx = narrowing(H.yaw, slot === "head" ? 0.25 : 0.5);
-    ctx.translate(ring.cx + Math.sin(H.yaw) * ring.a * (slot === "head" ? 0.18 : 0.3), ring.cy);
-    ctx.scale((ring.a / seat.hw) * kx, sy);
+    // Sized from the rim: a hat is at least 0.92 of his width there (round 3L item 4).
+    const fit = slot === "head" ? Math.max(1, (0.92 * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
+    ctx.translate(ring.cx + Math.sin(H.yaw) * ring.a * (slot === "head" ? 0.3 : 0.3), ring.cy);
+    if (slot === "head") ctx.rotate(Math.sin(H.yaw) * 0.12);
+    ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1));
     ctx.translate(-50, -seat.y);
     return;
   }
@@ -330,6 +344,57 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
   ctx.translate((ax - 50) * sx, (ay - 61) * sy);
   ctx.scale(sx, sy);
   ctx.translate(-ax, -ay);
+}
+
+let bodyPath: { key: string; path: Path2D } | null = null;
+function bodyOutline(H: Head): Path2D {
+  const key = `${H.rx.toFixed(1)}|${H.ry.toFixed(1)}`;
+  if (bodyPath?.key === key) return bodyPath.path;
+  const path = new Path2D();
+  for (let i = 0; i <= 64; i++) {
+    const [x, y] = pillowXY((i / 64) * Math.PI * 2, H.rx, H.ry, BODY_EXP);
+    if (i) path.lineTo(x, y);
+    else path.moveTo(x, y);
+  }
+  path.closePath();
+  bodyPath = { key, path };
+  return path;
+}
+
+/**
+ * Round 3L items 2 and 3: a soft shadow on his body where the item touches it,
+ * along the rim's, the collar's or the frame's own curve; clipped to the body.
+ */
+function drawContactShadow(ctx: Ctx, item: Accessory, H: Head) {
+  if (H.R < 14) return;
+  const slot = SLOT_OF[item];
+  const A = headAnchors(H);
+  const off = H.R * 0.07;
+  ctx.save();
+  ctx.clip(bodyOutline(H));
+  ctx.strokeStyle = "rgba(0,0,0,0.22)";
+  ctx.lineWidth = H.R * 0.12;
+  ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(0,0,0,0.22)";
+  ctx.shadowBlur = H.R * 0.14;
+  ctx.beginPath();
+  if (slot === "face") {
+    if (!ARMED.has(item)) { ctx.restore(); return; }
+    const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.22;
+    for (const e of [A.eyeL, A.eyeR]) {
+      ctx.moveTo(e[0] + lens, e[1] + off);
+      ctx.ellipse(e[0], e[1] + off, lens, lens * 0.9, 0, 0, Math.PI);
+    }
+  } else if ((slot === "head" && RIMMED.has(item)) || (slot === "neck" && COLLARED.has(item))) {
+    const r = slot === "head" ? A.rim : A.collar;
+    const k = Math.max(0.6, Math.cos(H.yaw));
+    ctx.ellipse(r.cx + Math.sin(H.yaw) * r.a * 0.3, r.cy + off, r.a * k, Math.max(0.5, r.b), 0, 0, Math.PI);
+  } else {
+    ctx.restore();
+    return;
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawItem(ctx: Ctx, item: Accessory, art: Art, H: Head, layers: readonly ("behind" | "body" | "front")[]) {
@@ -374,7 +439,10 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
   ctx.save();
   arrive(ctx, outfit, H, st.presence);
   // The board puts glasses that hide the eyes under them; on him they go over.
-  withLayer(ctx, alpha, (l) => drawItem(l, outfit, art, H, ["body", "front"]));
+  withLayer(ctx, alpha, (l) => {
+    drawContactShadow(l, outfit, H);
+    drawItem(l, outfit, art, H, ["body", "front"]);
+  });
   ctx.restore();
 }
 
