@@ -576,10 +576,10 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const fit = slot === "head" ? Math.max(1, (0.92 * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
     // The seat is the ring's front point on his head model, so it follows his turn and nod.
     const F = ringPoint(H, ring.cy, ring.a, 0);
-    ctx.translate(ring.cx + F.x * (slot === "head" ? 0.5 : 1), F.y);
+    ctx.translate(ring.cx + F.x * (slot === "head" ? 0.5 : 1), F.y + (item === "neckPhones" ? 8 * sy : 0)); // its cups hang low on his chest
     // Worn parts lag and swing from their seat: hats tip against the motion, dangling parts hang from it.
     const sw = H.swing ?? 0;
-    ctx.rotate(slot === "head" ? -H.physDx * 0.1 - sw * (LOOSE.has(item) ? 0.9 : 0.3) : sw * (HANGING.has(item) ? 1 : 0.35));
+    ctx.rotate(slot === "head" ? -H.physDx * 0.1 - sw * (LOOSE.has(item) ? 0.9 : 0.3) : sw * (HANGING.has(item) ? 0.5 : 0.2));
     // Dangling parts stretch a little when he hops (the body's own squash already scales everything).
     const hop = slot === "neck" ? 1 + H.physDy * 0.12 : 1;
     ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1) * hop);

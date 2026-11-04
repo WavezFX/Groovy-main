@@ -29,7 +29,7 @@ const found = await page.evaluate(async () => {
   const { BotEngine } = await import(SRC + "engine.ts");
   const { ACCESSORIES } = await import(SRC + "wardrobe.ts");
   const { SLOT_OF } = await import(SRC + "appearance.ts");
-  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt, headAnchors, placeItem } = await import(SRC + "outfits.ts");
+  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt, headAnchors, placeItem, ringPoints } = await import(SRC + "outfits.ts");
   const POSES = [[-1, 0], [-0.6, 0], [-0.5, 0], [0, 0], [0.5, 0], [0.6, 0], [1, 0], [0, -0.3], [0, 0.3]];
   const W = 160;
   const bad = [];
@@ -179,31 +179,131 @@ const found = await page.evaluate(async () => {
     }
   }
 
-  // The contact sheet: Night at stage 3, every item, every pose.
-  const S = 96;
-  const sheet = document.createElement("canvas");
-  sheet.width = S * POSES.length;
-  sheet.height = S * ACCESSORIES.length;
-  const sx = sheet.getContext("2d");
-  sx.fillStyle = "#1b1d22";
-  sx.fillRect(0, 0, sheet.width, sheet.height);
-  ACCESSORIES.forEach((item, row) => {
-    POSES.forEach(([yaw, pitch], col) => {
+  // Round 3M item 5, the tests the owner asked for, at yaw -0.6..0.6 and pitch -0.2..0.2.
+  const LENSLIKE = new Set(["roundSpecs", "shades", "heartGlasses", "glowVisor", "monocle", "piratePatch", "pilotGoggles"]);
+  const COVER = [[-0.6, -0.2], [-0.6, 0.2], [0, -0.2], [0, 0.2], [0.6, -0.2], [0.6, 0.2], [0, 0]];
+  for (const look of ["night", "ember", "frost"]) {
+    const e = new BotEngine();
+    e.setSkin(look, false);
+    for (const item of ACCESSORIES) {
+      if (!itemArt(item)) continue;
+      const slot = SLOT_OF[item];
+      for (const [yaw, pitch] of COVER) {
+        const R = W * 0.3;
+        const rx = R * 1.14 * e.shape.w;
+        const ry = R * 0.88 * e.shape.h;
+        e.yaw = yaw;
+        e.pitch = pitch;
+        const H = { ...makeHead(R, yaw, pitch, 0, 0), rx, ry, eyes: e.eyeCentres(rx, ry) };
+        const A = headAnchors(H);
+        p.setTransform(1, 0, 0, 1, 0, 0);
+        p.clearRect(0, 0, W, W);
+        p.translate(W / 2, W / 2);
+        const st = { presence: 1, morph: 0 };
+        drawOutfitFront(p, item, H, st);
+        const alphaAt = (x, y) => p.getImageData(Math.round(W / 2 + x), Math.round(W / 2 + y), 1, 1).data[3];
+        const where = `${look} ${item} at yaw ${yaw}, pitch ${pitch}`;
+        // No item covers either eye, except lenses and the patch.
+        if (!LENSLIKE.has(item)) {
+          for (const [ex, ey] of H.eyes) if (alphaAt(ex, ey) > 60) bad.push(`${where}: covers his eye`);
+        }
+        // No gap between a hat and the crown: just above the rim's front arc the hat is solid.
+        if (["acornCap", "mushroomCap", "pumpkinCap", "bobbleBeanie", "eggshellHat", "watermelonCap", "bucketHat", "backwardsCap"].includes(item)) {
+          const front = ringPoints(H, A.rim.cy, A.rim.a).filter((q) => q.z > 0 && Math.abs(q.x) < A.rim.a * 0.6);
+          for (const q of front) if (alphaAt(q.x + A.rim.cx, q.y - 3) < 200) bad.push(`${where}: a gap between the hat and his crown at x ${Math.round(q.x)}`);
+        }
+        // No neck item above the neck line (and so never over his eyes).
+        if (slot === "neck" && item !== "poolRing") {
+          const d = p.getImageData(0, 0, W, W).data;
+          let top = W;
+          for (let y = 0; y < W && top === W; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 40) { top = y; break; }
+          const line = A.collar.cy - 0.34 * ry; // the knot and bow rise a little above the ring, never up the face
+          if (top - W / 2 < line) bad.push(`${where}: ${Math.round(line - (top - W / 2))} px above the neck line`);
+          if (top - W / 2 < A.eyeLine + 0.12 * ry) bad.push(`${where}: ${Math.round(A.eyeLine + 0.12 * ry - (top - W / 2))} px into his eyes`);
+        }
+      }
+    }
+  }
+
+  // The contact sheets, one per look at stage 3, at the open island's size: every item at
+  // yaw -0.6 / 0 / +0.6 and pitch -0.2 / +0.2.
+  const S = 150;
+  const SHEET_POSES = [];
+  for (const pitch of [-0.2, 0.2]) for (const yaw of [-0.6, 0, 0.6]) SHEET_POSES.push([yaw, pitch]);
+  const sheets = {};
+  for (const look of ["night", "ember", "frost"]) {
+    const sheet = document.createElement("canvas");
+    sheet.width = S * SHEET_POSES.length;
+    sheet.height = S * ACCESSORIES.length;
+    const sx = sheet.getContext("2d");
+    sx.fillStyle = "#1b1d22";
+    sx.fillRect(0, 0, sheet.width, sheet.height);
+    ACCESSORIES.forEach((item, row) => {
+      SHEET_POSES.forEach(([yaw, pitch], col) => {
+        const e = new BotEngine();
+        e.setSkin(look, false);
+        e.setStage(3, false);
+        e.setOutfit(item, false);
+        e.yaw = e.tgYaw = yaw;
+        e.pitch = e.tgPitch = pitch;
+        sx.save();
+        sx.translate(col * S, row * S);
+        e.draw(sx, S, S);
+        sx.restore();
+      });
+    });
+    sheets[look] = sheet.toDataURL("image/png");
+  }
+
+  // The motion strips: one item per kind, a hop, a nod and a turn, eight frames each, springs running.
+  const KINDS = ["acornCap", "bunnyEarBand", "headphones", "piratePatch", "roundSpecs", "necktie", "knitStripeScarf", "seedPendant"];
+  const MOVES = ["hop", "nod", "turn"];
+  const M = 120;
+  const FR = 8;
+  const strip = document.createElement("canvas");
+  strip.width = M * FR * MOVES.length;
+  strip.height = M * KINDS.length;
+  const mx = strip.getContext("2d");
+  mx.fillStyle = "#1b1d22";
+  mx.fillRect(0, 0, strip.width, strip.height);
+  KINDS.forEach((item, row) => {
+    MOVES.forEach((move, mi) => {
       const e = new BotEngine();
       e.setSkin("night", false);
       e.setStage(3, false);
       e.setOutfit(item, false);
-      e.yaw = e.tgYaw = yaw;
-      e.pitch = e.tgPitch = pitch;
-      sx.save();
-      sx.translate(col * S, row * S);
-      e.draw(sx, S, S);
-      sx.restore();
+      e.outfitPresence = 1;
+      e.locks.add("yaw");
+      e.locks.add("pitch");
+      e.locks.add("sy");
+      e.locks.add("sx");
+      for (let f = 0; f < FR; f++) {
+        const u = (f + 1) / FR;
+        for (let k = 0; k < 4; k++) {
+          const v = u - (3 - k) / (FR * 4);
+          if (move === "hop") {
+            e.sy = e.tgSy = 1 - 0.18 * Math.sin(v * Math.PI * 2) * (v < 0.5 ? 1 : 0.6);
+            e.sx = e.tgSx = 2 - e.sy;
+            e.oy = -Math.abs(Math.sin(v * Math.PI)) * 0.12;
+          } else if (move === "nod") {
+            e.pitch = e.tgPitch = 0.3 * Math.sin(v * Math.PI * 2);
+          } else {
+            e.yaw = e.tgYaw = 0.9 * Math.sin(v * Math.PI * 2);
+          }
+          e.update(1 / 30);
+        }
+        mx.save();
+        mx.translate((mi * FR + f) * M, row * M);
+        e.draw(mx, M, M);
+        mx.restore();
+      }
     });
   });
-  return { bad, sheet: sheet.toDataURL("image/png"), renders };
+  const strips = strip.toDataURL("image/png");
+  return { bad, sheets, strips, renders };
 });
-writeFileSync(join(out, "items-sheet.png"), Buffer.from(found.sheet.split(",")[1], "base64"));
+for (const [look, url] of Object.entries(found.sheets)) writeFileSync(join(out, `items-sheet-${look}.png`), Buffer.from(url.split(",")[1], "base64"));
+writeFileSync(join(out, "items-motion-strips.png"), Buffer.from(found.strips.split(",")[1], "base64"));
 await browser.close();
 // The full list goes to a file; the log and the build summary name the worst 10.
 const size = (m) => Number((m.match(/(\d+(?:\.\d+)?) (?:%|px)/) || [0, 0])[1]);
