@@ -168,7 +168,8 @@ const found = await page.evaluate(async () => {
             // Hats keep their seat on his head, neck items on his front: their
             // lower (hats) or upper (neck) edge stays where it was, give or take the nod.
             const edge = slot === "head" ? b.y1 - ref.y1 : b.y0 - ref.y0;
-            const nod = Math.abs(Math.sin(pitch)) * b.ry * 0.35;
+            // Round 3M: his head is a 3D model, so a nod moves the front of a ring by depth × (sin(tilt) - sin(rest tilt)).
+            const nod = 0.8 * b.rx * Math.abs(Math.sin(0.2 - pitch) - Math.sin(0.2)) * 1.15;
             if (Math.abs(edge) > tol + nod) bad.push(`${where}: ${edge < 0 ? "floats" : "sinks"} ${Math.round(Math.abs(edge))} px`);
           }
           // Never slides off him: its middle stays over his body.

@@ -100,8 +100,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 4. Checks (item 1 contact sheet and measured fit in `items-check`; frame and memory checks run in this [build])
 
 ## 1M. Fixes round 3M: `FIXES_ROUND3M.md` (the wardrobe is worn, not stuck on: one 3D head model, hats seated, straps wrap, ties hang down, real secondary motion). **Do this NEXT (Opus), before the peak-memory work.**
-- [ ] Item 1: one head model for everything (fake 3D, drawn in 2D)
-- [ ] Item 2: hats are worn
+- [x] Item 1: one head model for everything (fake 3D, drawn in 2D)
+- [x] Item 2: hats are worn
 - [ ] Item 3: things that go round him go all the way round
 - [ ] Item 4: they move like real clothing
 - [ ] Item 5: checks the owner can see (contact sheet + motion strips, one `[build]`)

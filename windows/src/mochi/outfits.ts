@@ -71,29 +71,102 @@ export interface Anchors {
 /** His outline's exponent (skins.ts SHAPE); the minis never wear items. */
 const BODY_EXP = 3.0;
 /** The rim's and the collar's height on him, as a fraction of ry. */
-export const RIM_V = -0.72;
+/** Where a hat's rim sits on his head (round 3M item 2: down on the crown, not on top of it). */
+export const RIM_V = -0.5;
+/** Where the boards' hats have their rim: the art's seat line. */
+const ART_RIM_V = -0.72;
 export const COLLAR_V = 0.8;
+
+/**
+ * Round 3M item 1, his head as a fake 3D body, drawn in 2D: an ellipsoid whose
+ * rings follow his real outline (half width `a` from the pillow at that height,
+ * depth DEPTH × a), turned by the same yaw and pitch his eyes use. Every anchor
+ * is a point on it; `z > 0` means facing the viewer, so a wrapping part has a
+ * front piece (after the body) and a back piece (before it, hidden by it).
+ */
+const DEPTH = 0.8;
+/** The camera looks down on him a little, so a ring shows as an ellipse. */
+const VIEW = 0.2;
+
+export interface P3 { x: number; y: number; z: number }
+
+/** The angle that tips a ring's front down on screen: the camera's tilt less his nod up. */
+export function ringTilt(H: Head): number {
+  return VIEW - H.pitch;
+}
+
+/** A point `t` radians round the ring centred at body height `yc` (0 = the front, ±π/2 = his sides). */
+export function ringPoint(H: Head, yc: number, a: number, t: number, depth = DEPTH): P3 {
+  const c = depth * a;
+  const X = a * Math.sin(t);
+  const Z = c * Math.cos(t);
+  const cy = Math.cos(H.yaw);
+  const sy = Math.sin(H.yaw);
+  // His outline does not narrow when he turns, so the turned ring is scaled to keep its sides on it.
+  const k = a / Math.hypot(a * cy, c * sy);
+  const x1 = (X * cy + Z * sy) * k;
+  const z1 = -X * sy + Z * cy;
+  const phi = ringTilt(H);
+  return { x: x1, y: yc + z1 * Math.sin(phi), z: z1 * Math.cos(phi) - yc * Math.sin(phi) };
+}
+
+/** A ring's outline, `n` points all the way round, starting at the front. */
+export function ringPoints(H: Head, yc: number, a: number, n = 40, depth = DEPTH): P3[] {
+  const out: P3[] = [];
+  for (let i = 0; i <= n; i++) out.push(ringPoint(H, yc, a, (i / n) * Math.PI * 2, depth));
+  return out;
+}
+
+/** The pieces of a closed ring facing the viewer (`front`) or turned away: each a run of points. */
+export function splitRing(pts: P3[], front: boolean): P3[][] {
+  const runs: P3[][] = [];
+  let cur: P3[] = [];
+  for (const q of pts) {
+    if (q.z >= 0 === front) cur.push(q);
+    else if (cur.length) {
+      runs.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) runs.push(cur);
+  // The ring starts at the front: a front run that wraps past the end joins the first.
+  if (runs.length > 1 && pts[0].z >= 0 === front && pts[pts.length - 1].z >= 0 === front) {
+    const last = runs.pop() as P3[];
+    runs[0] = last.concat(runs[0]);
+  }
+  return runs;
+}
+
+/** The ring at a fraction `v` of ry (negative = up): its centre, half width and wobble included. */
+function ringAt(H: Head, v: number): { yc: number; a: number } {
+  const yc = v * H.ry + H.physDy * H.ry * 0.05;
+  return { yc, a: halfWidthAt(yc, H.rx, H.ry, BODY_EXP) };
+}
+
+/** His neck line: low on him, and always a gap of at least 0.12 ry below his eyes. */
+function neckY(H: Head): number {
+  const eyeBottom = H.eyes ? Math.max(H.eyes[0][1], H.eyes[1][1]) : H.ry * 0.1;
+  return Math.min(H.ry * 0.9, Math.max(COLLAR_V * H.ry, eyeBottom + 0.22 * H.ry));
+}
 
 export function headAnchors(H: Head): Anchors {
   const { rx, ry } = H;
-  const nod = Math.abs(Math.sin(H.pitch));
-  const lift = -Math.sin(H.pitch) * ry * 0.12;
   const wx = H.physDx * rx * 0.05;
-  const wy = H.physDy * ry * 0.05;
-  const rimY = RIM_V * ry + lift + wy;
-  const ra = halfWidthAt(rimY, rx, ry, BODY_EXP);
-  const rim = { cx: wx, cy: rimY, a: ra, b: ra * (0.16 + 0.3 * nod) };
-  const colY = COLLAR_V * ry + lift * 0.5 + wy;
+  const phi = ringTilt(H);
+  const lift = -Math.sin(H.pitch) * ry * 0.12;
+  const r0 = ringAt(H, RIM_V);
+  const rim = { cx: wx, cy: r0.yc, a: r0.a, b: Math.max(0.5, DEPTH * r0.a * Math.abs(Math.sin(phi))) };
+  const colY = neckY(H) + H.physDy * ry * 0.05;
   const ca = halfWidthAt(colY, rx, ry, BODY_EXP);
-  const collar = { cx: wx, cy: colY, a: ca, b: ca * (0.14 + 0.2 * nod) };
+  const collar = { cx: wx, cy: colY, a: ca, b: Math.max(0.5, DEPTH * ca * Math.abs(Math.sin(phi))) };
   const sx = rx / 36;
   const sy = ry / 31;
   const [eyeL, eyeR] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
   return {
-    crown: [wx, -ry * (1 - PILLOW_BOW) + lift + wy],
+    crown: [wx, -ry * (1 - PILLOW_BOW) + lift + H.physDy * ry * 0.05],
     rim,
-    rimLeft: [rim.cx - ra, rim.cy],
-    rimRight: [rim.cx + ra, rim.cy],
+    rimLeft: [rim.cx - rim.a, rim.cy],
+    rimRight: [rim.cx + rim.a, rim.cy],
     rimTop: [rim.cx, rim.cy - rim.b],
     eyeL,
     eyeR,
@@ -229,7 +302,7 @@ const ANCHOR = { middle: [50, 80] } as const;
  * The board body (a 72×62 rounded rect, corner 22, at 14,30) at RIM_V and
  * COLLAR_V: the line's height and half width, mapped onto his rim and collar.
  */
-const BOARD_RIM = { y: 61 + RIM_V * 31, hw: 14 + Math.sqrt(22 * 22 - (52 - (61 + RIM_V * 31)) ** 2) } as const;
+const BOARD_RIM = { y: 61 + ART_RIM_V * 31, hw: 14 + Math.sqrt(22 * 22 - (52 - (61 + ART_RIM_V * 31)) ** 2) } as const;
 const BOARD_COLLAR = { y: 61 + COLLAR_V * 31, hw: 14 + Math.sqrt(22 * 22 - (61 + COLLAR_V * 31 - 70) ** 2) } as const;
 
 /** Hats and crowns whose rim goes round his head: the far half shows behind him. */
@@ -266,12 +339,16 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
   const A = headAnchors(H);
   if ((slot === "head" && RIMMED.has(item)) || (slot === "neck" && COLLARED.has(item))) {
     const r = slot === "head" ? A.rim : A.collar;
-    ctx.beginPath();
-    ctx.ellipse(r.cx, r.cy, r.a * 1.08, Math.max(0.5, r.b), 0, Math.PI, Math.PI * 2);
+    const back = splitRing(ringPoints(H, r.cy, r.a * 1.04), false);
     ctx.strokeStyle = col;
     ctx.lineWidth = Math.max(1, r.b * (slot === "head" ? 0.7 : 0.9));
     ctx.lineCap = "round";
-    ctx.stroke();
+    ctx.lineJoin = "round";
+    for (const run of back) {
+      ctx.beginPath();
+      run.forEach((q, i) => (i ? ctx.lineTo(q.x + r.cx, q.y) : ctx.moveTo(q.x + r.cx, q.y)));
+      ctx.stroke();
+    }
   } else if (slot === "face" && ARMED.has(item)) {
     const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
     ctx.strokeStyle = col;
@@ -347,8 +424,10 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const kx = narrowing(H.yaw, slot === "head" ? 0.25 : 0.5);
     // Sized from the rim: a hat is at least 0.92 of his width there (round 3L item 4).
     const fit = slot === "head" ? Math.max(1, (0.92 * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
-    ctx.translate(ring.cx + Math.sin(H.yaw) * ring.a * (slot === "head" ? 0.3 : 0.3), ring.cy);
-    if (slot === "head") ctx.rotate(Math.sin(H.yaw) * 0.12);
+    // The seat is the ring's front point on his head model, so it follows his turn and nod.
+    const F = ringPoint(H, ring.cy, ring.a, 0);
+    ctx.translate(ring.cx + F.x * (slot === "head" ? 0.5 : 1), F.y);
+    ctx.rotate(-H.physDx * 0.1);
     ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1));
     ctx.translate(-50, -seat.y);
     return;
@@ -419,8 +498,60 @@ function drawItem(ctx: Ctx, item: Accessory, art: Art, H: Head, layers: readonly
       return;
     }
   }
+  if (DOME.has(item) && layers.includes("front")) {
+    ctx.save();
+    domeRegion(ctx, H, false);
+    ctx.clip();
+    placeItem(ctx, item, H);
+    for (const l of layers) drawShapes(ctx, visibleShapes(item, art[l], H));
+    ctx.restore();
+    return;
+  }
   placeItem(ctx, item, H);
-  for (const l of layers) drawShapes(ctx, art[l]);
+  for (const l of layers) drawShapes(ctx, visibleShapes(item, art[l], H));
+}
+
+/** Shapes to draw: the mushroom's pale underside only shows where its rim tips up towards him. */
+function visibleShapes(item: Accessory, shapes: Shape[] | undefined, H: Head): Shape[] | undefined {
+  if (item !== "mushroomCap" || !shapes || ringTilt(H) < -0.02) return shapes;
+  return shapes.filter((sh) => sh.f !== "#F4E3D0" && sh.s !== "#D2B79A");
+}
+
+/** Hats that cover the top of his head down to their rim (crowns, which are open rings, do not). */
+const DOME = new Set<Accessory>([
+  "acornCap", "mushroomCap", "pumpkinCap", "bobbleBeanie", "eggshellHat", "watermelonCap", "bucketHat", "backwardsCap",
+]);
+
+/** The path of everything above the rim's front arc (extended sideways, so a brim past his outline is kept). */
+function domeRegion(ctx: Ctx, H: Head, close: boolean) {
+  const r = headAnchors(H).rim;
+  const front = splitRing(ringPoints(H, r.cy, r.a), true)[0] ?? [];
+  const pts = [...front].sort((p, q) => p.x - q.x);
+  const big = H.rx * 4;
+  ctx.beginPath();
+  if (!pts.length) {
+    ctx.rect(-big, -big, 2 * big, big + r.cy);
+    return;
+  }
+  ctx.moveTo(r.cx + pts[0].x - big, pts[0].y);
+  for (const q of pts) ctx.lineTo(r.cx + q.x, q.y);
+  ctx.lineTo(r.cx + pts[pts.length - 1].x + big, pts[pts.length - 1].y);
+  ctx.lineTo(r.cx + pts[pts.length - 1].x + big, -big);
+  ctx.lineTo(r.cx + pts[0].x - big, -big);
+  if (close) ctx.closePath();
+}
+
+/** The hat's own colour, filling the crown of his head down to the rim so nothing shows through. */
+function drawDome(ctx: Ctx, item: Accessory, art: Art, H: Head) {
+  const f = [...(art.front ?? []), ...(art.body ?? [])].find((sh) => typeof sh.f === "string" && /^#[0-9a-f]{6}$/i.test(sh.f))?.f;
+  if (!f) return;
+  ctx.save();
+  ctx.clip(bodyOutline(H));
+  domeRegion(ctx, H, true);
+  ctx.fillStyle = f;
+  ctx.fill();
+  ctx.restore();
+  void item;
 }
 
 /** A face item in three board bands (left of the left lens, between, right of the right lens), each at its own width. */
@@ -486,6 +617,7 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
   // The board puts glasses that hide the eyes under them; on him they go over.
   withLayer(ctx, alpha, (l) => {
     drawContactShadow(l, outfit, H);
+    if (DOME.has(outfit)) drawDome(l, outfit, art, H);
     drawItem(l, outfit, art, H, ["body", "front"]);
   });
   ctx.restore();
