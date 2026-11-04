@@ -62,6 +62,15 @@ Rules: don't remove any user-facing feature; if you add Tauri commands run node 
 Token rules: read only what the step needs, grep first then line ranges, never re-read a file you just edited, no subagents, no narration between tool calls, cap command output (tail -n 40).
 ```
 
+## Session F: Opus 5.5 (round 3M, the wardrobe is worn)
+
+```
+Pull groovy-ai-phase1. Read WORK_QUEUE.md (memory rule) and FIXES_ROUND3M.md only, then do round 3M items 1 to 5 in order. The owner tested build 217 on his PC and the clothes still look stuck on: lids for hats, see-through bands, an eye-patch strap that stops mid-face, floating headphones, a tie drawn over his eyes, flat collars, and nothing moves like real clothing. Fix it properly with one fake-3D head model (an ellipsoid with the same yaw/pitch the eyes use) as the brief says. Build on outfits.ts, don't start over, and don't touch the wisps, growth art, eyes, glow or body.
+Before each push: if you added Tauri commands run node scripts/command-access.mjs; translate any new visible text in all ten languages (tests/i18n.test.mjs); run the outfit tests and the item-fit check locally. Fix red builds first. One item per commit, ticked in WORK_QUEUE.md. One [build] commit at the very end, and confirm the Windows build job actually ran (not skipped) and the release updated.
+Memory: under 150 MB idle, never over 300 MB peak; springs only while visible and still at rest (0 CPU).
+Token rules (my usage is limited): read only the item you are on; grep first, then line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40); full builds/tests once per item; final reply at most 3 lines.
+```
+
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
 - `npx ccusage` (offline, reads local logs): shows where tokens go per session. Measuring only.
 - `rtk` (github.com/rtk-ai/rtk, MIT): shrinks shell output (git/ls/find) before the model sees it. Real saving is ~10 to 30% on mixed work; it can truncate an error trace (`rtk proxy <cmd>` gives raw). Needs the Rust toolchain or its install script; Windows support is unconfirmed. Not for CI.
