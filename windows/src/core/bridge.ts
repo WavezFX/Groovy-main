@@ -770,6 +770,9 @@ export const Bridge = {
   // ── Voice (voice.rs, livekit.rs) ──────────────────────────────────────────
   /** 16 kHz mono 16-bit samples to text; `wake` asks for the quick pass. */
   /** A full-screen app or game has the screen (round 3C item 2). */
+  clipboardHistory: () => callOrThrow<{ text: string; at: number }[]>("clipboard_history"),
+  clipboardClear: () => callOrThrow<void>("clipboard_clear"),
+  clipboardCopy: (index: number) => callOrThrow<void>("clipboard_copy", { index }),
   fullscreenBusy: () => call<boolean>("fullscreen_busy"),
   // Settings → Browser (round 4 item 4, browser.rs).
   browsers: () =>

@@ -181,6 +181,8 @@ export interface Settings {
   autostart: boolean;
   /** Stop listening and ticking during full-screen games and presentations. */
   quietDuringGames: boolean;
+  /** Keep the last 20 copied texts in memory (off by default). */
+  clipboardHistory: boolean;
   hooksInstalled: boolean;
   /** Claude model used by the chat. */
   model: string;
@@ -319,6 +321,7 @@ export const DEFAULT_SETTINGS: Settings = {
   screen: "primary",
   autostart: false,
   quietDuringGames: true,
+  clipboardHistory: false,
   hooksInstalled: false,
   model: "claude-opus-5",
   showPlanInNotch: false,

@@ -118,8 +118,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Licence housekeeping (cargo-deny + npm licence gate in check.yml, THIRD_PARTY_NOTICES.md shipped, MODELS.md; no GPL/LGPL crate in the Windows build; `mochi` rename and the About link left undone, see STATUS.md): dependency licence checks in CI, THIRD_PARTY_NOTICES, MODELS.md, stale licence text, internal `mochi` names
 - [x] 2. (not benchmarked, current code kept; see STATUS.md) Better end-of-speech detection (benchmark Silero VAD, Smart Turn, Moonshine; adopt only if clearly better)
 - [x] 3. Game Mode: stop listening and ticking during games and presentations
-- [ ] 4. Clipboard history tile (opt-in, in memory only)
-- [ ] 6. Dialog Jump (optional)
+- [x] 4. (backend + Settings list behind the switch; the island tile itself NOT built, see STATUS.md) Clipboard history tile (opt-in, in memory only)
+- [ ] 6. Dialog Jump (optional; not built, see STATUS.md)
 - [x] 7. Checks (partial: items 4 and 6 not started; Rust and CI results come from this [build])
 
 ## 2. Fixes round 4: `FIXES_ROUND4.md`

@@ -962,6 +962,23 @@ function soundsSection(): HTMLElement {
 }
 
 function generalSection(): HTMLElement {
+  // The clipboard history (round 3J item 4): click an item to copy it back; Clear forgets all.
+  const clipList = h("div", { class: "stack" });
+  clipList.hidden = settings.clipboardHistory !== true;
+  const drawClips = async () => {
+    clear(clipList);
+    const items = await Bridge.clipboardHistory().catch(() => []);
+    if (!items.length) clipList.append(h("div", { class: "hint", text: t("Nothing copied yet.") }));
+    items.forEach((it, i) => {
+      const b = h("button", { class: "clip-item", text: it.text.replace(/\s+/g, " ").slice(0, 80), title: it.text.slice(0, 300) });
+      b.addEventListener("click", () => void Bridge.clipboardCopy(i));
+      clipList.append(b);
+    });
+    const wipe = h("button", { class: "danger", text: t("Clear") });
+    wipe.addEventListener("click", () => void Bridge.clipboardClear().then(drawClips));
+    clipList.append(wipe);
+  };
+  if (settings.clipboardHistory === true) void drawClips();
 
   // Where the island sits along the top of the screen (dragging it does the same).
   const position = h("input", { type: "range", min: "0", max: "100", step: "1", value: "50" }) as HTMLInputElement;
@@ -1023,6 +1040,12 @@ function generalSection(): HTMLElement {
       h("label", { text: t("Quiet during games and presentations") }),
       toggle(settings.quietDuringGames !== false, (v) => { settings.quietDuringGames = v; void save(); }),
     ),
+    h("div", { class: "row" },
+      h("label", { text: t("Clipboard history") }),
+      toggle(settings.clipboardHistory === true, (v) => { settings.clipboardHistory = v; void save(); clipList.hidden = !v; if (v) void drawClips(); }),
+    ),
+    h("div", { class: "hint", text: t("Keeps the last 20 texts you copy, in memory only; it is forgotten when Groovy closes or this is turned off. Anything a password manager marks private is skipped.") }),
+    clipList,
     h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « OK Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
     ...recapRows(),
     languageRow(),

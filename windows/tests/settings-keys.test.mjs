@@ -33,6 +33,7 @@ const REACH = {
   screen: ["general", "src/settings/main.ts", "generalSection"],
   autostart: ["general", "src/settings/main.ts", "generalSection"],
   quietDuringGames: ["general", "src/settings/main.ts", "generalSection"],
+  clipboardHistory: ["general", "src/settings/main.ts", "generalSection"],
   islandX: ["general", "src/settings/main.ts", "generalSection", "Bridge\\.islandMove\\("],
   keepVisible: ["general", "src/settings/main.ts", "generalSection"],
   shortcuts: ["general", "src/settings/main.ts", "shortcutsSection"],

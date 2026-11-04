@@ -30,6 +30,7 @@ mod tile_icons;
 mod livekit;
 mod local_chat;
 mod log;
+mod clipboard;
 mod gamemode;
 mod memnotes;
 mod memory;
@@ -224,6 +225,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     glass::apply(&app);
     memory::apply(settings.assistant.memory_enabled);
     scheduler::poke(gamemode::JOB);
+    clipboard::apply(settings.clipboard_history);
     resources::idle::set(&settings.unload_after);
     browser::configure(&settings.browser, &settings.search_engine);
     if shortcuts_changed {
@@ -1502,6 +1504,9 @@ pub fn run() {
             memory::memory_clear,
             memory::memory_export,
             memory::memory_related,
+            clipboard::clipboard_history,
+            clipboard::clipboard_clear,
+            clipboard::clipboard_copy,
             memory::memory_dir,
             memory::memory_set_dir,
             memory::wardrobe_export,
@@ -1722,6 +1727,7 @@ pub fn run() {
                 }
             }
             gamemode::start();
+            clipboard::apply(loaded.clipboard_history);
             memory::apply(loaded.assistant.memory_enabled);
             tasks::spawn(handle.clone());
             mail::spawn(handle.clone());

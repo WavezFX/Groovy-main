@@ -28,6 +28,8 @@ pub struct Settings {
     pub autostart: bool,
     /// Stop listening and ticking while a full-screen game or presentation runs (round 3J item 3).
     pub quiet_during_games: bool,
+    /// Keep the last 20 copied texts in memory for a clipboard tile (round 3J item 4). Off by default.
+    pub clipboard_history: bool,
     pub hooks_installed: bool,
     /// Claude model used by the chat. Changeable in the settings window.
     pub model: String,
@@ -249,6 +251,7 @@ impl Default for Settings {
             screen: "primary".into(),
             autostart: false,
             quiet_during_games: true,
+            clipboard_history: false,
             hooks_installed: false,
             model: default_model(),
             show_plan_in_notch: false,
@@ -723,6 +726,7 @@ mod tests {
   "screen": "cursor",
   "autostart": true,
   "quietDuringGames": false,
+  "clipboardHistory": true,
   "hooksInstalled": true,
   "model": "some-model",
   "showPlanInNotch": true,
@@ -1485,6 +1489,7 @@ mod tests {
                 "screen",
                 "autostart",
                 "quietDuringGames",
+                "clipboardHistory",
                 "hooksInstalled",
                 "model",
                 "showPlanInNotch",

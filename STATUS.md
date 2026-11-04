@@ -285,3 +285,7 @@ Not benchmarked: it needs recorded clips and a Windows runner for Silero, Smart 
 
 ## Round 3J checks (4 Nov)
 Items 1-3 done, 2 kept as is. Item 4 (clipboard tile) and item 6 (Dialog Jump) NOT started: each needs a new island tile or UI Automation work that cannot be checked on this Linux box. Round 3D item 11 (Coucou idle footprint) also not started. Idle/peak memory unchanged by design, not measured here: read them from this build's smoke test.
+
+## Round 3J items 4 and 6 (4 Nov, second run)
+**Item 4, clipboard history:** `clipboard.rs` keeps the last 20 texts in memory (dedupe, 10 KB cap, unit-tested). On Windows a message-only window with `AddClipboardFormatListener` hears changes (events, no polling; the thread exists only while the switch is on, and turning it off stops it and clears the list). Items with `ExcludeClipboardContentFromMonitorProcessing` or `CanIncludeInClipboardHistory = 0` are skipped. Settings -> General has the switch (off by default) and a list: click copies an item back, Clear forgets all. Nothing is ever sent to an AI. **Not built:** the island tile (it touches the island layout, which can't be checked without Windows) and the optional keep-on-disk switch. The Windows listener code has not been compiled yet; CI is its first compile. To check on Windows: copy text, see it listed; copy from a password manager, see it skipped.
+**Item 6, Dialog Jump:** not built. It needs UI Automation against real Open/Save dialogs, which can't be tried here, and the brief says to drop it if it can't be tested.

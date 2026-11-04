@@ -20553,6 +20553,39 @@
    "pt-BR": "Isto pode substituir “{old}”. Diga sim e marcarei a nota antiga como encerrada e a ligarei a esta.",
    "ru": "Это может заменить «{old}». Скажите «да», и я отмечу старую заметку как завершённую и свяжу её с этой.",
    "id": "Ini mungkin menggantikan “{old}”. Katakan ya dan saya akan menandai catatan lama sebagai berakhir dan menautkannya ke yang ini."
+  },
+  "Clipboard history": {
+   "zh-Hans": "剪贴板历史",
+   "hi": "क्लिपबोर्ड इतिहास",
+   "es": "Historial del portapapeles",
+   "ar": "سجل الحافظة",
+   "fr": "Historique du presse-papiers",
+   "bn": "ক্লিপবোর্ড ইতিহাস",
+   "pt-BR": "Histórico da área de transferência",
+   "ru": "История буфера обмена",
+   "id": "Riwayat papan klip"
+  },
+  "Keeps the last 20 texts you copy, in memory only; it is forgotten when Groovy closes or this is turned off. Anything a password manager marks private is skipped.": {
+   "zh-Hans": "保留您复制的最近 20 段文本，仅存于内存；Groovy 关闭或关闭此选项后即被清除。密码管理器标记为私密的内容会被跳过。",
+   "hi": "आपके कॉपी किए गए आख़िरी 20 टेक्स्ट केवल मेमोरी में रखता है; Groovy बंद होने या इसे बंद करने पर भुला दिए जाते हैं। पासवर्ड मैनेजर जिसे निजी चिह्नित करे, उसे छोड़ दिया जाता है।",
+   "es": "Guarda los últimos 20 textos que copias, solo en memoria; se olvidan al cerrar Groovy o al desactivar esto. Se omite lo que un gestor de contraseñas marque como privado.",
+   "ar": "يحتفظ بآخر 20 نصًا تنسخها في الذاكرة فقط؛ تُنسى عند إغلاق Groovy أو إيقاف هذا الخيار. يُتجاهل أي شيء يضعه مدير كلمات المرور كخاص.",
+   "fr": "Garde les 20 derniers textes copiés, en mémoire seulement ; ils sont oubliés à la fermeture de Groovy ou si vous désactivez ceci. Tout ce qu'un gestionnaire de mots de passe marque comme privé est ignoré.",
+   "bn": "আপনার কপি করা শেষ ২০টি টেক্সট শুধু মেমরিতে রাখে; Groovy বন্ধ হলে বা এটি বন্ধ করলে ভুলে যায়। পাসওয়ার্ড ম্যানেজার যা ব্যক্তিগত চিহ্নিত করে তা বাদ যায়।",
+   "pt-BR": "Guarda os últimos 20 textos copiados, só na memória; são esquecidos ao fechar o Groovy ou desligar isto. O que um gerenciador de senhas marcar como privado é ignorado.",
+   "ru": "Хранит последние 20 скопированных текстов только в памяти; они забываются при закрытии Groovy или выключении этой функции. Всё, что менеджер паролей помечает как приватное, пропускается.",
+   "id": "Menyimpan 20 teks terakhir yang Anda salin, hanya di memori; dilupakan saat Groovy ditutup atau ini dimatikan. Apa pun yang ditandai privat oleh pengelola kata sandi dilewati."
+  },
+  "Nothing copied yet.": {
+   "zh-Hans": "还没有复制任何内容。",
+   "hi": "अभी तक कुछ कॉपी नहीं किया।",
+   "es": "Aún no se ha copiado nada.",
+   "ar": "لم يُنسخ شيء بعد.",
+   "fr": "Rien n'a encore été copié.",
+   "bn": "এখনও কিছু কপি করা হয়নি।",
+   "pt-BR": "Nada copiado ainda.",
+   "ru": "Пока ничего не скопировано.",
+   "id": "Belum ada yang disalin."
   }
  }
 }
