@@ -316,3 +316,12 @@ What changed (`outfits.ts`, `engine.ts`): (1) one head model: rings on his real 
 - **Glasses arms:** a straight arm from each lens's outer edge back to his ear at eye height. The near arm shows along his cheek, the far one is behind him. No more arcs across his lower face.
 - **Beret and top hat:** lowered onto his crown (`SEAT_DROP`). The top hat is perched, not rimmed, so no full-width rim under it.
 - Checked locally: `scripts/items-check.mjs` passes (45 items, 3 looks, 7 stages, 7 poses; only warnings beyond yaw ±0.7), and the wardrobe tests pass. The owner judges the look on the next build.
+
+## Round 3M item 7: how Coucou seats Mochi's outfits, applied to Groovy (4 Nov, from the owner's review)
+Studied Coucou's MIT `windows/src/mochi/outfits.ts` for its *technique* only (no Mochi art used): items lie on a head model, whatever is on his face is clipped to his body, and nothing turns in ways his silhouette doesn't. Applied with Groovy's own items:
+- **Eye patch:** one strap runs level to that side of his head, the other goes up over his forehead **above** his other eye. Both stop at his outline.
+- **Glasses / shades / heart glasses:** arms run level from each lens to the side of his head and stop at his outline. The whole face item is clipped to his body, so nothing sticks out past his face.
+- **Headphones:** the band follows the top of his outline (just outside it), so it never crosses his face. The cups sit on his outline at ear height and move out past an eye when he turns.
+- **Dome hats (acorn, mushroom, pumpkin, beanie, eggshell, watermelon, bucket, cap):** no back piece any more (that was the disc behind them), centred on his head and at least his width. The contact shade is a thin line tight to the edge, not a band.
+- **Leaf crown and flower crown:** drawn on the head model with leaves or flowers spaced all the way round, so they wrap to his sides (no bare skin). The back ones are behind him.
+- Checked locally: `scripts/items-check.mjs` passes (only warnings beyond yaw ±0.7), wardrobe tests pass, and outfits.ts type-checks with no unused locals.

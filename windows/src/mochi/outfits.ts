@@ -328,7 +328,6 @@ const LOOSE = new Set<Accessory>(["bunnyEarBand", "bobbleBeanie", "acornCap", "a
 /** Neck items that hang from a point and swing like a pendulum. */
 const HANGING = new Set<Accessory>(["necktie", "seedPendant", "goldChain", "jingleBellCollar", "shellNecklace", "leafScarf", "candyCornScarf", "knitStripeScarf", "flowerLei", "bowTie"]);
 /** Glasses with arms that run back along his head. */
-const ARMED = new Set<Accessory>(["roundSpecs", "shades", "heartGlasses"]);
 
 /** The item's main colour, a shade darker: its far side, in shadow. */
 function backColour(art: Art): string | null {
@@ -349,7 +348,8 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
   const col = backColour(art);
   if (!col) return;
   const A = headAnchors(H);
-  if ((slot === "head" && RIMMED.has(item)) || (slot === "neck" && COLLARED.has(item))) {
+  // A dome hat covers the top of his head: its back is hidden by the hat itself, so nothing is drawn behind.
+  if ((slot === "head" && RIMMED.has(item) && !DOME.has(item)) || (slot === "neck" && COLLARED.has(item))) {
     const r = slot === "head" ? A.rim : A.collar;
     const back = splitRing(ringPoints(H, r.cy, r.a * 1.04), false);
     ctx.strokeStyle = col;
@@ -400,39 +400,9 @@ function faceFit(H: Head) {
 // ── Things that go round him (round 3M item 3) ───────────────────────────────
 
 /** `onTop`: lies over the top of his head (a headband), so it is never hidden by him. */
-interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean; onTop?: boolean }
+interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean; onTop?: boolean; clipBody?: boolean }
 
-/** The ring angle whose point on the ring at `yc` is nearest to screen x. */
-function ringAngleAt(H: Head, yc: number, a: number, x: number): number {
-  let best = 0;
-  let bd = Infinity;
-  for (let k = 0; k < 72; k++) {
-    const t = (k / 72) * Math.PI * 2 - Math.PI;
-    const q = ringPoint(H, yc, a, t);
-    const d = Math.abs(q.x - x) + (q.z < -a * 0.3 ? a : 0);
-    if (d < bd) {
-      bd = d;
-      best = t;
-    }
-  }
-  return best;
-}
 
-/** A path round him from a screen point `from` (on the front of his head) to `toT` radians round, the ring height easing to `yEnd`. */
-function wrapPath(H: Head, from: [number, number], yEnd: number, toT: number, n = 16): P3[] {
-  const a0 = halfWidthAt(from[1], H.rx, H.ry, BODY_EXP);
-  const t0 = ringAngleAt(H, from[1], a0, from[0]);
-  const base = ringPoint(H, from[1], a0, t0);
-  const out: P3[] = [];
-  for (let k = 0; k <= n; k++) {
-    const u = k / n;
-    const yc = from[1] + (yEnd - from[1]) * u;
-    const q = ringPoint(H, yc, halfWidthAt(yc, H.rx, H.ry, BODY_EXP), t0 + (toT - t0) * u);
-    const w = (1 - u) * (1 - u);
-    out.push({ x: q.x + (from[0] - base.x) * w, y: q.y + (from[1] - base.y) * w, z: q.z });
-  }
-  return out;
-}
 
 /** The straps, bands and arms an item draws from his head model. `x` offsets are in body space. */
 function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
@@ -441,12 +411,25 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
   const ry = H.ry;
   const dark = backColour(art) ?? "#222";
   switch (item) {
-    case "piratePatch":
-      // From the patch up and round the side of his head, and a short one down behind the other ear.
+    case "piratePatch": {
+      // The patch is on his right eye. One strap runs from it straight out to that side of his
+      // head; the other goes up across his forehead, ABOVE his other eye, to the far side.
+      // Both lie on his face and stop at his outline (clipped to his body), like a real strap.
+      const span = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) || R * 0.8;
+      const r = span * 0.34;
+      const [px, py] = A.eyeR;
+      const [lx] = A.eyeL;
+      const wx = A.rim.cx;
+      const y1 = py - r * 0.45;
+      const hw1 = halfWidthAt(y1, H.rx, H.ry, BODY_EXP);
+      const yT = py - r * 1.6;
+      const hwT = halfWidthAt(yT, H.rx, H.ry, BODY_EXP);
+      const lw = R * 0.05;
       return [
-        { pts: wrapPath(H, A.eyeR, ey - ry * 0.3, -Math.PI * 0.92), color: "#1B1F26", lw: R * 0.05 },
-        { pts: wrapPath(H, A.eyeR, ey + ry * 0.1, Math.PI * 0.92), color: "#1B1F26", lw: R * 0.05 },
+        { pts: curve(px + r * 0.8, py - r * 0.25, (px + wx + hw1) / 2, y1 - r * 0.1, wx + hw1 * 1.05, y1), color: "#1B1F26", lw, onTop: true, clipBody: true },
+        { pts: curve(px - r * 0.55, py - r * 0.8, (px + lx) / 2, yT, wx - hwT * 1.05, yT), color: "#1B1F26", lw, onTop: true, clipBody: true },
       ];
+    }
     case "glowVisor": {
       const a = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
       return [{ pts: ringPoints(H, ey, a * 0.93), color: "#2FBF5F", lw: ry * 0.3, closed: true }];
@@ -456,31 +439,34 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
       return [{ pts: ringPoints(H, yc, halfWidthAt(yc, H.rx, H.ry, BODY_EXP)), color: "#7A5230", lw: R * 0.07, closed: true }];
     }
     case "headphones": {
-      // Over the crown from ear to ear, seated on his head: along his outline's upper half (a meridian of the head model).
+      // Over the top of his head from ear to ear, just outside his outline: his silhouette
+      // doesn't turn, so neither does the band, and it never crosses his face.
       const earY = ey;
-      const ax = halfWidthAt(earY, H.rx, H.ry, BODY_EXP);
       const top: [number, number][] = [];
-      for (let k = 0; k <= 96; k++) {
-        const [x, y] = pillowXY((k / 96) * Math.PI * 2, H.rx, H.ry, BODY_EXP);
+      for (let k = 0; k <= 120; k++) {
+        const [x, y] = pillowXY((k / 120) * Math.PI * 2, H.rx * 1.06, H.ry * 1.06, BODY_EXP);
         if (y <= earY) top.push([x, y]);
       }
       top.sort((p, q) => p[0] - q[0]);
-      const pts: P3[] = top.map(([x, y]) => archPoint(H, x * 0.985, y * 0.99, 0.04 * ax, ax));
-      return [{ pts, color: "#2B2F36", lw: R * 0.11, onTop: true }];
+      const wx = A.rim.cx;
+      return [{ pts: top.map(([x, y]) => ({ x: x + wx, y, z: 1 })), color: "#2B2F36", lw: R * 0.11, onTop: true }];
     }
     case "roundSpecs":
     case "shades":
     case "heartGlasses": {
-      // Each arm runs straight from the lens's outer edge back to his ear at eye height.
-      // The near one shows along his cheek; the far one is behind his head (hidden by him).
-      const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
-      const ax = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
+      // Each arm runs level from the lens's outer edge to the side of his head and stops at
+      // his outline, like glasses seen from the front: never down his cheek, never off his face.
+      const span = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]);
+      const lens = span * 0.42;
+      const wx = A.rim.cx;
       const out: Stroke[] = [];
       for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
-        const ear = archPoint(H, sd * ax, e[1], -0.15 * ax, ax);
-        const near = ear.z >= -ax * 0.1;
-        const z = near ? 1 : -1;
-        out.push({ pts: [{ x: e[0] + sd * lens, y: e[1], z }, { x: ear.x, y: ear.y, z }], color: dark, lw: Math.max(1, R * 0.045), onTop: near });
+        const y0 = e[1] - lens * 0.15;
+        const hw = halfWidthAt(y0, H.rx, H.ry, BODY_EXP);
+        const x0 = e[0] + sd * lens * 0.95;
+        const x1 = wx + sd * hw * 1.05;
+        if (sd * (x1 - x0) < lens * 0.1) continue; // this eye is at his edge: no room for an arm
+        out.push({ pts: curve(x0, y0, (x0 + x1) / 2, y0 - lens * 0.06, x1, y0 - lens * 0.1, 6), color: dark, lw: Math.max(1, R * 0.045), onTop: true, clipBody: true });
       }
       return out;
     }
@@ -489,15 +475,19 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
   }
 }
 
-/** A point of the head model from a position in his unturned frame (X sideways, Y down, Z towards us). */
-function archPoint(H: Head, X: number, Y: number, Z: number, a: number): P3 {
-  const cy = Math.cos(H.yaw);
-  const sy = Math.sin(H.yaw);
-  const k = a / Math.hypot(a * cy, DEPTH * a * sy);
-  const z1 = -X * sy + Z * cy;
-  const phi = ringTilt(H);
-  return { x: (X * cy + Z * sy) * k, y: Y + z1 * Math.sin(phi), z: z1 * Math.cos(phi) - Y * Math.sin(phi) };
+/** A quadratic curve as points on his front (z = 1): straps and arms that lie on his face. */
+function curve(x0: number, y0: number, cx: number, cy: number, x1: number, y1: number, n = 14): P3[] {
+  const out: P3[] = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const a = (1 - u) * (1 - u);
+    const b = 2 * u * (1 - u);
+    const c = u * u;
+    out.push({ x: a * x0 + b * cx + c * x1, y: a * y0 + b * cy + c * y1, z: 1 });
+  }
+  return out;
 }
+
 
 /** Draws a stroke's far pieces (back) or near pieces (front); the back ones are hidden by the body drawn over them. */
 function strokeRuns(ctx: Ctx, st: Stroke, front: boolean, dx = 0, whole = false) {
@@ -529,20 +519,23 @@ function splitPath(pts: P3[], front: boolean): P3[][] {
 
 /** Headphone cups on his ears: the near one in front and bigger, the far one behind him, thinner as it turns away. */
 function drawCups(ctx: Ctx, art: Art, H: Head, A: Anchors, front: boolean) {
+  // On his ears: at eye height, on his outline, both in front of him (his silhouette doesn't turn).
+  if (!front) return;
   const shapes = art.front ?? [];
   const ax = halfWidthAt(A.eyeLine, H.rx, H.ry, BODY_EXP);
   const sx = H.rx / 36;
   const sy = H.ry / 31;
+  const span = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]);
   for (const sd of [-1, 1]) {
-    const q = archPoint(H, sd * ax, A.eyeLine, 0, ax);
-    if (q.z >= -ax * 0.05 !== front) continue;
-    const turn = Math.abs(Math.sin(H.yaw));
-    const near = q.z >= 0;
-    const w = (0.5 + 0.5 * turn) * (near ? 1.1 : 0.9);
     const cup = sd < 0 ? [shapes[0], shapes[2]] : [shapes[1], shapes[3]];
+    // When he turns, an eye slides towards that ear: the cup moves out past it, never over his eye.
+    let x = A.rim.cx + sd * (ax + sx * 1.5);
+    const eye = sd < 0 ? A.eyeL : A.eyeR;
+    const overlap = sd * (eye[0] + sd * span * 0.3 - (x - sd * sx * 5));
+    if (overlap > 0) x += sd * overlap;
     ctx.save();
-    ctx.translate(q.x + sd * sx * 3, q.y);
-    ctx.scale(sx * w, sy);
+    ctx.translate(x, A.eyeLine);
+    ctx.scale(sx * 0.95, sy);
     ctx.translate(-(sd < 0 ? 13.5 : 86.5), -60);
     drawShapes(ctx, cup.filter(Boolean) as Shape[]);
     ctx.restore();
@@ -575,10 +568,10 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const seat = slot === "head" ? BOARD_RIM : BOARD_COLLAR;
     const kx = narrowing(H.yaw, slot === "head" ? 0.25 : 0.5);
     // Sized from the rim: a hat is at least 0.92 of his width there (round 3L item 4).
-    const fit = slot === "head" ? Math.max(1, (0.92 * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
+    const fit = slot === "head" ? Math.max(1, ((DOME.has(item) ? 1.06 : 0.92) * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
     // The seat is the ring's front point on his head model, so it follows his turn and nod.
     const F = ringPoint(H, ring.cy, ring.a, 0);
-    ctx.translate(ring.cx + F.x * (slot === "head" ? 0.5 : 1), F.y + (item === "neckPhones" ? 8 * sy : 0)); // its cups hang low on his chest
+    ctx.translate(ring.cx + F.x * (slot === "head" ? (DOME.has(item) ? 0.12 : 0.5) : 1), F.y + (item === "neckPhones" ? 8 * sy : 0)); // its cups hang low on his chest
     // Worn parts lag and swing from their seat: hats tip against the motion, dangling parts hang from it.
     const sw = H.swing ?? 0;
     ctx.rotate(slot === "head" ? -H.physDx * 0.1 - sw * (LOOSE.has(item) ? 0.9 : 0.3) : sw * (HANGING.has(item) ? 0.5 : 0.2));
@@ -624,16 +617,17 @@ function drawContactShadow(ctx: Ctx, item: Accessory, H: Head) {
   if (!((slot === "head" && DOME.has(item)) || (slot === "neck" && COLLARED.has(item)))) return;
   const A = headAnchors(H);
   const r = slot === "head" ? A.rim : A.collar;
-  const off = H.R * (slot === "head" ? 0.08 : 0.05);
-  const runs = splitRing(ringPoints(H, r.cy + off, r.a * 0.97), true);
+  // Thin and tight against the item's edge, so it reads as contact, not as a band.
+  const off = H.R * 0.025;
+  const runs = splitRing(ringPoints(H, r.cy + off, r.a * 0.98), true);
   ctx.save();
   ctx.clip(bodyOutline(H));
-  ctx.strokeStyle = "rgba(10,30,20,0.10)";
-  ctx.lineWidth = H.R * 0.2;
+  ctx.strokeStyle = "rgba(10,30,20,0.16)";
+  ctx.lineWidth = H.R * 0.06;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowColor = "rgba(10,30,20,0.18)";
-  ctx.shadowBlur = H.R * 0.25;
+  ctx.shadowColor = "rgba(10,30,20,0.2)";
+  ctx.shadowBlur = H.R * 0.06;
   for (const run of runs) {
     ctx.beginPath();
     run.forEach((q, i) => (i ? ctx.lineTo(q.x + r.cx, q.y) : ctx.moveTo(q.x + r.cx, q.y)));
@@ -751,6 +745,11 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     // pale band or a grey seam: what is behind him only shows past his outline.
     l.save();
     l.clip(outsideBody(H), "evenodd");
+    if (RING_CROWN.has(outfit)) {
+      drawRingCrown(l, outfit, H, false);
+      l.restore();
+      return;
+    }
     if (back) {
       l.save();
       drawBackParts(l, outfit, art, H);
@@ -759,6 +758,91 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     drawItem(l, outfit, art, H, layers);
     l.restore();
   });
+  ctx.restore();
+}
+
+/**
+ * Crowns that go right round his head, drawn on the head model (not from the board): a vine or
+ * stem ring with leaves or flowers spaced all the way round. The ones facing us are drawn over
+ * him (so they wrap to his sides, no bare skin there); the ones round the back are behind him.
+ */
+const RING_CROWN = new Set<Accessory>(["leafCrown", "flowerCrown"]);
+const PETALS = ["#FF9FC6", "#FFD84A", "#FFFFFF", "#B79CFF"];
+function drawRingCrown(ctx: Ctx, item: Accessory, H: Head, front: boolean) {
+  const r = headAnchors(H).rim;
+  const a = r.a * 1.02;
+  const yc = r.cy - H.ry * 0.04;
+  const R = H.R;
+  const depth = DEPTH * a;
+  // The stem ring itself.
+  const ringPts = ringPoints(H, yc, a, 64);
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = item === "leafCrown" ? "#7A5230" : "#3A8F4E";
+  ctx.lineWidth = R * (item === "leafCrown" ? 0.05 : 0.035);
+  for (const run of splitRing(ringPts, front)) {
+    ctx.beginPath();
+    run.forEach((q, i) => (i ? ctx.lineTo(q.x + r.cx, q.y) : ctx.moveTo(q.x + r.cx, q.y)));
+    ctx.stroke();
+  }
+  // The leaves or flowers, back to front.
+  const n = item === "leafCrown" ? 18 : 11;
+  const spots: { q: P3; i: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const q = ringPoint(H, yc, a, (i / n) * Math.PI * 2);
+    if (q.z >= 0 === front) spots.push({ q, i });
+  }
+  spots.sort((p, q) => p.q.z - q.q.z);
+  for (const { q, i } of spots) {
+    const near = Math.max(0, Math.min(1, (q.z / depth + 1) / 2));
+    const k = R * (0.7 + 0.3 * near);
+    const x = q.x + r.cx;
+    const side = q.x / a; // -1 at his left, +1 at his right
+    ctx.save();
+    ctx.translate(x, q.y);
+    if (item === "leafCrown") {
+      // Each leaf stands up from the vine, leaning out towards his sides.
+      ctx.rotate(side * 0.75 + (i % 2 ? 0.18 : -0.18));
+      const g = ctx.createLinearGradient(0, 0, 0, -k * 0.42);
+      g.addColorStop(0, "#2E9E55");
+      g.addColorStop(1, "#46EB78");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(k * 0.13, -k * 0.21, 0, -k * 0.42);
+      ctx.quadraticCurveTo(-k * 0.13, -k * 0.21, 0, 0);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(20,90,45,0.55)";
+      ctx.lineWidth = Math.max(0.6, k * 0.012);
+      ctx.beginPath();
+      ctx.moveTo(0, -k * 0.02);
+      ctx.lineTo(0, -k * 0.35);
+      ctx.stroke();
+      if (i === 0) {
+        ctx.fillStyle = "#E2564B";
+        ctx.beginPath();
+        ctx.arc(0, k * 0.01, k * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // A five-petal flower facing out, a little flattened by the view.
+      ctx.scale(1, 0.86);
+      const pr = k * 0.1;
+      ctx.fillStyle = PETALS[i % PETALS.length];
+      for (let p = 0; p < 5; p++) {
+        const t = (p / 5) * Math.PI * 2 - Math.PI / 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(t) * pr * 1.05, Math.sin(t) * pr * 1.05, pr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#FF8A2F";
+      ctx.beginPath();
+      ctx.arc(0, 0, pr * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -789,9 +873,21 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
     drawContactShadow(l, outfit, H);
     if (DOME.has(outfit)) drawDome(l, outfit, art, H);
     const A = headAnchors(H);
-    for (const st of wrapStrokes(outfit, H, A, art)) strokeRuns(l, st, true, 0, st.onTop);
+    for (const st of wrapStrokes(outfit, H, A, art)) {
+      l.save();
+      if (st.clipBody) l.clip(bodyOutline(H));
+      strokeRuns(l, st, true, 0, st.onTop);
+      l.restore();
+    }
     if (outfit === "headphones") drawCups(l, art, H, A, true);
-    else drawItem(l, outfit, art, H, ["body", "front"]);
+    else if (RING_CROWN.has(outfit)) drawRingCrown(l, outfit, H, true);
+    else if (SLOT_OF[outfit] === "face") {
+      // Whatever sits on his face stays on his face: nothing past his outline.
+      l.save();
+      l.clip(bodyOutline(H));
+      drawItem(l, outfit, art, H, ["body", "front"]);
+      l.restore();
+    } else drawItem(l, outfit, art, H, ["body", "front"]);
   });
   ctx.restore();
 }
