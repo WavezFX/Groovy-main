@@ -38,6 +38,8 @@ export interface Head {
   pitch: number;
   physDx: number;
   physDy: number;
+  /** Pendulum angle of dangling parts (the engine's spring), 0 at rest. */
+  swing?: number;
   /** His eyes in body space, left then right (the engine's); face items sit on them. */
   eyes?: [[number, number], [number, number]];
 }
@@ -319,6 +321,10 @@ const COLLARED = new Set<Accessory>([
   "bandana", "leafScarf", "seedPendant", "neckPhones", "goldChain", "flowerLei",
   "candyCornScarf", "knitStripeScarf", "jingleBellCollar", "daisyChain", "shellNecklace",
 ]);
+/** Worn parts that hang or stand loose and swing the most: ears, stalks, antennae, pom-poms, antlers, wings. */
+const LOOSE = new Set<Accessory>(["bunnyEarBand", "bobbleBeanie", "acornCap", "antenna", "twigAntlers", "batWingBand", "cloudBuddy", "beretPin", "littleGhostPal", "pastelRibbonBow"]);
+/** Neck items that hang from a point and swing like a pendulum. */
+const HANGING = new Set<Accessory>(["necktie", "seedPendant", "goldChain", "jingleBellCollar", "shellNecklace", "leafScarf", "candyCornScarf", "knitStripeScarf", "flowerLei", "bowTie"]);
 /** Glasses with arms that run back along his head. */
 const ARMED = new Set<Accessory>(["roundSpecs", "shades", "heartGlasses"]);
 
@@ -571,8 +577,12 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     // The seat is the ring's front point on his head model, so it follows his turn and nod.
     const F = ringPoint(H, ring.cy, ring.a, 0);
     ctx.translate(ring.cx + F.x * (slot === "head" ? 0.5 : 1), F.y);
-    ctx.rotate(-H.physDx * 0.1);
-    ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1));
+    // Worn parts lag and swing from their seat: hats tip against the motion, dangling parts hang from it.
+    const sw = H.swing ?? 0;
+    ctx.rotate(slot === "head" ? -H.physDx * 0.1 - sw * (LOOSE.has(item) ? 0.9 : 0.3) : sw * (HANGING.has(item) ? 1 : 0.35));
+    // Dangling parts stretch a little when he hops (the body's own squash already scales everything).
+    const hop = slot === "neck" ? 1 + H.physDy * 0.12 : 1;
+    ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1) * hop);
     ctx.translate(-50, -seat.y);
     return;
   }

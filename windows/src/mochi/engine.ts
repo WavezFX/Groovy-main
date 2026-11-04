@@ -302,6 +302,9 @@ export class BotEngine {
   physDx = 0;
   physDy = 0;
   private physVx = 0;
+  /** Dangling worn parts' pendulum (round 3M item 4): angle and its speed; exactly 0 at rest. */
+  swing = 0;
+  private swingV = 0;
   private physVy = 0;
   private prevYaw = 0;
   private prevOy = 0;
@@ -668,7 +671,7 @@ export class BotEngine {
       Math.abs(this.col[0] - this.colT[0]) > 0.003 ||
       Math.abs(this.col[1] - this.colT[1]) > 0.003 ||
       Math.abs(this.col[2] - this.colT[2]) > 0.003 ||
-      (this.outfit !== "none" && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01))
+      (this.outfit !== "none" && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01 || this.swing !== 0 || this.swingV !== 0))
     );
   }
 
@@ -814,6 +817,18 @@ export class BotEngine {
       this.physVy += (60 * (tDy - this.physDy) - 9 * this.physVy) * dt;
       this.physDx += this.physVx * dt;
       this.physDy += this.physVy * dt;
+      if (this.outfit === "none" || this.lite) {
+        this.swing = this.swingV = 0;
+      } else {
+        // A pendulum on the same lag: swings past rest and settles (ω ≈ 5.8, ζ ≈ 0.28), then stops exactly.
+        const drive = Math.max(-0.6, Math.min(0.6, -this.physDx * 0.9));
+        this.swingV += (34 * (drive - this.swing) - 3.2 * this.swingV) * dt;
+        this.swing += this.swingV * dt;
+        if (Math.abs(this.swing) < 0.0015 && Math.abs(this.swingV) < 0.02 && Math.abs(drive) < 0.0015) this.swing = this.swingV = 0;
+      }
+      // At rest the soft-part spring stops exactly, so nothing keeps redrawing.
+      if (Math.abs(this.physDx) < 0.0004 && Math.abs(this.physVx) < 0.004 && Math.abs(tDx) < 0.0004) this.physDx = this.physVx = 0;
+      if (Math.abs(this.physDy) < 0.0004 && Math.abs(this.physVy) < 0.004 && Math.abs(tDy) < 0.0004) this.physDy = this.physVy = 0;
     }
     this.prevYaw = this.yaw;
     this.prevOy = this.oy;
@@ -921,6 +936,7 @@ export class BotEngine {
       head.ry = ry;
       // Face items sit on his real eyes, wherever he looks (round 3E item 10).
       head.eyes = this.eyeCentres(rx, ry);
+      head.swing = this.swing;
     }
     const skinState: SkinState = {
       // Only a hat hides what grows on top of his head (round 3E item 10).
