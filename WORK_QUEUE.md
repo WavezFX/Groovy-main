@@ -46,7 +46,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 8. Island tiles that expand: Spotify to 4, Mail and This PC to 6 with a music strip, Mail to all 8 (design `docs/design/settings-v2/IslandTiles.dc.html`)
 - [x] 9. Lazy-load everything: nothing loads until needed (no offline model at all in cloud mode, Settings pages and island panels loaded on first use, integrations idle until shown)
 - [x] 10. Three operating states (Standby, Conversation, Offline) with pre-warm on the wake word and release after, plus a WebView2 audit (one island WebView in Standby, other windows destroyed on close)
-- [ ] 11. (skipped in the 4 Nov run: needs Windows measurement and a multi-step helper-process refactor; not started) Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
+- [ ] 11. (measure first: STATUS.md says what to read from the next smoke test; no code change made blind) Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
 - [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [x] 6. Checks
 
