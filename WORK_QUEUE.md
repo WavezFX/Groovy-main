@@ -87,7 +87,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 11. Preview the growth looks and locked wardrobe items for 5 seconds, each stage unlocking at its minimum (preview only, not a picker)
 - [x] 12. Night, Ember and Frost each grow on their own: separate time, stage and start date per look, only the look he is wearing grows
 
-## 1K. Fixes round 3K: `FIXES_ROUND3K.md` (Groovy's own body: the teardrop). **Do this BEFORE 3H item 1.** Stop after item 2 until the owner approves the look.
+## 1K. Fixes round 3K: `FIXES_ROUND3K.md` (Groovy's own body: the teardrop). **ON HOLD (4 Nov): the owner has not chosen the outline; do not start until this line is removed.** Decided so far: hands become element wisps; growth art stays exactly as it is.
 - [ ] 1. Design study and design record (`docs/design/body-v2/`), contact sheet for the owner
 - [ ] 2. The new base body (teardrop, new anchors, minis) **then STOP: wait for the owner's approval**
 - [ ] 3. New face and expression set (no hearts, stars or blush)
@@ -96,7 +96,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Remove the old art and prove it
 - [ ] 7. Checks
 
-## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this after round 3K, before 3D item 11 and the checks** (the fit must be built on the new body).
+## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this first, before 3D item 11 and the checks.** (If round 3K later changes the body outline, the fit is re-seated there.)
 - [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
 - [x] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
