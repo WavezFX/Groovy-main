@@ -30,6 +30,7 @@ mod tile_icons;
 mod livekit;
 mod local_chat;
 mod log;
+mod memnotes;
 mod memory;
 mod models;
 mod music;
@@ -220,6 +221,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     flow::sync_engine(&app);
     spotify::sync(&app, &settings.active_integrations);
     glass::apply(&app);
+    memory::apply(settings.assistant.memory_enabled);
     resources::idle::set(&settings.unload_after);
     browser::configure(&settings.browser, &settings.search_engine);
     if shortcuts_changed {
@@ -1497,6 +1499,9 @@ pub fn run() {
             memory::memory_delete,
             memory::memory_clear,
             memory::memory_export,
+            memory::memory_related,
+            memory::memory_dir,
+            memory::memory_set_dir,
             memory::wardrobe_export,
             memory::history_list,
             memory::history_messages,
@@ -1714,6 +1719,7 @@ pub fn run() {
                     _ => {}
                 }
             }
+            memory::apply(loaded.assistant.memory_enabled);
             tasks::spawn(handle.clone());
             mail::spawn(handle.clone());
             brain_ai::init(&handle);

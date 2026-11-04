@@ -270,3 +270,6 @@ and its translations.
 
 ## Round 3L (4 Nov)
 Wardrobe follows his turn, contact shadows, rim/collar curves, sizing from the head; face items clamped inside the body outline. Canvas only, no new memory. Contact sheet ready for the owner's eyes (CI items-check, yaw -0.6/0/+0.6). Not yet run locally: items-check runs in CI.
+
+## Round 3I (4 Nov)
+Memories are markdown notes (`memnotes.rs`, folder Documents\Groovy\memory, changeable in Settings -> Memory); the `memories` table is the index (migration 7: file, mtime, valid_until, replaced_by, FTS5 `memory_fts`, `memory_links`). First run writes a file for every existing memory. The `notify` crate watches the folder (events, no polling; started only when memory is on, one sleeping thread, dropped when memory is off). Recall: pinned, FTS5 matches, one-hop links, newest, same 1500-character budget; ended facts skipped unless the request is about the past. "Forget that/forget X" asks first. Changing a fact proposes `valid_until`/`replaced_by` only when the new text shares a word with the old note (no semantic match). Tests: 7 in memnotes.rs and 2 in memory.rs, run in a scratch crate on Linux (the full crate needs the sherpa libs, so the Rust build and idle/peak numbers come from CI). Obsidian open/graph check: for the owner.

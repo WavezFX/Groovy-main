@@ -84,7 +84,15 @@ export function memorySection(settings: Settings, save: () => void, toggle: Togg
       await Bridge.memoryDelete(m.id).catch((e) => say(String(e)));
       await drawMemories();
     });
-    return h("div", { class: "row memory-row", title: t("Saved {date}", { date: when(m.updatedAt) }) }, kind, text, pin, del);
+    const links = h("div", { class: "hint" });
+    void Bridge.memoryRelated(m.id).then((r) => {
+      const names = (l: MemoryEntry[]) => l.map((x) => x.content.slice(0, 32)).join(", ");
+      const parts = [];
+      if (r.linksTo.length) parts.push(`${t("Links to")}: ${names(r.linksTo)}`);
+      if (r.linkedFrom.length) parts.push(`${t("Linked from")}: ${names(r.linkedFrom)}`);
+      links.textContent = parts.join(" · ");
+    }).catch(() => {});
+    return h("div", { class: "stack" }, h("div", { class: "row memory-row", title: t("Saved {date}", { date: when(m.updatedAt) }) }, kind, text, pin, del), links);
   }
 
   async function drawMemories() {
@@ -173,6 +181,18 @@ export function memorySection(settings: Settings, save: () => void, toggle: Togg
     }
   });
 
+  const dirText = h("input", { type: "text", style: "flex:1", placeholder: t("Notes folder") }) as HTMLInputElement;
+  void Bridge.memoryDir().then((d) => (dirText.value = d)).catch(() => {});
+  const dirBtn = h("button", { text: t("Move") }) as HTMLButtonElement;
+  dirBtn.addEventListener("click", () => {
+    Bridge.memorySetDir(dirText.value)
+      .then(async (d) => {
+        dirText.value = d;
+        await drawMemories();
+      })
+      .catch((e) => say(String(e).replace(/^Error:\s*/, "")));
+  });
+
   void drawMemories();
   void drawConversations();
   return h(
@@ -182,6 +202,8 @@ export function memorySection(settings: Settings, save: () => void, toggle: Togg
     message,
     h("div", { class: "row" }, h("label", { text: t("Remember things") }), toggle(prefs().memoryEnabled, (on) => set("memoryEnabled", on))),
     h("div", { class: "hint", text: t("What Groovy remembers goes into every chat, with any provider, so he can use it. Things that look like passwords or keys are refused. It is stored only on this computer.") }),
+    h("div", { class: "hint", text: t("Every memory is a markdown note in this folder. Open it in Obsidian or any editor; [[links]] connect notes.") }),
+    h("div", { class: "row" }, dirText, dirBtn),
     h("div", { class: "row" }, addKind, addText, addBtn),
     memList,
     h("div", { class: "row" }, clearMem),

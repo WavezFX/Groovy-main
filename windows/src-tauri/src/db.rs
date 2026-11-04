@@ -132,6 +132,8 @@ const MIGRATIONS: &[&str] = &[
         username TEXT NOT NULL,
         created_at INTEGER NOT NULL
     );",
+    // 7: memories as markdown notes: files, search index, links (memnotes.rs).
+    crate::memnotes::SCHEMA_V2,
 ];
 
 pub fn path() -> PathBuf {

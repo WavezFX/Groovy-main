@@ -290,10 +290,27 @@ pub async fn send(
     let prefs = settings.assistant.clone().sanitised();
     let plain = plain_question(chat.inner.lock().unwrap().plain.is_empty(), context.as_ref(), &query);
 
+    memory::note_query(&query);
+    if !prefs.memory_enabled && memory::forget_request(&query).is_some() {
+        let reply = crate::i18n::t("Memory is off, so I'm not storing anything.");
+        save_turn(chat, &prefs, &plain, &reply, "memory");
+        return Ok(ChatReply::text(reply));
+    }
     if prefs.memory_enabled {
+        if let Some(reply) = crate::db::conn().ok().and_then(|c| memory::handle_confirmations(&c, &query)) {
+            save_turn(chat, &prefs, &plain, &reply, "memory");
+            return Ok(ChatReply::text(reply));
+        }
         if let Some((kind, fact)) = memory::remember_request(&query) {
-            let reply = match crate::db::conn().and_then(|c| memory::add(&c, kind, &fact)) {
-                Ok(m) => crate::i18n::tf("Got it — I'll remember that: {fact}", &[("fact", &m.content)]),
+            let reply = match crate::db::conn().and_then(|c| memory::add(&c, kind, &fact).map(|m| (memory::propose_end(&c, &m), m))) {
+                Ok((ask, m)) => {
+                    let mut r = crate::i18n::tf("Got it — I'll remember that: {fact}", &[("fact", &m.content)]);
+                    if let Some(ask) = ask {
+                        r.push_str("\n");
+                        r.push_str(&ask);
+                    }
+                    r
+                }
                 Err(e) => e,
             };
             save_turn(chat, &prefs, &plain, &reply, "memory");

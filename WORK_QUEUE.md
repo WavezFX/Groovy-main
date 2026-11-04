@@ -46,7 +46,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 8. Island tiles that expand: Spotify to 4, Mail and This PC to 6 with a music strip, Mail to all 8 (design `docs/design/settings-v2/IslandTiles.dc.html`)
 - [x] 9. Lazy-load everything: nothing loads until needed (no offline model at all in cloud mode, Settings pages and island panels loaded on first use, integrations idle until shown)
 - [x] 10. Three operating states (Standby, Conversation, Offline) with pre-warm on the wake word and release after, plus a WebView2 audit (one island WebView in Standby, other windows destroyed on close)
-- [ ] 11. Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
+- [ ] 11. (skipped in the 4 Nov run: needs Windows measurement and a multi-step helper-process refactor; not started) Match Coucou's idle footprint: measure upstream Coucou next to Groovy in CI, profile the main process, move native engines to on-demand helpers, main process ≤ 15 MB idle
 - [x] 7. Hard 400 MB ceiling at peak: peak-scenario CI test, small offline speech model by default, one extra WebView at most
 - [x] 6. Checks
 
@@ -107,12 +107,12 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] Item 5: checks (contact sheet at several turns, one `[build]`)
 
 ## 1I. Fixes round 3I: `FIXES_ROUND3I.md` (memory as linked markdown notes, smarter recall). **After 3H and 3D item 11.**
-- [ ] 1. Memories as markdown files (files are the source of truth, database is the index, existing memories imported)
-- [ ] 2. Event-driven folder watcher (no polling)
-- [ ] 3. FTS5 search index and link table, built on demand
-- [ ] 4. Recall by relevance (pinned, matches, one-hop links, newest) inside the same 1500-character budget
-- [ ] 4b. "Forget that" and facts that end (`valid_until`, `replaced_by`)
-- [ ] 5. Checks
+- [x] 1. Memories as markdown files (files are the source of truth, database is the index, existing memories imported)
+- [x] 2. Event-driven folder watcher (no polling)
+- [x] 3. FTS5 search index and link table, built on demand
+- [x] 4. Recall by relevance (pinned, matches, one-hop links, newest) inside the same 1500-character budget
+- [x] 4b. "Forget that" and facts that end (`valid_until`, `replaced_by`)
+- [x] 5. Checks (round-trip, forget, ended-note, budget tests pass; idle/peak numbers come from the [build] run, Obsidian check is the owner's)
 
 ## 1J. Fixes round 3J: `FIXES_ROUND3J.md` (licence housekeeping, a few daily-use wins; change only what is clearly better). **After 3I.**
 - [ ] 1. Licence housekeeping: dependency licence checks in CI, THIRD_PARTY_NOTICES, MODELS.md, stale licence text, internal `mochi` names

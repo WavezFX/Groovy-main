@@ -608,6 +608,11 @@ export const Bridge = {
   memoryDelete: (id: number) => callOrThrow<void>("memory_delete", { id }),
   /** Long-term memory only (one kind, or all); chat history is not touched. */
   memoryClear: (kind?: MemoryKind) => callOrThrow<number>("memory_clear", { kind: kind ?? null }),
+  /** The notes this one links to and the notes that link to it (round 3I). */
+  memoryRelated: (id: number) => callOrThrow<{ linksTo: MemoryEntry[]; linkedFrom: MemoryEntry[] }>("memory_related", { id }),
+  /** The folder of markdown notes; "" to set the default. */
+  memoryDir: () => callOrThrow<string>("memory_dir"),
+  memorySetDir: (dir: string) => callOrThrow<string>("memory_set_dir", { dir }),
   /** Writes a JSON export of everything and returns its path. */
   memoryExport: () => callOrThrow<string>("memory_export"),
   historyList: () => callOrThrow<ConversationInfo[]>("history_list"),

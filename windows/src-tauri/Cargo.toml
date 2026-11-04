@@ -84,6 +84,7 @@ tar = { version = "0.4", default-features = false }
 base64 = "0.22"
 # Round 3E item 2: tile icons from Windows saved as small PNGs (already in the tree through Tauri).
 png = "0.18"
+notify = { version = "8", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }
