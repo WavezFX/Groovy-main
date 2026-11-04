@@ -4,6 +4,8 @@
 
 ## Item 1: Items sit on him the way Coucou's do (3E item 10 wasn't enough)
 
+> **4 Nov: build this on the NEW pillow body from round 3K (do 3K items 1 and 2 first, same pass). Anchor to the new head, not the old squircle.**
+
 The owner's test of the 3E build: the **acorn cap** on the island and in Settings doesn't wrap his head, the **glasses** don't sit on his eyes, and it all still looks like **a flat picture pasted on top**. In Coucou the same items look 3D: the cap goes round the head (you see the back of the brim and the front), the glasses sit on the eyes, the neck items go round the neck. 3E item 10 only fixed the sideways shift; the items are still single flat pictures. Make them genuinely fit:
 
 - **Anchors from the live head, not board coordinates.** The engine publishes every frame: the head's rim (the top of his body outline), the two eye centres and their spacing (exactly what `drawEyes` uses, including the yaw shift, pitch and `physDx`/`physDy`), and the neck line (the bottom of the body, with the squash). Each item is authored against named anchors (`rimLeft`, `rimRight`, `rimTop`, `eyeL`, `eyeR`, `neck`) and placed by mapping those points onto the live ones.

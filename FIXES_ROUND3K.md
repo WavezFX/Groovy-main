@@ -1,53 +1,35 @@
-# Fixes round 3K: Groovy's own body (4 Nov)
+# Fixes round 3K: Groovy's own body, "Pillow + wisps" (4 Nov)
 
-> **STATUS (4 Nov, evening): DO NOT START THIS ROUND YET. The body outline is not decided.**
-> The owner rejected, after seeing them: the teardrop ("drop"), the glass flask, orb and lantern (plant/lotus inside), and a pudding, dome and gem outline drawn on the real renderer. The owner wants the growth art kept exactly as it is: Night's bonsai and sakura, Ember's fire, Frost's water inside with marine life and the golden submarine, and the diamond eyes (stage 6). **Decided: hands become element wisps** (a vine, a flame lick, a water tendril that appear only when he gestures). **Open:** the outline. Next step is the owner comparing today's Groovy with Coucou's Mochi; if they already look clearly different, the outline may stay and only the hands, face construction and details change. The "design" section below is the OLD default and is withdrawn; it will be rewritten once the owner decides.
+> **DECIDED by the owner (4 Nov): pillow outline + element wisps for hands, wisps 15% smaller. Do this TOGETHER with 3H item 1 (the wardrobe fit), in the same pass: 3K items 1 to 2 first, then 3H item 1 on the new body.** Reference renders: `docs/design/body-v2/`. The old teardrop design is withdrawn.
 
-**Why:** Coucou's asset terms (`LICENSE-ASSETS.md` in its repo) reserve the Mochi character's design, look, expressions and animations. Groovy's body is still Mochi-derived: `engine.ts` `bodyPath` draws the same squircle (a rounded superellipse, `R*1.14` by `R*0.88`) with the same face-and-hands construction, ported from Coucou's Swift view, and the mini bots keep "the original" shape. The elemental looks, growth and wardrobe are Groovy's own, but they sit on that base. This round gives Groovy **its own base**, so the name, character and art can be reserved as the owner's (`LICENSE-ASSETS.md`, `docs/LICENSING.md` section 3).
+**Why:** Coucou's asset terms reserve the Mochi character's look. Groovy's body was a squircle with oval hands. The glowing almond eyes, aura, colours and growth art are already Groovy's own. This round gives the **silhouette and hands** their own design so the character can be reserved as the owner's (`LICENSE-ASSETS.md`, `docs/LICENSING.md` section 3).
 
-**Do this BEFORE 3H item 1** (the wardrobe fit anchors to the head, so it must be built on the new body). One item per commit: "Fixes round 3K, item N: ...", tick it in `WORK_QUEUE.md` in the same commit, push, keep the build green. No feature is removed: every state, animation, sound, wardrobe item, growth stage and setting keeps working. Only how he looks changes. Memory rule as always: under 300 MB idle, never over 400 MB at peak, near-0 CPU idle.
+**Keep exactly as is (owner's rule):** Night's bonsai and sakura, Ember's fire, Frost's water inside with marine life and the golden submarine, the stage 6 diamond eyes, all halos, colours, expressions, sounds, wardrobe and settings. No feature is removed. Memory rule: under 300 MB idle, never over 400 MB peak, near-0 CPU idle; no new images or files, everything is drawn in canvas.
 
-## Rules for this round
-- **Do not copy from Coucou or Mochi.** Do not open or trace Mochi's artwork; do not reuse the squircle exponent, the proportions or the face layout. Build from the new design below.
-- **Keep a design record** in `docs/design/body-v2/` (dated notes, early studies, the reasons for each choice). It is the evidence that the design is independent.
-- Keep the code that is Coucou's MIT code (state machine, physics) with its notice; it is the *look* that changes.
+## Rules
+- **Do not copy from Coucou or Mochi.** Do not open or trace Mochi's artwork. Build from the formula below.
+- The design record is `docs/design/body-v2/` (already added). Add dated notes there if anything changes.
+- One item per commit: "Fixes round 3K, item N: ...", ticked in `WORK_QUEUE.md` in the same commit, push, keep the build green. Keep Coucou's MIT code (state machine, physics) with its notice.
 
-## The design (default direction; the owner may change it before this is pushed)
-**"The drop":** one teardrop silhouette that all three looks share. A seed, a flame and a water drop are all teardrops, and Groovy hatches from a seed, so the shape tells the story.
-- **Body:** a teardrop: a soft point at the top, a full rounded base, slightly taller than wide (not a blob). The point leans with movement (secondary motion) and sprouts the look's growth: Night a leaf-bud, Ember a flame tip, Frost a droplet crest. Squash and stretch follow the point.
-- **Face:** the existing sharp almond eyes stay (they are Groovy's own) but sit lower and wider-set, with a small mouth built from a single curve. **No ears. No blush cheeks.** Feelings come from the eyes, the glow and the look's own particles (leaves, sparks, bubbles), not hearts and stars.
-- **Hands:** none by default. When he points, waves or holds something, short element-made "wisps" (a vine, a flame lick, a water tendril) extend from the base and retract. This replaces the stub hands.
-- **Material:** each look keeps its colour and glow (Night green glow, Ember warm, Frost cool). Surface shading is drawn from the teardrop's own light direction, not copied from the old gradient.
+## Item 1: Pillow outline
+- `skins.ts` `SHAPE` -> `{w:1.0, h:1.1, exp:3.0, taper:0}` and make the mini bots use the same shape (smaller, flat colour).
+- `engine.ts` `bodyPath`: build the existing superellipse point (`u=px0/rx`, `v=py0/ry`, both -1..1), then apply the pillow bow:
+  `px = px0 * (1 - 0.10 * (1 - v*v))`, `py = py0 * (1 - 0.10 * (1 - u*u))`.
+  Sides bow in a little at the middle, corners stay full. Keep the `morph` blend to the outfit rounded-rect. Put 0.10 in a named constant `PILLOW_BOW`.
+- Keep growth art anchors working (sprout/bonsai top, flame, water fill clip, stage 6 eyes): they must follow the new path.
 
-## Item 1: Design study and record (no app change)
-- Make 3 to 5 studies of the teardrop as small canvas/SVG renders (front, three-quarter, side, squash, stretch) for each look, in `docs/design/body-v2/` with a short `README.md` (date, intent, what was rejected and why).
-- Output a contact-sheet image of the studies from CI for the owner. No app code changes in this item.
+## Item 2: Element wisps instead of hands
+- In `drawHandsBehind` (and any front-hand drawing) replace the oval hand with an element wisp drawn at the same position/rotation, so wave, point, hold, hug and tool poses keep their timing:
+  - **Night:** a leaf (pointed both ends, centre vein), mint to green gradient, green glow.
+  - **Ember:** a flame lick (pointed top, wavy), pale yellow to orange, orange glow.
+  - **Frost:** a droplet (pointed top, round base), white to ice blue, blue glow.
+  - Each has a small soft highlight. Size `max(hew, heh) * 1.25 * WISP_SCALE` with `WISP_SCALE = 0.85` (named constant, one number to tune). Gentle sway: rotate by `sd*0.35 + sin(t*6+sd)*0.08`. Glow via the existing `shadowBlur` approach (`R*0.3`).
+- Drawn only where hands are drawn today (not at mini/compact sizes), so there is no extra cost at idle.
 
-## Item 2: The new base body (then STOP for the owner's approval)
-- Replace the squircle: `bodyPath` becomes a parametric teardrop (control points per look and growth stage). Remove the superellipse exponent, `taper` and `rrPoint` morph code that only served the old shape, or rebuild what the outfit "rigid roll" needs on the new shape.
-- Extend `Head` (`outfits.ts` `makeHead`) with honest anchors from the live body: `crown` (the point), `eyeLine`, `neck`, `base`. Keep the existing fields working so nothing breaks before 3H item 1 re-fits the wardrobe.
-- Mini bots use the same teardrop (smaller, flat colour).
-- Commit with `[build]`. CI renders a contact sheet: each look at stages 1 to 6, front and sideways, and a few expressions.
-- **STOP after this item.** Write in `STATUS.md`: "Waiting for the owner to approve the new body." Do not start item 3 until the owner says it is approved.
+## Item 3: Wardrobe fit on the new body (this IS 3H item 1)
+- Do 3H item 1 now, anchoring to the new pillow head: extend `Head` (`outfits.ts` `makeHead`) with honest anchors from the live body (`crown`, `eyeLine`, `neck`, `base`), keep old fields working, and re-seat every item.
 
-## Item 3: The face and expressions
-- Rebuild the mouth and the expression set on the new face: each existing state (idle, listening, thinking, speaking, happy, love, surprised, proud, wink, tired, searching and the rest in `engine.ts`) keeps its meaning and timing, drawn with the new eyes, glow and element particles instead of hearts, stars and blush. Same triggers, same sounds.
-- Update any test that asserts the old shapes or particles.
-
-## Item 4: Wisps instead of hands
-- Replace `drawHandsBehind` and the front hands with element wisps (vine, flame lick, water tendril). Same gestures (wave, point, hold, hug), same timing, same tool-use poses.
-
-## Item 5: Growth stages 1 to 6 and wardrobe anchors on the new body
-- Stages 1 to 5 grow out of the drop (bud to bonsai crown, flicker to flame, droplet to tide). Stage 6 (sakura bonsai, golden flame, Diamond sea with shark and submarine) keeps its art, re-seated on the new shape.
-- Keep `growth.ts` and per-look growth unchanged (running time, own record per look).
-- Update the contact-sheet test so every wardrobe item still sits on the new head (3H item 1 then improves the fit).
-
-## Item 6: Remove the old art and prove it
-- Delete everything left of the old shape and face (unused paths, constants, hands, blush, the old "minis keep the original" branch, old screenshots and fixtures that show the old body). `knip` and `cargo machete` clean.
-- Check `git grep` for the old exponent/proportions and for any Coucou or Mochi artwork or name in user-visible text, screenshots or installer images.
-- Update `README`, the store/branding images and the app icon if they show the old body.
-
-## Item 7: Checks
-- Every state renders; frame-time test passes; idle and peak memory within budget; CPU near 0 at idle; all existing tests pass; contact sheets for looks, stages, wardrobe and expressions attached in CI.
-- `docs/design/body-v2/` is complete (the design record).
-- Tick `LICENSING.md` section 3 as done and tell the owner it can now be reserved in `LICENSE-ASSETS.md` (the line about Mochi-derived parts is then removed).
+## Item 4: Checks
+- CI contact sheet (`[build]` commit): each look at stages 1 to 6, expressions idle/happy/thinking/surprised/sleepy, collapsed and open island, and one with a hat and one with a held item. Confirm: growth art unchanged, wisps read at the open island size, wearables sit correctly, no memory or CPU regression.
+- Update any test asserting the old hand shape or old outline.
+- Tell the owner in `STATUS.md` when the contact sheet is ready to look at.
