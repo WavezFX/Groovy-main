@@ -82,3 +82,19 @@ test("no Mochi outfit is left anywhere in the code (round 3E item 8)", async () 
   }
   assert.deepEqual(found, []);
 });
+
+test("round 3H item 1: hat rim and collar ends lie on his pillow outline at every nod", async () => {
+  const { headAnchors, makeHead } = await import("../src/mochi/outfits.ts");
+  const { pillowXY } = await import("../src/mochi/pillow.ts");
+  const R = 48;
+  const outline = Array.from({ length: 720 }, (_, i) => pillowXY((i / 720) * Math.PI * 2, R * 1.14, R * 0.88 * 1.1, 3));
+  const near = ([x, y]) => Math.min(...outline.map(([ox, oy]) => Math.hypot(ox - x, oy - y)));
+  for (const pitch of [-0.3, 0, 0.3]) for (const yaw of [-1, 0, 1]) {
+    const H = { ...makeHead(R, yaw, pitch), ry: R * 0.88 * 1.1 };
+    const A = headAnchors(H);
+    const tol = 0.02 * 2 * H.rx;
+    assert.ok(near(A.rimLeft) < tol && near(A.rimRight) < tol, `rim at pitch ${pitch}`);
+    assert.ok(near([A.collar.cx - A.collar.a, A.collar.cy]) < 1.5 * tol, `collar at pitch ${pitch}`);
+    assert.ok(A.crown[1] > -H.ry && A.base < H.ry, "crown and base on the pillow's dips");
+  }
+});

@@ -5,13 +5,16 @@
 // crown, his six-month reward, drawn in the same style.
 //
 // Coordinates are BotEngine's body space: origin at the body centre, y down,
-// R = W × 0.3, rx = 1.14 R, ry = 0.88 R. Each item follows its anchor as he
-// turns, looks up or down and wobbles (round 3E item 10, placed the way
-// Coucou's items follow its head; none of its art):
+// R = W × 0.3, rx = 1.14 R, ry = 0.88 R. Items sit on named anchors taken from
+// his live pillow outline (headAnchors, round 3H item 1; placed the way
+// Coucou's items sit on its head, none of its art):
 // - face items are mapped onto his real eyes (BotEngine.eyeCentres), so the
-//   board's lenses land on them at any angle and narrow as the eyes do;
-// - hats ride the top of his head: a small slide, a little narrower;
-// - neck items sit on his front, low down: they slide and narrow like it;
+//   board's lenses land on them at any angle and narrow as the eyes do; the
+//   arms of glasses run back to the sides of his head, behind him;
+// - hats sit on the rim, an ellipse on his head whose ends lie on his outline
+//   and whose height follows his nod; the far half of the rim is behind him;
+// - neck items sit on the collar, the same kind of ellipse near his base,
+//   its back half behind him;
 // - the pool ring goes round his middle and only slides.
 // Nothing is clipped to the body, so nothing is cut off at the edge. Hats
 // drop on, glasses slide down into place and neck items pop in.
@@ -22,6 +25,7 @@ import { SEASONAL_ART } from "./art/seasonal";
 import { WARDROBE_ART } from "./art/wardrobe";
 import { SLOT_OF } from "./appearance";
 import type { Accessory, Outfit } from "./wardrobe";
+import { PILLOW_BOW, halfWidthAt } from "./pillow";
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -40,6 +44,64 @@ export interface Head {
 
 export function makeHead(R: number, yaw = 0, pitch = 0, physDx = 0, physDy = 0): Head {
   return { R, rx: R * 1.14, ry: R * 0.88, yaw, pitch, physDx, physDy };
+}
+
+/** An ellipse on his body: centre, half width (on his outline), half height. */
+export interface Ring { cx: number; cy: number; a: number; b: number }
+
+/** Named anchors taken from his live pillow outline (round 3H item 1), body space. */
+export interface Anchors {
+  /** The top of his head (the pillow's dipped crown). */
+  crown: [number, number];
+  /** Where a hat's rim meets his head; its ends lie on his outline. */
+  rim: Ring;
+  rimLeft: [number, number];
+  rimRight: [number, number];
+  rimTop: [number, number];
+  eyeL: [number, number];
+  eyeR: [number, number];
+  eyeLine: number;
+  /** Where a neck item goes round him, near the base; its ends lie on his outline. */
+  collar: Ring;
+  neck: [number, number];
+  /** The bottom of his body. */
+  base: number;
+}
+
+/** His outline's exponent (skins.ts SHAPE); the minis never wear items. */
+const BODY_EXP = 3.0;
+/** The rim's and the collar's height on him, as a fraction of ry. */
+export const RIM_V = -0.72;
+export const COLLAR_V = 0.8;
+
+export function headAnchors(H: Head): Anchors {
+  const { rx, ry } = H;
+  const nod = Math.abs(Math.sin(H.pitch));
+  const lift = -Math.sin(H.pitch) * ry * 0.12;
+  const wx = H.physDx * rx * 0.05;
+  const wy = H.physDy * ry * 0.05;
+  const rimY = RIM_V * ry + lift + wy;
+  const ra = halfWidthAt(rimY, rx, ry, BODY_EXP);
+  const rim = { cx: wx, cy: rimY, a: ra, b: ra * (0.16 + 0.3 * nod) };
+  const colY = COLLAR_V * ry + lift * 0.5 + wy;
+  const ca = halfWidthAt(colY, rx, ry, BODY_EXP);
+  const collar = { cx: wx, cy: colY, a: ca, b: ca * (0.14 + 0.2 * nod) };
+  const sx = rx / 36;
+  const sy = ry / 31;
+  const [eyeL, eyeR] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
+  return {
+    crown: [wx, -ry * (1 - PILLOW_BOW) + lift + wy],
+    rim,
+    rimLeft: [rim.cx - ra, rim.cy],
+    rimRight: [rim.cx + ra, rim.cy],
+    rimTop: [rim.cx, rim.cy - rim.b],
+    eyeL,
+    eyeR,
+    eyeLine: (eyeL[1] + eyeR[1]) / 2,
+    collar,
+    neck: [collar.cx, collar.cy],
+    base: ry * (1 - PILLOW_BOW),
+  };
 }
 
 /** The board's own Groovy shows through on the seasonal cards: the glints in his eyes. */
@@ -61,14 +123,19 @@ const DIAMOND_CROWN: Art = {
   ],
 };
 
-function clean(art: Art): Art {
-  const keep = (list?: Shape[]) => list?.filter((s) => !boardEye(s));
+/** The board's flat glasses arms (out to the card's edge): his run back behind his head. */
+const BOARD_ARM = /M\d+(?:\.\d+)? \d+(?:\.\d+)?H(?:14|86)/g;
+
+function clean(art: Art, id = ""): Art {
+  const armed = ["roundSpecs", "shades", "heartGlasses"].includes(id);
+  const keep = (list?: Shape[]) =>
+    list?.filter((s) => !boardEye(s)).map((s) => (armed && !s.f ? { ...s, d: s.d.replace(BOARD_ARM, "").trim() } : s));
   return { behind: keep(art.behind), body: keep(art.body), front: keep(art.front) };
 }
 
 /** Every item's art. The cards' eye colours are the board's, not the item's: left out. */
 const ITEM_ART: Record<string, Art> = Object.fromEntries([
-  ...Object.entries(WARDROBE_ART).map(([id, a]) => [id, clean(a)]),
+  ...Object.entries(WARDROBE_ART).map(([id, a]) => [id, clean(a, id)]),
   ...Object.entries(SEASONAL_ART).map(([id, a]) => [id, clean(a)]),
   ["diamondCrown", DIAMOND_CROWN],
 ]);
@@ -152,8 +219,69 @@ function arrive(ctx: Ctx, item: Accessory, H: Head, p: number) {
 
 /** The board's eyes (Wardrobe.dc.html): what face items were drawn around. */
 const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
-/** The board points the other items hang from: the top of the head, the neck, his middle. */
-const ANCHOR = { head: [50, 30], neck: [50, 90], middle: [50, 80] } as const;
+/** The board point the pool ring hangs from: his middle. */
+const ANCHOR = { middle: [50, 80] } as const;
+/**
+ * The board body (a 72×62 rounded rect, corner 22, at 14,30) at RIM_V and
+ * COLLAR_V: the line's height and half width, mapped onto his rim and collar.
+ */
+const BOARD_RIM = { y: 61 + RIM_V * 31, hw: 14 + Math.sqrt(22 * 22 - (52 - (61 + RIM_V * 31)) ** 2) } as const;
+const BOARD_COLLAR = { y: 61 + COLLAR_V * 31, hw: 14 + Math.sqrt(22 * 22 - (61 + COLLAR_V * 31 - 70) ** 2) } as const;
+
+/** Hats and crowns whose rim goes round his head: the far half shows behind him. */
+const RIMMED = new Set<Accessory>([
+  "leafCrown", "acornCap", "mushroomCap", "flowerCrown", "bucketHat", "backwardsCap", "miniTopHat", "diamondCrown",
+  "pumpkinCap", "bobbleBeanie", "eggshellHat", "strawSunHat", "watermelonCap",
+]);
+/** Neck items that go all the way round him: the back half shows behind him. */
+const COLLARED = new Set<Accessory>([
+  "bandana", "leafScarf", "seedPendant", "neckPhones", "goldChain", "flowerLei",
+  "candyCornScarf", "knitStripeScarf", "jingleBellCollar", "daisyChain", "shellNecklace",
+]);
+/** Glasses with arms that run back along his head. */
+const ARMED = new Set<Accessory>(["roundSpecs", "shades", "heartGlasses"]);
+
+/** The item's main colour, a shade darker: its far side, in shadow. */
+function backColour(art: Art): string | null {
+  const f = [...(art.front ?? []), ...(art.body ?? [])].find((sh) => typeof sh.f === "string" && /^#[0-9a-f]{6}$/i.test(sh.f))?.f;
+  if (!f) return null;
+  const n = parseInt(f.slice(1), 16);
+  const d = (v: number) => Math.round(v * 0.62);
+  return `rgb(${d(n >> 16)},${d((n >> 8) & 255)},${d(n & 255)})`;
+}
+
+/**
+ * The parts of an item that sit behind his body (round 3H item 1): the far half
+ * of a hat's rim, the back of a collar, the arms of glasses. Drawn before the
+ * body, so only what shows past his outline is seen.
+ */
+function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
+  const slot = SLOT_OF[item];
+  const col = backColour(art);
+  if (!col) return;
+  const A = headAnchors(H);
+  if ((slot === "head" && RIMMED.has(item)) || (slot === "neck" && COLLARED.has(item))) {
+    const r = slot === "head" ? A.rim : A.collar;
+    ctx.beginPath();
+    ctx.ellipse(r.cx, r.cy, r.a * 1.08, Math.max(0.5, r.b), 0, Math.PI, Math.PI * 2);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1, r.b * (slot === "head" ? 0.7 : 0.9));
+    ctx.lineCap = "round";
+    ctx.stroke();
+  } else if (slot === "face" && ARMED.has(item)) {
+    const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1, H.R * 0.05);
+    ctx.lineCap = "round";
+    for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
+      const side = halfWidthAt(e[1], H.rx, H.ry, BODY_EXP) * 1.05;
+      ctx.beginPath();
+      ctx.moveTo(e[0] + sd * lens, e[1]);
+      ctx.lineTo(sd * side, e[1] - H.ry * 0.06);
+      ctx.stroke();
+    }
+  }
+}
 
 /** How an item narrows as he turns, never below 0.6 so nothing vanishes. */
 export function narrowing(yaw: number, strength: number): number {
@@ -185,17 +313,22 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     ctx.translate(-(BOARD_EYES.l + BOARD_EYES.r) / 2, -BOARD_EYES.y);
     return;
   }
-  const where = item === "poolRing" ? "middle" : slot === "head" ? "head" : "neck";
-  const [ax, ay] = ANCHOR[where];
-  // Hats sit on top: they slide less than his face and barely narrow; neck
-  // items are on his front, low down; the ring goes all the way round.
-  const slide = where === "head" ? 0.35 : where === "neck" ? 0.75 : 0.3;
-  const kx = where === "middle" ? 1 : narrowing(H.yaw, where === "head" ? 0.45 : 0.75);
-  const lift = -Math.sin(H.pitch) * H.ry * (where === "head" ? 0.3 : 0.2);
-  ctx.translate(Math.sin(H.yaw) * H.rx * slide + wobbleX, lift + wobbleY);
-  // The anchor in body space; the item narrows around it.
+  if (item !== "poolRing" && (slot === "head" || slot === "neck")) {
+    // The board's rim (or collar) line onto his: its middle and its width, so
+    // the item's seat lies on his real outline at every turn and nod.
+    const A = headAnchors(H);
+    const ring = slot === "head" ? A.rim : A.collar;
+    const seat = slot === "head" ? BOARD_RIM : BOARD_COLLAR;
+    const kx = narrowing(H.yaw, slot === "head" ? 0.25 : 0.5);
+    ctx.translate(ring.cx + Math.sin(H.yaw) * ring.a * (slot === "head" ? 0.18 : 0.3), ring.cy);
+    ctx.scale((ring.a / seat.hw) * kx, sy);
+    ctx.translate(-50, -seat.y);
+    return;
+  }
+  const [ax, ay] = ANCHOR.middle;
+  ctx.translate(Math.sin(H.yaw) * H.rx * 0.3 + wobbleX, -Math.sin(H.pitch) * H.ry * 0.2 + wobbleY);
   ctx.translate((ax - 50) * sx, (ay - 61) * sy);
-  ctx.scale(sx * kx, sy);
+  ctx.scale(sx, sy);
   ctx.translate(-ax, -ay);
 }
 
@@ -216,10 +349,18 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
   const face = SLOT_OF[outfit] === "face";
   // Turned away, his glasses are behind him; anything that is always behind stays there.
   const layers = face && faceTurnedAway(H) ? (["behind", "body", "front"] as const) : (["behind"] as const);
-  if (!layers.some((l) => art[l]?.length)) return;
+  const back = !(face && faceTurnedAway(H));
+  if (!back && !layers.some((l) => art[l]?.length)) return;
   ctx.save();
   arrive(ctx, outfit, H, st.presence);
-  withLayer(ctx, alpha, (l) => drawItem(l, outfit, art, H, layers));
+  withLayer(ctx, alpha, (l) => {
+    if (back) {
+      l.save();
+      drawBackParts(l, outfit, art, H);
+      l.restore();
+    }
+    drawItem(l, outfit, art, H, layers);
+  });
   ctx.restore();
 }
 

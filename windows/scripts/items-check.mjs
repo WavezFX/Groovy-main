@@ -29,7 +29,7 @@ const found = await page.evaluate(async () => {
   const { BotEngine } = await import(SRC + "engine.ts");
   const { ACCESSORIES } = await import(SRC + "wardrobe.ts");
   const { SLOT_OF } = await import(SRC + "appearance.ts");
-  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt } = await import(SRC + "outfits.ts");
+  const { drawOutfitBehind, drawOutfitFront, makeHead, itemArt, headAnchors, placeItem } = await import(SRC + "outfits.ts");
   const POSES = [[-1, 0], [-0.5, 0], [0, 0], [0.5, 0], [1, 0], [0, -0.3], [0, 0.3]];
   const W = 160;
   const bad = [];
@@ -51,7 +51,8 @@ const found = await page.evaluate(async () => {
     p.clearRect(0, 0, W, W);
     p.translate(W / 2, W / 2);
     const st = { presence: 1, morph: 0 };
-    drawOutfitBehind(p, item, H, st);
+    // Glasses' arms run back behind him: the lenses are what sits on his eyes.
+    if (SLOT_OF[item] !== "face" || Math.cos(yaw) < 0) drawOutfitBehind(p, item, H, st);
     drawOutfitFront(p, item, H, st);
     renders++;
     const d = p.getImageData(0, 0, W, W).data;
@@ -66,6 +67,49 @@ const found = await page.evaluate(async () => {
     const [l, r] = H.eyes;
     return { x0: x0 - W / 2, x1: x1 - W / 2, y0: y0 - W / 2, y1: y1 - W / 2, rx, ry, eyeX: (l[0] + r[0]) / 2, eyeY: (l[1] + r[1]) / 2 };
   }
+
+  // Round 3H item 1, measured: a hat's rim ends lie on his outline (2 %), a
+  // neck item's collar ends too (3 %), and a lens centre sits on its eye (3 %),
+  // at yaw -1…1 and pitch -0.3…0.3. Nothing in an item is clipped to his body.
+  const FIT = [];
+  for (const yaw of [-1, -0.5, 0, 0.5, 1]) for (const pitch of [-0.3, 0, 0.3]) FIT.push([yaw, pitch]);
+  for (const look of ["night", "ember", "frost"]) {
+    const e = new BotEngine();
+    e.setSkin(look, false);
+    for (const [yaw, pitch] of FIT) {
+      const R = W * 0.3;
+      const rx = R * 1.14 * e.shape.w;
+      const ry = R * 0.88 * e.shape.h;
+      e.yaw = yaw;
+      e.pitch = pitch;
+      const H = { ...makeHead(R, yaw, pitch, 0, 0), rx, ry, eyes: e.eyeCentres(rx, ry) };
+      const A = headAnchors(H);
+      const body = e.bodyPath(rx, ry, R);
+      p.setTransform(1, 0, 0, 1, 0, 0);
+      const where = `${look} at yaw ${yaw}, pitch ${pitch}`;
+      const onOutline = (name, [px, py], share) => {
+        const t = share * 2 * rx;
+        const sd = Math.sign(px) || 1;
+        if (!p.isPointInPath(body, px - sd * t, py) || p.isPointInPath(body, px + sd * t, py)) bad.push(`${where}: ${name} is off his outline by more than ${share * 100} %`);
+      };
+      onOutline("the hat rim's left end", A.rimLeft, 0.02);
+      onOutline("the hat rim's right end", A.rimRight, 0.02);
+      onOutline("the collar's left end", [A.collar.cx - A.collar.a, A.collar.cy], 0.03);
+      onOutline("the collar's right end", [A.collar.cx + A.collar.a, A.collar.cy], 0.03);
+      for (const item of ACCESSORIES) {
+        if (SLOT_OF[item] !== "face") continue;
+        p.setTransform(1, 0, 0, 1, 0, 0);
+        placeItem(p, item, H);
+        const m = p.getTransform();
+        H.eyes.forEach(([ex, ey], i) => {
+          const c = m.transformPoint({ x: i ? 62 : 38, y: 62 });
+          const off = Math.hypot(c.x - ex, c.y - ey) / (2 * rx);
+          if (off > 0.03) bad.push(`${where}: ${item}'s ${i ? "right" : "left"} lens is ${Math.round(off * 100)} % off its eye`);
+        });
+      }
+    }
+  }
+  p.setTransform(1, 0, 0, 1, 0, 0);
 
   for (const look of ["night", "ember", "frost"]) {
     for (let stage = 0; stage <= 6; stage++) {

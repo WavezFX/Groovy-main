@@ -90,11 +90,11 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 1K. Fixes round 3K: `FIXES_ROUND3K.md` (Groovy's own body: pillow outline + element wisps). **Decided 4 Nov. Do items 1 to 2 together with 3H item 1 (the wardrobe fit) in one pass, before 3D item 11.** Growth art stays exactly as it is.
 - [x] 1. Pillow outline (`PILLOW_BOW`, minis share the shape, growth art follows the crown) (design record `docs/design/body-v2/`)
 - [x] 2. Element wisps instead of hands (`WISP_SCALE`, leaf, flame lick, droplet)
-- [ ] 3. Wardrobe fit on the new body (this is 3H item 1)
+- [x] 3. Wardrobe fit on the new body (this is 3H item 1)
 - [ ] 4. Checks (CI contact sheet)
 
 ## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this together with round 3K (new pillow body), before 3D item 11 and the checks.** Fit the wardrobe to the NEW body.
-- [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
+- [x] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
 - [x] 2. One look switch, a clean growth and preview screen (viewing vs wearing, no second switch, no layout shift)
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
 - [ ] 4. Checks (done except item 1's: the contact sheet, and frame and memory checks with the new item rendering; see STATUS)

@@ -12,6 +12,7 @@
 // the Diamond sea, with gem eyes.
 
 import type { Head } from "./outfits";
+import { PILLOW_BOW } from "./pillow";
 import { N_ } from "../i18n/i18n";
 import { drawShapes, toBoard, type Art, type Shape } from "./art/draw";
 import { GROWTH_ART } from "./art/growth";
@@ -96,9 +97,6 @@ export interface SkinStyle {
   /** Eye size multipliers, spacing (radians round the head), height offset and tilt. */
   face: { eyeW: number; eyeH: number; eyeSp: number; eyeY: number; eyeTilt: number };
 }
-
-/** How far the pillow outline's sides bow in at the middle (round 3K). */
-export const PILLOW_BOW = 0.1;
 
 /** Groovy's pillow outline (round 3K): the minis share it. */
 export const SHAPE = { w: 1.0, h: 1.1, exp: 3.0, taper: 0 };

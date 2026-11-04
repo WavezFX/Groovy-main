@@ -10,8 +10,9 @@ import type { BotEmoteName, BotStateName } from "../core/layout";
 import { SLOT_OF } from "./appearance";
 import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
-import { DEFAULT_SKIN, PILLOW_BOW, SHAPE, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
+import { DEFAULT_SKIN, SHAPE, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
+import { pillowXY } from "./pillow";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -973,8 +974,6 @@ export class BotEngine {
 
   private bodyPath(rx: number, ry: number, R: number): Path2D {
     const n = 72;
-    const expN = 2.0 / this.shape.exp;
-    const taper = this.shape.taper;
     const tw = R * 1.0;
     const th = R * 0.94;
     const tr = R * 0.42;
@@ -982,16 +981,9 @@ export class BotEngine {
     const m = this.morph;
     for (let i = 0; i <= n; i++) {
       const a = (i / n) * Math.PI * 2;
-      const ca = Math.cos(a);
-      const sa = Math.sin(a);
-      const px0 = rx * (ca >= 0 ? Math.pow(ca, expN) : -Math.pow(-ca, expN));
-      const py0 = ry * (sa >= 0 ? Math.pow(sa, expN) : -Math.pow(-sa, expN));
-      const u = px0 / rx;
-      const v = py0 / ry;
-      let px = px0 * (1 - PILLOW_BOW * (1 - v * v)) * (1 + taper * Math.max(0, v));
-      let py = py0 * (1 - PILLOW_BOW * (1 - u * u));
+      let [px, py] = pillowXY(a, rx, ry, this.shape.exp, this.shape.taper);
       if (m >= 0.005) {
-        const rr = rrPoint(ca, sa, tw, th, tr);
+        const rr = rrPoint(Math.cos(a), Math.sin(a), tw, th, tr);
         px = lerp(px, rr.x, m);
         py = lerp(py, rr.y, m);
       }
