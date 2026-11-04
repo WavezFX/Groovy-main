@@ -99,6 +99,13 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. The growth clock is visible and trustworthy (hours counted, ticking in Standby)
 - [x] 4. Checks (item 1 contact sheet and measured fit in `items-check`; frame and memory checks run in this [build])
 
+## 1L. Fixes round 3L: `FIXES_ROUND3L.md` (the wardrobe sits on him properly: follows his turn, shadows, curves). **Do this FIRST in Session B, before 3D item 11.**
+- [ ] Item 1: items follow his turn and never leave the head
+- [ ] Item 2: contact shadows
+- [ ] Item 3: curve with the pillow outline
+- [ ] Item 4: sizing from the head
+- [ ] Item 5: checks (contact sheet at several turns, one `[build]`)
+
 ## 1I. Fixes round 3I: `FIXES_ROUND3I.md` (memory as linked markdown notes, smarter recall). **After 3H and 3D item 11.**
 - [ ] 1. Memories as markdown files (files are the source of truth, database is the index, existing memories imported)
 - [ ] 2. Event-driven folder watcher (no polling)

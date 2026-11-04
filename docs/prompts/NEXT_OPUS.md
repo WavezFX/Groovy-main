@@ -13,10 +13,10 @@ Rules: don't remove any user-facing feature, keep all Linux code, one item per c
 Token rules (important, my usage is limited): read only the item you are on, not whole round files or whole source files; grep/glob first, then read line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40, --quiet); don't run full test/build suites more than once per item; final reply at most 3 lines. Stop and tell me if you are about to spend a lot on something not in the list.
 ```
 
-## Session B: Sonnet 5.5 (the rest, cheaper)
+## Session B: Sonnet 5.5 (3L wardrobe fixes first, then the rest, cheaper)
 
 ```
-Pull groovy-ai-phase1 and read WORK_QUEUE.md. Work in this order: round 3D item 11 (FIXES_ROUND3D.md), then 3I (FIXES_ROUND3I.md), then 3J (FIXES_ROUND3J.md). Same rules and the same token rules as Session A. One [build] commit per round at most. Stop after 3J.
+Pull groovy-ai-phase1 and read WORK_QUEUE.md. Work in this order: round 3L (FIXES_ROUND3L.md, the wardrobe fit fixes, one [build] at its end), then round 3D item 11 (FIXES_ROUND3D.md), then 3I (FIXES_ROUND3I.md), then 3J (FIXES_ROUND3J.md). Same rules and the same token rules as Session A. One [build] commit per round at most. Stop after 3J. Memory budget is now 150 MB idle / 300 MB peak (WORK_QUEUE.md).
 ```
 
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
