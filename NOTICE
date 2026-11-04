@@ -1,0 +1,18 @@
+Groovy
+Copyright 2026 SSD (WavezFX)
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software developed by others, kept under their own licences:
+
+- Coucou, Copyright (c) 2026 Louis Raillé, MIT License (see LICENSE-COUCOU-MIT).
+  The Coucou and Mochi names, the Mochi character, its design, expressions
+  and animations, the Coucou icons and sounds are NOT covered by that licence
+  and remain Louis Raillé's (see LICENSE-ASSETS.md).
+- Phone Link and the Android app, Copyright (c) 2026 Rhytam Biswas, MIT License
+  (see LICENSE-PHONELINK-MIT).
+- Skills CLI (Vercel) and its third-party notices: windows/docs/licenses/skills-cli/.
+- Manrope font, SIL Open Font License: windows/src/hub/fonts/OFL.txt.
+
+Dependencies (Rust crates, npm packages, speech models) are covered by their own
+licences; see THIRD_PARTY_NOTICES once generated (FIXES_ROUND3J item 1).

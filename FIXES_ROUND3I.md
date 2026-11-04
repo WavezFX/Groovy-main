@@ -24,6 +24,11 @@ Memory is a SQLite table (`memory.rs`): four kinds, newest and pinned first into
 - Memory text is data, not instructions (3G item 5): keep marking it as untrusted data in the prompt.
 - Tests: a note about headphones is recalled for a music question and not for a shopping-list question; one-hop link added; pinned always present; memory off adds nothing; the budget is never exceeded.
 
+## Item 4b: "Forget that" and facts that end
+- Voice or typed "forget that / forget X": find the matching note by search, show it and ask for confirmation, then delete the file, its index rows and its links. Anything stored only because of it goes too. Works with memory on; with memory off it says nothing is stored.
+- Frontmatter gets optional `valid_until` and `replaced_by`. When the user says something that changes an earlier fact ("I moved to York"), Groovy proposes ending the old note (`valid_until`) and linking `replaced_by` to the new one, after approval. Recall skips ended notes unless the user asks about the past.
+- Tests: forget removes file, index and links; an ended note is not recalled; the budget is still never exceeded.
+
 ## Item 5: Checks
 - Idle private working set and CPU unchanged within noise (record before/after in `STATUS.md`); peak under 400 MB; no new thread running while memory is idle.
 - Round-trip test: write in Groovy, edit externally, Groovy sees it; delete file, memory gone from index.

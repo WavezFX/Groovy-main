@@ -7,4 +7,4 @@ By **SSD**. A fork of [Coucou](https://github.com/Louis-CFM/coucou) by Louis Rai
 - **Download:** the newest installer is on the [Releases](../../releases) page (`Groovy-Windows-setup.exe`).
 - **Everything else:** see [`windows/README.md`](windows/README.md).
 
-Groovy is released under the GNU GPL v2 (`LICENSE`). It contains code from Coucou, which stays under its MIT License (`LICENSE-COUCOU-MIT`).
+Groovy's code is released under the Apache License 2.0 (`LICENSE`, `NOTICE`). It contains code from Coucou (MIT, `LICENSE-COUCOU-MIT`) and Phone Link (MIT, `LICENSE-PHONELINK-MIT`). The Groovy name, character and artwork are not covered by that licence (`LICENSE-ASSETS.md`). Versions published before 4 Nov 2026 were released under GPL v2 and stay available under it.

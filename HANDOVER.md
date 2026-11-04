@@ -119,5 +119,5 @@ update STATUS.md with what the owner should test.
 - **"Free buff":** the free AI tool to add to Studio. Its name or link is needed; it couldn't be identified.
 - **Fish Audio voice ID:** the voice the owner likes. It can become the default. The **key** goes in Settings only.
 - **Android app source:** needed for the phone edition.
-- **Licence before selling Studio:** `LICENSE` and the README say **GPL-2.0**, but `phone_link/mod.rs` says "MIT like the rest of Groovy". Decide which is right, and how Studio is licensed (a separate add-on, or selling builds and support). Get legal advice.
+- **Licence:** changed to Apache-2.0 on 4 Nov 2026 (see `docs/LICENSING.md`). Open: the Mochi-derived body (needs Louis Raillé's written permission or a redraw) and the dependency licence check (FIXES_ROUND3J item 1).
 - **Google and YouTube:** Gmail and YouTube posting need the owner's Google Cloud project. It stays in testing mode, uploads are private until Google's audit, and Gmail is limited to 100 test users until verification.

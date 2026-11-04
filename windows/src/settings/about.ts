@@ -29,7 +29,7 @@ export function aboutSection(version: string): HTMLElement {
       h("button", { text: t("See what's new and download updates"), onclick: () => void Bridge.openUrl(RELEASES) }),
     ),
     h("h2", { text: t("Licences") }),
-    h("div", { class: "row" }, h("label", { text: "Groovy" }), h("span", { class: "hint", text: "GPL-2.0" })),
+    h("div", { class: "row" }, h("label", { text: "Groovy" }), h("span", { class: "hint", text: "Apache-2.0" })),
     ...CREDITS.map(([name, licence]) => h("div", { class: "row" }, h("label", { text: name }), h("span", { class: "hint", text: t(licence) }))),
     h("div", { class: "hint", text: t("Some of Groovy's code is used under the MIT licence; its notice ships with Groovy. Speech, voice and local AI models are downloaded only when you ask, each under its own licence, shown where you download it.") }),
   );
