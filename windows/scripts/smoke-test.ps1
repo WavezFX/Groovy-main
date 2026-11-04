@@ -24,7 +24,7 @@ param(
   [switch]$Offline,
   [string]$Label = "groovy",
   [int]$TimeoutSeconds = 60,
-  [int]$BudgetMB = 300,
+  [int]$BudgetMB = 130,
   [int]$IdleSeconds = 75,
   # Round 3F item 4: idle CPU of every Groovy process, averaged over this long.
   [int]$CpuSeconds = 60,

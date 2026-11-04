@@ -20,7 +20,7 @@ param(
   [Parameter(Mandatory = $true)][string]$Exe,
   [Parameter(Mandatory = $true)][string]$Audio,
   [int]$TimeoutSeconds = 1200,
-  [int]$CeilingMB = 400
+  [int]$CeilingMB = 360
 )
 
 $ErrorActionPreference = "Stop"
