@@ -6,7 +6,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - **Pushing:** push after every item so the Windows build runs.
 - **Red builds:** if a build goes red, fix that first, before the next item.
 - **When briefs disagree:** the **later** item on this list wins. The overlaps are noted below.
-- **Memory rule for every item:** Groovy stays **under 300 MB idle and never over 400 MB at peak**, counting all of its own processes (round 3D item 7).
+- **Memory rule for every item (owner, 4 Nov): Groovy stays under 150 MB idle and never over 300 MB at peak**, counting all of its own processes (round 3D item 7). This **replaces every "300 MB idle / 400 MB peak" in the round files**. The CI gates (`windows-build.yml`, `peak-test.ps1`, the smoke test) are still at the old numbers: do NOT lower them blind. First measure the real idle and peak totals from the latest build and record them in `STATUS.md`; set each gate to the current real number plus a small margin, then tighten toward 150 / 300 as items land. Any item that pushes the totals up must say so in `STATUS.md`.
 - **Lazy-load rule for every item:** nothing loads until it's needed, and it unloads when unused. In cloud mode, no offline model is ever loaded (round 3D item 9).
 - **Don't remove existing features,** including brain switching and the `Brain` interface, unless a brief says to.
 
