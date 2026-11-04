@@ -10,7 +10,7 @@ import type { BotEmoteName, BotStateName } from "../core/layout";
 import { SLOT_OF } from "./appearance";
 import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
-import { DEFAULT_SKIN, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
+import { DEFAULT_SKIN, PILLOW_BOW, SHAPE, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -819,9 +819,9 @@ export class BotEngine {
    * Draws hands, body, blush, eyes, mouth, badge and particles into a canvas of
    * `w`×`h` CSS pixels (the caller has already applied the DPR transform).
    */
-  /** The head shape of the current look (minis keep the original). */
+  /** The head shape of the current look (minis use the same pillow shape). */
   private get shape() {
-    return this.isMini ? { w: 1, h: 1, exp: 2.7, taper: 0 } : this.style.shape;
+    return this.isMini ? SHAPE : this.style.shape;
   }
 
   draw(x: CanvasRenderingContext2D, W: number, H: number) {
@@ -922,12 +922,14 @@ export class BotEngine {
       const sa = Math.sin(a);
       const px0 = rx * (ca >= 0 ? Math.pow(ca, expN) : -Math.pow(-ca, expN));
       const py0 = ry * (sa >= 0 ? Math.pow(sa, expN) : -Math.pow(-sa, expN));
-      let px = px0 * (1 + taper * Math.max(0, py0 / ry));
-      let py = py0;
+      const u = px0 / rx;
+      const v = py0 / ry;
+      let px = px0 * (1 - PILLOW_BOW * (1 - v * v)) * (1 + taper * Math.max(0, v));
+      let py = py0 * (1 - PILLOW_BOW * (1 - u * u));
       if (m >= 0.005) {
         const rr = rrPoint(ca, sa, tw, th, tr);
-        px = lerp(px0, rr.x, m);
-        py = lerp(py0, rr.y, m);
+        px = lerp(px, rr.x, m);
+        py = lerp(py, rr.y, m);
       }
       if (i === 0) p.moveTo(px, py);
       else p.lineTo(px, py);

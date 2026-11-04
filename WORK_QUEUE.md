@@ -88,13 +88,10 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 12. Night, Ember and Frost each grow on their own: separate time, stage and start date per look, only the look he is wearing grows
 
 ## 1K. Fixes round 3K: `FIXES_ROUND3K.md` (Groovy's own body: pillow outline + element wisps). **Decided 4 Nov. Do items 1 to 2 together with 3H item 1 (the wardrobe fit) in one pass, before 3D item 11.** Growth art stays exactly as it is.
-- [ ] 1. Design study and design record (`docs/design/body-v2/`), contact sheet for the owner
-- [ ] 2. The new base body (teardrop, new anchors, minis) **then STOP: wait for the owner's approval**
-- [ ] 3. New face and expression set (no hearts, stars or blush)
-- [ ] 4. Element wisps instead of hands
-- [ ] 5. Growth stages 1 to 6 and wardrobe anchors on the new body
-- [ ] 6. Remove the old art and prove it
-- [ ] 7. Checks
+- [x] 1. Pillow outline (`PILLOW_BOW`, minis share the shape, growth art follows the crown) (design record `docs/design/body-v2/`)
+- [ ] 2. Element wisps instead of hands
+- [ ] 3. Wardrobe fit on the new body (this is 3H item 1)
+- [ ] 4. Checks (CI contact sheet)
 
 ## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this together with round 3K (new pillow body), before 3D item 11 and the checks.** Fit the wardrobe to the NEW body.
 - [ ] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test

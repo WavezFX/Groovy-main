@@ -97,7 +97,11 @@ export interface SkinStyle {
   face: { eyeW: number; eyeH: number; eyeSp: number; eyeY: number; eyeTilt: number };
 }
 
-const SHAPE = { w: 1.0, h: 1.12, exp: 3.0, taper: -0.05 };
+/** How far the pillow outline's sides bow in at the middle (round 3K). */
+export const PILLOW_BOW = 0.1;
+
+/** Groovy's pillow outline (round 3K): the minis share it. */
+export const SHAPE = { w: 1.0, h: 1.1, exp: 3.0, taper: 0 };
 const FACE = { eyeW: 3.0, eyeH: 1.75, eyeSp: 0.47, eyeY: 0.1, eyeTilt: -0.22 };
 
 const night: SkinStyle = {
@@ -442,6 +446,7 @@ function drawLayer(x: CanvasRenderingContext2D, s: SkinStyle, H: Head, st: SkinS
     toBoard(x, H.rx, H.ry, shift);
     drawShapes(x, rest, "free");
   } else if (flame && shapes) {
+    if (layer === "front") x.translate(0, H.ry * PILLOW_BOW);
     toBoard(x, H.rx, H.ry, shift);
     x.save();
     animate(x, s, st, layer);
@@ -449,6 +454,8 @@ function drawLayer(x: CanvasRenderingContext2D, s: SkinStyle, H: Head, st: SkinS
     x.restore();
     if (layer === "front" && s.stage >= 2 && s.stage < FINAL) drawEmbers(x, s.stage, phase(st), lite);
   } else {
+    // What grows on top sits on the pillow's dipped crown.
+    if (layer === "front") x.translate(0, H.ry * PILLOW_BOW);
     toBoard(x, H.rx, H.ry, shift);
     animate(x, s, st, layer);
     drawShapes(x, shapes);
