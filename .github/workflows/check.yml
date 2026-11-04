@@ -162,7 +162,7 @@ jobs:
         working-directory: windows
         run: cargo deny check licenses bans
 
-      - name: npm licences (shipped packages: no GPL or AGPL)
+      - name: "npm licences (shipped packages, no GPL or AGPL)"
         working-directory: windows
         run: |
           npm ci --ignore-scripts
