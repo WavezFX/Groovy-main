@@ -26,6 +26,8 @@ pub struct Settings {
     /// "primary" = the main display, "cursor" = whichever display the mouse is on.
     pub screen: String,
     pub autostart: bool,
+    /// Stop listening and ticking while a full-screen game or presentation runs (round 3J item 3).
+    pub quiet_during_games: bool,
     pub hooks_installed: bool,
     /// Claude model used by the chat. Changeable in the settings window.
     pub model: String,
@@ -246,6 +248,7 @@ impl Default for Settings {
             main_pill: "integration_claude".into(),
             screen: "primary".into(),
             autostart: false,
+            quiet_during_games: true,
             hooks_installed: false,
             model: default_model(),
             show_plan_in_notch: false,
@@ -719,6 +722,7 @@ mod tests {
   "mainPill": "agent_cursor",
   "screen": "cursor",
   "autostart": true,
+  "quietDuringGames": false,
   "hooksInstalled": true,
   "model": "some-model",
   "showPlanInNotch": true,
@@ -1480,6 +1484,7 @@ mod tests {
                 "mainPill",
                 "screen",
                 "autostart",
+                "quietDuringGames",
                 "hooksInstalled",
                 "model",
                 "showPlanInNotch",

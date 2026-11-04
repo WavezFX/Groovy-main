@@ -30,6 +30,7 @@ mod tile_icons;
 mod livekit;
 mod local_chat;
 mod log;
+mod gamemode;
 mod memnotes;
 mod memory;
 mod models;
@@ -222,6 +223,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     spotify::sync(&app, &settings.active_integrations);
     glass::apply(&app);
     memory::apply(settings.assistant.memory_enabled);
+    scheduler::poke(gamemode::JOB);
     resources::idle::set(&settings.unload_after);
     browser::configure(&settings.browser, &settings.search_engine);
     if shortcuts_changed {
@@ -1719,6 +1721,7 @@ pub fn run() {
                     _ => {}
                 }
             }
+            gamemode::start();
             memory::apply(loaded.assistant.memory_enabled);
             tasks::spawn(handle.clone());
             mail::spawn(handle.clone());

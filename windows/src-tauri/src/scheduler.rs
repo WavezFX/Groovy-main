@@ -123,6 +123,9 @@ where
 
 /// A due job runs `run` if its `next` isn't Idle, or if it was poked; then it
 /// is scheduled again from `next`.
+/// What a job does while a game runs.
+fn resting(_: &AppHandle) {}
+
 pub fn start(app: &AppHandle) {
     let app = app.clone();
     let _ = std::thread::Builder::new().name("groovy-scheduler".into()).spawn(move || {
@@ -136,11 +139,14 @@ pub fn start(app: &AppHandle) {
                 list = j.changed.wait_timeout(list, wait).unwrap().0;
                 continue;
             }
+            let game = crate::gamemode::active();
             let picked: Vec<(usize, fn(&AppHandle) -> Next, fn(&AppHandle), bool)> = due
                 .iter()
                 .map(|i| {
                     let job = &mut list[*i];
-                    (*i, job.next, job.run, std::mem::take(&mut job.poked))
+                    // A full-screen game: only the game-mode job itself runs.
+                    let rest = game && job.name != crate::gamemode::JOB;
+                    (*i, job.next, if rest { resting as fn(&AppHandle) } else { job.run }, std::mem::take(&mut job.poked))
                 })
                 .collect();
             drop(list);

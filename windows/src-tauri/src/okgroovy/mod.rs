@@ -97,7 +97,8 @@ fn tell(app: &AppHandle, heard: &str, text: String, action: Option<(String, &str
 
 /// Starts or stops listening to follow the preference.
 pub fn sync(app: &AppHandle) {
-    let wanted = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.voice);
+    // A full-screen game or presentation: the microphone loop rests (round 3J item 3).
+    let wanted = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.voice) && !crate::gamemode::active();
     // On, but it can't hear anything yet: say so, with the download.
     if wanted && !speech::is_ready() && !TOLD_NO_SPEECH.swap(true, Ordering::Relaxed) {
         live::announce(

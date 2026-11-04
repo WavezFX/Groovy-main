@@ -179,6 +179,8 @@ export interface Settings {
   /** "primary", "cursor", or `at:<x>,<y>` for one display (logical origin). */
   screen: string;
   autostart: boolean;
+  /** Stop listening and ticking during full-screen games and presentations. */
+  quietDuringGames: boolean;
   hooksInstalled: boolean;
   /** Claude model used by the chat. */
   model: string;
@@ -316,6 +318,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mainPill: DEFAULT_MAIN_PILL,
   screen: "primary",
   autostart: false,
+  quietDuringGames: true,
   hooksInstalled: false,
   model: "claude-opus-5",
   showPlanInNotch: false,

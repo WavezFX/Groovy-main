@@ -1019,6 +1019,11 @@ function generalSection(): HTMLElement {
       h("label", { text: t("Launch at startup") }),
       toggle(settings.autostart, (v) => { settings.autostart = v; void save(); }),
     ),
+    h("div", { class: "row" },
+      h("label", { text: t("Quiet during games and presentations") }),
+      toggle(settings.quietDuringGames !== false, (v) => { settings.quietDuringGames = v; void save(); }),
+    ),
+    h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « OK Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
     ...recapRows(),
     languageRow(),
   );
