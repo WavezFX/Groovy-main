@@ -115,6 +115,70 @@ const EMOTE_EYE: Record<BotEmoteName, EyeShape> = {
 
 const now = () => performance.now() / 1000;
 
+/** Size of the element wisps that replace his hands (round 3K): one number to tune. */
+export const WISP_SCALE = 0.85;
+
+const WISP_COLOURS = {
+  leaf: { top: "rgb(190,255,215)", bottom: "rgb(60,190,100)", glow: "rgba(70,240,130,0.9)" },
+  flame: { top: "rgb(255,245,170)", bottom: "rgb(255,140,40)", glow: "rgba(255,150,40,0.9)" },
+  water: { top: "rgb(255,255,255)", bottom: "rgb(120,200,255)", glow: "rgba(90,180,255,0.9)" },
+} as const;
+
+/** The element wisp's outline, pointing up, `S` tall from its centre. */
+export function wispPath(kind: "leaf" | "flame" | "water", S: number): Path2D {
+  const p = new Path2D();
+  if (kind === "leaf") {
+    p.moveTo(0, -S);
+    p.bezierCurveTo(S * 0.62, -S * 0.45, S * 0.62, S * 0.45, 0, S);
+    p.bezierCurveTo(-S * 0.62, S * 0.45, -S * 0.62, -S * 0.45, 0, -S);
+  } else if (kind === "flame") {
+    p.moveTo(0, -S);
+    p.bezierCurveTo(S * 0.2, -S * 0.55, S * 0.75, -S * 0.25, S * 0.6, S * 0.35);
+    p.bezierCurveTo(S * 0.5, S * 0.85, -S * 0.5, S * 0.85, -S * 0.6, S * 0.35);
+    p.bezierCurveTo(-S * 0.7, -S * 0.05, -S * 0.3, -S * 0.2, -S * 0.15, -S * 0.5);
+    p.bezierCurveTo(-S * 0.05, -S * 0.7, -S * 0.05, -S * 0.85, 0, -S);
+  } else {
+    p.moveTo(0, -S);
+    p.bezierCurveTo(S * 0.25, -S * 0.5, S * 0.68, -S * 0.05, S * 0.68, S * 0.32);
+    p.arc(0, S * 0.32, S * 0.68, 0, Math.PI, false);
+    p.bezierCurveTo(-S * 0.68, -S * 0.05, -S * 0.25, -S * 0.5, 0, -S);
+  }
+  p.closePath();
+  return p;
+}
+
+/** One element wisp (leaf, flame lick or droplet) where a hand used to be. */
+function drawWisp(x: CanvasRenderingContext2D, kind: "leaf" | "flame" | "water", S: number, R: number, flat: RGB | null) {
+  const c = WISP_COLOURS[kind];
+  const path = wispPath(kind, S);
+  const g = x.createLinearGradient(0, -S, 0, S);
+  g.addColorStop(0, flat ? rgba(mix3(flat, [1, 1, 1], 0.35)) : c.top);
+  g.addColorStop(1, flat ? rgba(flat) : c.bottom);
+  x.fillStyle = g;
+  if (!flat) {
+    x.shadowColor = c.glow;
+    x.shadowBlur = R * 0.3;
+  }
+  x.fill(path);
+  x.shadowBlur = 0;
+  if (kind === "leaf") {
+    x.beginPath();
+    x.moveTo(0, -S * 0.8);
+    x.lineTo(0, S * 0.8);
+    x.strokeStyle = "rgba(30,120,60,0.55)";
+    x.lineWidth = Math.max(0.8, S * 0.08);
+    x.stroke();
+  }
+  // A small soft highlight.
+  const hx = -S * 0.18;
+  const hy = kind === "water" ? S * 0.15 : -S * 0.2;
+  const hg = x.createRadialGradient(hx, hy, 0, hx, hy, S * 0.3);
+  hg.addColorStop(0, "rgba(255,255,255,0.75)");
+  hg.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = hg;
+  x.fill(path);
+}
+
 export function hexToRGB(hex: string): RGB {
   const h = hex.replace("#", "");
   const v = parseInt(h, 16);
@@ -1358,26 +1422,8 @@ export class BotEngine {
       x.save();
       x.translate(worldX, worldY);
       if (handRot !== 0) x.rotate(handRot);
-      const g = x.createLinearGradient(hew * 0.7, -heh * 0.85, -hew * 0.8, heh * 0.9);
-      if (this.bodyColor) {
-        g.addColorStop(0, rgba(mix3(this.bodyColor, [1, 1, 1], 0.35)));
-        g.addColorStop(1, rgba(this.bodyColor));
-      } else {
-        g.addColorStop(0, rgba(sk.bodyTop));
-        g.addColorStop(1, rgba(sk.bodyBottom));
-      }
-      x.beginPath();
-      x.ellipse(0, 0, hew, heh, 0, 0, Math.PI * 2);
-      x.fillStyle = g;
-      if (!this.bodyColor) {
-        x.shadowColor = sk.rimGlow;
-        x.shadowBlur = R * 0.18;
-      }
-      x.fill();
-      x.shadowBlur = 0;
-      x.strokeStyle = "rgba(0,0,0,0.08)";
-      x.lineWidth = 1;
-      x.stroke();
+      x.rotate(sd * 0.35 + Math.sin(n * 6 + sd) * 0.08);
+      drawWisp(x, sk.nature ?? "leaf", Math.max(hew, heh) * 1.25 * WISP_SCALE, R, this.bodyColor);
       x.restore();
     });
   }

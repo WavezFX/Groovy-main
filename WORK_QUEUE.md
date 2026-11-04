@@ -89,7 +89,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ## 1K. Fixes round 3K: `FIXES_ROUND3K.md` (Groovy's own body: pillow outline + element wisps). **Decided 4 Nov. Do items 1 to 2 together with 3H item 1 (the wardrobe fit) in one pass, before 3D item 11.** Growth art stays exactly as it is.
 - [x] 1. Pillow outline (`PILLOW_BOW`, minis share the shape, growth art follows the crown) (design record `docs/design/body-v2/`)
-- [ ] 2. Element wisps instead of hands
+- [x] 2. Element wisps instead of hands (`WISP_SCALE`, leaf, flame lick, droplet)
 - [ ] 3. Wardrobe fit on the new body (this is 3H item 1)
 - [ ] 4. Checks (CI contact sheet)
 
