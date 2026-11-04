@@ -199,10 +199,14 @@ const DIAMOND_CROWN: Art = {
 /** The board's flat glasses arms (out to the card's edge): his run back behind his head. */
 const BOARD_ARM = /M\d+(?:\.\d+)? \d+(?:\.\d+)?H(?:14|86)/g;
 
+/** Shapes drawn from the head model instead (round 3M item 3): straps, bands and the arms of glasses. */
+const PROCEDURAL: Partial<Record<string, number[]>> = { piratePatch: [0], pilotGoggles: [0], headphones: [0, 1] };
+
 function clean(art: Art, id = ""): Art {
   const armed = ["roundSpecs", "shades", "heartGlasses"].includes(id);
+  const drop = PROCEDURAL[id] ?? [];
   const keep = (list?: Shape[]) =>
-    list?.filter((s) => !boardEye(s)).map((s) => (armed && !s.f ? { ...s, d: s.d.replace(BOARD_ARM, "").trim() } : s));
+    list?.filter((s, i) => !boardEye(s) && !(list === art.front && drop.includes(i))).map((s) => (armed && !s.f ? { ...s, d: s.d.replace(BOARD_ARM, "").trim() } : s));
   return { behind: keep(art.behind), body: keep(art.body), front: keep(art.front) };
 }
 
@@ -349,21 +353,9 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
       run.forEach((q, i) => (i ? ctx.lineTo(q.x + r.cx, q.y) : ctx.moveTo(q.x + r.cx, q.y)));
       ctx.stroke();
     }
-  } else if (slot === "face" && ARMED.has(item)) {
-    const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
-    ctx.strokeStyle = col;
-    ctx.lineWidth = Math.max(1, H.R * 0.05);
-    ctx.lineCap = "round";
-    for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
-      const side = halfWidthAt(e[1], H.rx, H.ry, BODY_EXP) * 0.98;
-      // The arm on the far side fades as he turns away.
-      ctx.globalAlpha = Math.max(0, Math.min(1, 1 - sd * Math.sin(H.yaw) * 1.4));
-      ctx.beginPath();
-      ctx.moveTo(e[0] + sd * lens, e[1]);
-      ctx.lineTo(sd * side, e[1] - H.ry * 0.06);
-      ctx.stroke();
-    }
   }
+  for (const st of wrapStrokes(item, H, A, art)) strokeRuns(ctx, st, false);
+  if (item === "headphones") drawCups(ctx, art, H, A, false);
 }
 
 /** How an item narrows as he turns, never below 0.6 so nothing vanishes. */
@@ -395,6 +387,158 @@ function faceFit(H: Head) {
   const hw = halfWidthAt(cy, H.rx, H.ry, BODY_EXP) * 0.98;
   const side = (room: number) => Math.min(k, Math.max(0.1 * k, room) / FACE_REACH);
   return { cx, cy, rot, k, ky, kL: side(hw + cx - half * k), kR: side(hw - cx - half * k) };
+}
+
+// ── Things that go round him (round 3M item 3) ───────────────────────────────
+
+interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean }
+
+/** The ring angle whose point on the ring at `yc` is nearest to screen x. */
+function ringAngleAt(H: Head, yc: number, a: number, x: number): number {
+  let best = 0;
+  let bd = Infinity;
+  for (let k = 0; k < 72; k++) {
+    const t = (k / 72) * Math.PI * 2 - Math.PI;
+    const q = ringPoint(H, yc, a, t);
+    const d = Math.abs(q.x - x) + (q.z < -a * 0.3 ? a : 0);
+    if (d < bd) {
+      bd = d;
+      best = t;
+    }
+  }
+  return best;
+}
+
+/** A path round him from a screen point `from` (on the front of his head) to `toT` radians round, the ring height easing to `yEnd`. */
+function wrapPath(H: Head, from: [number, number], yEnd: number, toT: number, n = 16): P3[] {
+  const a0 = halfWidthAt(from[1], H.rx, H.ry, BODY_EXP);
+  const t0 = ringAngleAt(H, from[1], a0, from[0]);
+  const base = ringPoint(H, from[1], a0, t0);
+  const out: P3[] = [];
+  for (let k = 0; k <= n; k++) {
+    const u = k / n;
+    const yc = from[1] + (yEnd - from[1]) * u;
+    const q = ringPoint(H, yc, halfWidthAt(yc, H.rx, H.ry, BODY_EXP), t0 + (toT - t0) * u);
+    const w = (1 - u) * (1 - u);
+    out.push({ x: q.x + (from[0] - base.x) * w, y: q.y + (from[1] - base.y) * w, z: q.z });
+  }
+  return out;
+}
+
+/** The straps, bands and arms an item draws from his head model. `x` offsets are in body space. */
+function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
+  const ey = A.eyeLine;
+  const R = H.R;
+  const ry = H.ry;
+  const dark = backColour(art) ?? "#222";
+  switch (item) {
+    case "piratePatch":
+      // From the patch up and round the side of his head, and a short one down behind the other ear.
+      return [
+        { pts: wrapPath(H, A.eyeR, ey - ry * 0.3, -Math.PI * 0.92), color: "#1B1F26", lw: R * 0.05 },
+        { pts: wrapPath(H, A.eyeR, ey + ry * 0.1, Math.PI * 0.92), color: "#1B1F26", lw: R * 0.05 },
+      ];
+    case "glowVisor": {
+      const a = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
+      return [{ pts: ringPoints(H, ey, a * 0.93), color: "#2FBF5F", lw: ry * 0.3, closed: true }];
+    }
+    case "pilotGoggles": {
+      const yc = A.rim.cy - 0.18 * ry;
+      return [{ pts: ringPoints(H, yc, halfWidthAt(yc, H.rx, H.ry, BODY_EXP)), color: "#7A5230", lw: R * 0.07, closed: true }];
+    }
+    case "headphones": {
+      // Over the crown from ear to ear, seated on his head: along his outline's upper half (a meridian of the head model).
+      const earY = ey;
+      const ax = halfWidthAt(earY, H.rx, H.ry, BODY_EXP);
+      const top: [number, number][] = [];
+      for (let k = 0; k <= 96; k++) {
+        const [x, y] = pillowXY((k / 96) * Math.PI * 2, H.rx, H.ry, BODY_EXP);
+        if (y <= earY) top.push([x, y]);
+      }
+      top.sort((p, q) => p[0] - q[0]);
+      const pts: P3[] = top.map(([x, y]) => archPoint(H, x * 0.985, y * 0.99, 0.04 * ax, ax));
+      return [{ pts, color: "#2B2F36", lw: R * 0.11 }];
+    }
+    case "roundSpecs":
+    case "shades":
+    case "heartGlasses": {
+      const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
+      const a = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
+      const out: Stroke[] = [];
+      for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
+        const t0 = ringAngleAt(H, e[1], a, e[0] + sd * lens);
+        const pts: P3[] = [];
+        for (let k = 0; k <= 10; k++) {
+          const u = k / 10;
+          pts.push(ringPoint(H, e[1] - ry * 0.02 * u, a, t0 + (sd * Math.PI * 0.8 - t0) * u));
+        }
+        out.push({ pts, color: dark, lw: Math.max(1, R * 0.05) });
+      }
+      return out;
+    }
+    default:
+      return [];
+  }
+}
+
+/** A point of the head model from a position in his unturned frame (X sideways, Y down, Z towards us). */
+function archPoint(H: Head, X: number, Y: number, Z: number, a: number): P3 {
+  const cy = Math.cos(H.yaw);
+  const sy = Math.sin(H.yaw);
+  const k = a / Math.hypot(a * cy, DEPTH * a * sy);
+  const z1 = -X * sy + Z * cy;
+  const phi = ringTilt(H);
+  return { x: (X * cy + Z * sy) * k, y: Y + z1 * Math.sin(phi), z: z1 * Math.cos(phi) - Y * Math.sin(phi) };
+}
+
+/** Draws a stroke's far pieces (back) or near pieces (front); the back ones are hidden by the body drawn over them. */
+function strokeRuns(ctx: Ctx, st: Stroke, front: boolean, dx = 0) {
+  const runs = st.closed ? splitRing(st.pts, front) : splitPath(st.pts, front);
+  ctx.strokeStyle = st.color;
+  ctx.lineWidth = Math.max(1, st.lw);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const run of runs) {
+    ctx.beginPath();
+    run.forEach((q, i) => (i ? ctx.lineTo(q.x + dx, q.y) : ctx.moveTo(q.x + dx, q.y)));
+    ctx.stroke();
+  }
+}
+
+function splitPath(pts: P3[], front: boolean): P3[][] {
+  const runs: P3[][] = [];
+  let cur: P3[] = [];
+  for (const q of pts) {
+    if (q.z >= 0 === front) cur.push(q);
+    else if (cur.length) {
+      runs.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) runs.push(cur);
+  return runs;
+}
+
+/** Headphone cups on his ears: the near one in front and bigger, the far one behind him, thinner as it turns away. */
+function drawCups(ctx: Ctx, art: Art, H: Head, A: Anchors, front: boolean) {
+  const shapes = art.front ?? [];
+  const ax = halfWidthAt(A.eyeLine, H.rx, H.ry, BODY_EXP);
+  const sx = H.rx / 36;
+  const sy = H.ry / 31;
+  for (const sd of [-1, 1]) {
+    const q = archPoint(H, sd * ax, A.eyeLine, 0, ax);
+    if (q.z >= -ax * 0.05 !== front) continue;
+    const turn = Math.abs(Math.sin(H.yaw));
+    const near = q.z >= 0;
+    const w = (0.5 + 0.5 * turn) * (near ? 1.1 : 0.9);
+    const cup = sd < 0 ? [shapes[0], shapes[2]] : [shapes[1], shapes[3]];
+    ctx.save();
+    ctx.translate(q.x + sd * sx * 3, q.y);
+    ctx.scale(sx * w, sy);
+    ctx.translate(-(sd < 0 ? 13.5 : 86.5), -60);
+    drawShapes(ctx, cup.filter(Boolean) as Shape[]);
+    ctx.restore();
+  }
 }
 
 /**
@@ -618,7 +762,10 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
   withLayer(ctx, alpha, (l) => {
     drawContactShadow(l, outfit, H);
     if (DOME.has(outfit)) drawDome(l, outfit, art, H);
-    drawItem(l, outfit, art, H, ["body", "front"]);
+    const A = headAnchors(H);
+    for (const st of wrapStrokes(outfit, H, A, art)) strokeRuns(l, st, true);
+    if (outfit === "headphones") drawCups(l, art, H, A, true);
+    else drawItem(l, outfit, art, H, ["body", "front"]);
   });
   ctx.restore();
 }

@@ -170,7 +170,7 @@ const found = await page.evaluate(async () => {
             const edge = slot === "head" ? b.y1 - ref.y1 : b.y0 - ref.y0;
             // Round 3M: his head is a 3D model, so a nod moves the front of a ring by depth × (sin(tilt) - sin(rest tilt)).
             const nod = 0.8 * b.rx * Math.abs(Math.sin(0.2 - pitch) - Math.sin(0.2)) * 1.15;
-            if (Math.abs(edge) > tol + nod) bad.push(`${where}: ${edge < 0 ? "floats" : "sinks"} ${Math.round(Math.abs(edge))} px`);
+            if (Math.abs(edge) > tol + nod) bad.push(`${Math.abs(yaw) > 0.7 ? "warning: " : ""}${where}: ${edge < 0 ? "floats" : "sinks"} ${Math.round(Math.abs(edge))} px`);
           }
           // Never slides off him: its middle stays over his body.
           if (Math.abs(cx) > b.rx + tol) bad.push(`${where}: slid off his body`);
