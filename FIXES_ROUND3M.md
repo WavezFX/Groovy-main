@@ -42,3 +42,12 @@ One item per commit: "Fixes round 3M, item N: ...", ticked in `WORK_QUEUE.md` in
   - every wrapping part has its back piece hidden by the body.
 - Update the item-fit check from 3L to the new anchors. Keep the "worst 10" summary.
 - Don't claim it looks right. Write "contact sheet and motion strips ready for the owner" in `STATUS.md`. One `[build]` commit at the end.
+
+## Item 6: Polish after the first 3M build (added 4 Nov 21:10, from build 222's `items-sheet-night.png` and `items-motion-strips.png`)
+3M is a clear step up: ties now hang below him, straps wrap, and the headphone cups sit on his sides. What's still wrong on the sheet:
+1. **Pale ring round his head** when seen from above (pitch -0.2): the back of a hat or crown's rim is drawn as a light grey ellipse, so it reads as a see-through halo, the exact thing the owner rejected. Draw the inside/back of the rim in the **item's own colour, darker** (shaded), or hide it where the head covers it. No grey or transparent fill anywhere.
+2. **Grey seam across his forehead** under hats, crowns and glasses at pitch +0.2: a thin grey line shows where the back piece meets the outline. Remove it: the back piece must be fully hidden by the body (clip it to outside the outline), with no stroke left on the face.
+3. **Glasses arms curve along his lower face** (shades, heart glasses, round specs, visor) when seen from above: the far arm draws as an arc across the cheek and looks like a mouth. Arms go straight back to the ears at **eye height** and hide behind him. They never cross the lower face.
+4. **The beret floats** above his head at pitch +0.2 with a gap. Seat it on the crown like the other hats.
+5. **Headphones sink 9 px** at yaw ±1 (`items-problems.txt` warnings). Keep the band on the head at full turn.
+6. Re-run the sheets and motion strips. Then write in `STATUS.md` which of 1 to 5 are fixed, and one `[build]` at the end.
