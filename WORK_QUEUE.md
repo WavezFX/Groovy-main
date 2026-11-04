@@ -105,7 +105,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] Item 3: things that go round him go all the way round
 - [x] Item 4: they move like real clothing
 - [x] Item 5: checks the owner can see (contact sheet + motion strips, one `[build]`)
-- [ ] Item 6: polish from build 222 (no pale ring, no forehead seam, glasses arms at eye height, beret seated, headphones don't sink)
+- [x] Item 6: polish from build 222 (no pale ring, no forehead seam, glasses arms at eye height, beret seated, headphones don't sink)
 
 ## 1L. Fixes round 3L: `FIXES_ROUND3L.md` (the wardrobe sits on him properly: follows his turn, shadows, curves). **Do this FIRST in Session B, before 3D item 11.**
 - [x] Item 1: items follow his turn and never leave the head

@@ -301,6 +301,8 @@ const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
 /** How far a face item's art reaches beyond a lens on the board, in board units (arms excluded). */
 const FACE_REACH = 24;
 /** Half the width of a hat's art on the board, where it is narrower than his rim. */
+/** Hats whose drawing sits above the board's rim line: how far (board units) to lower them onto his crown. */
+const SEAT_DROP: Partial<Record<Accessory, number>> = { beretPin: 6, miniTopHat: 3 };
 const HAT_HALF: Partial<Record<Accessory, number>> = { acornCap: 28, backwardsCap: 26, leafCrown: 31 };
 /** The board point the pool ring hangs from: his middle. */
 const ANCHOR = { middle: [50, 80] } as const;
@@ -313,7 +315,7 @@ const BOARD_COLLAR = { y: 61 + COLLAR_V * 31, hw: 14 + Math.sqrt(22 * 22 - (61 +
 
 /** Hats and crowns whose rim goes round his head: the far half shows behind him. */
 const RIMMED = new Set<Accessory>([
-  "leafCrown", "acornCap", "mushroomCap", "flowerCrown", "bucketHat", "backwardsCap", "miniTopHat", "diamondCrown",
+  "leafCrown", "acornCap", "mushroomCap", "flowerCrown", "bucketHat", "backwardsCap", "diamondCrown",
   "pumpkinCap", "bobbleBeanie", "eggshellHat", "strawSunHat", "watermelonCap",
 ]);
 /** Neck items that go all the way round him: the back half shows behind him. */
@@ -360,7 +362,7 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
       ctx.stroke();
     }
   }
-  for (const st of wrapStrokes(item, H, A, art)) strokeRuns(ctx, st, false);
+  for (const st of wrapStrokes(item, H, A, art)) if (!st.onTop) strokeRuns(ctx, st, false);
   if (item === "headphones") drawCups(ctx, art, H, A, false);
 }
 
@@ -397,7 +399,8 @@ function faceFit(H: Head) {
 
 // ── Things that go round him (round 3M item 3) ───────────────────────────────
 
-interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean }
+/** `onTop`: lies over the top of his head (a headband), so it is never hidden by him. */
+interface Stroke { pts: P3[]; color: string; lw: number; closed?: boolean; onTop?: boolean }
 
 /** The ring angle whose point on the ring at `yc` is nearest to screen x. */
 function ringAngleAt(H: Head, yc: number, a: number, x: number): number {
@@ -463,22 +466,21 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
       }
       top.sort((p, q) => p[0] - q[0]);
       const pts: P3[] = top.map(([x, y]) => archPoint(H, x * 0.985, y * 0.99, 0.04 * ax, ax));
-      return [{ pts, color: "#2B2F36", lw: R * 0.11 }];
+      return [{ pts, color: "#2B2F36", lw: R * 0.11, onTop: true }];
     }
     case "roundSpecs":
     case "shades":
     case "heartGlasses": {
+      // Each arm runs straight from the lens's outer edge back to his ear at eye height.
+      // The near one shows along his cheek; the far one is behind his head (hidden by him).
       const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.42;
-      const a = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
+      const ax = halfWidthAt(ey, H.rx, H.ry, BODY_EXP);
       const out: Stroke[] = [];
       for (const [e, sd] of [[A.eyeL, -1], [A.eyeR, 1]] as const) {
-        const t0 = ringAngleAt(H, e[1], a, e[0] + sd * lens);
-        const pts: P3[] = [];
-        for (let k = 0; k <= 10; k++) {
-          const u = k / 10;
-          pts.push(ringPoint(H, e[1] - ry * 0.02 * u, a, t0 + (sd * Math.PI * 0.8 - t0) * u));
-        }
-        out.push({ pts, color: dark, lw: Math.max(1, R * 0.05) });
+        const ear = archPoint(H, sd * ax, e[1], -0.15 * ax, ax);
+        const near = ear.z >= -ax * 0.1;
+        const z = near ? 1 : -1;
+        out.push({ pts: [{ x: e[0] + sd * lens, y: e[1], z }, { x: ear.x, y: ear.y, z }], color: dark, lw: Math.max(1, R * 0.045), onTop: near });
       }
       return out;
     }
@@ -498,8 +500,8 @@ function archPoint(H: Head, X: number, Y: number, Z: number, a: number): P3 {
 }
 
 /** Draws a stroke's far pieces (back) or near pieces (front); the back ones are hidden by the body drawn over them. */
-function strokeRuns(ctx: Ctx, st: Stroke, front: boolean, dx = 0) {
-  const runs = st.closed ? splitRing(st.pts, front) : splitPath(st.pts, front);
+function strokeRuns(ctx: Ctx, st: Stroke, front: boolean, dx = 0, whole = false) {
+  const runs = whole ? [st.pts] : st.closed ? splitRing(st.pts, front) : splitPath(st.pts, front);
   ctx.strokeStyle = st.color;
   ctx.lineWidth = Math.max(1, st.lw);
   ctx.lineCap = "round";
@@ -583,7 +585,7 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     // Dangling parts stretch a little when he hops (the body's own squash already scales everything).
     const hop = slot === "neck" ? 1 + H.physDy * 0.12 : 1;
     ctx.scale((ring.a / seat.hw) * kx * fit, sy * (slot === "head" ? Math.min(fit, 1.15) : 1) * hop);
-    ctx.translate(-50, -seat.y);
+    ctx.translate(-50, -seat.y + (slot === "head" ? SEAT_DROP[item] ?? 0 : 0));
     return;
   }
   const [ax, ay] = ANCHOR.middle;
@@ -613,34 +615,30 @@ function bodyOutline(H: Head): Path2D {
  * along the rim's, the collar's or the frame's own curve; clipped to the body.
  */
 function drawContactShadow(ctx: Ctx, item: Accessory, H: Head) {
+  // A soft shade just under the near half of a hat's rim or a collar, following its own
+  // curve on the head model; never a hard line, never on face items (they'd read as seams).
   if (H.R < 14) return;
   const slot = SLOT_OF[item];
+  // Only hats that cover his whole crown (domes) and collars that go right round him:
+  // a crown or a small hat is narrower than the rim ring, so a shade there reads as a seam.
+  if (!((slot === "head" && DOME.has(item)) || (slot === "neck" && COLLARED.has(item)))) return;
   const A = headAnchors(H);
-  const off = H.R * 0.07;
+  const r = slot === "head" ? A.rim : A.collar;
+  const off = H.R * (slot === "head" ? 0.08 : 0.05);
+  const runs = splitRing(ringPoints(H, r.cy + off, r.a * 0.97), true);
   ctx.save();
   ctx.clip(bodyOutline(H));
-  ctx.strokeStyle = "rgba(0,0,0,0.22)";
-  ctx.lineWidth = H.R * 0.12;
+  ctx.strokeStyle = "rgba(10,30,20,0.10)";
+  ctx.lineWidth = H.R * 0.2;
   ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(0,0,0,0.22)";
-  ctx.shadowBlur = H.R * 0.14;
-  ctx.beginPath();
-  if (slot === "face") {
-    if (!ARMED.has(item)) { ctx.restore(); return; }
-    const lens = Math.hypot(A.eyeR[0] - A.eyeL[0], A.eyeR[1] - A.eyeL[1]) * 0.22;
-    for (const e of [A.eyeL, A.eyeR]) {
-      ctx.moveTo(e[0] + lens, e[1] + off);
-      ctx.ellipse(e[0], e[1] + off, lens, lens * 0.9, 0, 0, Math.PI);
-    }
-  } else if ((slot === "head" && RIMMED.has(item)) || (slot === "neck" && COLLARED.has(item))) {
-    const r = slot === "head" ? A.rim : A.collar;
-    const k = Math.max(0.6, Math.cos(H.yaw));
-    ctx.ellipse(r.cx + Math.sin(H.yaw) * r.a * 0.3, r.cy + off, r.a * k, Math.max(0.5, r.b), 0, 0, Math.PI);
-  } else {
-    ctx.restore();
-    return;
+  ctx.lineJoin = "round";
+  ctx.shadowColor = "rgba(10,30,20,0.18)";
+  ctx.shadowBlur = H.R * 0.25;
+  for (const run of runs) {
+    ctx.beginPath();
+    run.forEach((q, i) => (i ? ctx.lineTo(q.x + r.cx, q.y) : ctx.moveTo(q.x + r.cx, q.y)));
+    ctx.stroke();
   }
-  ctx.stroke();
   ctx.restore();
 }
 
@@ -749,14 +747,32 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
   ctx.save();
   arrive(ctx, outfit, H, st.presence);
   withLayer(ctx, alpha, (l) => {
+    // His body is glassy, so anything drawn behind it would show through it as a
+    // pale band or a grey seam: what is behind him only shows past his outline.
+    l.save();
+    l.clip(outsideBody(H), "evenodd");
     if (back) {
       l.save();
       drawBackParts(l, outfit, art, H);
       l.restore();
     }
     drawItem(l, outfit, art, H, layers);
+    l.restore();
   });
   ctx.restore();
+}
+
+let outside: { key: string; path: Path2D } | null = null;
+/** Everything except his body: a big box with his outline cut out (for an even-odd clip). */
+function outsideBody(H: Head): Path2D {
+  const key = `${H.rx.toFixed(1)}|${H.ry.toFixed(1)}`;
+  if (outside?.key === key) return outside.path;
+  const path = new Path2D();
+  const big = (H.rx + H.ry) * 8;
+  path.rect(-big, -big, big * 2, big * 2);
+  path.addPath(bodyOutline(H));
+  outside = { key, path };
+  return path;
 }
 
 /** The parts in front of Groovy, drawn after the body and the eyes. */
@@ -773,7 +789,7 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
     drawContactShadow(l, outfit, H);
     if (DOME.has(outfit)) drawDome(l, outfit, art, H);
     const A = headAnchors(H);
-    for (const st of wrapStrokes(outfit, H, A, art)) strokeRuns(l, st, true);
+    for (const st of wrapStrokes(outfit, H, A, art)) strokeRuns(l, st, true, 0, st.onTop);
     if (outfit === "headphones") drawCups(l, art, H, A, true);
     else drawItem(l, outfit, art, H, ["body", "front"]);
   });
