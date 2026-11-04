@@ -293,6 +293,9 @@ jobs:
           # Round 3H item 2: the Groovy page for each look, both widths, no layout shift, smooth previews.
           node --import ./tests/setup.mjs scripts/growth-screens.mjs http://127.0.0.1:1420 settings-screens/growth
           if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
+          # Round 3K item 4: the pillow body and wisps, every look, stage and expression, open and collapsed.
+          node --import ./tests/setup.mjs scripts/body-sheet.mjs http://127.0.0.1:1420 settings-screens/body
+          if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE }
           taskkill /PID $vite.Id /T /F | Out-Null
           exit $code
 

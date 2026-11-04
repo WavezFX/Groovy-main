@@ -91,7 +91,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Pillow outline (`PILLOW_BOW`, minis share the shape, growth art follows the crown) (design record `docs/design/body-v2/`)
 - [x] 2. Element wisps instead of hands (`WISP_SCALE`, leaf, flame lick, droplet)
 - [x] 3. Wardrobe fit on the new body (this is 3H item 1)
-- [ ] 4. Checks (CI contact sheet)
+- [x] 4. Checks (CI contact sheet: `scripts/body-sheet.mjs`)
 
 ## 1H. Fixes round 3H: `FIXES_ROUND3H.md` (the wardrobe really fits; one clear growth screen). **Do this together with round 3K (new pillow body), before 3D item 11 and the checks.** Fit the wardrobe to the NEW body.
 - [x] 1. Items sit on him like Coucou's: anchors from the live head, parts at different depths (caps wrap, glasses on the eyes, neck items round the neck), contact-sheet test
