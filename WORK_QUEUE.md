@@ -104,7 +104,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] Item 2: peak memory down to 300 MB (speech engines in on-demand helpers, then the gates from real numbers)
 - [x] Item 3: clipboard history island tile
 - [ ] Item 4: Dialog Jump (optional)
-- [ ] Item 5: checks, one `[build]`, release updated
+- [x] Item 5: checks, one `[build]`, release updated
 
 ## 1M. Fixes round 3M: `FIXES_ROUND3M.md` (the wardrobe is worn, not stuck on: one 3D head model, hats seated, straps wrap, ties hang down, real secondary motion). **Do this NEXT (Opus), before the peak-memory work.**
 - [x] Item 1: one head model for everything (fake 3D, drawn in 2D)
