@@ -169,7 +169,9 @@ const found = await page.evaluate(async () => {
             // lower (hats) or upper (neck) edge stays where it was, give or take the nod.
             const edge = slot === "head" ? b.y1 - ref.y1 : b.y0 - ref.y0;
             // Round 3M: his head is a 3D model, so a nod moves the front of a ring by depth × (sin(tilt) - sin(rest tilt)).
-            const nod = 0.8 * b.rx * Math.abs(Math.sin(0.2 - pitch) - Math.sin(0.2)) * 1.15;
+            // A wide brim is a wider ring, so its front moves further with a nod.
+            const brim = { strawSunHat: 1.9, bucketHat: 1.42 }[item] ?? 1;
+            const nod = 0.8 * b.rx * brim * Math.abs(Math.sin(0.2 - pitch) - Math.sin(0.2)) * 1.15;
             if (Math.abs(edge) > tol + nod) bad.push(`${Math.abs(yaw) > 0.7 ? "warning: " : ""}${where}: ${edge < 0 ? "floats" : "sinks"} ${Math.round(Math.abs(edge))} px`);
           }
           // Never slides off him: its middle stays over his body.
@@ -208,7 +210,7 @@ const found = await page.evaluate(async () => {
           for (const [ex, ey] of H.eyes) if (alphaAt(ex, ey) > 60) bad.push(`${where}: covers his eye`);
         }
         // No gap between a hat and the crown: just above the rim's front arc the hat is solid.
-        if (["acornCap", "mushroomCap", "pumpkinCap", "bobbleBeanie", "eggshellHat", "watermelonCap", "bucketHat", "backwardsCap"].includes(item)) {
+        if (["acornCap", "mushroomCap", "pumpkinCap", "bobbleBeanie", "eggshellHat", "watermelonCap", "bucketHat", "backwardsCap", "strawSunHat"].includes(item)) {
           const front = ringPoints(H, A.rim.cy, A.rim.a).filter((q) => q.z > 0 && Math.abs(q.x) < A.rim.a * 0.6);
           for (const q of front) if (alphaAt(q.x + A.rim.cx, q.y - 3) < 200) bad.push(`${where}: a gap between the hat and his crown at x ${Math.round(q.x)}`);
         }
@@ -256,7 +258,8 @@ const found = await page.evaluate(async () => {
   }
 
   // The motion strips: one item per kind, a hop, a nod and a turn, eight frames each, springs running.
-  const KINDS = ["acornCap", "bunnyEarBand", "headphones", "piratePatch", "roundSpecs", "necktie", "knitStripeScarf", "seedPendant"];
+  // Every hat (round 3N item 1), then one of each other kind.
+  const KINDS = [...ACCESSORIES.filter((i) => SLOT_OF[i] === "head" && itemArt(i)), "piratePatch", "roundSpecs", "necktie", "knitStripeScarf", "seedPendant"];
   const MOVES = ["hop", "nod", "turn"];
   const M = 120;
   const FR = 8;

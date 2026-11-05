@@ -100,7 +100,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 4. Checks (item 1 contact sheet and measured fit in `items-check`; frame and memory checks run in this [build])
 
 ## 1N. Fixes round 3N: `FIXES_ROUND3N.md` (finish the leftovers). **Do this NEXT, in one run.**
-- [ ] Item 1: the rest of the hats are worn, not pasted (bucket, beanie, eggshell, watermelon, backwards cap, straw hat; beret, top hat, antlers, ears, bat wings on his crown)
+- [x] Item 1: the rest of the hats are worn, not pasted (bucket, beanie, eggshell, watermelon, backwards cap, straw hat; beret, top hat, antlers, ears, bat wings on his crown)
 - [ ] Item 2: peak memory down to 300 MB (speech engines in on-demand helpers, then the gates from real numbers)
 - [ ] Item 3: clipboard history island tile
 - [ ] Item 4: Dialog Jump (optional)

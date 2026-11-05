@@ -202,7 +202,7 @@ const DIAMOND_CROWN: Art = {
 const BOARD_ARM = /M\d+(?:\.\d+)? \d+(?:\.\d+)?H(?:14|86)/g;
 
 /** Shapes drawn from the head model instead (round 3M item 3): straps, bands and the arms of glasses. */
-const PROCEDURAL: Partial<Record<string, number[]>> = { piratePatch: [0], pilotGoggles: [0], headphones: [0, 1] };
+const PROCEDURAL: Partial<Record<string, number[]>> = { piratePatch: [0], pilotGoggles: [0], headphones: [0, 1], bunnyEarBand: [2], batWingBand: [2] };
 
 function clean(art: Art, id = ""): Art {
   const armed = ["roundSpecs", "shades", "heartGlasses"].includes(id);
@@ -302,7 +302,7 @@ const BOARD_EYES = { l: 38, r: 62, y: 62 } as const;
 const FACE_REACH = 24;
 /** Half the width of a hat's art on the board, where it is narrower than his rim. */
 /** Hats whose drawing sits above the board's rim line: how far (board units) to lower them onto his crown. */
-const SEAT_DROP: Partial<Record<Accessory, number>> = { beretPin: 6, miniTopHat: 3 };
+const SEAT_DROP: Partial<Record<Accessory, number>> = { beretPin: 6, miniTopHat: 5, twigAntlers: -4 };
 const HAT_HALF: Partial<Record<Accessory, number>> = { acornCap: 28, backwardsCap: 26, leafCrown: 31 };
 /** The board point the pool ring hangs from: his middle. */
 const ANCHOR = { middle: [50, 80] } as const;
@@ -349,7 +349,7 @@ function drawBackParts(ctx: Ctx, item: Accessory, art: Art, H: Head) {
   if (!col) return;
   const A = headAnchors(H);
   // A dome hat covers the top of his head: its back is hidden by the hat itself, so nothing is drawn behind.
-  if ((slot === "head" && RIMMED.has(item) && !DOME.has(item)) || (slot === "neck" && COLLARED.has(item))) {
+  if ((slot === "head" && RIMMED.has(item) && !CAP.has(item)) || (slot === "neck" && COLLARED.has(item))) {
     const r = slot === "head" ? A.rim : A.collar;
     const back = splitRing(ringPoints(H, r.cy, r.a * 1.04), false);
     ctx.strokeStyle = col;
@@ -455,6 +455,18 @@ function wrapStrokes(item: Accessory, H: Head, A: Anchors, art: Art): Stroke[] {
       top.sort((p, q) => p[0] - q[0]);
       const wx = A.rim.cx;
       return [{ pts: top.map(([x, y]) => ({ x: x + wx, y, z: 1 })), color: "#2B2F36", lw: R * 0.11, onTop: true, clipOut: true }];
+    }
+    case "bunnyEarBand":
+    case "batWingBand": {
+      // A headband over his crown along his outline (never across his forehead); the ears or wings stand on it.
+      const top: [number, number][] = [];
+      for (let k = 0; k <= 120; k++) {
+        const [x, y] = pillowXY((k / 120) * Math.PI * 2, H.rx, H.ry, BODY_EXP);
+        if (y <= -0.42 * H.ry) top.push([x * 0.99, y * 0.99]);
+      }
+      top.sort((p, q) => p[0] - q[0]);
+      const wx = A.rim.cx;
+      return [{ pts: top.map(([x, y]) => ({ x: x + wx, y, z: 1 })), color: item === "bunnyEarBand" ? "#F2B8D4" : "#3A2A4A", lw: R * 0.07 }];
     }
     case "roundSpecs":
     case "shades":
@@ -584,10 +596,10 @@ export function placeItem(ctx: Ctx, item: Accessory, H: Head) {
     const seat = slot === "head" ? BOARD_RIM : BOARD_COLLAR;
     const kx = narrowing(H.yaw, slot === "head" ? 0.25 : 0.5);
     // Sized from the rim: a hat is at least 0.92 of his width there (round 3L item 4).
-    const fit = slot === "head" ? Math.max(1, ((DOME.has(item) ? 1.06 : 0.92) * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
+    const fit = slot === "head" ? Math.max(1, ((CAP.has(item) ? 1.06 : 0.92) * seat.hw) / (HAT_HALF[item] ?? seat.hw)) : 1;
     // The seat is the ring's front point on his head model, so it follows his turn and nod.
     const F = ringPoint(H, ring.cy, ring.a, 0);
-    ctx.translate(ring.cx + F.x * (slot === "head" ? (DOME.has(item) ? 0.12 : 0.5) : 1), F.y + (item === "neckPhones" ? 8 * sy : 0)); // its cups hang low on his chest
+    ctx.translate(ring.cx + F.x * (slot === "head" ? (CAP.has(item) ? 0.12 : 0.5) : 1), F.y + (item === "neckPhones" ? 8 * sy : 0)); // its cups hang low on his chest
     // Worn parts lag and swing from their seat: hats tip against the motion, dangling parts hang from it.
     const sw = H.swing ?? 0;
     ctx.rotate(slot === "head" ? -H.physDx * 0.1 - sw * (LOOSE.has(item) ? 0.9 : 0.3) : sw * (HANGING.has(item) ? 0.5 : 0.2));
@@ -630,7 +642,7 @@ function drawContactShadow(ctx: Ctx, item: Accessory, H: Head) {
   const slot = SLOT_OF[item];
   // Only hats that cover his whole crown (domes) and collars that go right round him:
   // a crown or a small hat is narrower than the rim ring, so a shade there reads as a seam.
-  if (!((slot === "head" && DOME.has(item)) || (slot === "neck" && COLLARED.has(item)))) return;
+  if (!((slot === "head" && CAP.has(item)) || (slot === "neck" && COLLARED.has(item)))) return;
   const A = headAnchors(H);
   const r = slot === "head" ? A.rim : A.collar;
   // Thin and tight against the item's edge, so it reads as contact, not as a band.
@@ -660,60 +672,8 @@ function drawItem(ctx: Ctx, item: Accessory, art: Art, H: Head, layers: readonly
       return;
     }
   }
-  if (DOME.has(item) && layers.includes("front")) {
-    ctx.save();
-    domeRegion(ctx, H, false);
-    ctx.clip();
-    placeItem(ctx, item, H);
-    for (const l of layers) drawShapes(ctx, visibleShapes(item, art[l], H));
-    ctx.restore();
-    return;
-  }
   placeItem(ctx, item, H);
-  for (const l of layers) drawShapes(ctx, visibleShapes(item, art[l], H));
-}
-
-/** Shapes to draw: the mushroom's pale underside only shows where its rim tips up towards him. */
-function visibleShapes(item: Accessory, shapes: Shape[] | undefined, H: Head): Shape[] | undefined {
-  if (item !== "mushroomCap" || !shapes || ringTilt(H) < -0.02) return shapes;
-  return shapes.filter((sh) => sh.f !== "#F4E3D0" && sh.s !== "#D2B79A");
-}
-
-/** Hats that cover the top of his head down to their rim (crowns, which are open rings, do not). */
-const DOME = new Set<Accessory>([
-  "acornCap", "mushroomCap", "pumpkinCap", "bobbleBeanie", "eggshellHat", "watermelonCap", "bucketHat", "backwardsCap",
-]);
-
-/** The path of everything above the rim's front arc (extended sideways, so a brim past his outline is kept). */
-function domeRegion(ctx: Ctx, H: Head, close: boolean) {
-  const r = headAnchors(H).rim;
-  const front = splitRing(ringPoints(H, r.cy, r.a), true)[0] ?? [];
-  const pts = [...front].sort((p, q) => p.x - q.x);
-  const big = H.rx * 4;
-  ctx.beginPath();
-  if (!pts.length) {
-    ctx.rect(-big, -big, 2 * big, big + r.cy);
-    return;
-  }
-  ctx.moveTo(r.cx + pts[0].x - big, pts[0].y);
-  for (const q of pts) ctx.lineTo(r.cx + q.x, q.y);
-  ctx.lineTo(r.cx + pts[pts.length - 1].x + big, pts[pts.length - 1].y);
-  ctx.lineTo(r.cx + pts[pts.length - 1].x + big, -big);
-  ctx.lineTo(r.cx + pts[0].x - big, -big);
-  if (close) ctx.closePath();
-}
-
-/** The hat's own colour, filling the crown of his head down to the rim so nothing shows through. */
-function drawDome(ctx: Ctx, item: Accessory, art: Art, H: Head) {
-  const f = [...(art.front ?? []), ...(art.body ?? [])].find((sh) => typeof sh.f === "string" && /^#[0-9a-f]{6}$/i.test(sh.f))?.f;
-  if (!f) return;
-  ctx.save();
-  ctx.clip(bodyOutline(H));
-  domeRegion(ctx, H, true);
-  ctx.fillStyle = f;
-  ctx.fill();
-  ctx.restore();
-  void item;
+  for (const l of layers) drawShapes(ctx, art[l]);
 }
 
 /** A face item in three board bands (left of the left lens, between, right of the right lens), each at its own width. */
@@ -763,6 +723,7 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     l.clip(outsideBody(H), "evenodd");
     if (RING_CROWN.has(outfit) || CAP.has(outfit)) {
       if (RING_CROWN.has(outfit)) drawRingCrown(l, outfit, H, false);
+      else drawCapBack(l, outfit, H);
       l.restore();
       return;
     }
@@ -868,13 +829,37 @@ function drawRingCrown(ctx: Ctx, item: Accessory, H: Head, front: boolean) {
  * round his head (so its edge curves round him and turns with him), with its own details
  * (scales, ribs, spots) lying on that surface. Nothing behind, no fill under it.
  */
-const CAP = new Set<Accessory>(["acornCap", "pumpkinCap", "mushroomCap"]);
-/** seat: the edge's height (× ry); s: its width against his head there; h: the dome's height above it (× ry). */
-interface CapForm { seat: number; s: number; h: number; lobes: number }
+const CAP = new Set<Accessory>([
+  "acornCap", "pumpkinCap", "mushroomCap", "bucketHat", "bobbleBeanie", "eggshellHat", "watermelonCap", "backwardsCap", "strawSunHat",
+]);
+/**
+ * seat: the edge's height (× ry); s: its width against his head there; h: the dome's height above it (× ry);
+ * lobes: a pumpkin's bulges; brim: a flat brim round the edge, its width against the edge's; zig: a
+ * zigzag edge's teeth; peak: a cap's peak at the back of his head.
+ */
+interface CapForm { seat: number; s: number; h: number; lobes: number; brim?: number; zig?: number; peak?: boolean }
 const CAP_FORM: Record<string, CapForm> = {
   acornCap: { seat: -0.4, s: 1.07, h: 0.78, lobes: 0 },
   pumpkinCap: { seat: -0.38, s: 1.1, h: 0.82, lobes: 7 },
   mushroomCap: { seat: -0.46, s: 1.34, h: 0.88, lobes: 0 },
+  bucketHat: { seat: -0.44, s: 1.06, h: 0.6, lobes: 0, brim: 1.42 },
+  strawSunHat: { seat: -0.5, s: 1.04, h: 0.48, lobes: 0, brim: 1.9 },
+  bobbleBeanie: { seat: -0.32, s: 1.08, h: 0.86, lobes: 0 },
+  eggshellHat: { seat: -0.42, s: 1.06, h: 0.74, lobes: 0, zig: 11 },
+  watermelonCap: { seat: -0.4, s: 1.08, h: 0.74, lobes: 0 },
+  backwardsCap: { seat: -0.42, s: 1.07, h: 0.7, lobes: 0, peak: true },
+};
+/** Each cap's colours: lit, middle, in shadow, and the lip where it sits on him. */
+const CAP_COL: Record<string, [string, string, string, string]> = {
+  acornCap: ["#C58A4E", "#9A6232", "#6A3F1C", "#5A3417"],
+  pumpkinCap: ["#FFB25C", "#F57F1F", "#C95A0E", "#B9540C"],
+  mushroomCap: ["#FF7A6E", "#E2443A", "#A9261F", "#9E231C"],
+  bucketHat: ["#F4E6C0", "#E0CC98", "#B9A56F", "#8C7A47"],
+  strawSunHat: ["#F8E7A8", "#E8C774", "#C9A24E", "#A8843A"],
+  bobbleBeanie: ["#FF7A7E", "#E5484D", "#B02A32", "#8F1F27"],
+  eggshellHat: ["#FFFFFF", "#F3EEF7", "#D9D0E3", "#B79CFF"],
+  watermelonCap: ["#FF8A94", "#FF5C6C", "#D63A4C", "#2E7A38"],
+  backwardsCap: ["#FF7A82", "#F0505A", "#B83640", "#9E2E37"],
 };
 /** How round the dome is: 2 is an ellipse, higher is boxier (his head is 3). */
 const CAP_P = 2.3;
@@ -895,6 +880,13 @@ function capPath(H: Head, c: CapForm): { path: Path2D; front: P3[]; seatY: numbe
   const a = halfWidthAt(seatY, H.rx, H.ry, BODY_EXP) * c.s;
   const h = c.h * H.ry;
   const front = (splitRing(ringPoints(H, seatY, a, 72), true)[0] ?? []).slice().sort((p, q) => p.x - q.x);
+  if (c.zig) {
+    // A cracked shell: its edge zigzags (teeth up and down along the front of the ring).
+    for (const q of front) {
+      const u = ((q.x / a + 1) * c.zig) % 2;
+      q.y -= H.R * 0.09 * (u < 1 ? u : 2 - u);
+    }
+  }
   const path = new Path2D();
   if (front.length) {
     path.moveTo(front[0].x + cx, front[0].y);
@@ -932,9 +924,12 @@ function drawCap(ctx: Ctx, item: Accessory, H: Head) {
   ctx.save();
   // The cap itself, lit from the top left.
   const g = ctx.createRadialGradient(cx - w * 0.35, topY + (seatY - topY) * 0.25, R * 0.1, cx, seatY, w * 1.25);
-  if (item === "acornCap") { g.addColorStop(0, "#C58A4E"); g.addColorStop(0.55, "#9A6232"); g.addColorStop(1, "#6A3F1C"); }
-  else if (item === "pumpkinCap") { g.addColorStop(0, "#FFB25C"); g.addColorStop(0.6, "#F57F1F"); g.addColorStop(1, "#C95A0E"); }
-  else { g.addColorStop(0, "#FF7A6E"); g.addColorStop(0.6, "#E2443A"); g.addColorStop(1, "#A9261F"); }
+  const [cHi, cMid, cLo, cLip] = CAP_COL[item];
+  // A brim's front half lies over his forehead, under the dome (its back half is behind him).
+  if (c.brim) drawBrim(ctx, H, cx, seatY, a * c.brim, true, cMid, cLip);
+  g.addColorStop(0, cHi);
+  g.addColorStop(0.58, cMid);
+  g.addColorStop(1, cLo);
   ctx.fillStyle = g;
   ctx.fill(path);
   ctx.save();
@@ -968,6 +963,8 @@ function drawCap(ctx: Ctx, item: Accessory, H: Head) {
       }
       if (pts.length > 1) { line(pts); ctx.stroke(); }
     }
+  } else if (item !== "mushroomCap") {
+    drawCapDetails(ctx, item, H, cx, seatY, a, h);
   } else {
     // White spots lying on the cap, smaller as they turn away.
     const SPOTS: [number, number, number][] = [[0.25, 0, 1], [0.3, 0.9, 0.8], [0.3, -0.95, 0.85], [0.6, 0.45, 0.9], [0.6, -0.5, 0.75], [0.82, 0.05, 0.7], [0.2, 1.7, 0.7], [0.22, -1.75, 0.7], [0.55, 1.4, 0.6], [0.55, -1.4, 0.6]];
@@ -990,13 +987,24 @@ function drawCap(ctx: Ctx, item: Accessory, H: Head) {
   ctx.restore();
   // The edge where it sits on him: a darker lip along the front of the ring.
   if (front.length > 1) {
-    ctx.strokeStyle = item === "acornCap" ? "#5A3417" : item === "pumpkinCap" ? "#B9540C" : "#9E231C";
-    ctx.lineWidth = R * (item === "mushroomCap" ? 0.05 : 0.07);
+    ctx.strokeStyle = cLip;
+    ctx.lineWidth = R * (item === "mushroomCap" || item === "eggshellHat" ? 0.05 : 0.07);
     line(front);
     ctx.stroke();
   }
   // What grows from the top: the acorn's stalk, the pumpkin's stem and leaf. The mushroom has none.
-  if (item !== "mushroomCap") {
+  if (item === "bobbleBeanie") {
+    // The pompom on top, lit from the top left, with a few knit tufts.
+    const tip = capPoint(H, cx, seatY, a, h, 1, 0);
+    const pr = R * 0.2;
+    const pg = ctx.createRadialGradient(tip.x - pr * 0.4, tip.y - pr * 1.2, pr * 0.1, tip.x, tip.y - pr * 0.7, pr * 1.2);
+    pg.addColorStop(0, "#FFFFFF");
+    pg.addColorStop(1, "#D9DCE2");
+    ctx.fillStyle = pg;
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y - pr * 0.7, pr, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (item === "acornCap" || item === "pumpkinCap") {
     const tip = capPoint(H, cx, seatY, a, h, 1, 0);
     const bx = tip.x + turn * w * 0.12;
     const by = topY + R * 0.03;
@@ -1014,6 +1022,190 @@ function drawCap(ctx: Ctx, item: Accessory, H: Head) {
     }
   }
   ctx.restore();
+}
+
+/** A flat brim round a cap's edge: its front half (`front`) over him, or the whole of it behind him. */
+function drawBrim(ctx: Ctx, H: Head, cx: number, seatY: number, ab: number, front: boolean, fill: string, edge: string) {
+  const y = seatY + H.ry * 0.03;
+  const pts = ringPoints(H, y, ab, 72);
+  ctx.save();
+  ctx.beginPath();
+  if (front) {
+    const run = (splitRing(pts, true)[0] ?? []).slice().sort((p, q) => p.x - q.x);
+    if (run.length < 2) { ctx.restore(); return; }
+    run.forEach((q, i) => (i ? ctx.lineTo(q.x + cx, q.y) : ctx.moveTo(q.x + cx, q.y)));
+  } else {
+    pts.forEach((q, i) => (i ? ctx.lineTo(q.x + cx, q.y) : ctx.moveTo(q.x + cx, q.y)));
+  }
+  ctx.closePath();
+  ctx.fillStyle = front ? fill : edge;
+  ctx.fill();
+  if (front) {
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = H.R * 0.035;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** What lies behind him for a cap: the back of a brim, a backwards cap's peak. Only past his outline shows. */
+function drawCapBack(ctx: Ctx, item: Accessory, H: Head) {
+  const c = CAP_FORM[item];
+  if (!c.brim && !c.peak) return;
+  const { seatY, cx, a } = capPath(H, c);
+  const [, cMid, cLo, cLip] = CAP_COL[item];
+  if (c.brim) drawBrim(ctx, H, cx, seatY, a * c.brim, false, cMid, cLo);
+  if (c.peak) {
+    // The peak sticks out from the back of the edge and turns with him.
+    const y = seatY + H.ry * 0.02;
+    const inner: P3[] = [];
+    const outer: P3[] = [];
+    for (let k = 0; k <= 16; k++) {
+      const t = Math.PI + (k / 16 - 0.5) * 1.5;
+      inner.push(ringPoint(H, y, a, t));
+      outer.push(ringPoint(H, y, a * 1.75, Math.PI + (k / 16 - 0.5) * 1.1));
+    }
+    ctx.beginPath();
+    [...inner, ...outer.reverse()].forEach((q, i) => (i ? ctx.lineTo(q.x + cx, q.y) : ctx.moveTo(q.x + cx, q.y)));
+    ctx.closePath();
+    ctx.fillStyle = cLo;
+    ctx.fill();
+    ctx.strokeStyle = cLip;
+    ctx.lineWidth = H.R * 0.035;
+    ctx.stroke();
+  }
+}
+
+/** Details lying on a cap's surface (only the side facing us): stitches, knit ribs, a cuff, a ribbon, a rind, seeds, panels. */
+function drawCapDetails(ctx: Ctx, item: Accessory, H: Head, cx: number, seatY: number, a: number, h: number) {
+  const R = H.R;
+  const turn = Math.sin(H.yaw);
+  const pt = (f: number, t: number) => capPoint(H, cx, seatY, a, h, f, t - turn * 0.6);
+  const path = (pts: P3[]) => {
+    ctx.beginPath();
+    pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+  };
+  /** A line round the cap at height f, the part facing us. */
+  const round = (f: number) => {
+    const out: P3[] = [];
+    for (let k = 0; k <= 48; k++) {
+      const q = pt(f, -Math.PI + (k / 48) * Math.PI * 2);
+      if (q.z > 0) out.push(q);
+    }
+    return out.sort((p, q) => p.x - q.x);
+  };
+  /** A line from the edge up towards the top at angle t (a meridian). */
+  const meridian = (t: number, f0: number, f1: number) => {
+    const out: P3[] = [];
+    for (let k = 0; k <= 12; k++) {
+      const q = pt(f0 + ((f1 - f0) * k) / 12, t);
+      if (q.z > 0) out.push(q);
+    }
+    return out;
+  };
+  const spots = (list: [number, number, number][], colour: string, size: number) => {
+    ctx.fillStyle = colour;
+    for (const [f, t, sz] of list) {
+      const q = pt(f, t);
+      if (q.z <= 0.05 * a) continue;
+      const k = Math.min(1, q.z / (0.8 * a));
+      ctx.beginPath();
+      ctx.ellipse(q.x, q.y, R * size * sz * (0.45 + 0.55 * k), R * size * sz * 1.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (item === "bucketHat" || item === "strawSunHat") {
+    if (item === "strawSunHat") {
+      // The ribbon round the crown, just above the brim.
+      ctx.strokeStyle = "#3FC1C9";
+      ctx.lineWidth = R * 0.12;
+      path(round(0.1));
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(160,120,40,0.35)";
+      ctx.lineWidth = Math.max(0.8, R * 0.02);
+      for (const f of [0.4, 0.62, 0.82]) { path(round(f)); ctx.stroke(); }
+    } else {
+      // Two rings of stitching.
+      ctx.strokeStyle = "rgba(120,100,50,0.6)";
+      ctx.lineWidth = Math.max(0.8, R * 0.022);
+      ctx.setLineDash([R * 0.05, R * 0.05]);
+      for (const f of [0.22, 0.5]) { path(round(f)); ctx.stroke(); }
+      ctx.setLineDash([]);
+    }
+  } else if (item === "bobbleBeanie") {
+    // Knit ribs on meridians, then the folded cuff over them.
+    ctx.strokeStyle = "rgba(120,10,20,0.32)";
+    ctx.lineWidth = Math.max(0.8, R * 0.03);
+    for (let r = -8; r <= 8; r++) {
+      const m = meridian(r * 0.2, 0.26, 0.97);
+      if (m.length > 1) { path(m); ctx.stroke(); }
+    }
+    const lo = round(0);
+    const hi = round(0.26);
+    if (lo.length > 1 && hi.length > 1) {
+      ctx.beginPath();
+      lo.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+      for (const q of [...hi].reverse()) ctx.lineTo(q.x, q.y);
+      ctx.closePath();
+      ctx.fillStyle = "#F4F5F7";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(150,150,165,0.45)";
+      ctx.lineWidth = Math.max(0.8, R * 0.025);
+      for (let r = -12; r <= 12; r++) {
+        const m = meridian(r * 0.14, 0.02, 0.24);
+        if (m.length > 1) { path(m); ctx.stroke(); }
+      }
+    }
+  } else if (item === "eggshellHat") {
+    // Little painted speckles and one crack.
+    spots([[0.3, 0.2, 1], [0.55, -0.6, 0.9], [0.5, 0.9, 0.8], [0.75, 0.1, 0.8], [0.3, -1.2, 0.8]], "#8FD6C3", 0.07);
+    spots([[0.42, -0.2, 0.9], [0.65, 0.55, 0.8], [0.28, 1.3, 0.7]], "#F7A9C8", 0.07);
+    spots([[0.6, -1.1, 0.8], [0.38, 0.65, 0.7]], "#F2C744", 0.07);
+    ctx.strokeStyle = "rgba(160,140,190,0.8)";
+    ctx.lineWidth = Math.max(0.8, R * 0.025);
+    const crack = [pt(0.55, -0.35), pt(0.62, -0.22), pt(0.58, -0.08), pt(0.68, 0.05)].filter((q) => q.z > 0);
+    if (crack.length > 1) { path(crack); ctx.stroke(); }
+  } else if (item === "watermelonCap") {
+    // The rind at the edge (green, then a pale line), black seeds on the red.
+    ctx.strokeStyle = "#3E9C4A";
+    ctx.lineWidth = R * 0.16;
+    path(round(0.03));
+    ctx.stroke();
+    ctx.strokeStyle = "#F4FFF0";
+    ctx.lineWidth = R * 0.045;
+    path(round(0.16));
+    ctx.stroke();
+    spots([[0.4, 0, 1], [0.45, 0.7, 0.9], [0.45, -0.7, 0.9], [0.7, 0.35, 0.8], [0.7, -0.35, 0.8], [0.35, 1.35, 0.8], [0.35, -1.35, 0.8], [0.9, 0, 0.7]], "#22302A", 0.05);
+  } else if (item === "backwardsCap") {
+    // Six panels meeting at a button; at the front (his back of the cap faces us) the strap opening.
+    ctx.strokeStyle = "rgba(120,20,30,0.45)";
+    ctx.lineWidth = Math.max(0.8, R * 0.028);
+    for (const t of [-1.05, 0, 1.05]) {
+      const m = meridian(t, 0.05, 0.98);
+      if (m.length > 1) { path(m); ctx.stroke(); }
+    }
+    const arch: P3[] = [];
+    for (let k = 0; k <= 12; k++) {
+      const u = k / 12;
+      arch.push(pt(Math.sin(u * Math.PI) * 0.3, (u - 0.5) * 0.7));
+    }
+    const vis = arch.filter((q) => q.z > 0);
+    if (vis.length > 1) {
+      path(vis);
+      ctx.fillStyle = "rgba(40,10,15,0.35)";
+      ctx.fill();
+      ctx.strokeStyle = "#2B2F36";
+      ctx.lineWidth = R * 0.05;
+      ctx.stroke();
+    }
+    const top = pt(1, 0);
+    ctx.fillStyle = "#C93C45";
+    ctx.beginPath();
+    ctx.arc(top.x, top.y + R * 0.02, R * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 let outside: { key: string; path: Path2D } | null = null;
@@ -1045,7 +1237,6 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
       drawCap(l, outfit, H);
       return;
     }
-    if (DOME.has(outfit)) drawDome(l, outfit, art, H);
     const A = headAnchors(H);
     for (const st of wrapStrokes(outfit, H, A, art)) {
       if (st.back) continue;
