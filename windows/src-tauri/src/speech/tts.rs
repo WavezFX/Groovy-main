@@ -275,7 +275,7 @@ fn reap_idle() {
 
 /// Kokoro is in memory now.
 pub fn is_loaded() -> bool {
-    engine().try_lock().map(|e| e.is_some()).unwrap_or(true)
+    engine().try_lock().map(|e| e.is_some()).unwrap_or(true) || super::helper::is_running(super::helper::Kind::Tts)
 }
 
 /// Frees Kokoro now (memory pressure, or speech recognition needs the room).
@@ -286,6 +286,7 @@ pub fn free() {
             crate::log::line("Kokoro freed (memory)");
         }
     }
+    super::helper::stop(super::helper::Kind::Tts);
 }
 
 /// The longest piece Kokoro speaks at once. Its working memory grows with the
@@ -328,7 +329,18 @@ fn clauses(text: &str, max: usize) -> Vec<String> {
 }
 
 /// Kokoro's WAV for `text` at a speed (Settings → Speaking), if Kokoro is downloaded.
+/// In Kokoro's helper process (round 3N item 2), or here if it can't start.
 pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
+    if super::helper::enabled() {
+        if let Some(r) = super::helper::kokoro(text, gender, speed) {
+            return r;
+        }
+    }
+    kokoro_here(text, gender, speed)
+}
+
+/// Kokoro's WAV, made in this process.
+pub(crate) fn kokoro_here(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     let tts = load()?;
     let config = GenerationConfig { sid: kokoro_speaker(gender), speed: clamp_speed(speed), ..Default::default() };
     let mut samples: Vec<f32> = Vec::new();

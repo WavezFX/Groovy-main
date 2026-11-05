@@ -1260,6 +1260,10 @@ fn use_small_async_runtime() {
 }
 
 pub fn run() {
+    // Round 3N item 2: a speech helper process serves its engine and exits, nothing else.
+    if speech::helper::run_if_helper() {
+        return;
+    }
     resources::loads::process_started();
     use_small_async_runtime();
     platform::prepare_environment();

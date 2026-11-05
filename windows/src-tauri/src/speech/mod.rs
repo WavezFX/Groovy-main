@@ -14,6 +14,7 @@ mod kokoro_files;
 pub mod mapped;
 mod whisper_files;
 pub use whisper_files::set as whisper_set;
+pub mod helper;
 pub mod kws;
 pub mod tts;
 
@@ -414,7 +415,7 @@ fn touch() {
 
 /// Parakeet is in memory now.
 pub fn is_loaded() -> bool {
-    recognizer_slot().lock().unwrap().is_some()
+    recognizer_slot().lock().unwrap().is_some() || helper::is_running(helper::Kind::Stt)
 }
 
 /// The loaded recognizer, loading it on first use (about 2 s).
@@ -470,7 +471,9 @@ pub fn get_ready(app: &AppHandle) {
         }
     });
     std::thread::spawn(move || {
-        let _ = recognizer();
+        if !(helper::enabled() && helper::warm()) {
+            let _ = recognizer();
+        }
         done.store(true, std::sync::atomic::Ordering::Relaxed);
     });
 }
@@ -486,6 +489,7 @@ pub fn unload_idle_now() {
         }
     }
     crate::voice::free_now();
+    helper::stop(helper::Kind::Stt);
     kws::free_if_idle();
 }
 
@@ -494,6 +498,7 @@ pub fn unload() {
     if recognizer_slot().lock().unwrap().take().is_some() {
         crate::log::line("Parakeet freed");
     }
+    helper::stop(helper::Kind::Stt);
 }
 
 /// Frees Parakeet once unused for the idle setting (the resources thread).
@@ -515,8 +520,18 @@ pub struct Transcript {
 /// quietest, near this length.
 const MAX_CHUNK_SECONDS: f64 = 28.0;
 
-/// Transcribes 16 kHz mono audio.
+/// Transcribes 16 kHz mono audio: in the speech helper (round 3N item 2), or here if it can't start.
 pub fn transcribe(samples: &[f32]) -> Option<Transcript> {
+    if whisper().is_none() && helper::enabled() {
+        if let Some(r) = helper::parakeet(samples) {
+            return r;
+        }
+    }
+    transcribe_here(samples)
+}
+
+/// Transcribes 16 kHz mono audio in this process.
+pub(crate) fn transcribe_here(samples: &[f32]) -> Option<Transcript> {
     if let Some((model, language)) = whisper() {
         return transcribe_whisper(&model, language.as_deref(), samples);
     }

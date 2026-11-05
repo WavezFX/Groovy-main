@@ -343,7 +343,11 @@ mod os {
         tree.into_iter()
             .filter_map(|pid| {
                 let exe = table.get(&pid).map(|(_, e)| e.clone()).unwrap_or_default();
-                let kind = kind_of(&exe, pid == me)?;
+                // The speech helpers (round 3N item 2) are copies of groovy.exe: named for what they run.
+                let kind = match crate::speech::helper::label(pid) {
+                    Some(l) => l.to_string(),
+                    None => kind_of(&exe, pid == me)?,
+                };
                 Some(Part { kind, mb: private_working_set(pid)? })
             })
             .collect()

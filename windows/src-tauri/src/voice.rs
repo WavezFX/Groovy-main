@@ -242,7 +242,18 @@ fn load(model: &str, language: Option<&str>) -> Result<OfflineRecognizer, String
     OfflineRecognizer::create(&config).ok_or_else(|| "The speech model couldn't be loaded.".to_string())
 }
 
+/// Whisper in the speech helper (round 3N item 2), or here if it can't start.
 fn run(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<String, String> {
+    if crate::speech::helper::enabled() {
+        if let Some(r) = crate::speech::helper::whisper(model, language, pcm, wake) {
+            return r;
+        }
+    }
+    run_here(model, language, pcm, wake)
+}
+
+/// Whisper in this process.
+pub(crate) fn run_here(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> Result<String, String> {
     let model = current_name(model);
     if !installed(model) {
         return Err("Download a speech model in Settings → Voice first.".into());
