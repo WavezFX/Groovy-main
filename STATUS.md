@@ -336,3 +336,12 @@ Studied Coucou's MIT `windows/src/mochi/outfits.ts` for its *technique* only (no
 - **Item 2, speech in helpers:** Parakeet, Whisper and Kokoro run in `groovy.exe --speech-helper stt|tts <idle s>` processes (`speech/helper.rs`), started on first use, answering over a pipe, exiting after Groovy's idle setting (or when Groovy closes). The main process loads no speech model; if a helper can't start, the engine runs in-process as before. The memory meter names them "speech helper" / "voice helper". The wake-word spotter (a few MB) stays in the main process. Checked here: the helper protocol end to end on Linux (spawn, answer, exit on idle and on pipe close). **Peak and idle not measured yet: read them from the [build] below, then set the gates.**
 - **Item 3, clipboard tile:** an island tile (add it from the tiles picker) shown only while clipboard history is on: the newest copy as its subtitle, grown it lists the latest six (tap to copy back) and Clear. Memory only, nothing read while the switch is off.
 - **Item 4, Dialog Jump: not started.** It needs Windows UI Automation that CI can't check, and the brief makes it conditional on items 1-3 being green, which this build is the first to show.
+
+### Round 3N item 2, measured (build run 41947601630, commit 64c168e, dispatched by hand because the md-only [build] commit was filtered out by the workflow's `paths`)
+| | Before (build #216, in-process) | After (helpers) | Gate |
+|---|---|---|---|
+| Idle total (portable / installed) | 107.8 / 112.3 MB | 112.1 / 115.1 MB (groovy.exe 5.4 / 10.2) | 130, unchanged |
+| Idle CPU | 0.10 / 0.18 % | 0.04 / 0.17 % | unchanged |
+| Peak test (meter / Windows) | 330.2 / 328.8 MB | **352.1 / 352.1 MB**: voice helper 172, WebView2 134, groovy.exe 46 | 360, unchanged |
+| Work test, peak while working | 427.8 MB | 446.3 MB | not gating |
+**Result: the helpers did not lower the peak; it rose by about 22 MB**, the cost of a second process (its own runtime and onnxruntime's copy of the libraries) while Kokoro speaks. What the helpers do give: the main process holds no model (46 MB at the peak, 5–10 MB idle) and everything a model grew to is returned when its helper exits. The peak is now Kokoro's working memory (172 MB in its helper). Gates not lowered (the peak is 8 MB under 360). Item 2 stays open: next options are smaller Kokoro clauses, or Kokoro's helper exiting after each reply outside a call; or going back to in-process if the owner prefers the 22 MB. Not decided here.
