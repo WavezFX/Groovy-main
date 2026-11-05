@@ -475,3 +475,37 @@ export function remindersGrown(back: () => void): Grown {
     shown: (on) => inner.shown(on),
   };
 }
+
+// ── Clipboard (round 3N item 3) ───────────────────────────────────────────────
+
+/** The latest few copied texts (memory only, behind the clipboard switch): tap one to copy it back; Clear forgets all. */
+export function clipboardGrown(back: () => void): Grown {
+  const list = h("div", { class: "grow-body grow-clips" });
+  const wipe = h("button", { class: "grow-back grow-size", type: "button", text: t("Clear") });
+  const head = h("div", { class: "grow-head" }, backButton(t("Back"), back), h("b", { class: "grow-title", text: t("Clipboard") }), wipe);
+  const draw = async () => {
+    const items = await Bridge.clipboardHistory().catch(() => []);
+    clear(list);
+    if (!items.length) {
+      list.append(h("span", { class: "grow-sub", text: t("Nothing copied yet.") }));
+      return;
+    }
+    items.slice(0, 6).forEach((item, i) => {
+      const text = item.text.replace(/\s+/g, " ").trim();
+      list.append(h("button", {
+        class: "grow-btn grow-clip",
+        type: "button",
+        title: text,
+        text: text.length > 60 ? `${text.slice(0, 59)}…` : text,
+        onclick: () => void Bridge.clipboardCopy(i).then(back, showError),
+      }));
+    });
+  };
+  wipe.addEventListener("click", () => void Bridge.clipboardClear().then(draw, showError));
+  return {
+    el: h("div", { class: "grow-panel grow-clipboard" }, head, list),
+    shown(on) {
+      if (on) void draw();
+    },
+  };
+}

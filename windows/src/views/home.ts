@@ -301,7 +301,7 @@ export function buildHome(actions: ViewActions): ViewHost {
   const grown = (k: Expanded | "strip"): Grown => {
     let g = grownTiles.get(k);
     if (!g) {
-      const { mailGrown, musicGrown, musicStrip, remindersGrown, systemGrown } = expand!;
+      const { clipboardGrown, mailGrown, musicGrown, musicStrip, remindersGrown, systemGrown } = expand!;
       g = k === "music" ? musicGrown(fold)
         : k === "mail" ? mailGrown(fold, () => {
           State.mailFull = !State.mailFull;
@@ -309,6 +309,7 @@ export function buildHome(actions: ViewActions): ViewHost {
         })
         : k === "system" ? systemGrown(fold)
         : k === "reminders" ? remindersGrown(fold)
+        : k === "clipboard" ? clipboardGrown(fold)
         : musicStrip();
       grownTiles.set(k, g);
     }
@@ -359,7 +360,8 @@ export function buildHome(actions: ViewActions): ViewHost {
 
   function draw() {
     const declared = sanitizeDeclared(State.settings, State.os);
-    const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles;
+    // The clipboard tile shows only while its switch is on (round 3N item 3).
+    const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles.filter((x) => x.kind !== "clipboard" || State.settings.clipboardHistory === true);
     let exp = State.mode === "expanded" ? State.homeExpanded : null;
     if (exp && !expand) {
       // Its code is on its way: the tiles stay as they are a moment longer.

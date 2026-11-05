@@ -48,6 +48,9 @@ let system: { cpu: number; mem: number } | null = null;
 let systemAt = 0;
 let nextReminder: { text: string; dueAt: number } | null = null;
 let remindersAt = 0;
+/** The newest clipboard item, as last read (round 3N item 3); only read while the switch is on. */
+let latestClip: string | null = null;
+let clipAt = 0;
 
 /** The PC's load and the next reminder, read at most every 30 s and 60 s. */
 export function refreshSlowData(onChange: () => void) {
@@ -59,6 +62,16 @@ export function refreshSlowData(onChange: () => void) {
       system = { cpu: Math.round(s.cpuUsage), mem: Math.round((1 - s.memoryAvailable / Math.max(1, s.memoryTotal)) * 100) };
       onChange();
     });
+  }
+  if (State.settings.clipboardHistory === true && now - clipAt > 5_000) {
+    clipAt = now;
+    void Bridge.clipboardHistory().then((list) => {
+      const first = list[0]?.text.replace(/\s+/g, " ").trim() ?? null;
+      if (first !== latestClip) {
+        latestClip = first;
+        onChange();
+      }
+    }, () => {});
   }
   if (now - remindersAt > 60_000) {
     remindersAt = now;
@@ -74,6 +87,7 @@ export function refreshSlowData(onChange: () => void) {
 export function forgetSlowData() {
   remindersAt = 0;
   systemAt = 0;
+  clipAt = 0;
 }
 
 /** Grows a tile in place on the island's tiles (round 3D item 8). */
@@ -183,6 +197,14 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         title: t("Reminders"),
         sub: nextReminder?.text ?? t("Nothing due"),
         open: () => openPanel("reminders", setView),
+      };
+    case "clipboard":
+      return {
+        icon: "📋",
+        color: "#60A5FA",
+        title: t("Clipboard"),
+        sub: latestClip ?? t("Nothing copied yet."),
+        open: () => openPanel("clipboard", setView),
       };
     case "system":
       return {

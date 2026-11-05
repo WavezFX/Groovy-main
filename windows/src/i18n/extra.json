@@ -20586,6 +20586,17 @@
    "pt-BR": "Nada copiado ainda.",
    "ru": "Пока ничего не скопировано.",
    "id": "Belum ada yang disalin."
+  },
+  "Clipboard": {
+   "zh-Hans": "剪贴板",
+   "hi": "क्लिपबोर्ड",
+   "es": "Portapapeles",
+   "ar": "الحافظة",
+   "fr": "Presse-papiers",
+   "bn": "ক্লিপবোর্ড",
+   "pt-BR": "Área de transferência",
+   "ru": "Буфер обмена",
+   "id": "Papan klip"
   }
  }
 }

@@ -102,7 +102,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 1N. Fixes round 3N: `FIXES_ROUND3N.md` (finish the leftovers). **Do this NEXT, in one run.**
 - [x] Item 1: the rest of the hats are worn, not pasted (bucket, beanie, eggshell, watermelon, backwards cap, straw hat; beret, top hat, antlers, ears, bat wings on his crown)
 - [ ] Item 2: peak memory down to 300 MB (speech engines in on-demand helpers, then the gates from real numbers)
-- [ ] Item 3: clipboard history island tile
+- [x] Item 3: clipboard history island tile
 - [ ] Item 4: Dialog Jump (optional)
 - [ ] Item 5: checks, one `[build]`, release updated
 

@@ -8,7 +8,7 @@ import type { Settings } from "./state";
 /** Spotify's pill: on the island it is the Music tile. */
 const SPOTIFY = "integration_spotify";
 
-export type TileKind = "app" | "site" | "folder" | "service" | "mail" | "music" | "agents" | "reminders" | "system";
+export type TileKind = "app" | "site" | "folder" | "service" | "mail" | "music" | "agents" | "reminders" | "system" | "clipboard";
 export type TileSize = "compact" | "expanded";
 export type IslandPreset = "developer" | "everyday" | "custom";
 
@@ -37,8 +37,8 @@ export interface IslandTiles {
 
 /** Generous: the island pages its tiles (round 3), this only stops a runaway file. */
 export const MAX_TILES = 60;
-const KINDS: readonly TileKind[] = ["app", "site", "folder", "service", "mail", "music", "agents", "reminders", "system"];
-const SINGLE: readonly TileKind[] = ["mail", "music", "agents", "reminders", "system"];
+const KINDS: readonly TileKind[] = ["app", "site", "folder", "service", "mail", "music", "agents", "reminders", "system", "clipboard"];
+const SINGLE: readonly TileKind[] = ["mail", "music", "agents", "reminders", "system", "clipboard"];
 
 export function tile(kind: TileKind, target = "", label = "", size: TileSize = "compact"): Tile {
   return { id: SINGLE.includes(kind) ? kind : `${kind}:${target}`, kind, target, label, size };

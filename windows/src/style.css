@@ -3418,6 +3418,8 @@ html[data-dir="rtl"] #views :is(.bubble, .reply .md-p, .reply .md-h, .reply .md-
 
 /* Reminders reuse the panel's list inside the grown tile. */
 .grow-reminders .panel-reminders { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.grow-clips { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; }
+.grow-clips .grow-clip { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* ── Glass (round 3 item 2c, round 3B item 1b, round 3C item 1): frosted.
    Windows blurs what is behind (Windows 11's host backdrop, clipped to the
