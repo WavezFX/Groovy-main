@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groovy settings: Character and wardrobe</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px}
+.lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7E8883}
+.seg{height:34px;padding:0 16px;border-radius:9px;border:0;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:92px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:#EEF3F0}
+input[type=text]{height:36px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:#14181B;color:#EEF3F0;font-family:inherit;font-size:14px;padding:0 12px;width:200px}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; display: flex; background: #0A0C0E; font-family: Manrope, system-ui, sans-serif; color: #EEF3F0; overflow: hidden">
+  <dc-import name="Sidebar" active="character" hint-size="272px,800px"></dc-import>
+  <main style="flex-grow: 1; min-width: 0; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; box-sizing: border-box">
+    <header style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 12px; color: #7E8883">Groovy › Character &amp; wardrobe</div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700">Your Groovy</h1>
+      <p style="margin: 0; font-size: 13.5px; color: #9AA59F">His look, how far he has grown, and what he's wearing.</p>
+    </header>
+    <div style="display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: start">
+      <section class="card" style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px" aria-label="Look and growth">
+        <div style="width: 100%; height: 250px; border-radius: 14px; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center">
+          <svg width="190" height="215" viewBox="0 -14 100 114" aria-hidden="true" style="filter: drop-shadow(0 0 18px {{glow}})"><sc-if value="{{isNight}}" hint-placeholder-val="{{true}}"><path d="M50 30C49 22 50 16 52 10" stroke="#3E7A2E" stroke-width="3" stroke-linecap="round" fill="none"></path><path d="M51 16C42 12 36 14 33 8C42 5 48 9 51 16ZM51 13C59 7 66 8 70 3C64 0 56 3 51 13Z" fill="#5FC46A"></path></sc-if><sc-if value="{{isEmber}}" hint-placeholder-val="{{false}}"><path d="M50 6C56 14 62 16 60 26C66 24 66 30 62 34H38C34 30 34 24 40 26C38 16 44 14 50 6Z" fill="#FF8A3D"></path><path d="M50 16C53 21 56 23 54 29H46C44 23 47 21 50 16Z" fill="#FFD27A"></path></sc-if><sc-if value="{{isFrost}}" hint-placeholder-val="{{false}}"><path d="M40 22C40 18 43 16 43 13C43 16 46 18 46 22C46 25 40 25 40 22ZM56 18C56 14 59 12 59 9C59 12 62 14 62 18C62 21 56 21 56 18Z" fill="#7FC8FF"></path></sc-if><rect x="14" y="30" width="72" height="62" rx="28" fill="{{body}}"></rect><ellipse cx="50" cy="88" rx="30" ry="5" fill="#000" opacity="0.06"></ellipse><ellipse cx="38" cy="62" rx="7" ry="4" transform="rotate(-12 38 62)" fill="{{eye}}"></ellipse><ellipse cx="62" cy="62" rx="7" ry="4" transform="rotate(12 62 62)" fill="{{eye}}"></ellipse><ellipse cx="38" cy="61" rx="2" ry="1.3" fill="#FFFFFF" opacity="0.8"></ellipse><ellipse cx="62" cy="61" rx="2" ry="1.3" fill="#FFFFFF" opacity="0.8"></ellipse></svg>
+        </div>
+        <div role="radiogroup" aria-label="Look" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,0.04)">
+          <sc-for list="{{looks}}" as="l" hint-placeholder-count="3"><button type="button" role="radio" class="seg" aria-checked="{{l.sel}}" onClick="{{l.pick}}" style="background: {{l.bg}}; color: {{l.fg}}">{{l.label}}</button></sc-for>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%"><label for="nm" style="font-size: 14px; font-weight: 600; flex-grow: 1">His name</label><input id="nm" type="text" value="Groovy"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%">
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px"><span style="font-weight: 600">{{grown}}</span><span style="color: #8C9691">Stage 2 of 6</span></div>
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px"><sc-for list="{{stages}}" as="s" hint-placeholder-count="7"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="height: 6px; width: 100%; border-radius: 3px; background: {{s.bg}}"></span><span style="font-size: 10.5px; color: #8C9691">{{s.t}}</span></div></sc-for></div>
+        </div>
+      </section>
+      <section style="display: flex; flex-direction: column; gap: 10px" aria-label="Wardrobe">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <div role="tablist" aria-label="Slot" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,0.04)">
+            <sc-for list="{{slots}}" as="t" hint-placeholder-count="4"><button type="button" role="tab" class="seg" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button></sc-for>
+          </div>
+          <button type="button" class="seg" style="background: transparent; color: #9AA59F; border: 1px solid rgba(255,255,255,0.12)">Remove all</button>
+        </div>
+        <div class="card" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px">
+          <sc-for list="{{items}}" as="it" hint-placeholder-count="12">
+            <button type="button" class="item" aria-pressed="{{it.sel}}" onClick="{{it.pick}}" style="background: {{it.bg}}; border: {{it.bd}}; opacity: {{it.op}}">
+              <span style="width: 34px; height: 34px; border-radius: 10px; background: {{it.sw}}"></span><span>{{it.name}}</span><sc-if value="{{it.lock}}" hint-placeholder-val="{{false}}"><span style="font-size: 10.5px; color: #F5C66B">{{it.lock}}</span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { look: 'night', slot: 'Head', item: 'Leaf crown' }; }
+  renderVals() {
+    const s = this.state;
+    const L = { night: ['#E4F6E8', '#1F7A44', 'rgba(70,235,120,0.55)', 'Growing into Grove'], ember: ['#FFF0E6', '#B5521A', 'rgba(255,138,61,0.55)', 'Growing into Blaze'], frost: ['#E6F2FF', '#2C6FB0', 'rgba(127,200,255,0.55)', 'Growing into Tide'] };
+    const seg = (on) => ({ bg: on ? 'rgba(255,255,255,0.1)' : 'transparent', fg: on ? '#EEF3F0' : '#9AA59F', sel: on ? 'true' : 'false' });
+    const looks = [['night', 'Night'], ['ember', 'Ember'], ['frost', 'Frost']].map(([id, label]) => ({ label, ...seg(s.look === id), pick: () => this.setState({ look: id }) }));
+    const slots = ['Head', 'Face', 'Neck', 'Seasonal'].map((id) => ({ label: id, ...seg(s.slot === id), pick: () => this.setState({ slot: id }) }));
+    const D = {
+      Head: [['Leaf crown', '#5FC46A'], ['Acorn cap', '#A9713F'], ['Mushroom cap', '#E4574B'], ['Flower crown', '#F59AC0', 'Stage 2'], ['Bucket hat', '#D9C79A'], ['Backwards cap', '#4B7BE5'], ['Headphones', '#2B2F33'], ['Pilot goggles', '#8C6A4A'], ['Beret & pin', '#B23A48'], ['Mini top hat', '#1C1C1C', 'Stage 3'], ['Cloud buddy', '#EEF3F8', 'Stage 4'], ['Antenna', '#9AE6B4']],
+      Face: [['Round specs', '#C9A15B'], ['Shades', '#1C1C1C'], ['Heart glasses', '#F05A8A'], ['Glow visor', '#46EB78'], ['Monocle', '#C9A15B'], ['Freckles', '#E3A07A'], ['Star stickers', '#F5C842'], ['Pirate patch', '#2B2F33']],
+      Neck: [['Bandana', '#D9483B'], ['Bow tie', '#3355CC'], ['Leaf scarf', '#4FA35C'], ['Seed pendant', '#B98A4E', 'Stage 1'], ['Neck phones', '#2B2F33'], ['Gold chain', '#E0B84A', 'Stage 5'], ['Flower lei', '#F59AC0'], ['Necktie', '#7B3FA0']],
+      Seasonal: [['Pumpkin cap', '#FF8A2B'], ['Bat-wing band', '#4B3560'], ['Candy-corn scarf', '#FFD23F'], ['Little ghost pal', '#F2F2F7'], ['Bobble beanie', '#E5484D', 'Comes back in Dec'], ['Twig antlers', '#8A5A36', 'Comes back in Dec'], ['Bunny-ear band', '#F7C6DD', 'Comes back at Easter'], ['Straw sun hat', '#E8C774', 'Comes back in June']]
+    };
+    const items = D[s.slot].map(([name, sw, lock]) => {
+      const on = s.item === name;
+      const locked = !!lock && !(lock === 'Stage 1' || lock === 'Stage 2');
+      return { name, sw, lock: locked ? lock : '', sel: on ? 'true' : 'false', op: locked ? '0.55' : '1', bg: on ? 'rgba(70,235,120,0.10)' : 'rgba(255,255,255,0.03)', bd: on ? '1.5px solid #46EB78' : (locked ? '1px dashed rgba(255,255,255,0.18)' : '1px solid rgba(255,255,255,0.06)'), pick: () => { if (!locked) this.setState({ item: name }); } };
+    });
+    const st = ['Seed', '1 d', '3 d', '1 wk', '2 wk', '1 mo', '6 mo'].map((t, i) => ({ t, bg: i <= 2 ? L[s.look][2].replace('0.55', '1') : 'rgba(255,255,255,0.1)' }));
+    const c = L[s.look];
+    return { looks, slots, items, stages: st, body: c[0], eye: c[1], glow: c[2], grown: c[3], isNight: s.look === 'night', isEmber: s.look === 'ember', isFrost: s.look === 'frost' };
+  }
+}
+</script>
+</body>
+</html>

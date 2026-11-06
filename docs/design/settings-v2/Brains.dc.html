@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groovy settings: Brains</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px}
+.lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7E8883}
+.btn{height:32px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#EEF3F0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.ib{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#C4CBC7;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tab{height:34px;padding:0 16px;border-radius:9px;border:0;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.pill{font-size:11.5px;font-weight:700;border-radius:10px;padding:3px 9px;white-space:nowrap}
+.tog{width:40px;height:24px;border-radius:12px;border:0;padding:2px;cursor:pointer;display:flex;align-items:center}
+.knob{width:20px;height:20px;border-radius:10px;background:#fff}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; display: flex; background: #0A0C0E; font-family: Manrope, system-ui, sans-serif; color: #EEF3F0; overflow: hidden">
+  <dc-import name="Sidebar" active="brains" hint-size="272px,800px"></dc-import>
+  <main style="flex-grow: 1; min-width: 0; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; box-sizing: border-box">
+    <header style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 12px; color: #7E8883">AI › Brains</div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700">Brains</h1>
+      <p style="margin: 0; font-size: 13.5px; color: #9AA59F">Which AI Groovy thinks with, and what he switches to when one runs out.</p>
+    </header>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div role="tablist" aria-label="Brain type" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,0.04); align-self: flex-start">
+          <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3">
+            <button type="button" role="tab" class="tab" aria-selected="{{tb.sel}}" onClick="{{tb.pick}}" style="background: {{tb.bg}}; color: {{tb.fg}}">{{tb.label}}</button>
+          </sc-for>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 18px; border-top: {{r.border}}">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: {{r.tint}}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #0A0C0E; flex-shrink: 0">{{r.mono}}</div>
+              <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span style="font-size: 14px; font-weight: 600">{{r.name}}</span><span style="font-size: 12px; color: #8C9691">{{r.desc}}</span></div>
+              <span class="pill" style="background: {{r.pbg}}; color: {{r.pfg}}">{{r.status}}</span>
+              <button type="button" class="btn">{{r.action}}</button>
+            </div>
+          </sc-for>
+        </div>
+        <div class="card" style="display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-style: dashed">
+          <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Router plugin</span><span style="font-size: 12px; color: #8C9691">Let a plugin pick the model for each job. Groovy's switching stays as the backup.</span></div>
+          <button type="button" class="btn">Add plugin</button>
+        </div>
+      </div>
+
+      <aside style="display: flex; flex-direction: column; gap: 12px" aria-label="Order">
+        <span class="lbl" style="padding-top: 12px">Auto order</span>
+        <div class="card" style="display: flex; flex-direction: column; padding: 6px">
+          <sc-for list="{{order}}" as="o" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 10px; border-radius: 10px">
+              <span style="width: 24px; height: 24px; border-radius: 12px; background: rgba(70,235,120,0.15); color: #7FF0A4; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{o.n}}</span>
+              <span style="font-size: 14px; font-weight: 600; flex-grow: 1">{{o.name}}</span>
+              <span style="font-size: 12px; color: #8C9691">{{o.kind}}</span>
+              <button type="button" class="ib" aria-label="Move up" onClick="{{o.up}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></button>
+            </div>
+          </sc-for>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 18px">
+            <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Switch when a limit is hit</span><span style="font-size: 12px; color: #8C9691">Moves to the next brain and tells you</span></div>
+            <button type="button" class="tog" role="switch" aria-checked="{{sw}}" aria-label="Switch when a limit is hit" onClick="{{flip}}" style="background: {{swbg}}"><span class="knob" style="transform: {{swtx}}"></span></button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)">
+            <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Model per job</span><span style="font-size: 12px; color: #8C9691">Chat, screen, writing, commands</span></div>
+            <button type="button" class="btn">Edit</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 'cloud', sw: true, order: ['Claude', 'Gemini', 'OpenAI', 'Ollama · Qwen', 'Built-in'] }; }
+  renderVals() {
+    const s = this.state;
+    const ok = ['rgba(70,235,120,0.15)', '#7FF0A4'], off = ['rgba(255,255,255,0.08)', '#9AA59F'], warn = ['rgba(245,184,75,0.16)', '#F5C66B'];
+    const R = {
+      cloud: [
+        ['C', '#E8A27C', 'Claude', 'Your API key · Sonnet for chat, Haiku for quick jobs', 'Connected', ok, 'Manage'],
+        ['G', '#8AB4F8', 'Gemini', 'Free tier · resets daily', 'Connected', ok, 'Manage'],
+        ['O', '#C9D1CD', 'OpenAI', 'Not set up', 'Not set up', off, 'Add key'],
+        ['R', '#C7A7FF', 'OpenRouter', 'Many models with one key', 'Not set up', off, 'Add key']
+      ],
+      subs: [
+        ['C', '#E8A27C', 'Claude subscription', 'Pro plan · used through Claude Code', 'Connected', ok, 'Manage'],
+        ['X', '#C9D1CD', 'ChatGPT subscription', 'Used through Codex', 'Not set up', off, 'Connect']
+      ],
+      local: [
+        ['Q', '#7FD4FF', 'Ollama · Qwen 2.5 3B', 'Found on this PC · unloads after 5 min idle', 'Ready', ok, 'Models'],
+        ['L', '#C9D1CD', 'LM Studio', 'Not installed', 'Not found', off, 'Get it'],
+        ['B', '#F5B84B', 'Built-in model', 'Uses extra memory: over the 400 MB limit', 'Off', warn, 'Turn on']
+      ]
+    };
+    const rows = R[s.tab].map((r, i) => ({ mono: r[0], tint: r[1], name: r[2], desc: r[3], status: r[4], pbg: r[5][0], pfg: r[5][1], action: r[6], border: i ? '1px solid rgba(255,255,255,0.06)' : '0' }));
+    const tabs = [['cloud', 'Cloud'], ['subs', 'Subscriptions'], ['local', 'On this PC']].map(([id, label]) => ({ label, sel: s.tab === id ? 'true' : 'false', bg: s.tab === id ? 'rgba(255,255,255,0.1)' : 'transparent', fg: s.tab === id ? '#EEF3F0' : '#9AA59F', pick: () => this.setState({ tab: id }) }));
+    const kinds = { 'Claude': 'cloud', 'Gemini': 'free', 'OpenAI': 'cloud', 'Ollama · Qwen': 'this PC', 'Built-in': 'this PC' };
+    const order = s.order.map((name, i) => ({ n: i + 1, name, kind: kinds[name], up: () => { if (!i) return; const o = s.order.slice(); [o[i - 1], o[i]] = [o[i], o[i - 1]]; this.setState({ order: o }); } }));
+    return { tabs, rows, order, sw: s.sw ? 'true' : 'false', swbg: s.sw ? '#46EB78' : 'rgba(255,255,255,0.16)', swtx: s.sw ? 'translateX(16px)' : 'translateX(0)', flip: () => this.setState({ sw: !s.sw }) };
+  }
+}
+</script>
+</body>
+</html>

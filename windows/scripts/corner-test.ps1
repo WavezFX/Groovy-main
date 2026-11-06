@@ -1,0 +1,224 @@
+# Checks that nothing but the rounded island is drawn (FIXES_ROUND3B item 1:
+# the "grey square"). Paints the desktop a bright solid colour, starts Groovy
+# held open on a layout (GROOVY_SMOKE_VIEW: "home" is the tiles, "player" the
+# Spotify tile grown to 4, at the island's grown size),
+# photographs its window, and fails if a bottom corner — outside the island's
+# rounded corners — is anything but the desktop colour. Then (round 3C item 1)
+# it puts a black-and-white text page behind the island and fails if that text
+# can be read through it: the island must be frosted, not clear.
+#
+#   pwsh scripts/corner-test.ps1 -Exe release\groovy.exe
+
+param(
+  [Parameter(Mandatory = $true)][string]$Exe,
+  [string[]]$Views = @("home", "player"),
+  [int]$WaitSeconds = 10,
+  [string]$OutDir = "corner-shots"
+)
+
+$ErrorActionPreference = "Stop"
+$Exe = (Resolve-Path $Exe).Path
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+Add-Type -AssemblyName System.Drawing
+
+Add-Type @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class CornerWin {
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  public delegate bool EnumProc(IntPtr hwnd, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hwnd);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT r);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hwnd, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern bool SetSysColors(int n, int[] elements, int[] colors);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SystemParametersInfo(int action, int param, string value, int flags);
+  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("gdi32.dll")] public static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+  [DllImport("user32.dll")] public static extern int GetWindowRgn(IntPtr hwnd, IntPtr rgn);
+  [DllImport("gdi32.dll")] public static extern int GetRgnBox(IntPtr rgn, out RECT r);
+  [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr o);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int cmd);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr hwnd, StringBuilder s, int n);
+  /// Minimises every other visible window (the runner's console sat behind
+  /// the island and filled its corners), leaving the desktop and taskbar.
+  public static IntPtr Keep = IntPtr.Zero;
+  public static int MinimizeOthers(uint pid) {
+    int n = 0;
+    EnumWindows((h, l) => {
+      uint p; GetWindowThreadProcessId(h, out p);
+      if (p == pid || h == Keep || !IsWindowVisible(h)) return true;
+      var cls = new StringBuilder(256); GetClassName(h, cls, 256);
+      var c = cls.ToString();
+      if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" || c == "Shell_SecondaryTrayWnd") return true;
+      if (ShowWindow(h, 6)) n++;
+      return true;
+    }, IntPtr.Zero);
+    return n;
+  }
+  public static IntPtr Island = IntPtr.Zero;
+  /// The island window's region, as "kind l,t,r,b" (kind 0: none, 1: empty, 2: a rectangle, 3: complex).
+  public static string RegionOf(IntPtr hwnd) {
+    IntPtr rgn = CreateRectRgn(0, 0, 0, 0);
+    int kind = GetWindowRgn(hwnd, rgn);
+    RECT b; GetRgnBox(rgn, out b);
+    DeleteObject(rgn);
+    return kind + " " + b.Left + "," + b.Top + "," + b.Right + "," + b.Bottom;
+  }
+  public static List<RECT> Windows(uint pid) {
+    var found = new List<RECT>();
+    EnumWindows((h, l) => {
+      uint p; GetWindowThreadProcessId(h, out p);
+      if (p != pid || !IsWindowVisible(h)) return true;
+      var title = new StringBuilder(256); GetWindowText(h, title, 256);
+      RECT r; GetWindowRect(h, out r);
+      if (title.ToString() == "Groovy" && r.Right - r.Left > 100 && r.Bottom - r.Top > 40) { found.Add(r); Island = h; }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+}
+"@
+[CornerWin]::SetProcessDPIAware() | Out-Null
+
+# A bright magenta desktop, no wallpaper picture.
+$wall = [System.Drawing.Color]::FromArgb(255, 0, 255)
+Set-ItemProperty -Path "HKCU:\Control Panel\Colors" -Name Background -Value "255 0 255"
+Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value ""
+[CornerWin]::SystemParametersInfo(20, 0, "", 3) | Out-Null
+[CornerWin]::SetSysColors(1, @(1), @(0x00FF00FF)) | Out-Null
+Start-Sleep -Seconds 1
+
+# Round 3C item 1: a busy black-and-white text page behind the island (the
+# corners are checked first, over the plain magenta desktop). The
+# island is photographed twice, the text moved 7 px between the two shots:
+# through clear glass the text shows, and the two shots differ as much as
+# the page does beside the island; through frosted glass they barely differ.
+Add-Type -AssemblyName System.Windows.Forms
+$screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$page = New-Object System.Windows.Forms.Form
+$page.FormBorderStyle = "None"
+$page.StartPosition = "Manual"
+$page.Bounds = $screen
+$page.BackColor = [System.Drawing.Color]::White
+$page.ShowInTaskbar = $false
+$script:shift = 0
+$font = New-Object System.Drawing.Font("Consolas", 11)
+$line = ("github.com  The quick brown fox jumps over the lazy dog 0123456789  " * 8)
+$page.Add_Paint({
+  param($sender, $e)
+  for ($y = 0; $y -lt $screen.Height; $y += 17) {
+    $e.Graphics.DrawString($line, $font, [System.Drawing.Brushes]::Black, ($script:shift - 60 + ($y % 34)), $y)
+  }
+})
+
+function Pump($ms) {
+  $until = (Get-Date).AddMilliseconds($ms)
+  while ((Get-Date) -lt $until) { [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 30 }
+}
+
+function Grab($x, $y, $w, $h) {
+  $b = New-Object System.Drawing.Bitmap $w, $h
+  $g = [System.Drawing.Graphics]::FromImage($b)
+  $g.CopyFromScreen($x, $y, 0, 0, $b.Size)
+  $g.Dispose()
+  return $b
+}
+
+# Mean difference of two shots over the part of the island that holds tiles,
+# not Groovy (who moves): from 40% to 95% of the width, 15% to 85% of the height.
+function Moved($a, $b) {
+  $sum = 0.0; $n = 0
+  for ($y = [int]($a.Height * 0.15); $y -lt [int]($a.Height * 0.85); $y += 2) {
+    for ($x = [int]($a.Width * 0.4); $x -lt [int]($a.Width * 0.95); $x += 2) {
+      $p = $a.GetPixel($x, $y); $q = $b.GetPixel($x, $y)
+      $sum += ([math]::Abs($p.R - $q.R) + [math]::Abs($p.G - $q.G) + [math]::Abs($p.B - $q.B)) / 3
+      $n++
+    }
+  }
+  return $sum / [math]::Max(1, $n)
+}
+
+function Near($a, $b) {
+  return [math]::Abs($a.R - $b.R) -le 12 -and [math]::Abs($a.G - $b.G) -le 12 -and [math]::Abs($a.B - $b.B) -le 12
+}
+
+$failed = 0
+foreach ($view in $Views) {
+  Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 1
+  [CornerWin]::MinimizeOthers(0) | Out-Null
+  $env:GROOVY_SMOKE_VIEW = $view
+  $proc = Start-Process -FilePath $Exe -PassThru
+  Start-Sleep -Seconds $WaitSeconds
+  # Only the desktop may be behind the island: whatever else is open (the
+  # runner's console) would fill the corners and hide the magenta.
+  $hidden = [CornerWin]::MinimizeOthers([uint32]$proc.Id)
+  # Groovy looks at its corners every second for its first minute: a moment
+  # to see the desktop it now has behind it.
+  Start-Sleep -Seconds 3
+  Write-Host "  ${view}: minimised $hidden other window(s)"
+  $rects = [CornerWin]::Windows([uint32]$proc.Id)
+  if ($rects.Count -eq 0) {
+    Write-Host "  [FAIL] ${view}: no island window on screen"
+    $failed++
+    continue
+  }
+  $r = $rects[0]
+  Write-Host "  ${view}: window $($r.Left),$($r.Top) to $($r.Right),$($r.Bottom); region (kind box): $([CornerWin]::RegionOf([CornerWin]::Island))"
+  $w = $r.Right - $r.Left
+  $h = $r.Bottom - $r.Top
+  $bmp = New-Object System.Drawing.Bitmap $w, $h
+  $g = [System.Drawing.Graphics]::FromImage($bmp)
+  $g.CopyFromScreen($r.Left, $r.Top, 0, 0, $bmp.Size)
+  $g.Dispose()
+  $shot = Join-Path $OutDir "corners-$view.png"
+  $bmp.Save($shot, [System.Drawing.Imaging.ImageFormat]::Png)
+  # The island's top corners are square (it hangs from the screen's edge);
+  # its bottom corners are rounded: just inside them is outside the island.
+  $points = @{ "bottom-left" = @(1, ($h - 2)); "bottom-right" = @(($w - 2), ($h - 2)) }
+  foreach ($name in $points.Keys) {
+    $p = $points[$name]
+    $c = $bmp.GetPixel($p[0], $p[1])
+    $ok = Near $c $wall
+    if (-not $ok) { $failed++ }
+    Write-Host ("  [{0}] {1} {2} corner ({3},{4}) = rgb({5},{6},{7}) in a {8}x{9} window" -f $(if ($ok) { "PASS" } else { "FAIL" }), $view, $name, $p[0], $p[1], $c.R, $c.G, $c.B, $w, $h)
+  }
+  # Round 3C item 1: frosted, not clear. The text page goes behind the island.
+  $page.Show()
+  [CornerWin]::Keep = $page.Handle
+  Pump 900
+  $besideY = [math]::Min($r.Bottom + 24, $screen.Height - $h - 1)
+  $in1 = Grab $r.Left $r.Top $w $h
+  $out1 = Grab $r.Left $besideY $w $h
+  $script:shift += 7
+  $page.Invalidate()
+  Pump 700
+  $in2 = Grab $r.Left $r.Top $w $h
+  $out2 = Grab $r.Left $besideY $w $h
+  $in1.Save((Join-Path $OutDir "frosted-$view.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+  $out1.Save((Join-Path $OutDir "page-$view.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+  $through = Moved $in1 $in2
+  $page_moved = Moved $out1 $out2
+  $ratio = if ($page_moved -gt 0) { $through / $page_moved } else { 1 }
+  $frosted = $page_moved -gt 5 -and $ratio -lt 0.25
+  if (-not $frosted) { $failed++ }
+  Write-Host ("  [{0}] {1} frosted: the text behind moves {2:N1} through the island against {3:N1} beside it ({4:P0}; under 25% passes)" -f $(if ($frosted) { "PASS" } else { "FAIL" }), $view, $through, $page_moved, $ratio)
+  foreach ($b in @($in1, $in2, $out1, $out2)) { $b.Dispose() }
+  $page.Hide()
+  Pump 300
+  $bmp.Dispose()
+}
+Remove-Item Env:GROOVY_SMOKE_VIEW -ErrorAction SilentlyContinue
+$log = Join-Path (Join-Path $env:LOCALAPPDATA "Groovy") "groovy.log"
+if (Test-Path $log) { Get-Content $log | Select-String "island style|glass|region|tint" | ForEach-Object { Write-Host "  log: $_" } }
+Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+$page.Close()
+if ($env:GITHUB_STEP_SUMMARY) {
+  "### Island corners and frosting: $(if ($failed) { "❌ $failed check(s) failed" } else { '✅ only the island is drawn, and it is frosted' })" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+}
+if ($failed -gt 0) { throw "$failed corner or frosting check(s) failed" }

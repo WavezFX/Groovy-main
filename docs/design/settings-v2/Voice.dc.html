@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groovy settings: Voice</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px}
+.lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7E8883}
+.btn{height:32px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#EEF3F0;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.vc{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:14px;cursor:pointer;text-align:left;font-family:inherit;color:#EEF3F0}
+.chip{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:rgba(255,255,255,0.07);font-size:13px;font-weight:600}
+select{height:34px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:#14181B;color:#EEF3F0;font-family:inherit;font-size:13px;padding:0 10px}
+input[type=range]{accent-color:#46EB78;width:180px}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; display: flex; background: #0A0C0E; font-family: Manrope, system-ui, sans-serif; color: #EEF3F0; overflow: hidden">
+  <dc-import name="Sidebar" active="speaking" hint-size="272px,800px"></dc-import>
+  <main style="flex-grow: 1; min-width: 0; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; box-sizing: border-box">
+    <header style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 12px; color: #7E8883">Voice › Speaking</div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700">How Groovy sounds</h1>
+      <p style="margin: 0; font-size: 13.5px; color: #9AA59F">Pick his voice. Fish Audio goes first; Kokoro takes over offline so he's never silent.</p>
+    </header>
+
+    <section style="display: flex; flex-direction: column; gap: 8px" aria-label="Voice">
+      <span class="lbl">Voice</span>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{voices}}" as="v" hint-placeholder-count="4">
+          <button type="button" class="vc" aria-pressed="{{v.sel}}" onClick="{{v.pick}}" style="background: {{v.bg}}; border: {{v.bd}}">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%"><span style="font-size: 15px; font-weight: 700">{{v.name}}</span><span style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></span></div>
+            <div style="display: flex; gap: 2px; align-items: center; height: 22px"><sc-for list="{{v.bars}}" as="b" hint-placeholder-count="20"><span style="width: 3px; border-radius: 2px; background: {{v.wave}}; height: {{b}}"></span></sc-for></div>
+            <span style="font-size: 12px; color: #9AA59F">{{v.desc}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+      <section style="display: flex; flex-direction: column; gap: 8px" aria-label="Delivery">
+        <span class="lbl">Delivery</span>
+        <div class="card" style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><label for="spd" style="font-size: 14px; font-weight: 600">Speed</label><span style="font-size: 12px; color: #8C9691">1.05×</span></div><input id="spd" type="range" min="0.8" max="1.3" step="0.05" value="1.05"></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><label for="eng" style="font-size: 14px; font-weight: 600">Offline voice</label><span style="font-size: 12px; color: #8C9691">Used when Fish Audio can't answer</span></div><select id="eng"><option>Kokoro · Adam</option><option>Kokoro · Bella</option></select></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Fish Audio account</span><span style="font-size: 12px; color: #8C9691">About £0.40 this month</span></div><button type="button" class="btn">Manage</button></div>
+        </div>
+      </section>
+      <section style="display: flex; flex-direction: column; gap: 8px" aria-label="Listening">
+        <span class="lbl">Listening</span>
+        <div class="card" style="display: flex; flex-direction: column">
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 18px"><span style="font-size: 14px; font-weight: 600">Wake words</span><div style="display: flex; gap: 8px; flex-wrap: wrap"><span class="chip">OK Groovy</span><span class="chip">Hey Groovy</span><button type="button" class="chip" style="border: 1px dashed rgba(255,255,255,0.2); background: transparent; color: #9AA59F; font-family: inherit; cursor: pointer">+ His name</button></div></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><label for="mic" style="font-size: 14px; font-weight: 600">Microphone</label><span style="font-size: 12px; color: #8C9691">Level</span></div><select id="mic"><option>Laptop microphone</option></select></div>
+          <div style="display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; border-top: 1px solid rgba(255,255,255,0.06)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 14px; font-weight: 600">Speech recognition</span><span style="font-size: 12px; color: #8C9691">Cloud first · small offline model as backup</span></div><button type="button" class="btn">Change</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { v: 1 }; }
+  renderVals() {
+    const V = [['Calm', 'Fish Audio · low and steady', 3], ['Warm', 'Fish Audio · your pick', 7], ['Bright', 'Fish Audio · upbeat', 11], ['Adam', 'Kokoro · offline', 5]];
+    const voices = V.map(([name, desc, seed], i) => {
+      const on = this.state.v === i;
+      const bars = Array.from({ length: 22 }, (_, k) => (6 + Math.round(14 * Math.abs(Math.sin((k + seed) * 0.9)))) + 'px');
+      return { name, desc, bars, sel: on ? 'true' : 'false', bg: on ? 'rgba(70,235,120,0.10)' : 'rgba(255,255,255,0.04)', bd: on ? '1.5px solid #46EB78' : '1px solid rgba(255,255,255,0.07)', wave: on ? '#46EB78' : 'rgba(255,255,255,0.3)', pick: () => this.setState({ v: i }) };
+    });
+    return { voices };
+  }
+}
+</script>
+</body>
+</html>

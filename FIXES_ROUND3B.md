@@ -1,0 +1,172 @@
+# Fixes round 3B: the owner tested the round 3 build
+
+**Do these now, before continuing round 4. First make the failed smoke test in build #55 (round 3 item 9) pass.** If a round 4 item is half done, finish that commit first. Commit each item separately with "Fixes round 3B, item N: …" as the subject. These are round 3 items that don't work on the owner's PC yet (Windows 11 laptop).
+
+## Item 1: The grey square behind the island (round 3 items 2 and 8)
+
+The island still sits on a **grey rectangular block**: the window's corners show grey instead of the desktop. Round 3 item 8 added `glass.rs::set_region` (`CreateRoundRectRgn`), but on Windows 11 `Effect::Acrylic` is the DWM system backdrop (`DWMWA_SYSTEMBACKDROP_TYPE`), which fills the **whole window rectangle** and ignores the window region and the page's transparency.
+
+Fix it so that nothing outside the island's rounded shape is ever drawn, in every state (F, E, the music tile, the detail card, quick settings, and during resizes):
+
+1. Stop using the DWM system backdrop for the island. Use the legacy accent blur, `SetWindowCompositionAttribute` with `ACCENT_ENABLE_ACRYLICBLURBEHIND` and a gradient colour that has alpha (the `window-vibrancy` crate's `apply_acrylic` / `apply_blur` do this). That one respects `SetWindowRgn` on Windows 10 and 11.
+2. Re-apply the rounded region **every time** the island changes size, using the same radius as the CSS (scaled by the monitor DPI). Do it in the same frame as the resize, so a rectangle never flashes during an animation.
+3. Check that the WebView2 default background is fully transparent (`DefaultBackgroundColor` alpha 0, `transparent: true`) and that no element outside the island (`html`, `body`, wrappers) has a background.
+4. **If the accent blur can't be made clean on some build**, fall back automatically to a CSS glass look: a rounded, semi-transparent dark tint with a soft border, on a fully transparent window. A clean rounded island matters more than real blur. The Glass/Solid setting stays.
+5. **Test it in CI.** The smoke test sets a bright solid wallpaper colour, shows the island, takes a screenshot of its window rectangle (`CopyFromScreen`), and fails if any **corner** pixel isn't the wallpaper colour. Do this for the F layout and the E (music) layout.
+
+## Item 1b: The island must be see-through (translucent), not just rounded
+
+The owner tested it: the island must have a **translucent surface**, so the wallpaper and windows behind it visibly show through, like frosted glass. Today the fallback glass is `rgba(22, 24, 30, 0.86)`, which is nearly solid, and the tint over the accent blur is also too heavy.
+
+- **With the accent blur on:** use a light tint, alpha about **0.30–0.40**. The blurred desktop colours must clearly show through. Add a thin light rim (`rgba(255,255,255,0.18)`) and a soft top highlight, so it reads as glass.
+- **Fallback, when Windows refuses the blur:** the CSS glass uses alpha about **0.50–0.55** (not 0.86), with the same rim and highlight, so it's still clearly see-through.
+- **Readability:** keep the text readable with a subtle text shadow instead of a darker background. On very bright wallpapers, raise the tint only as far as needed (sample the average brightness behind the island at most once a minute, or when the wallpaper changes).
+- **Setting:** add **Glass strength** (Clear / Balanced / Frosted) next to Glass/Solid, with Balanced as the default. Solid stays opaque.
+- **Test:** extend `corner-test.ps1` so that over the magenta desktop, a pixel in the **middle** of the island must be visibly tinted magenta (the desktop shows through), while the corners stay pure magenta.
+
+## Item 2: Music layout: smoother, and back to normal quicker (round 3 item 2)
+
+When Spotify starts, the island grows to the E layout, but after the music stops it takes too long to shrink back, and the change isn't smooth.
+
+- `PLAYER_HOLD_MS` (`core/home.ts:14`) is 5000. Change it to **1500**. That's still long enough that skipping a track doesn't make it jump.
+- **React to events, not polling:** use the Windows media session's `PlaybackInfoChanged` (GSMTC) for Spotify's play/pause, so it reacts as soon as the music changes.
+- **One smooth animation each way** (about 280 ms, ease-out):
+  - grow the window to the target size **first**, invisibly behind the transparent region;
+  - animate the island's shape and contents in CSS;
+  - shrink the window only **after** the shrink animation ends.
+- No size jumps, no layout jumping mid-animation, no flicker. Keep it under 60 fps CPU cost and pause it when hidden (round 3 item 9).
+- Apply the same smoothing to every island change: opening and closing the detail card and quick settings, and the voice states.
+
+## Item 3: Night must look green (round 3 item 6)
+
+Ember looks orange and Frost looks blue, but **Night looks plain white**. Its green is only in the rim glow and eyes, and those wash out on light backgrounds and at night. Night is the main default look, so its green has to be obvious.
+
+- Give Night a **soft green body tint and glow**, as clear as Ember's warmth and Frost's coolness. For example, `bodyTop` around [0.93, 0.99, 0.94], `bodyBottom` around [0.70, 0.90, 0.76], and a stronger rim glow. Tune it by eye next to the other two looks so all three are equally coloured.
+- Find and remove anything that **recolours the character** by time of day, the Windows theme or dark mode, Night light, the accent colour, or an island tile's colour. The three default looks must always show their own colours. Only the user's own body-colour setting may change them.
+
+## Item 4: Choosing a look doesn't stick, and the wardrobe lags (round 3 items 5 and 6)
+
+When the owner switched between looks, **Ember stayed** and the wardrobe stopped responding when things got laggy.
+
+- `island.ts:1411` and `desktop.ts:180` draw `State.lookPreview ?? settings.groovyLook`. A preview that's never cleared (the wardrobe closed mid-hover, or a lost event) pins the old look forever. **Clear `lookPreview`** whenever the wardrobe closes, loses focus or a look is chosen, and on a timer as a safety net.
+- **One source of truth.** A click applies at once in the island (optimistic), saves once (debounced at 300 ms), and every window listens for the same `settings-changed` event. A slower save must never overwrite a newer choice. Use a version or sequence number.
+- **Speed up the wardrobe:** render previews from cached sprites instead of a full engine per tile, and keep at most one live engine (the selected item).
+- **Test:** switch Night → Ember → Frost → Night 20 times quickly. The final look must be Night everywhere, after a restart too.
+
+## Item 5: No stage picking
+
+The owner doesn't like picking the stage himself. Groovy should **always show the stage he has actually grown to**.
+
+- Remove the "Show stage" select (`settings/wardrobe.ts:145–155`) and the `shown` override. Migrate saved `shown` values to `null`.
+- Keep the progress line ("Stage 2 of 5 · next in about 3 days"). Show the stages he's already passed as small read-only pictures, but don't let them change his look.
+- The new stage art (and stage 6) comes in round 5. Don't redraw it here.
+
+## Item 6: Dictation gets names and models wrong
+
+**The problem:** "Asus VivoBook S14" came out as "A book S fourteen". **Don't fix that phrase on its own.** Dictation has to get names, brands, products, model numbers and technical words right *in general*.
+
+1. **Cloud first, like the brains.** Add cloud speech-to-text as the first choice when the user has a key or free tier, with Parakeet and Whisper as the offline fallback. Candidates include OpenAI `gpt-4o-transcribe`, Deepgram Nova-3 (keyterm prompting), ElevenLabs Scribe, and Gemini audio transcription on the free tier. Use the same Auto order and limit-based switching as `brain_ai.rs`, and add it to quick settings' voice status.
+2. **Personal vocabulary, learned automatically.**
+   - When the user corrects dictated text within about 60 s (the text Flow inserted changes in the same field), diff it and remember the corrected words.
+   - The user can also add words in Settings → Voice.
+   - Feed this vocabulary to **every** engine: cloud keyterms or prompts, Whisper's `initial_prompt` (today it's only "Hey Groovy.", `voice.rs:240`), and sherpa-onnx **hotwords** for Parakeet (needs `modified_beam_search`; check that it works with the TDT model, and if it doesn't, rely on step 3 for Parakeet).
+3. **Smarter clean-up** (`flow/cleanup.rs`). Besides removing the "um"s, the clean-up brain also gets:
+   - the personal vocabulary;
+   - the **active window's title and app name** (for example, a shop page about laptops);
+   - an instruction to fix misheard brand, product and model names to the correct spelling, and to write model numbers as digits ("S fourteen" → "S14").
+   It must never change the meaning or add words. If no brain is available, fall back to vocabulary-only replacement.
+4. **Number formatting offline too:** convert spoken numbers to digits when they're next to letters or model-like words ("S fourteen", "RTX forty sixty", "iPhone fourteen pro" → "S14", "RTX 4060", "iPhone 14 Pro").
+5. **Accuracy test set:** at least 40 short recorded or synthesised (Kokoro) clips of product names, brands, model numbers, mixed accents and everyday sentences, with expected text. Report the word error rate per engine in CI, and fail if the default pipeline's proper-noun accuracy gets worse.
+
+## Item 7: GitHub and the other integrations vanished from Settings
+
+Integrations like GitHub were showing in Settings, and now they've **all gone**. Several round 3 commits touched this area: item 4 (`1447426`, "any integration can be turned on, one tile list"), item 2 (tiles), items 6, 7 and 8 (settings) and item 9 (on-demand windows).
+
+- Find which commit dropped them. Common causes:
+  - a settings migration that rewrote the integrations list;
+  - a parse that throws away unknown or old entries;
+  - the tile list replacing the integrations list;
+  - the Settings window being created on demand before the list loads.
+- **Restore the user's data:** turned-on integrations, their tokens in the secret store, and their tile order. If the old values are still in the settings file or a backup, migrate them back; never silently drop them.
+- Every integration (GitHub, Vercel, Neon, Resend, mail, Spotify and the rest) must appear in Settings, ready to turn on. There's no slot limit.
+- **Test:** load a settings file from before round 3 (with GitHub and Vercel on) and from after it, then check that both show their integrations in Settings and on the island.
+
+## Item 8: Animate everything
+
+Nothing in Groovy should just pop in or out. **Every** open, close and change is animated, and it should feel like it grows **out of the island**.
+
+- **Quick settings, the detail card, the wardrobe and menus:** they unfold downward from the island, morphing from the island's shape (scale and clip-path from the island's edge, about 260–320 ms, spring or ease-out), and fold back into it on close.
+- **The full Settings window:** it opens out of the island (it starts small at the island's position and expands to its place, with a fade), and closes back into it. On Windows, animate the window's size and position together with a CSS reveal of its content, so it doesn't snap.
+- **Inside Settings:** pages slide and fade when switching sections, lists animate rows in and out, toggles and checkboxes animate, and choosing a look or item gives a small bounce.
+- **The island:** layout changes (F ↔ E, voice states, toasts, tiles appearing and disappearing) morph smoothly. This uses the same system as item 2.
+- **One shared motion module** (durations, easing, springs) so everything feels the same. Use GPU-friendly properties only (transform, opacity, clip-path), no layout thrash.
+- **Respect Windows "Animation effects"** (reduce motion): when it's off, use short fades instead.
+- **Battery and memory:** animations run only while something is changing, idle CPU stays near zero, and the 300 MB budget holds.
+
+## Item 8b: Smooth and efficient: no lag anywhere
+
+The owner says Groovy feels **laggy**: the island, its animations and the rest of the UI aren't smooth. Low memory must not mean low frame rate. Everything has to be **smooth and efficient at the same time**.
+
+- **Measure first, in CI.** Add a frame-timing test: drive the island through F → E → detail card → quick settings → wardrobe and back, record frame times with `requestAnimationFrame` deltas and the WebView2 performance APIs, and **fail** if more than 5% of frames take over 20 ms, or any frame takes over 50 ms. Upload the trace. Print CPU % while idle and while animating.
+- **Native window work off the animation path.** Never resize or move the native window per frame. Size the island window once to the largest state it needs (it's transparent and clipped by the rounded region), animate only in CSS and canvas, and update `SetWindowRgn` at most once per frame, from one place, batched.
+- **Compositor-only animation:** transform, opacity and clip-path, with `will-change` set only while animating. No animating of width, height, top, left or box-shadow. No `backdrop-filter` (the OS blur already does that).
+- **The character canvas:**
+  - render on `requestAnimationFrame` only while something moves;
+  - cache static layers (body, outfit) in an `OffscreenCanvas` or bitmap, and redraw only what changes (eyes, plant, flame, water);
+  - match the monitor's refresh rate and keep a steady frame rate, rather than bursts and pauses.
+- **The main thread stays free.** Move settings saves, file I/O, JSON parsing of big payloads, and Spotify/GSMTC polling off the animation's frame. Use Rust and events instead of JS timers. No synchronous `invoke` inside animation frames.
+- **WebView2:** keep GPU acceleration on. If `MemoryUsageTargetLevel` Low causes stutter while visible, set Low only while hidden or idle, and Normal while the island is open or animating. Remove any leftover polling timers (list them in `STATUS.md`).
+- **Targets:** 60 fps (or the display's rate) for all island and Settings animations on the owner's laptop, under 1% CPU while idle, and the 300 MB idle budget still holds.
+
+## Item 8c: Fish Audio voice for Groovy
+
+The owner doesn't like the current voice. Add **Fish Audio** as a speech (TTS) provider, the first choice whenever it's set up, with Kokoro (offline) as the fallback. This uses the same Auto order and limit-based switching as the brains.
+
+- **Settings → Voice → Fish Audio:**
+  - an API key, stored in Windows Credential Manager. **Never** put it in settings files, logs or the repo.
+  - a **Voice ID** (Fish Audio's `reference_id`, the model ID of the voice from its page on fish.audio), plus a "Test voice" button;
+  - a **Model** choice (default `s2-pro`). If Fish Audio offers a free API model at the time (it ran `s2.1-pro-free` until 31 Aug 2026), list it as an option and fall back automatically if it's refused.
+- **Low latency:** stream the audio as it's generated (use Fish Audio's streaming or WebSocket API if available; otherwise send it sentence by sentence through the existing `voice/sentences.ts` pipeline), so the first words play quickly. This also serves round 4 item 3 (live voice chat).
+- **Barge-in still works:** stop the playback immediately when the user speaks.
+- **Errors and limits** (no credit, rate limit, offline) switch to Kokoro for that reply, with a small note in quick settings' voice status. Nothing is ever silent.
+- **Cost display:** Fish Audio's API is billed by text length. Show a rough "about £x this month" in Voice settings, from the characters sent.
+- **Licence:** the user brings their own key, so Fish Audio's own terms apply to them. Don't bundle Fish Audio's model weights or copy any of its code.
+- **Test:** a mocked Fish Audio API checks streaming, the fallback to Kokoro, and that the key never appears in logs or settings.
+
+## Item 10: Real-world memory and CPU (owner's Task Manager, 16 Oct)
+
+On the owner's laptop, with Settings open and Spotify playing, Task Manager shows:
+
+- **Groovy main process: about 700 MB and 20% CPU.**
+- **WebView2: about 210 MB.** The Control Centre is 78 MB, the island 55 MB, and the GPU process 32 MB at **17% CPU**.
+
+That's about **900 MB and roughly 40% CPU**. CI passes only because the CI machine has no speech model or local AI downloaded. **The 300 MB budget is for the real app on a real PC, not an empty one.**
+
+What's using it:
+
+1. **Parakeet stays loaded all the time** (about 670 MB). `speech::preload()` runs after the models download (`speech/mod.rs:257`) and whenever « OK Groovy » turns on (`okgroovy/mod.rs:113`), and it's only freed when both dictation and OK Groovy are off.
+2. **« OK Groovy » probably runs the full Parakeet model on the microphone non-stop** to catch the wake phrase, which explains the 20% CPU while idle.
+3. **The local AI** (Gemma 3 1B, `local_chat.rs`, in-process) stays in memory after use.
+4. **The GPU process at 17% while nothing is changing** means something is still animating or repainting all the time.
+
+Fixes:
+
+- **Wake word: a tiny keyword spotter, not the full speech model.** Use sherpa-onnx's keyword spotting (KWS) with a small model (a few MB, about 1–2% CPU) to listen for "OK Groovy" / "Hey Groovy". Only after it fires do you load or use the full speech engine, or the cloud one (round 3B item 6), for the command. Voice activity detection (`voice/vad.ts` or Silero VAD) gates even the spotter, so silence costs almost nothing.
+- **Load speech models on demand and free them when idle.** No `preload()` at startup, after download, or when OK Groovy turns on. Load when dictation, a call or a command actually starts (show "Getting ready…" on the island if it takes more than about 300 ms). **Free it after 2 minutes unused**, with a setting for 30 s / 2 min / 5 min / Keep loaded. When a cloud speech engine is set up, don't load Parakeet at all unless the cloud one fails.
+- **Local AI:** load it on first use, free it after 2 minutes idle (same setting), and never preload it. Run it in a **separate helper process** (or Ollama, LM Studio or llama-server) so that freeing it really gives the memory back to Windows. Groovy's own process must drop back down after an unload.
+- **Idle CPU and GPU near zero.** With the island collapsed, nothing animating and no music, the main process should use under 1% CPU and the WebView2 GPU process under 1%. Find whatever keeps painting (a CSS animation left running, a canvas `requestAnimationFrame` loop, a blur being re-applied, a timer) and stop it. Hidden or closed windows render nothing.
+- **Free memory after closing.** When Settings (the Control Centre) closes, destroy its window, so its WebView2 process exits and its memory comes back. Check this in Task Manager terms.
+- **A realistic smoke test in CI:**
+  - download the speech models and the small local model in CI (cache them);
+  - turn on dictation and OK Groovy, then run one dictation, one OK Groovy command and one local AI reply;
+  - wait for the idle unload;
+  - measure the **private working set of every Groovy process plus every WebView2 child of Groovy**;
+  - **Fail if idle total > 300 MB or idle CPU > 2%** (averaged over 60 s, all Groovy processes together).
+  - Also report the peak while working.
+- In `STATUS.md`, list the idle memory and CPU of each process before and after, so the owner can compare them with Task Manager.
+
+## Item 9: Checks
+
+- The Rust and TS tests stay green on Windows CI.
+- The idle smoke test stays **under 300 MB**.
+- The new corner-pixel test passes.
