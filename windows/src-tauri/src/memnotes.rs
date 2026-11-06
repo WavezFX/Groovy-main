@@ -340,7 +340,13 @@ pub fn sensitive(text: &str) -> bool {
 /// Rebuilds the full-text index and the link table from the rows, when something changed.
 /// They live on disk in the same database; small enough to rebuild in a blink.
 pub fn ensure_index(conn: &Connection) -> Result<(), String> {
-    if !DIRTY.swap(false, Ordering::Relaxed) {
+    // DIRTY is one flag for the whole process; a connection whose index doesn't hold every
+    // note (another connection cleared the flag, e.g. tests running side by side) rebuilds too.
+    let dirty = DIRTY.swap(false, Ordering::Relaxed);
+    let behind = conn
+        .query_row("SELECT (SELECT count(*) FROM memory_fts) != (SELECT count(*) FROM memories)", [], |r| r.get::<_, bool>(0))
+        .unwrap_or(true);
+    if !dirty && !behind {
         return Ok(());
     }
     let tx = conn.unchecked_transaction().map_err(sql)?;
