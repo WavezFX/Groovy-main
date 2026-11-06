@@ -70,6 +70,14 @@ export const END_PHRASES = new Set([
   "bye", "goodbye", "nothing", "forget it",
 ]);
 
+/**
+ * Short ways of hanging up, said on their own (owner, 6 Nov: a call was hard to end): "okay bye",
+ * "bye Groovy", "hang up", "end the call", "that's it", "talk later". Only the whole utterance
+ * counts, so "stop the music" or "say bye to Sam" are still sent.
+ */
+const END_SAYING = /^(?:(?:ok|okay|alright|right|cool|thanks|thank you)\s+)?(?:bye(?: bye)?|goodbye|see you(?: later)?|see ya|talk (?:to you )?later|that's it|thats it|that's all|thats all|hang up|end (?:the )?call|stop (?:the )?call|we're done|were done|i'm done|im done)(?:\s+(?:groovy|now|then|for now|thanks|thank you))?$/;
+
 export function isEndPhrase(text: string): boolean {
-  return END_PHRASES.has(normalise(text).replace(/[.!?]+$/, ""));
+  const n = normalise(text).replace(/[.!?]+$/, "");
+  return END_PHRASES.has(n) || END_SAYING.test(n);
 }

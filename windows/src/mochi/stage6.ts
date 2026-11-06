@@ -3,9 +3,9 @@
 // - Grove, the Sakura bonsai: pink petals drifting round him (five at most).
 // - Blaze, the golden flame: three gold sparkles floating up.
 // - Tide, the Diamond sea: diamond flakes glinting round him, and golden sea
-//   life swimming through his water, one creature at a time, one pass every
-//   2–4 minutes: a fish most of the time, sometimes a shark, sometimes a
-//   submarine.
+//   life swimming through his water, one creature at a time, a new one every
+//   few seconds (owner, 6 Nov: one every 2–4 minutes was never seen): a fish
+//   most of the time, sometimes a shark, sometimes a submarine.
 // Everything moves with the engine's clock, in board units (Groovy's body is
 // x 14–86, y 30–92), so it costs nothing while the island isn't drawing.
 
@@ -29,12 +29,12 @@ export function creatureFor(pass: number): Creature {
 }
 
 /** How long one pass takes across his sea (seconds). */
-export const PASS_SECONDS = 9;
+export const PASS_SECONDS = 10;
 
-/** When pass `n` starts: one every 2–4 minutes. */
+/** When pass `n` starts: the next one 3–8 s after the last has gone, so his sea is rarely empty. */
 export function passStart(n: number): number {
-  let t = 20;
-  for (let i = 0; i < n; i++) t += 120 + hash(i * 3 + 5) * 120;
+  let t = 2;
+  for (let i = 0; i < n; i++) t += PASS_SECONDS + 3 + hash(i * 3 + 5) * 5;
   return t;
 }
 
@@ -133,10 +133,11 @@ export function drawStage6Body(x: CanvasRenderingContext2D, look: Skin, t: numbe
   const from = c.dir === 1 ? 6 : 94;
   const to = c.dir === 1 ? 94 : 6;
   const cx = from + (to - from) * p;
-  // Along a gentle wave, low in his water.
-  const cy = 74 + Math.sin(c.progress * Math.PI * 2) * 3;
+  // Along a gentle wave, low in his water, under his eyes (they sit about y 62–74).
+  const cy = 83 + Math.sin(c.progress * Math.PI * 2) * 2;
   x.save();
   x.translate(cx, cy);
+  x.scale(1.2, 1.2);
   if (c.dir === -1) x.scale(-1, 1);
   x.rotate(Math.cos(c.progress * Math.PI * 2) * 0.12);
   const wag = Math.sin(t * 9) * 1.4;

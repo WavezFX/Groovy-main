@@ -374,7 +374,7 @@ export const DEFAULT_SETTINGS: Settings = {
   seasonalEarned: [],
   hatchDone: false,
   wakeToName: false,
-  growthRule: "running",
+  growthRule: "days",
 };
 
 type Listener = () => void;

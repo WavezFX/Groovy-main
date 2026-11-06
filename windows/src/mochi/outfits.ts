@@ -385,11 +385,18 @@ function faceFit(H: Head) {
   const sy = H.ry / 31;
   const [l, r] = H.eyes ?? [[-12 * sx, sy], [12 * sx, sy]];
   const front = Math.abs(12 * sx * 2) || 1;
-  const span = Math.hypot(r[0] - l[0], r[1] - l[1]);
+  // His eyes sit on a sphere: looking up or down draws them closer together on screen (by
+  // the cosine of that angle). Glasses don't shrink with that, so it is undone here.
+  const near = Math.max(0.55, Math.cos(-0.12 + H.pitch));
+  const span = Math.hypot(r[0] - l[0], r[1] - l[1]) / near;
   const full = H.eyes ? span / Math.max(0.05, Math.cos(H.yaw)) : front;
   const half = (BOARD_EYES.r - BOARD_EYES.l) / 2;
-  const k = Math.max(span, full * 0.6) / (BOARD_EYES.r - BOARD_EYES.l);
-  const ky = full / (BOARD_EYES.r - BOARD_EYES.l);
+  // Owner, 6 Nov: when his eyes went low the glasses shrank with them, as if pasted on.
+  // Glasses keep the size they have on his eyes at rest (2·sin 0.37·rx apart, engine.ts
+  // EYE_SP); only turning narrows them, side to side.
+  const rest = 0.7 * H.rx;
+  const k = Math.max(span, full * 0.6, rest * Math.max(0.3, Math.cos(H.yaw))) / (BOARD_EYES.r - BOARD_EYES.l);
+  const ky = Math.max(full, rest) / (BOARD_EYES.r - BOARD_EYES.l);
   const cx = (l[0] + r[0]) / 2;
   const cy = (l[1] + r[1]) / 2;
   const rot = Math.atan2(r[1] - l[1], r[0] - l[0]);
@@ -849,6 +856,23 @@ const CAP_FORM: Record<string, CapForm> = {
   watermelonCap: { seat: -0.4, s: 1.08, h: 0.74, lobes: 0 },
   backwardsCap: { seat: -0.42, s: 1.07, h: 0.7, lobes: 0, peak: true },
 };
+/**
+ * What grows on top of his head (Grove's sprout and bonsai, Blaze's flame) comes up through
+ * a hat instead of hiding under it (owner, 6 Nov: on most headwear you couldn't see it before
+ * stage 6). This is how far above his head's top the hat reaches, in px: the growth is drawn
+ * that much higher, over the hat. Crowns, bands and ears leave room: nothing to lift.
+ */
+export function growthLift(items: readonly Outfit[], H: Head): number {
+  let lift = 0;
+  for (const it of items) {
+    if (it === "none" || SLOT_OF[it] !== "head") continue;
+    const c = CAP_FORM[it];
+    const up = c ? c.h - (1 + c.seat) + 0.03 : it === "miniTopHat" ? 0.4 : it === "beretPin" ? 0.16 : it === "headphones" || it === "pilotGoggles" ? 0.08 : 0;
+    lift = Math.max(lift, up * H.ry);
+  }
+  return lift;
+}
+
 /** Each cap's colours: lit, middle, in shadow, and the lip where it sits on him. */
 const CAP_COL: Record<string, [string, string, string, string]> = {
   acornCap: ["#C58A4E", "#9A6232", "#6A3F1C", "#5A3417"],
@@ -1087,12 +1111,24 @@ function drawCapDetails(ctx: Ctx, item: Accessory, H: Head, cx: number, seatY: n
   };
   /** A line round the cap at height f, the part facing us. */
   const round = (f: number) => {
-    const out: P3[] = [];
-    for (let k = 0; k <= 48; k++) {
-      const q = pt(f, -Math.PI + (k / 48) * Math.PI * 2);
-      if (q.z > 0) out.push(q);
+    // In order round him, then the one unbroken run facing us (sorting by x folded the line
+    // back on itself near his sides: the watermelon's white rind showed as a blob there).
+    const all: P3[] = [];
+    for (let k = 0; k < 64; k++) all.push(pt(f, -Math.PI + (k / 64) * Math.PI * 2));
+    const start = all.findIndex((q) => q.z <= 0);
+    if (start < 0) return all;
+    const ring = [...all.slice(start), ...all.slice(0, start)];
+    let best: P3[] = [];
+    let run: P3[] = [];
+    for (const q of ring) {
+      if (q.z > 0) run.push(q);
+      else {
+        if (run.length > best.length) best = run;
+        run = [];
+      }
     }
-    return out.sort((p, q) => p.x - q.x);
+    if (run.length > best.length) best = run;
+    return best;
   };
   /** A line from the edge up towards the top at angle t (a meridian). */
   const meridian = (t: number, f0: number, f1: number) => {

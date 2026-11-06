@@ -37,16 +37,16 @@ export const GROWTH_CORRECTION = 2;
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 /**
- * What grows him (round 3H item 3, the owner's decision, asked on the Groovy
- * page): "running", the time Groovy runs (the default), or "days", calendar
- * days the look was worn for at least 30 minutes, each counting as a day of
- * the stage times above. Change the default here.
+ * What grows him: calendar days the look was worn for at least 30 minutes, each
+ * counting as a day of the stage times above (owner, 6 Nov: one rule, no choice;
+ * "running" counted hours of running as days, so he grew far too slowly). The
+ * old "running" value in saved settings reads as "days".
  */
 export type GrowthRule = "running" | "days";
-export const GROWTH_RULE: GrowthRule = "running";
+export const GROWTH_RULE: GrowthRule = "days";
 
-export function parseRule(v: unknown): GrowthRule {
-  return v === "days" || v === "running" ? v : GROWTH_RULE;
+export function parseRule(_v?: unknown): GrowthRule {
+  return GROWTH_RULE;
 }
 
 export interface Growth {
@@ -78,7 +78,8 @@ const stageOf = (v: unknown): number | null =>
   typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= MAX_STAGE ? v : null;
 
 /** The saved record, checked: anything unreadable counts as nothing. */
-export function parseGrowth(v: unknown, now: number = nowSeconds(), rule: GrowthRule = GROWTH_RULE): Growth {
+/** `rule` is how the record's stage is read; what he shows always uses GROWTH_RULE (lookGrowth). */
+export function parseGrowth(v: unknown, now: number = nowSeconds(), rule: GrowthRule = "running"): Growth {
   const o = v && typeof v === "object" ? (v as Record<string, unknown>) : {};
   const secs = typeof o.activeSeconds === "number" && Number.isFinite(o.activeSeconds) && o.activeSeconds > 0 ? o.activeSeconds : 0;
   const daysWorn = typeof o.daysWorn === "number" && Number.isInteger(o.daysWorn) && o.daysWorn > 0 ? o.daysWorn : 0;

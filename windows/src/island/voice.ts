@@ -332,7 +332,13 @@ export class VoiceHost {
   }
 
   private endCall() {
-    this.live?.hangUp();
+    // Owner, 6 Nov: a call was hard to end and Groovy had to be quit. A hang-up now ends it
+    // whatever it was doing: a LiveKit call lets go of `this.live` first (so the button can't
+    // keep trying to hang up the same call), and nothing of the call is left on screen. The
+    // microphone stays with sync(): « OK Groovy » shares it.
+    const live = this.live;
+    this.live = null;
+    live?.hangUp();
     const was = State.voiceCall;
     if (was) this.callEnded();
     State.voiceCall = false;
@@ -342,6 +348,8 @@ export class VoiceHost {
     this.speaker?.stop();
     this.speaker = null;
     stopSpeaking();
+    State.dictating = false;
+    State.voiceCaption = null;
     this.controller.resume();
     this.call("end");
     MicLevel.set(0);

@@ -11,10 +11,10 @@ import { chooseLook } from "../src/core/lookchoice.ts";
 const DAY = 86400;
 const NOW = 1_790_000_000;
 
-/** Runs the look he wears for `days`, as the clock (growth_clock.rs) counts it. */
+/** Wears the look he has on for `days` days, as the clock (growth_clock.rs) counts it: time, and whole days worn. */
 function run(settings, days, now) {
   const g = lookGrowth(settings, undefined, now);
-  setLookGrowth(settings, settings.groovyLook, { ...g, activeSeconds: g.activeSeconds + days * DAY });
+  setLookGrowth(settings, settings.groovyLook, { ...g, activeSeconds: g.activeSeconds + days * DAY, daysWorn: g.daysWorn + Math.floor(days) });
 }
 
 test("30 days as Night: Night at stage 5, Ember and Frost not started at stage 0", () => {

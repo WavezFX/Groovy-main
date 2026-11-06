@@ -35,6 +35,10 @@ test("end phrases are recognised", () => {
   assert.equal(isEndPhrase("Never mind."), true);
   assert.equal(isEndPhrase("stop"), true);
   assert.equal(isEndPhrase("stop the music"), false);
+  for (const bye of ["Okay bye!", "bye Groovy", "Hang up.", "end the call", "That's it, thanks", "talk later", "goodbye groovy"]) {
+    assert.equal(isEndPhrase(bye.replace(",", "")), true, bye);
+  }
+  for (const not of ["say bye to Sam", "end the meeting at five", "that's it for the shopping list right"]) assert.equal(isEndPhrase(not), false, not);
 });
 
 // ── Synthetic audio ───────────────────────────────────────────────────────────

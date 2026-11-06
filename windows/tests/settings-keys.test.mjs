@@ -51,7 +51,6 @@ const REACH = {
   assistant: ["brains", "src/settings/assistant.ts", "assistantSection"],
   groovyLook: ["wardrobe", "src/settings/wardrobe.ts", "wardrobeSection"],
   wardrobe: ["wardrobe", "src/settings/wardrobe.ts", "wardrobeSection"],
-  growthRule: ["wardrobe", "src/settings/wardrobe.ts", "wardrobeSection"],
   pillColors: ["island", "src/settings/main.ts", "pickColor"],
   islandTiles: ["island", "src/settings/tilesgrid.ts", "tilesCard"],
   islandStyle: ["island", "src/settings/islandpage.ts", "islandPage"],
@@ -92,6 +91,7 @@ const REACH = {
 
 /** Groovy's own bookkeeping: no control, by design. */
 const INTERNAL = {
+  growthRule: "retired (owner, 6 Nov): he grows by days worn only, no choice; the old value is kept in the file and ignored",
   absenceInterval: "a timer of the Mac app; Windows Groovy never had a control for it (the island closes on leave: autoCloseInterval)",
   mochiOutfit: "0.5.1's single outfit: moved once into the wardrobe's layers (checked below)",
   lookAt: "when the look was last chosen, so two windows agree which choice is newer",

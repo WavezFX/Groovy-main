@@ -319,7 +319,7 @@ impl Default for Settings {
             seasonal_earned: Vec::new(),
             hatch_done: false,
             wake_to_name: false,
-            growth_rule: "running".into(),
+            growth_rule: "days".into(),
         }
     }
 }

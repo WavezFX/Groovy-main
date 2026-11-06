@@ -42,26 +42,26 @@ test("a record reads back as saved, and never goes back", () => {
   assert.equal(parseGrowth({ daysWorn: 2.5 }, NOW).daysWorn, 0);
 });
 
-test("round 3H item 3: the rule is one constant, running time by default; days worn counts a day each", () => {
-  assert.equal(GROWTH_RULE, "running");
-  assert.equal(parseRule(undefined), "running");
+test("one rule (owner, 6 Nov): days worn, whatever was saved; days worn counts a day each", () => {
+  assert.equal(GROWTH_RULE, "days");
+  assert.equal(parseRule(undefined), "days");
   assert.equal(parseRule("days"), "days");
-  assert.equal(parseRule("weeks"), "running");
+  assert.equal(parseRule("running"), "days", "the old choice reads as days");
   const record = { activeSeconds: 6 * 3600, daysWorn: 3, hatchedAt: NOW - 3 * DAY, correction: 2 };
   assert.equal(parseGrowth(record, NOW, "running").reached, 0, "6 h of running isn't a day");
   assert.equal(parseGrowth(record, NOW, "days").reached, 2, "three days worn reach the 3-day stage");
   const settings = { groovyLook: "night", growths: { night: record }, growthRule: "days" };
   assert.equal(lookGrowth(settings).reached, 2);
-  assert.equal(lookGrowth({ ...settings, growthRule: undefined }).reached, 0);
+  assert.equal(lookGrowth({ ...settings, growthRule: "running" }).reached, 2, "no choice any more");
 });
 
 test("round 3H item 3: a look worn 2 h on three evenings shows 6 h counted; the other two stay at 0 and Not started", () => {
   // What growth_clock.rs leaves after three evenings of two hours.
   const settings = { groovyLook: "night", growths: { night: { activeSeconds: 6 * 3600, daysWorn: 3, today: { day: "2026-10-29", seconds: 7200 }, reached: 0, seen: 0, hatchedAt: NOW - 3 * DAY, correction: 2 } } };
-  const night = clockLines(lookGrowth(settings, "night", NOW), "Night", "running", "2026-10-29");
+  const night = clockLines(parseGrowth(settings.growths.night, NOW, "running"), "Night", "running", "2026-10-29");
   assert.equal(night.main, "Time with Night: 6 h of 24 h for Stage 1 · counts only while Groovy is running");
   assert.equal(night.today, "today: 2 h");
-  assert.equal(clockLines(lookGrowth(settings, "night", NOW), "Night", "running", "2026-10-30").today, "today: 0 m", "a new day starts at 0");
+  assert.equal(clockLines(parseGrowth(settings.growths.night, NOW, "running"), "Night", "running", "2026-10-30").today, "today: 0 m", "a new day starts at 0");
   for (const look of ["ember", "frost"]) {
     assert.equal(lookStarted(settings, look), false);
     const g = lookGrowth(settings, look, NOW);

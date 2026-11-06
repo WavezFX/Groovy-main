@@ -24,7 +24,10 @@ const SAVE_EVERY: f64 = 5.0 * 60.0;
 /// The "days" rule: a day counts once the look was worn this long that day.
 pub const DAY_COUNTS_AFTER: f64 = 30.0 * 60.0;
 /// The page's GROWTH_CORRECTION: a record started here needs no correction.
-const CORRECTION: u64 = 2;
+/// New records start at this correction; a record below 3 has its days worn
+/// filled in once from the calendar days since it hatched (owner, 6 Nov: the old
+/// "running" rule grew him far too slowly, and the days weren't counted before 3H).
+const CORRECTION: u64 = 3;
 
 /// The look whose clock runs: Grove, Blaze and Tide were Night, Ember and Frost grown.
 pub fn look_of(groovy_look: &str) -> &'static str {
@@ -55,6 +58,13 @@ pub fn tick(growths: &mut Value, look: &str, seconds: f64, day: &str, now: u64) 
     });
     if !record.is_object() {
         *record = json!({ "activeSeconds": 0, "reached": 0, "shown": null, "seen": 0, "hatchedAt": now, "correction": CORRECTION });
+    }
+    if record.get("correction").and_then(Value::as_u64).unwrap_or(0) < 3 {
+        let hatched = record.get("hatchedAt").and_then(Value::as_u64).filter(|h| *h > 0 && *h <= now).unwrap_or(now);
+        let since = (now - hatched) / 86_400;
+        let days = record.get("daysWorn").and_then(Value::as_u64).unwrap_or(0);
+        record["daysWorn"] = json!(days.max(since));
+        record["correction"] = json!(3);
     }
     let active = record.get("activeSeconds").and_then(Value::as_f64).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
     record["activeSeconds"] = json!(active + add);
@@ -147,7 +157,7 @@ mod tests {
         let mut g = json!({ "night": { "activeSeconds": 100, "reached": 0, "shown": null, "seen": 0, "hatchedAt": 5, "correction": 2 } });
         tick(&mut g, "frost", 60.0, "2026-10-30", NOW);
         assert_eq!(g["frost"]["hatchedAt"], json!(NOW));
-        assert_eq!(g["frost"]["correction"], json!(2));
+        assert_eq!(g["frost"]["correction"], json!(3));
         assert_eq!(g["frost"]["activeSeconds"], json!(60.0));
         assert_eq!(g["night"]["activeSeconds"], json!(100), "the other look is untouched");
     }
@@ -171,6 +181,23 @@ mod tests {
         run(&mut g, "ember", "2026-10-31", 10);
         assert_eq!(g["ember"]["today"], json!({ "day": "2026-10-31", "seconds": 600.0 }));
         assert_eq!(g["ember"]["daysWorn"], json!(1));
+    }
+
+    #[test]
+    fn an_older_record_gets_its_days_from_the_calendar_once() {
+        // Hatched 8 days before NOW, worn under the old rule (no days counted).
+        let mut g = json!({ "night": { "activeSeconds": 90000, "reached": 1, "shown": null, "seen": 1, "hatchedAt": NOW - 8 * 86_400 - 100, "correction": 2 } });
+        tick(&mut g, "night", 60.0, "2026-11-06", NOW);
+        assert_eq!(g["night"]["daysWorn"], json!(8));
+        assert_eq!(g["night"]["correction"], json!(3));
+        // Once only: it isn't filled in again.
+        g["night"]["daysWorn"] = json!(8);
+        tick(&mut g, "night", 60.0, "2026-11-06", NOW + 5 * 86_400);
+        assert_eq!(g["night"]["daysWorn"], json!(8));
+        // A record that already counted more days keeps them.
+        let mut g = json!({ "ember": { "activeSeconds": 10, "daysWorn": 12, "hatchedAt": NOW - 3 * 86_400, "correction": 2 } });
+        tick(&mut g, "ember", 60.0, "2026-11-06", NOW);
+        assert_eq!(g["ember"]["daysWorn"], json!(12));
     }
 
     #[test]

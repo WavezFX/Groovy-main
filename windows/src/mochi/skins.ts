@@ -15,10 +15,28 @@ import type { Head } from "./outfits";
 import { PILLOW_BOW } from "./pillow";
 import { N_ } from "../i18n/i18n";
 import { drawShapes, toBoard, type Art, type Shape } from "./art/draw";
-import { GROWTH_ART } from "./art/growth";
+import { GROWTH_ART as BOARD_GROWTH_ART } from "./art/growth";
 import { STAGE6_ART } from "./art/stage6";
 import { GEM_EYES, GOLD, drawGemFacets, drawStage6Body, drawStage6Front } from "./stage6";
 import { drawEmbers, drawFlame, drawHeat, drawWater, isWaterPart, refract, swayFlame } from "./finish";
+
+/**
+ * The board's growth art, with one change (owner, 6 Nov): Blaze's stage-4 side flames pointed
+ * straight up from his top corners and read as devil horns, above all round a hat. Here they
+ * lick out from his sides, lower down, instead. Everything else is the board's, as generated.
+ */
+const SIDE_FLAMES: Record<string, string> = {
+  "M24 34C19 31 20 26 23 22C23 27 27 29 24 34Z": "M17 47C12 46 9 43 7 38C11 40 15 41 17 47Z",
+  "M76 34C81 31 80 26 77 22C77 27 73 29 76 34Z": "M83 47C88 46 91 43 93 38C89 40 85 41 83 47Z",
+  "M18 46C9 40 11 28 17 22C17 30 24 33 21 42Z": "M18 60C10 57 5 51 4 43C8 47 14 50 19 54Z",
+  "M82 46C91 40 89 28 83 22C83 30 76 33 79 42Z": "M82 60C90 57 95 51 96 43C92 47 86 50 81 54Z",
+};
+const GROWTH_ART: typeof BOARD_GROWTH_ART = {
+  ...BOARD_GROWTH_ART,
+  ember: BOARD_GROWTH_ART.ember.map((art) => Object.fromEntries(Object.entries(art).map(([k, v]) =>
+    [k, Array.isArray(v) ? v.map((sh) => (sh && typeof sh === "object" && "d" in sh && SIDE_FLAMES[(sh as { d: string }).d] ? { ...sh, d: SIDE_FLAMES[(sh as { d: string }).d] } : sh)) : v],
+  )) as (typeof BOARD_GROWTH_ART.ember)[number]),
+};
 
 /** The last stage: the final forms. */
 const FINAL = 6;

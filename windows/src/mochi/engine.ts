@@ -7,8 +7,7 @@
 import { Ease, lerp, type EaseFn } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
-import { SLOT_OF } from "./appearance";
-import { drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
+import { drawOutfitBehind, drawOutfitFront, growthLift, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
 import { DEFAULT_SKIN, SHAPE, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
@@ -938,9 +937,10 @@ export class BotEngine {
       head.eyes = this.eyeCentres(rx, ry);
       head.swing = this.swing;
     }
+    // What grows on his head comes up through a hat (owner, 6 Nov), drawn over it, raised by the hat's height.
+    const lift = head && dressed ? growthLift([this.outfit, ...this.layers], head) * Math.min(1, this.outfitPresence) : 0;
     const skinState: SkinState = {
-      // Only a hat hides what grows on top of his head (round 3E item 10).
-      hatless: dressed && [this.outfit, ...this.layers].some((o) => o !== "none" && SLOT_OF[o] === "head") ? 1 - Math.min(1, this.outfitPresence) : 1,
+      hatless: 1,
       shown: Math.max(0, 1 - this.morph * 2),
       time: now(),
       lite: this.lite,
@@ -973,10 +973,16 @@ export class BotEngine {
     if (this.morph > 0.05) this.drawMouth(x, body, R);
 
     if (skinHead && skinState.shown > 0.05) this.drawSkinMouth(x, R, rx, ry);
-    if (skinHead) drawSkinFront(x, this.style, skinHead, skinState);
+    if (skinHead && lift < 0.5) drawSkinFront(x, this.style, skinHead, skinState);
     if (head) {
       drawOutfitFront(x, this.outfit, head, outfitState);
       for (const layer of this.layers) if (layer !== this.outfit) drawOutfitFront(x, layer, head, outfitState);
+    }
+    if (skinHead && lift >= 0.5) {
+      x.save();
+      x.translate(0, -lift);
+      drawSkinFront(x, this.style, skinHead, skinState);
+      x.restore();
     }
 
     x.restore();

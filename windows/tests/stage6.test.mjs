@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { PASS_SECONDS, creatureAt, creatureFor, passStart } from "../src/mochi/stage6.ts";
 import { SKINS, artFor, styleAt } from "../src/mochi/skins.ts";
 
-test("the Diamond sea's swimmer: fish 70 %, shark 20 %, submarine 10 %, one at a time, every 2–4 minutes", () => {
+test("the Diamond sea's swimmer: fish 70 %, shark 20 %, submarine 10 %, one at a time, a new one every few seconds", () => {
   const n = 4000;
   const count = { fish: 0, shark: 0, submarine: 0 };
   for (let i = 0; i < n; i++) count[creatureFor(i)]++;
@@ -14,7 +14,7 @@ test("the Diamond sea's swimmer: fish 70 %, shark 20 %, submarine 10 %, one at a
   assert.ok(Math.abs(count.submarine / n - 0.1) < 0.03, JSON.stringify(count));
   for (let i = 1; i < 50; i++) {
     const gap = passStart(i) - passStart(i - 1);
-    assert.ok(gap >= 120 && gap <= 240, `gap ${gap}`);
+    assert.ok(gap >= PASS_SECONDS + 3 && gap <= PASS_SECONDS + 8, `gap ${gap}`);
   }
   // Nothing between passes; during one, a single creature moving across.
   const t0 = passStart(3);

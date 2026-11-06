@@ -16,7 +16,7 @@ import { GROWS_INTO, SKINS, SKIN_KEYS, parseSkin, type Skin } from "../mochi/ski
 import { chooseLook } from "../core/lookchoice";
 import { itemSprite, lookSprite, spriteCanvas } from "../mochi/sprites";
 import { Previewer } from "./preview";
-import { MAX_STAGE, clockLines, highestReached, lookGrowth, lookStarted, parseRule, progressLine, shownStage, stageStrip, unlocksIn, type GrowthRule } from "../mochi/growth";
+import { MAX_STAGE, clockLines, highestReached, lookGrowth, lookStarted, parseRule, progressLine, shownStage, stageStrip, unlocksIn } from "../mochi/growth";
 import {
   DEFAULT_APPEARANCE, SLOTS, SLOT_OF, clearSlot, combine, parseWardrobe, tryOn, wear, worn as wornOf, randomLook, readPack, writePack,
   type Appearance, type Slot, type WardrobePrefs,
@@ -231,25 +231,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
   window.addEventListener("groovy-growth", () => {
     if (clockMain.isConnected) drawClock();
   });
-  // The owner's choice: what grows him (GROWTH_RULE is the default).
-  const RULES: [GrowthRule, string][] = [["running", N_("While Groovy runs")], ["days", N_("Days he wears it")]];
-  const ruleSeg = h("div", { class: "hub-w-seg hub-w-rule", role: "radiogroup", "aria-label": t("He grows with") });
-  const drawRule = () => {
-    clear(ruleSeg);
-    const rule = parseRule(settings.growthRule);
-    for (const [value, label] of RULES) {
-      const b = h("button", { class: value === rule ? "on" : "", type: "button", role: "radio", "aria-checked": String(value === rule), text: t(label) });
-      b.addEventListener("click", () => {
-        if (value === rule) return;
-        settings.growthRule = value;
-        save();
-        drawAll();
-      });
-      ruleSeg.append(b);
-    }
-  };
-  const ruleRow = h("div", { class: "hub-w-rule-row" }, h("span", { class: "hub-label", text: t("He grows with") }), ruleSeg,
-    h("span", { class: "hub-b-detail", text: t("Days he wears it: a day counts once he has worn that look for 30 minutes.") }));
   const settle = (el: HTMLElement) => el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: duration(MOTION.small), easing: EASE_OUT });
   function drawLooks() {
     clear(looks);
@@ -302,7 +283,6 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
       wearRow,
     );
     drawClock();
-    drawRule();
     drawStrip();
     // Favourite looks, as before, for the search.
     for (const look of SKINS) {
@@ -531,7 +511,7 @@ export function wardrobeSection(settings: Settings, save: () => void): HTMLEleme
     lookSeg,
     h("div", { class: "hub-card hub-w-top", "aria-label": t("Look and growth") },
       stage,
-      h("div", { class: "hub-w-timeline" }, growthRow, ruleRow, nameRow),
+      h("div", { class: "hub-w-timeline" }, growthRow, nameRow),
       stripBox,
     ),
     h("div", { class: "hub-w-right", "aria-label": t("Wardrobe") },
