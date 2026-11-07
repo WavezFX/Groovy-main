@@ -79,6 +79,19 @@ Before each push: run scripts/items-check.mjs and the wardrobe tests for outfit 
 Token rules (my usage is limited): read only the item you are on; grep first, then line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40); full builds/tests once per item; final reply at most 3 lines.
 ```
 
+## Session H: Opus 5.5 (peak memory down to 300 MB)
+
+```
+Pull groovy-ai-phase1. Read only: WORK_QUEUE.md (memory rule), FIXES_ROUND3N.md item 2, and the STATUS.md section "Round 3N item 2" (measured: idle ~112 MB, fine; peak 352 MB with the voice helpers, was 330 in-process; the helper is ~172 MB while Kokoro speaks). Goal: peak under 300 MB (Task Manager private working set, all Groovy processes), no feature removed, speech/wake/calls working exactly as before. Keep the on-demand helpers (they free everything at idle). Do, in this order, one commit each, re-measuring from the next build's peak test after each and writing before/after in STATUS.md:
+1. onnxruntime session options in the voice helper(s): memory arena off (enable_cpu_mem_arena = false), memory pattern off, intra-op threads 1-2. Measure.
+2. Kokoro's int8 (quantised) model instead of fp32, downloaded the same way as today's model and only if the voice still sounds right (keep fp32 as a setting fallback if int8 is missing). Measure.
+3. Synthesise in short chunks (sentence or clause, capped length) so the working buffers stay small; stream them in order with no gap. Measure.
+4. If still over 300: drop the helper's model after a shorter idle (e.g. 20 s) and check WebView2 windows created during a call are destroyed after it.
+Then set the peak gate (now 360) and idle gate (130) to the measured numbers plus a small margin, tightening toward 300 / 150. Never lower a gate blind, never turn a build red.
+Remember: Fish Audio is the main voice and Kokoro the fallback, so test the Kokoro path in the peak test. If you add Tauri commands run node scripts/command-access.mjs; translate new visible text in all ten languages. Fix red builds first. One [build] at the very end; confirm the Windows build job ran (not skipped) and the release updated.
+Token rules (my usage is limited): read only what the step needs; grep first, then line ranges; never re-read a file you just edited; no subagents; no narration between tool calls; cap command output (tail -n 40); full builds once per step; final reply at most 3 lines.
+```
+
 ## Optional token savers (owner's call; test first, keep only if it clearly helps)
 - `npx ccusage` (offline, reads local logs): shows where tokens go per session. Measuring only.
 - `rtk` (github.com/rtk-ai/rtk, MIT): shrinks shell output (git/ls/find) before the model sees it. Real saving is ~10 to 30% on mixed work; it can truncate an error trace (`rtk proxy <cmd>` gives raw). Needs the Rust toolchain or its install script; Windows support is unconfirmed. Not for CI.
