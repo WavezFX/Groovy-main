@@ -291,8 +291,10 @@ pub fn free() {
 
 /// The longest piece Kokoro speaks at once. Its working memory grows with the
 /// length of what it says (about 1 MB a character), so a reply is spoken in
-/// clauses of about this size and joined (round 3D item 7).
-const CLAUSE_CHARS: usize = 40;
+/// clauses of about this size and joined (round 3D item 7). Round 3N: 40 -> 30 measured
+/// 163 -> 153 MB here; each clause's lead-in and tail silence is trimmed, so the reply
+/// is no longer than at 40.
+const CLAUSE_CHARS: usize = 30;
 
 /// `text` in clauses of at most `max` characters: cut after punctuation where
 /// it can be, between words where it must, never inside a word.
@@ -339,16 +341,28 @@ pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     kokoro_here(text, gender, speed)
 }
 
+/// `samples` without leading silence, nor trailing silence beyond `keep` seconds.
+fn trim_tail(samples: &[f32], rate: f32, keep: f32) -> &[f32] {
+    let end = samples.iter().rposition(|v| v.abs() > 0.01).map_or(0, |i| i + 1);
+    // And the lead-in silence too, but for a moment.
+    let start = samples.iter().position(|v| v.abs() > 0.01).map_or(0, |i| i.saturating_sub((0.02 * rate) as usize)).min(end);
+    &samples[start..(end + (keep * rate) as usize).min(samples.len())]
+}
+
 /// Kokoro's WAV, made in this process.
 pub(crate) fn kokoro_here(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     let tts = load()?;
     let config = GenerationConfig { sid: kokoro_speaker(gender), speed: clamp_speed(speed), ..Default::default() };
     let mut samples: Vec<f32> = Vec::new();
     let mut rate = 0;
-    for clause in clauses(text, CLAUSE_CHARS) {
-        let audio = tts.generate_with_config(&clause, &config, None::<fn(&[f32], f32) -> bool>)?;
+    let pieces = clauses(text, CLAUSE_CHARS);
+    let last = pieces.len().saturating_sub(1);
+    for (i, clause) in pieces.iter().enumerate() {
+        let audio = tts.generate_with_config(clause, &config, None::<fn(&[f32], f32) -> bool>)?;
         rate = audio.sample_rate();
-        samples.extend_from_slice(audio.samples());
+        // Joined with no gap: each clause's own trailing silence is cut to the pause its end calls for.
+        let pause = if i == last { 0.3 } else if clause.ends_with(['.', '!', '?']) { 0.25 } else if clause.ends_with([',', ';', ':']) { 0.12 } else { 0.02 };
+        samples.extend_from_slice(trim_tail(audio.samples(), rate.max(1) as f32, pause));
     }
     (!samples.is_empty()).then(|| super::cloud::wav_at(&samples, rate.max(1) as u32))
 }
@@ -582,6 +596,8 @@ mod tests {
         assert_eq!(super::clauses("Hello there.", 40), ["Hello there."]);
         assert_eq!(super::clauses("Supercalifragilisticexpialidociousness-and-more-words", 10).len(), 1, "never inside a word");
         assert!(super::clauses("   ", 40).is_empty());
+        let s = [0.0, 0.0, 0.5, -0.4, 0.0, 0.0, 0.0, 0.0];
+        assert_eq!(super::trim_tail(&s, 100.0, 0.01), &[0.0, 0.0, 0.5, -0.4, 0.0], "a moment of lead-in, the sound, then `keep` of the tail");
     }
 
     #[test]
