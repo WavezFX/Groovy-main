@@ -355,3 +355,12 @@ Studied Coucou's MIT `windows/src/mochi/outfits.ts` for its *technique* only (no
 - **Glasses:** the size no longer follows his eyes when they draw together looking up or down. **Watermelon:** the white rind line no longer folds into a blob at his side (rings on caps are drawn as one unbroken front run).
 - Checked locally: item-fit check passes. The growth, growths, stage 6, voice, i18n, settings-keys and wardrobe tests pass; the only failures are the same as before my change, and they need node_modules, which can't install here.
 - **Still open:** peak memory 352 MB against the 300 MB target. The next step is Kokoro's int8 model, onnxruntime's memory arena off, and shorter chunks, then measure. Also Dialog Jump (optional).
+
+### Round 3N item 2, peak work (8 Nov)
+| Step | Peak test (meter / Windows) | At the peak | Idle (portable / installed) |
+|---|---|---|---|
+| Before (helpers, build of 64c168e) | 352.1 / 352.1 | voice helper 172, WebView2 134, groovy.exe 46 | 112.1 / 115.1 |
+| 1. onnxruntime options (run 42430544905, 73e7819) | 344.4 / 344.4 | voice helper 171, WebView2 128, groovy.exe 46 | 99.5 / 111.0 |
+- **Step 1:** sherpa-onnx's provider config (`onnxruntime-low-memory.cfg`) now also sets `EnableMemPattern=0`, for Kokoro, Whisper and Parakeet. Measured on Linux with the real Kokoro helper (private memory, 3 replies of 150 characters): default 214 MB, memory pattern off **163 MB**, arena off 238 MB (worse, so the arena stays on), arena and pattern off 232 MB, one thread instead of two no change and slower. **On Windows the voice helper did not shrink (171 MB)**; the 8 MB drop is WebView2's variance. Windows' heap keeps what onnxruntime asked for either way.
+- **Step 2 (int8):** already the case: Groovy has always downloaded Kokoro's int8 model (`kokoro-int8-v1_0`, `model.int8.onnx`); there is no fp32 model in use to replace.
+- **Step 3:** clauses of at most 30 characters (was 40), each clause's lead-in and trailing silence trimmed so the joined reply is no longer than before (Linux: 163 -> 153 MB). Being measured on Windows next. The log now lists each process's memory before a model loads ("memory before voice: ..."), so what each helper really costs is in the peak test's log.

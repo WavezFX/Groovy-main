@@ -96,7 +96,10 @@ pub fn fits(now: f64, extra_mb: f64) -> bool {
 /// once, and if it still wouldn't fit the panel window used longest ago
 /// closes. `loading` is "speech" or "voice".
 pub fn make_room(loading: &str, extra_mb: f64) {
-    let now = total_mb();
+    let parts = by_kind(&parts());
+    let now: f64 = parts.iter().map(|p| p.mb).sum();
+    // Each process's share, so the peak test's log shows what a model really costs.
+    crate::log::line(format!("memory before {loading}: {}", parts.iter().map(|p| format!("{} {:.0}", p.kind, p.mb)).collect::<Vec<_>>().join(", ")));
     if now <= 0.0 || fits(now, extra_mb) {
         return;
     }
