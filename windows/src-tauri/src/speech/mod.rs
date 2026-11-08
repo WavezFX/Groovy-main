@@ -324,7 +324,10 @@ pub(crate) fn low_memory_provider() -> Option<String> {
     let dir = crate::settings::local_dir();
     let file = dir.join("onnxruntime-low-memory.cfg");
     crate::platform::ensure_private_dir(&dir).ok()?;
-    std::fs::write(&file, "SessionConfig.session.disable_prepacking=1\n").ok()?;
+    // Round 3N item 2: no memory pattern. onnxruntime otherwise plans one big block per run
+    // shape and keeps it; measured with Kokoro (Linux, private memory): 214 -> 163 MB. The
+    // arena stays on: turning it off measured worse (238 MB), and so did one thread (no saving).
+    std::fs::write(&file, "SessionConfig.session.disable_prepacking=1\nEnableMemPattern=0\n").ok()?;
     file.is_file().then(|| format!("cpu:{}", file.display()))
 }
 
@@ -440,6 +443,7 @@ pub fn recognizer() -> Option<Arc<OfflineRecognizer>> {
     config.model_config.tokens = Some(PARAKEET.path("tokens.txt"));
     config.model_config.model_type = Some("nemo_transducer".into());
     config.model_config.num_threads = threads();
+    config.model_config.provider = low_memory_provider();
     crate::resources::ceiling::make_room("speech", 670.0);
     let started = Instant::now();
     crate::resources::loads::note(crate::resources::loads::Part::OfflineStt, "Parakeet, for speech on this PC");
