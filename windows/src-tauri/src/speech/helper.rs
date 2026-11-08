@@ -29,6 +29,8 @@ use crate::notes::builder::TimedWord;
 const ARG: &str = "--speech-helper";
 /// A helper exits after Groovy's idle setting without a request (resources/idle.rs; this if none is given).
 const IDLE: Duration = Duration::from_secs(30);
+/// The longest a helper waits for its next request (seconds), whatever the idle setting.
+const SHORT_IDLE: u64 = 20;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
@@ -210,7 +212,8 @@ fn spawn(kind: Kind) -> Option<Running> {
     }
     let exe = std::env::current_exe().ok()?;
     let mut cmd = Command::new(exe);
-    let idle = crate::resources::idle::limit().map_or(0, |d| d.as_secs().max(1));
+    // Round 3N item 2, step 4: never longer than SHORT_IDLE, so a model's memory goes back soon after use.
+    let idle = crate::resources::idle::limit().map_or(SHORT_IDLE, |d| d.as_secs().clamp(1, SHORT_IDLE));
     cmd.arg(ARG).arg(kind.name()).arg(idle.to_string()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
     #[cfg(windows)]
     {

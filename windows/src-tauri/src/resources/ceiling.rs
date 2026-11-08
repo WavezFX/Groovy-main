@@ -18,17 +18,18 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
-/// The owner's rule: never above this, even at peak.
-pub const CEILING_MB: f64 = 400.0;
+/// The owner's rule (4 Nov): never above this, even at peak (was 400).
+pub const CEILING_MB: f64 = 300.0;
 /// Where Groovy starts giving memory back.
-pub const PRESSURE_MB: f64 = 380.0;
+pub const PRESSURE_MB: f64 = 285.0;
 
-/// About what each model adds once loaded, measured on Windows (MB).
-/// Whisper while it transcribes (its buffers too), as CI's peak test saw it.
-pub const WHISPER_MB: f64 = 240.0;
-/// Kokoro loaded (about 225 MB) and speaking a sentence (up to about 90 MB
-/// more), as CI's peak test and a run of the same sherpa-onnx here saw it.
-pub const KOKORO_MB: f64 = 310.0;
+/// About what each model adds once loaded, measured on Windows (MB), now that each
+/// runs in its helper process (round 3N item 2, CI's peak test, 8 Nov).
+/// Whisper's helper while it transcribes.
+pub const WHISPER_MB: f64 = 150.0;
+/// Kokoro's helper while it speaks (about 165 MB), plus what a call adds to the
+/// island and Groovy meanwhile (about 70 MB: 105 MB before the call, 342 at its end).
+pub const KOKORO_MB: f64 = 235.0;
 
 /// How often the watcher reads the total.
 pub const EVERY: Duration = Duration::from_secs(3);
@@ -403,8 +404,8 @@ mod tests {
     fn a_model_loads_only_when_it_fits_under_the_line() {
         assert!(fits(130.0, WHISPER_MB), "the island alone and Whisper fit");
         assert!(!fits(200.0, WHISPER_MB), "with Settings open too, Settings closes first");
-        assert!(!fits(120.0, KOKORO_MB), "the voice and the island only just fit: the island runs light");
-        assert!(fits(60.0, KOKORO_MB), "with the island light, the voice fits");
+        assert!(!fits(105.0, KOKORO_MB), "a call with Settings open doesn't fit: Settings closes and the island runs light");
+        assert!(fits(45.0, KOKORO_MB), "with nothing else open, the call fits");
         assert!(PRESSURE_MB < CEILING_MB);
     }
 

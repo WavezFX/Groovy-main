@@ -291,10 +291,10 @@ pub fn free() {
 
 /// The longest piece Kokoro speaks at once. Its working memory grows with the
 /// length of what it says (about 1 MB a character), so a reply is spoken in
-/// clauses of about this size and joined (round 3D item 7). Round 3N: 40 -> 30 measured
-/// 163 -> 153 MB here; each clause's lead-in and tail silence is trimmed, so the reply
-/// is no longer than at 40.
-const CLAUSE_CHARS: usize = 30;
+/// clauses of about this size and joined (round 3D item 7). Round 3N tried 30: 9 MB less
+/// on Windows (171 -> 162) but a call's reply took 4 s longer, so it stays 40. Each
+/// clause's lead-in and trailing silence is trimmed, so the clauses join with no gap.
+const CLAUSE_CHARS: usize = 40;
 
 /// `text` in clauses of at most `max` characters: cut after punctuation where
 /// it can be, between words where it must, never inside a word.
