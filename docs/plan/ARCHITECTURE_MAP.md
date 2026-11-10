@@ -1,6 +1,6 @@
 # Groovy architecture map (10 Nov 2026, branch `fable-plan` from `groovy-ai-phase1` @ 5387527)
 
-For the Sonnet build session. Paths are under `windows/` unless they start with `/`. Rust = `src-tauri/src/`, page = `src/`.
+**`docs/GROOVY_SPEC.md` says what Groovy must be; this file says what the code is today.** For the build sessions. Paths are under `windows/` unless they start with `/`. Rust = `src-tauri/src/`, page = `src/`.
 State words: **done**, **partial**, **missing**, **broken**. Navigate with `graphify-out/GRAPH_REPORT.md` (rebuild: `graphify update .`).
 
 Not verified here: nothing was built or run in this session. Memory numbers are from `STATUS.md` (Windows CI, private working set). Upstream Coucou and dotpals sources were **not available** in this session, so "faithful port" claims below rest on the repo's own comments.

@@ -153,49 +153,56 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 6. Choose your Groovy (Night, Ember or Frost) and name him at hatching
 - [x] 5. Tests and checks
 
-## 4. Rounds 4A–4E (planned 10 Nov; map in `docs/plan/ARCHITECTURE_MAP.md`). **Do them in this order: 4A, 4D, 4B, 4C, 4E.** Items marked (Opus) are for an Opus session: skip them, leave them unticked, and carry on. Commit subjects: "Round 4A, item 1: …".
+## 4. Rounds 4A–4E (planned 10 Nov, revised to `docs/GROOVY_SPEC.md`). **Read `docs/GROOVY_SPEC.md` first: it wins over every older file, this one included.**
+- **Order: 4A, 4D, 4B, 4C, 4E.**
+- **For these rounds the spec's commit rule replaces the one at the top of this file: one commit per round**, every finished item ticked in it, `[build]` in its subject ("Round 4A: …"). A missed "done when" gets a fix commit, also with `[build]`.
+- Items marked (Opus) are for an Opus or Fable session. A Sonnet session leaves them unticked and carries on.
+- Limits in every "done when": idle under 150 MB (Settings open included), peak under 300 MB (voice call and Settings open included).
 
-### 4A. `FIXES_ROUND4A.md` (RAM and performance; this finishes 3N item 2 and 3D item 11)
-- [ ] 1. A light offline voice so a call fits under 300 MB (Kokoro stays as an option)
-- [ ] 2. What a call adds to the island's WebView (about 70 MB now)
-- [ ] 3. Idle with Settings open or left behind
-- [ ] 5. The work test gates; Coucou idle comparison (closes 3D item 11)
-- [ ] 4. "Listening idle" CI step (**after 4B item 1**)
-- [ ] 6. WebView2 idle trim (only if the measurement shows 5 MB or more)
-- [ ] 7. Checks
+### 4A. `FIXES_ROUND4A.md` (RAM and performance; finishes 3N item 2 and 3D item 11)
+- [ ] 1. Light offline voice is the default (helper at most 80 MB); Kokoro an optional download
+- [ ] 2. A call adds at most 25 MB to the island (about 70 now)
+- [ ] 3. Idle under 150 MB with Settings open (about 190 now) (Opus)
+- [ ] 5. The work test gates at 300 MB (446 now)
+- [ ] 6. Start-up and idle CPU numbers in CI (P1, P8, P9)
+- [ ] 7. Island idle trim (only if headroom is under 10 MB)
+- [ ] 4. "Listening idle" CI step (**goes in round 4B's commit, after 4B item 1**)
+- [ ] 8. Checks: gates at 150 / 150 / 300 / 300
 
-### 4D. `FIXES_ROUND4D.md` (provider and router layer). **Before 4C.**
-- [ ] 1. One `Provider` interface and a registry (Opus)
+### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
+- [ ] 1. The `Brain` trait and a registry (Opus)
 - [ ] 2. One switcher for chat and background jobs
-- [ ] 3. Account sign-in first (Claude, Codex, Gemini CLI), API keys optional, streaming
-- [ ] 4. Tools for subscription brains (Opus)
+- [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming
+- [ ] 4. Tools on subscription brains (Opus)
 - [ ] 5. The router slot (`docs/ROUTER_PLUGIN.md`)
 - [ ] 6. Checks
 
-### 4B. `FIXES_ROUND4B.md` (voice pipeline)
-- [ ] 1. One wake-word listener in Rust: "Groovy", "Hey Groovy", "Yo Groovy" ("OK Groovy" and his name kept) (Opus)
+### 4B. `FIXES_ROUND4B.md` (voice)
+- [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus)
 - [ ] 2. Speech-to-text on this PC by default
-- [ ] 3. Low CPU while listening
-- [ ] 4. LiveKit as a wake action
-- [ ] 5. Better end of speech (closes 3J item 2)
-- [ ] 6. Checks
+- [ ] 3. His voice on this PC by default (**needs 4A item 1**)
+- [ ] 4. CPU and response times (P2–P7)
+- [ ] 5. LiveKit as an option
+- [ ] 6. Better end of speech (closes 3J item 2)
+- [ ] 7. Checks
 
-### 4C. `FIXES_ROUND4C.md` (screen buddy, like dotpals' Blu). **Needs 4D items 1 and 2.**
-- [ ] 1. Parity table from the dotpals source (Opus; owner to supply the repo)
-- [ ] 2. Screen capture, on request only
-- [ ] 3. "Look at my screen" for chat and voice
+### 4C. `FIXES_ROUND4C.md` (screen buddy). **Needs 4D items 1, 2 and 4.**
+- [ ] 1. Behaviour notes from the two reference projects (Opus; no code)
+- [ ] 2. Screen capture, on request only (at most 400 KB, within 500 ms)
+- [ ] 3. "Look at my screen" in chat and by voice
 - [ ] 4. Live talk-back about the screen
-- [ ] 5. Pointing and drawing on screen (Opus)
+- [ ] 5. Pointing and drawing on the screen (Opus)
 - [ ] 6. Settings and privacy
 - [ ] 7. Checks
 
-### 4E. `FIXES_ROUND4E.md` (licence and asset audit). **Last, because item 2 renames many files.**
-- [ ] 1. The animation engine is a port of Mochi's: provenance table, then permission or redo (Opus; owner decision)
-- [ ] 2. Remove the reserved names from the code (`mochi`, `coucou`), with a settings migration
-- [ ] 3. Asset inventory (`docs/ASSETS.md`)
-- [ ] 4. Third-party notices and model credits ship in the installer
-- [ ] 5. Close the open items in `docs/LICENSING.md`
-- [ ] 6. Checks
+### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
+- [ ] 1. Original motion for the character; growth art unchanged (Opus)
+- [ ] 2. Remove every mention of other projects and their characters (CI name check)
+- [ ] 3. The copied-code ledger (`docs/plan/REWRITE_LEDGER.md`)
+- [ ] 4. Asset inventory (`docs/ASSETS.md`)
+- [ ] 5. Notices ship; only MIT, BSD, ISC, Apache-2.0 come in
+- [ ] 6. Close `docs/LICENSING.md`
+- [ ] 7. Checks
 
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.

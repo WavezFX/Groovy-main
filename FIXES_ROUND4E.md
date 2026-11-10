@@ -1,66 +1,71 @@
-# Fixes round 4E: licence and asset audit (10 Nov)
+# Fixes round 4E: licence and asset audit (10 Nov, revised to `docs/GROOVY_SPEC.md`)
 
-Read `docs/LICENSING.md`, `LICENSE-ASSETS.md` and `NOTICE` first. Same rules as round 4A. This round is mostly reading and writing down; code changes are renames and replacements only. **Not legal advice.**
+Read `docs/GROOVY_SPEC.md` (sections 2, 9, 10) first. One commit for the round with `[build]`. **Not legal advice.**
 
-## The GPL v2 position (read before item 1)
-- The repository is **Apache-2.0 since 4 Nov 2026** (`LICENSE`, `NOTICE`, `README.md`). Versions published before that date were GPL v2 and stay available under it. `docs/LICENSING.md` section 2 records why GPL-2.0 was dropped.
-- Going back to GPL-2.0-only would not work with what Groovy ships: Apache-2.0 code cannot be combined into a GPL-2.0-only program (sherpa-onnx, the keyword-spotter model, `livekit-client` and many Rust crates are Apache-2.0), and `windows/deny.toml` already fails the build on any GPL, AGPL or LGPL crate.
-- **Owner decision needed:** confirm Apache-2.0 stays. If the owner wants copyleft instead, the only workable choice is GPL-3.0-or-later (compatible with Apache-2.0); that would need `deny.toml`, `NOTICE` and the Studio plan revisited. Until the owner says otherwise, every item below assumes Apache-2.0.
+**Position:** Apache-2.0, confirmed by the owner. Only MIT, BSD, ISC and Apache-2.0 code may be added; no GPL, AGPL or LGPL (`windows/deny.toml` already fails the build on them). Releases made before 4 Nov 2026 stay under the licence they were published with; that sentence stays in `README.md`.
 
-## Item 1: The animation engine is a port of Mochi's (Opus; owner decision)
-**Finding:** `windows/src/mochi/engine.ts` line 1: "direct port of NotchBuddy/Sources/App/BotEngine.swift … Same constants, same tweens, same easings, same particles." Coucou's code is MIT, but its asset terms reserve the Mochi character's **expressions and animations**. Round 3K redrew the outline (`pillow.ts`); the motion, eye shapes and emotes were not redone.
-**Goal:** Groovy's body, face and motion are provably his own, or permission is on file.
-**Files:** `windows/src/mochi/engine.ts`, `skins.ts` (`drawAlmondEye`, mouths), `core/layout.ts` (`BotEmoteName`, `BotStateName`), new `docs/plan/CHARACTER_PROVENANCE.md`.
+**The names to remove** are listed once, here, so they can be searched for: `coucou`, `mochi`, `dotpals`, `blu` (as a character name), `NotchBuddy`. This list and round 4C's reference lines are deleted in item 2's last step.
+
+**What can and can't be done at once:** Groovy began from an MIT-licensed code base, so a large share of files still contain copied code. The MIT licence requires its copyright line and text to stay with that code. So the names leave every file **except `THIRD_PARTY_NOTICES.md`**, which carries the credit until each copied file has been rewritten (item 3 keeps the list).
+
+## Item 1: Original motion for the character (Opus)
+**Finding:** `windows/src/mochi/engine.ts` says in its header that it is a direct port of another project's animation engine (same constants, tweens, easings, particles). The outline is already Groovy's own (`pillow.ts`); the motion is not.
+**Goal:** every tween, easing, cycle, emote and particle is Groovy's own. **The growth art, the looks and the pillow outline don't change.**
+**Files:** `windows/src/mochi/engine.ts`, `skins.ts` (eye and mouth drawing), `core/layout.ts` (state and emote names), `core/anim.ts`, new `docs/plan/CHARACTER_MOTION.md`.
 **Steps:**
-1. Get upstream Coucou at the forked commit (ask the owner to add the repo). List, side by side, every state, emote, tween constant, easing and particle in `engine.ts` against `BotEngine.swift`: same / changed / Groovy's own. Write it to `CHARACTER_PROVENANCE.md`.
-2. Owner chooses: (a) written permission from Louis Raillé (keep the reply in `docs/licenses/`), or (b) redo what the table marks "same".
-3. For (b): new timing constants and easings, a different blink, breathing and idle cycle, Groovy's own emote set (the wisps from 3K give him gestures Mochi doesn't have), different particles. Keep the state names the island uses so nothing else changes. Design first on a contact sheet (`scripts/body-sheet.mjs`), owner approves, then code.
-4. Rewrite the header comment of `engine.ts` to describe what it is after the change.
-**Test:** `body-sheet.mjs` and `items-check.mjs` pass; frame test unchanged.
-**Done when:** the provenance table has no "same" row left without either permission or a redo.
+1. List every state, emote, timing constant, easing and particle in `engine.ts` in `CHARACTER_MOTION.md`, each marked **ported** or **Groovy's own**. Read the original only to mark the list.
+2. Design the replacement on paper first, in the same file: Night's sharp glowing eyes and halo pulse; a blink, breathing and idle cycle with different rhythm and shape; gestures made with his wisps (leaf flick, flame lick, droplet bob); look-specific particles. Contact sheet (`scripts/body-sheet.mjs`) for the owner.
+3. Rewrite each **ported** row from the design, not from the old code. Keep the state names the island calls, so nothing else changes. Rewrite the file's header.
+4. Loops still stop at rest (idle CPU) and springs still snap to 0.
+**Test:** `body-sheet.mjs`, `items-check.mjs`, wardrobe and growth tests; frame test.
+**Done when:** `CHARACTER_MOTION.md` has **no "ported" row**, frame time is **p95 at most 20 ms (P10)**, idle CPU **at most 0.3 % (P1)**, idle **under 150 MB**.
 
-## Item 2: Remove the reserved names from the code (`mochi`, `coucou`)
-**Goal:** no file, folder, command or identifier named after Mochi or Coucou, except credit lines and the phone protocol.
-**Files:** `windows/src/mochi/` → `windows/src/groovy/`; `windows/mochi.html` → `desktop.html`; Tauri commands `desktop_mochi_*` (`src-tauri/src/lib.rs:1483`, `desktop.rs`); settings key `desktop_mochi` (`lib.rs:173`, `settings.rs`); `vite.config.ts`; capabilities; tests; `portal.rs:666` (test strings).
+## Item 2: Remove every mention
+**Files:** whole repo. Code: `windows/src/mochi/` → `windows/src/groovy/`, `windows/mochi.html` → `desktop.html`, commands `desktop_mochi_*` (`src-tauri/src/lib.rs:1483`, `desktop.rs`), settings key `desktop_mochi`, comments in about 34 files, `portal.rs:666` test strings. Docs: `README.md`, `NOTICE`, `LICENSE-ASSETS.md`, `LICENSE-COUCOU-MIT`, `HANDOVER.md`, `STATUS.md`, `CHANGELOG.md`, `WORK_QUEUE.md`, `FIXES_ROUND*.md`, `docs/**`, `windows/README.md`, `windows/docs/**`, `linux/arch/*`, workflow files.
 **Steps:**
-1. Rename with `git mv` and fix imports. One commit for the folder, one for the commands and settings key.
-2. The settings key needs a migration: read `desktop_mochi`, write `desktop_groovy`, keep reading the old key for one version (`#[serde(alias)]`). Add the old file to `tests/fixtures` and assert the value survives.
-3. Run `node scripts/command-access.mjs` after renaming commands.
-4. **Leave alone:** `LICENSE-COUCOU-MIT`, `NOTICE`, README credit, comments that credit Coucou as the source of ported code, and the phone link's wire identifiers (`_coucou._tcp`, `coucou://pair`, `coucou.v1` in `phone_link/{discovery,pairing,relay_client}.rs`): they must match the Android app. Note them in `STATUS.md` as "rename together with the Android app when its source arrives".
-**Test:** full front-end and Rust tests; `grep -rIil "mochi" windows/src windows/src-tauri/src windows/*.html` lists only credit comments.
-**Done when:** that grep is clean and an old settings file still loads.
+1. Code: `git mv` the folder and page, fix imports, rename the commands (`node scripts/command-access.mjs`), reword comments to say what the code does.
+2. Settings key: read `desktop_mochi`, write `desktopGroovy`, keep reading the old key for one version (`#[serde(alias)]`); add a fixture test that the value survives. The alias is the one allowed leftover in code; remove it in the next release.
+3. Phone link wire names (`_coucou._tcp`, `coucou://pair`, `coucou.v1` in `phone_link/{discovery,pairing,relay_client}.rs`): add Groovy-named equivalents and advertise both. Move the old ones into one file, `phone_link/compat.rs`, removed when the Android app is updated (**blocked on the Android source**).
+4. Docs: `README.md` and `NOTICE` describe Groovy on its own; third-party credit is one line pointing to `THIRD_PARTY_NOTICES.md`. Fold `LICENSE-COUCOU-MIT` and `LICENSE-PHONELINK-MIT` into `THIRD_PARTY_NOTICES.md` (copyright line plus MIT text each) and delete the two files. Historical files (`HANDOVER.md`, old `FIXES_ROUND*.md`, `STATUS.md`, `CHANGELOG.md`, `docs/research`, `docs/LICENSING.md`): reword the mentions ("the original project", "the reference app") rather than deleting history.
+5. Last: delete the name list at the top of this file and the reference lines in `FIXES_ROUND4C.md`.
+**Test:** all tests; an old settings file loads; a new CI step fails the build if `grep -rIil` for the names finds any file other than `THIRD_PARTY_NOTICES.md`, `phone_link/compat.rs` and the settings alias line.
+**Done when:** that CI step is green.
 
-## Item 3: Asset inventory, file by file
-**Goal:** every shipped non-code asset has a recorded origin and licence.
-**Files:** new `docs/ASSETS.md`; `LICENSE-ASSETS.md`.
-**Steps:** for each of the following, record origin, author, licence, and how to regenerate it. Anything without a provable Groovy origin is replaced with an original.
-| Asset | Path | What to check |
+## Item 3: The copied-code ledger
+**Goal:** know exactly which files still hold copied code, so the credit can be dropped when the list is empty.
+**Files:** new `docs/plan/REWRITE_LEDGER.md`, `windows/THIRD_PARTY_NOTICES.md`.
+**Steps:**
+1. For each source file, from `git log --follow --diff-filter=A` and the first commit of the repo: **inherited** (existed at the start), **rewritten** (inherited, later replaced wholesale), **Groovy's own** (added later). One line per file, grouped by folder.
+2. Rank the inherited files by how visible they are (character and island first, plumbing last) and give each a round to be rewritten in. Don't rewrite plumbing in this round.
+3. `THIRD_PARTY_NOTICES.md` gets one section, "Code Groovy started from", with the copyright line, the MIT text, and "see `docs/plan/REWRITE_LEDGER.md`".
+**Done when:** every file under `windows/src`, `windows/src-tauri/src` and `windows/hook` has a ledger line, and the character's files (`windows/src/groovy/*`) are all **rewritten** or **Groovy's own**.
+
+## Item 4: Asset inventory
+**Files:** new `docs/ASSETS.md`.
+**Steps:** one row per shipped non-code file: origin, author, how to regenerate. Replace anything without a provable Groovy origin.
+| Asset | Path | Check |
 |---|---|---|
-| App and tray icons | `windows/src-tauri/icons/*` (6 files) | drawn for Groovy? `git log --follow` each file; compare against Coucou's icons at the fork commit. Replace if derived. |
-| Sounds | generated by `windows/src/core/sounds-synth.ts` | already audited (`windows/sounds/SOURCES.md`): confirm no audio file ships. |
-| Growth and wardrobe art | `windows/src/mochi/art/*` from `docs/design/wardrobe-v2` via `scripts/gen-art.py` | confirm every board is the owner's design; no Mochi outfit id remains (`tests/wardrobe.test.mjs`). |
-| Hatching intro | `windows/src/mochi/seed.ts` | header says it replaces Coucou's intro: confirm nothing of the old one is left. |
-| Fonts | `windows/src/hub/fonts/manrope-*.woff2` | SIL OFL: `OFL.txt` is beside them and listed in `NOTICE`. |
-| Test audio | `windows/src-tauri/tests/audio/*.wav` | synthetic voice, not a person or a Coucou file; say how each was made. Not shipped: confirm in `pack.mjs`. |
-| Design boards | `docs/design/**` | owner's own; not shipped. |
-| Translations | `windows/src/i18n/*.json` | strings inherited from Coucou are MIT text (fine); search for "Mochi" or "Coucou" in user-visible strings and replace. |
-**Done when:** `docs/ASSETS.md` has a row for every file `git ls-files` lists that is not source code, and no row says "unknown".
+| App and tray icons | `windows/src-tauri/icons/*` | `git log --follow`; drawn for Groovy, or redraw |
+| Sounds | made by `windows/src/core/sounds-synth.ts` | no audio file ships (`windows/sounds/SOURCES.md`) |
+| Growth and wardrobe art | `windows/src/groovy/art/*` from `docs/design/wardrobe-v2` | every board is the owner's; **art unchanged** |
+| Hatching seed | `windows/src/groovy/seed.ts` | nothing of an older intro left |
+| Fonts | `windows/src/hub/fonts/manrope-*` | SIL OFL, `OFL.txt` beside them |
+| Test audio | `windows/src-tauri/tests/audio/*.wav` | synthetic; not shipped (`pack.mjs`) |
+| Strings | `windows/src/i18n/*.json` | no reserved name in visible text |
+**Done when:** every non-code file from `git ls-files` has a row and none says "unknown".
 
-## Item 4: Third-party notices actually ship
-**Goal:** the installer carries the licences it must.
-**Files:** `windows/THIRD_PARTY_NOTICES.md`, `windows/scripts/third-party.mjs`, `windows/scripts/pack.mjs`, `windows/src-tauri/tauri.conf.json` (bundle resources), `windows/docs/licenses/MODELS.md`, `NOTICE`.
+## Item 5: Notices ship, and only allowed licences come in
+**Files:** `windows/THIRD_PARTY_NOTICES.md`, `windows/scripts/third-party.mjs`, `windows/scripts/pack.mjs`, `windows/src-tauri/tauri.conf.json`, `windows/docs/licenses/MODELS.md`, `windows/deny.toml`, `/.github/workflows/check.yml`.
 **Steps:**
-1. Regenerate `THIRD_PARTY_NOTICES.md` and add a CI check that it is current (fails when a dependency changed and the file didn't).
-2. Confirm the Setup, MSI and Portable outputs each contain `LICENSE`, `NOTICE`, `LICENSE-COUCOU-MIT`, `LICENSE-PHONELINK-MIT`, `THIRD_PARTY_NOTICES.md` and `MODELS.md` (a step in `windows-build.yml` that lists the installed folder).
-3. Models: Parakeet is CC-BY-4.0, so its credit must be visible to the user: add it to Settings → About. Check Whisper (MIT), Kokoro and its voices, the keyword spotter (Apache-2.0), and any voice added by round 4A item 1.
-4. `NOTICE` says "see THIRD_PARTY_NOTICES once generated": update the wording now that it exists.
-5. `phone_link/mod.rs` line 1 points to `android/LICENSE`, which is not in the repo: point it to `/LICENSE-PHONELINK-MIT`, and check that file against Rhytam Biswas's original (owner to supply).
-**Test:** the new CI steps.
-**Done when:** a fresh install has all six files, and About shows the model credits.
+1. `deny.toml` and the npm licence gate allow exactly MIT, BSD-2/3-Clause, ISC, Apache-2.0 and the small set already justified (Unicode, Zlib, MPL only if already present: list each with its reason). Anything else fails.
+2. CI fails when `THIRD_PARTY_NOTICES.md` is out of date.
+3. Setup, MSI and Portable each contain `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`, `MODELS.md` (a CI step lists the installed folder).
+4. Model credits visible in Settings → About (Parakeet is CC-BY-4.0; plus Whisper, the light voice, Kokoro, the keyword spotter).
+**Done when:** the three CI steps are green and a fresh install shows the credits.
 
-## Item 5: Close the open items in `docs/LICENSING.md`
-**Steps:** tick what items 1–4 finished; for each item still open (trademark search for "Groovy", privacy notice, contributor sign-off before the first outside pull request, FFmpeg for Studio) write one line: who acts and what is needed. Add `.github/pull_request_template.md` with a Developer Certificate of Origin sign-off line. Draft `docs/PRIVACY.md` (what stays on the PC, what goes to which provider, including round 4C's screen captures) for the owner to review.
-**Done when:** `docs/LICENSING.md` section 4 has no unticked item without an owner and a next step.
+## Item 6: Close `docs/LICENSING.md`
+**Steps:** rewrite it to the spec's position (short). Each open item gets an owner and a next step: trademark search for "Groovy"; `docs/PRIVACY.md` drafted (what stays on the PC, what goes to which brain, screen captures); `.github/pull_request_template.md` with a Developer Certificate of Origin line.
+**Done when:** no open item lacks an owner and a next step.
 
-## Item 6: Checks
-- `cargo deny check`, the npm licence gate and gitleaks green. One `[build]`. `STATUS.md`: what was replaced, what waits on the owner (permission or redo, the Android source, the Phone Link licence file).
+## Item 7: Checks
+- `cargo deny check`, npm licence gate, gitleaks and the name check green. Idle **under 150 MB**, peak **under 300 MB**. `STATUS.md`: what was rewritten, what remains in the ledger, what waits on the Android source.
