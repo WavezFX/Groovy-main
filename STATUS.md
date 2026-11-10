@@ -370,3 +370,16 @@ Studied Coucou's MIT `windows/src/mochi/outfits.ts` for its *technique* only (no
 | 4. ceiling 300/285, helpers' idle 20 s, clauses 40 (run 42437143697, bf97a55) | **331.1 / 331.1** | voice helper 171, WebView2 121, groovy.exe 39 | 105.3 / 111.4 |
 - **Step 4 measured:** peak 331 MB (from 352 at the start of this work), calls 9.7 and 9.4 s (155 KB of speech each), idle unchanged. The ceiling now acts at 285 MB: Groovy closes Settings during the call and runs the island light. **Still over 300**: what is left is Kokoro's helper (171 MB on Windows whatever the onnxruntime options), the island's WebView2 during a call (about 120 MB) and Groovy itself (about 40 MB). Round 3N item 2 stays open. Next ideas, not tried: a smaller TTS voice model than Kokoro 82M for the offline fallback, or measuring what a call adds to the island's WebView2 (about 70 MB) and trimming it.
 - **Gates, from the measured numbers:** peak test 360 -> **350** (highest of the last four builds 344, this one 331); idle 130 -> **125** (highest of the last four builds 115). Not lowered further: the peak is not yet under 300.
+
+## Reference measure (10 Nov, run 42875240231, `.github/workflows/reference-measure.yml`)
+The reference app's Windows build (its `windows-latest` setup, installed silently) and Groovy's latest build (`Groovy-AI-0.6.0-Windows-Portable.zip`), on one Windows runner, counted as `docs/GROOVY_SPEC.md` section 8 counts Groovy: private working set of the app's process and every process under it, WebView2 included, 30 s after launch; CPU over the next 60 s.
+| App | Idle total (MB) | Processes | Renderers | Idle CPU (%) | By process (MB) |
+|---|---|---|---|---|---|
+| Reference app, first run | 292.2 | 11 | 4 | 1.17 | app 7.1, WebView2: renderers 205.8, browser 49.3, GPU 14.4, utility 13.4, crashpad 2.2 |
+| Reference app, second run | 303.1 | 11 | 4 | 1.07 | app 7.1, WebView2: renderers 232.3, browser 34.4, GPU 14.4, utility 12.9, crashpad 2.1 |
+| Groovy, first run | 116.4 | 8 | 1 | 0.16 | groovy.exe 5.9, WebView2: renderer 57.6, browser 32.0, utility 12.2, GPU 6.7, crashpad 2.0 |
+| Groovy, second run | 122.1 | 8 | 1 | 0.15 | groovy.exe 10.4, WebView2: renderer 62.3, browser 28.7, utility 11.9, GPU 6.7, crashpad 2.0 |
+- **Groovy idles at about 40 % of the reference app** on this runner (119 against 298 MB) and at about a seventh of its CPU.
+- **Caveat:** both ran on a fresh profile with default settings. The reference app had four renderers, so it very likely had windows open beyond its island (a first-run or settings window); its settled idle with one window may be lower. The run did not capture which windows were open.
+- Groovy read 116–122 MB here against 105–115 MB in the smoke test; this script waits 30 s, the smoke test 20 s, and it is a different run.
+- **What it means for the stretch targets:** in both apps a single awake WebView2 costs about 100 MB (renderer 58–62, browser 29–32, utility 12, GPU 7). Idle under 50 MB (S1) needs the WebView asleep or closed at idle: round 4F item 1.
