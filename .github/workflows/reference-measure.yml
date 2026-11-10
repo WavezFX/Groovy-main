@@ -1,0 +1,83 @@
+name: Reference measure
+
+# Idle memory and CPU of the reference app's Windows build next to Groovy's
+# latest build, on one runner, counted the way docs/GROOVY_SPEC.md section 8
+# counts Groovy: private working set of every process, WebView2 included.
+# Nothing is built and nothing is published; the table goes to the run summary.
+# (FIXES_ROUND4E item 2 moves the reference's address into a repository variable.)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fable-plan, 'groovy-ai-*']
+    paths:
+      - '.github/workflows/reference-measure.yml'
+      - 'windows/scripts/measure-app.ps1'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      REFERENCE_SETUP: https://github.com/Louis-CFM/coucou/releases/download/windows-latest/Coucou-Windows-setup.exe
+      REFERENCE_DIR: Coucou
+      REFERENCE_EXE: coucou.exe
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Table header
+        shell: pwsh
+        run: |
+          "| App | Idle total (MB) | Processes | Renderers | Idle CPU (%) | By process (MB) |" | Out-File -Encoding utf8 rows.md
+          "|---|---|---|---|---|---|" | Out-File -Append -Encoding utf8 rows.md
+
+      - name: Install the reference app
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri $env:REFERENCE_SETUP -OutFile reference-setup.exe
+          Start-Process -FilePath ./reference-setup.exe -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA "$env:REFERENCE_DIR\$env:REFERENCE_EXE"
+          if (-not (Test-Path $exe)) {
+            $found = Get-ChildItem -Path $env:LOCALAPPDATA, $env:ProgramFiles -Recurse -Filter $env:REFERENCE_EXE -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $found) { throw "the reference app's executable was not found after the install" }
+            $exe = $found.FullName
+          }
+          "REFERENCE_PATH=$exe" | Out-File -Append $env:GITHUB_ENV
+          Write-Host "installed at $exe, version $((Get-Item $exe).VersionInfo.ProductVersion)"
+
+      - name: Measure the reference app (first run, then a second run)
+        shell: pwsh
+        run: |
+          ./windows/scripts/measure-app.ps1 -Exe $env:REFERENCE_PATH -Label "Reference app, first run" -Out rows.md
+          ./windows/scripts/measure-app.ps1 -Exe $env:REFERENCE_PATH -Label "Reference app, second run" -Out rows.md
+
+      - name: Fetch Groovy's latest build
+        shell: pwsh
+        run: |
+          gh release download latest-build -R $env:REPO -p "*Portable.zip" -D groovy-latest
+          $zip = Get-ChildItem groovy-latest -Filter *.zip | Select-Object -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath groovy-latest/app
+          "GROOVY_ZIP=$($zip.Name)" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Measure Groovy (first run, then a second run)
+        shell: pwsh
+        run: |
+          ./windows/scripts/measure-app.ps1 -Exe (Resolve-Path groovy-latest/app/groovy.exe) -Label "Groovy, first run" -Out rows.md
+          ./windows/scripts/measure-app.ps1 -Exe (Resolve-Path groovy-latest/app/groovy.exe) -Label "Groovy, second run" -Out rows.md
+
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          "### Idle, 30 s after launch, private working set of every process" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          "Groovy build measured: $env:GROOVY_ZIP" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          "" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          Get-Content rows.md | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          Get-Content rows.md
