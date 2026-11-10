@@ -162,6 +162,14 @@ fn unsqueeze(app: &AppHandle) {
 /// the working set (they come back on use). Without it a freed model's
 /// memory stayed counted for seconds, long enough to cross the ceiling when
 /// the next model loaded (CI's peak test, 446 MB).
+/// Hands the working sets of Groovy and every process under it back to
+/// Windows (the sleeping island, island_sleep.rs): the pages come back as each
+/// process touches them again.
+#[cfg(windows)]
+pub fn trim_tree() {
+    os::trim_tree();
+}
+
 pub fn give_back() {
     os::give_back();
 }
@@ -322,7 +330,36 @@ mod os {
         }
     }
 
+    pub fn trim_tree() {
+        use windows::Win32::System::ProcessStatus::EmptyWorkingSet;
+        use windows::Win32::System::Threading::{PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA};
+        for (pid, _) in tree() {
+            unsafe {
+                if let Ok(h) = OpenProcess(PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION, false, pid) {
+                    let _ = EmptyWorkingSet(h);
+                    let _ = CloseHandle(h);
+                }
+            }
+        }
+    }
+
     pub fn parts() -> Vec<Part> {
+        let me = std::process::id();
+        tree()
+            .into_iter()
+            .filter_map(|(pid, exe)| {
+                // The speech helpers (round 3N item 2) are copies of groovy.exe: named for what they run.
+                let kind = match crate::speech::helper::label(pid) {
+                    Some(l) => l.to_string(),
+                    None => kind_of(&exe, pid == me)?,
+                };
+                Some(Part { kind, mb: private_working_set(pid)? })
+            })
+            .collect()
+    }
+
+    /// Groovy and everything under it, however deep: (pid, executable name).
+    fn tree() -> Vec<(u32, String)> {
         let me = std::process::id();
         let mut table: HashMap<u32, (u32, String)> = HashMap::new();
         unsafe {
@@ -344,17 +381,7 @@ mod os {
             tree.extend(table.iter().filter(|(pid, (pp, _))| *pp == parent && **pid != me && !tree.contains(pid)).map(|(pid, _)| *pid).collect::<Vec<_>>());
             i += 1;
         }
-        tree.into_iter()
-            .filter_map(|pid| {
-                let exe = table.get(&pid).map(|(_, e)| e.clone()).unwrap_or_default();
-                // The speech helpers (round 3N item 2) are copies of groovy.exe: named for what they run.
-                let kind = match crate::speech::helper::label(pid) {
-                    Some(l) => l.to_string(),
-                    None => kind_of(&exe, pid == me)?,
-                };
-                Some(Part { kind, mb: private_working_set(pid)? })
-            })
-            .collect()
+        tree.into_iter().map(|pid| (pid, table.get(&pid).map(|(_, e)| e.clone()).unwrap_or_default())).collect()
     }
 }
 

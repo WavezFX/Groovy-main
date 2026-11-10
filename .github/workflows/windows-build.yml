@@ -18,7 +18,7 @@ run-name: "${{ github.event_name == 'schedule' && 'Nightly build' || github.even
 
 on:
   push:
-    branches: [main, 'groovy-ai-*']
+    branches: [main, 'groovy-ai-*', fable-plan]
     paths:
       - 'windows/**'
       - '.github/workflows/windows-build.yml'
@@ -150,7 +150,7 @@ jobs:
         shell: pwsh
         run: |
           $has = { param($path, $text) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains($text) }
-          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW"
+          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW", "GROOVY_SLEEP_TEST"
           foreach ($v in $switches) { if (& $has release/groovy.exe $v) { throw "the shipped groovy.exe reads $v" } }
           npx tauri build --no-bundle --features ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -170,6 +170,22 @@ jobs:
         with:
           name: island-corners
           path: windows/corner-shots/
+          retention-days: 3
+          if-no-files-found: ignore
+
+      # Round 4F item 1: the resting island's webview is suspended and its
+      # memory handed back; the cursor wakes it. Reports the asleep total
+      # (stretch target S1) and the wake time; red only if he never sleeps.
+      - name: The island sleeps at idle and wakes for the cursor
+        shell: pwsh
+        run: ./scripts/sleep-test.ps1 -Exe release/test/groovy.exe -OutDir sleep-shots
+
+      - name: Upload the sleep screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: island-asleep
+          path: windows/sleep-shots/
           retention-days: 3
           if-no-files-found: ignore
 
@@ -362,8 +378,10 @@ jobs:
       # the assets of the pre-release "Groovy latest build" (tag latest-build).
       # Needs contents: write, so it is the only job-level grant, and it runs
       # only for this repo's own push, dispatch and nightly runs.
+      # A build of the planning branch is for its numbers only: it never
+      # replaces the owner's download.
       - name: Publish to "Groovy latest build"
-        if: success()
+        if: success() && github.ref_name != 'fable-plan'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

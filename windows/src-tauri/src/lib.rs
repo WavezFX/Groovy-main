@@ -25,6 +25,7 @@ mod worktest;
 mod identity;
 mod integrations;
 mod island;
+mod island_sleep;
 mod island_tiles;
 mod tile_icons;
 mod livekit;
@@ -1393,6 +1394,8 @@ pub fn run() {
             save_settings,
             set_system_languages,
             set_collapsed,
+            island_sleep::island_sleep,
+            island_sleep::island_sleep_stats,
             set_island_rect,
             fit_island,
             save_growth,
@@ -1721,6 +1724,7 @@ pub fn run() {
             }
             gate.set_active(true);
             island::spawn_cursor_poll(handle.clone(), gate.clone());
+            island_sleep::init(&handle);
 
             log::line(format!("--- Groovy {} started ---", env!("CARGO_PKG_VERSION")));
             if let Ok(conn) = db::conn() {

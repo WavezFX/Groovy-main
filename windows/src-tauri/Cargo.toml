@@ -92,6 +92,9 @@ keyring = { version = "3", features = ["windows-native"] }
 # Same versions as wry, so nothing new is compiled.
 webview2-com = "0.39"
 wv2_core = { package = "windows-core", version = "0.62" }
+# The sleeping island photographs its webview into a COM stream (island_sleep.rs):
+# WebView2's own `windows` version, already compiled for wry.
+wv2_windows = { package = "windows", version = "0.62", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Com_StructuredStorage"] }
 windows = { version = "0.61", features = [
   "Win32_Foundation",
   # The glass island's rounded window region (glass.rs).

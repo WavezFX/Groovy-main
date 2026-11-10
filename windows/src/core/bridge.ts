@@ -456,6 +456,10 @@ export const Bridge = {
 
   /** Shrink the window down to the invisible wake strip (hidden) or back to full. */
   setCollapsed: (collapsed: boolean) => call<void>("set_collapsed", { collapsed }),
+  /** Asks Rust to put the resting island to sleep (round 4F item 1). False: not now. */
+  islandSleep: () => call<boolean>("island_sleep"),
+  /** [asleep, times slept, last wake in ms], for the tests. */
+  islandSleepStats: () => call<[boolean, number, number]>("island_sleep_stats"),
 
   /**
    * Pushes the island shape in window coordinates. Rust flips click-through from

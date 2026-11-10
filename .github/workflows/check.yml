@@ -10,7 +10,7 @@ name: Check
 
 on:
   push:
-    branches: [main, 'groovy-ai-*']
+    branches: [main, 'groovy-ai-*', fable-plan]
     paths:
       - 'windows/**'
       - '.github/workflows/check.yml'

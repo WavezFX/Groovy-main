@@ -40,6 +40,7 @@ import { closePlanCard } from "../views/usage";
 import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../views/views";
 import { h } from "../views/dom";
 import { IslandStateMachine } from "./fsm";
+import { IslandSleep, type Quiet } from "./sleep";
 import { refreshHookPills } from "./integrations";
 import { DesktopLink } from "./desktop";
 import type { ViewCommand } from "./shortcuts";
@@ -117,6 +118,21 @@ export class Island {
   private greetingShown = false;
 
   private running = false;
+  /** Round 4F item 1: the resting island asks to sleep; Rust wakes it. */
+  private readonly sleep = new IslandSleep(() => this.quiet(), async () => (await Bridge.islandSleep()) === true);
+
+  private quiet(): Quiet {
+    const live = State.live.phase !== "idle";
+    return {
+      expanded: State.mode === "expanded",
+      moving: this.running,
+      talking: live || State.voiceCall || State.voiceListening || State.voiceSpeaking || State.dictating || State.callState !== "idle",
+      asking: State.pendingApproval != null || State.reminderDue != null || State.breakDue != null || State.brainSetup != null
+        || Notices.current != null,
+      strip: this.stripActive(),
+      away: State.mochiOnDesktop || State.fileDragOver || UploadSeq.isActive,
+    };
+  }
   private lastFrame = 0;
   private dirty = true;
   private canvasPx = 0;
@@ -189,6 +205,8 @@ export class Island {
     };
     // Reminders come due in Rust (tasks.rs), once each.
     void onEvent<TaskItem>("reminder", (task) => this.showReminder(task));
+    // Back from sleep (round 4F item 1): draw once, then rest again.
+    void onEvent<number>("island-woke", () => this.ensureRunning());
     const endReminder = () => {
       State.reminderDue = null;
       State.notify();
@@ -1391,6 +1409,7 @@ export class Island {
 
   ensureRunning() {
     if (this.running) return;
+    this.sleep.stir();
     this.running = true;
     this.lastFrame = performance.now();
     requestAnimationFrame(this.frame);
@@ -1468,6 +1487,7 @@ export class Island {
     } else {
       this.running = false;
       Sound.idle();
+      this.sleep.rest();
     }
   };
 
