@@ -154,7 +154,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 5. Tests and checks
 
 ## 4. Rounds 4A–4E (planned 10 Nov, revised to `docs/GROOVY_SPEC.md`). **Read `docs/GROOVY_SPEC.md` first: it wins over every older file, this one included.**
-- **Order: 4A, 4D, 4B, 4C, 4E.**
+- **Order: 4A, 4F, 4D, 4B, 4C, 4E.**
 - **For these rounds the spec's commit rule replaces the one at the top of this file: one commit per round**, every finished item ticked in it, `[build]` in its subject ("Round 4A: …"). A missed "done when" gets a fix commit, also with `[build]`.
 - Items marked (Opus) are for an Opus or Fable session. A Sonnet session leaves them unticked and carries on.
 - Limits in every "done when": idle under 150 MB (Settings open included), peak under 300 MB (voice call and Settings open included).
@@ -165,9 +165,21 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 3. Idle under 150 MB with Settings open (about 190 now) (Opus)
 - [ ] 5. The work test gates at 300 MB (446 now)
 - [ ] 6. Start-up and idle CPU numbers in CI (P1, P8, P9)
-- [ ] 7. Island idle trim (only if headroom is under 10 MB)
+- [ ] 7. Island idle trim (**moved to 4F item 9**)
 - [ ] 4. "Listening idle" CI step (**goes in round 4B's commit, after 4B item 1**)
 - [ ] 8. Checks: gates at 150 / 150 / 300 / 300
+
+### 4F. `FIXES_ROUND4F.md` (stretch RAM: idle under 50 MB, normal use and cloud calls under 150 MB, local calls as low as possible). **After 4A.** Ranked by MB saved.
+- [ ] 1. The island sleeps at idle: native strip, WebView suspended or closed (S1 under 50 MB) (Opus)
+- [ ] 2. The lightest local voice and speech-to-text that still sound good; the owner picks from CI samples (S4 under 200 MB)
+- [ ] 3. Voice models exist only during a call; gone within 2 s of hang-up
+- [ ] 4. One renderer instead of several (Settings and desktop Groovy under 150 MB)
+- [ ] 5. A cloud call under 150 MB (S3)
+- [ ] 6. Lighter WebView2 flags, each measured
+- [ ] 7. Nothing runs when nothing is happening (0 timers and frames in 30 s idle)
+- [ ] 8. Settings fully unloaded when closed; no hidden page kept alive
+- [ ] 9. Anything else in the island
+- [ ] 10. Checks: S1–S4 reported, reference app re-measured
 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
 - [ ] 1. The `Brain` trait and a registry (Opus)

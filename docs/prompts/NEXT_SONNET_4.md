@@ -1,4 +1,4 @@
-# Prompt for the Sonnet build session: rounds 4A–4E
+# Prompt for the Sonnet build session: rounds 4A–4F
 
 Paste everything in the block.
 
@@ -13,7 +13,7 @@ Read, in this order and nothing else up front:
 4. The round file you are on (FIXES_ROUND4A.md first). Open
    docs/plan/ARCHITECTURE_MAP.md only for the section the item names.
 
-Order: 4A, 4D, 4B, 4C, 4E. Inside a round follow the queue's order.
+Order: 4A, 4F, 4D, 4B, 4C, 4E. Inside a round follow the queue's order.
 
 Commits: ONE commit per round, every finished item ticked in WORK_QUEUE.md in
 it, [build] in its subject ("Round 4A: ... [build]"). Read the Windows run's
@@ -26,6 +26,8 @@ unticked, write "left for Opus" or what is missing in STATUS.md, carry on.
 Hard limits (private working set, all Groovy processes):
 - idle under 150 MB, with Settings open too
 - never above 300 MB, in a voice call and with Settings open too
+Stretch targets S1-S4 (spec section 8) are reported by CI and become gates
+once met: idle under 50 MB, normal use and cloud calls under 150 MB.
 Measured on Windows CI only. Write before and after in STATUS.md. Never lower
 a gate blind, never raise one.
 
@@ -53,10 +55,10 @@ Stop when section 4 has only (Opus) and owner-blocked items left. Write
 ```
 
 ## Items for an Opus or Fable session
-4A item 3 · 4D items 1 and 4 · 4B item 1 · 4C items 1 and 5 · 4E item 1.
+4A item 3 · 4F item 1 · 4D items 1 and 4 · 4B item 1 · 4C items 1 and 5 · 4E item 1.
 Sonnet can't start 4D item 2 before 4D item 1, or 4C before 4D items 1, 2 and 4, so run Opus on 4D item 1 first.
 
 ## Waiting on the owner
-- Approve the PROPOSED targets P1–P11 in `docs/GROOVY_SPEC.md` section 8.
+- Listen to the voice and speech samples from round 4F item 2 and pick.
 - Confirm that waking to his given name is removed (spec section 4).
 - The Android app's source (smooth phone link; renaming the link's wire names).

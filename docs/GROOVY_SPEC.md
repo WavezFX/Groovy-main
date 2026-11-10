@@ -38,7 +38,7 @@ The one statement of what Groovy is. **Where a round file, `HANDOVER.md` or `STA
 - A live, talk-back conversation about what is on screen.
 - He looks at the screen, or takes a screenshot, **only when asked**. Captures stay in memory, go only to the brain answering, and are dropped after the reply.
 - He explains what he sees and draws on the screen (arrow, circle, box, underline, short label).
-- Two MIT projects are read for behaviour only; no asset or code is copied. They are named only in `FIXES_ROUND4C.md` and `FIXES_ROUND4E.md`, and those lines are deleted when round 4E closes.
+- Two MIT projects are read for behaviour only; no asset or code is copied. They are named only in `FIXES_ROUND4C.md`, `FIXES_ROUND4E.md` and the reference-measure workflow, and those lines are deleted when round 4E closes.
 
 ## 6. Brains
 - **One `Brain` interface in Rust** that every provider implements: Claude, Gemini, Codex, OpenAI-compatible services, local servers.
@@ -63,9 +63,9 @@ Counted as Task Manager's private working set, summed over every process Groovy 
 | Peak | **never above 300 MB**, including during a voice call and with Settings open | 331 MB in a call (offline voice helper 171 MB; the call adds about 70 MB to the island) |
 All three gaps must be fixed: the Settings-open idle, the voice helper, and what a call adds to the island.
 
-### Targets: PROPOSED – owner to approve
+### Targets: APPROVED by the owner, 10 Nov 2026
 Measured on the Windows CI runner (4 cores) unless noted.
-| # | What | Proposed target | Today |
+| # | What | Target | Today |
 |---|---|---|---|
 | P1 | CPU at idle (island only, 60 s) | ≤ 0.3 % of the machine | 0.04–0.18 % |
 | P2 | CPU while listening, room quiet (60 s) | ≤ 1.0 % | not measured |
@@ -78,6 +78,17 @@ Measured on the Windows CI runner (4 cores) unless noted.
 | P9 | Start-up: launch to listening for the wake word | ≤ 4.0 s | not measured |
 | P10 | Frame time in island animations | p95 ≤ 20 ms, none over 50 ms | p95 15.7 ms |
 | P11 | Screen look: "look at my screen" to the capture sent | ≤ 500 ms; capture ≤ 400 KB | not built |
+
+### Stretch targets (owner, 10 Nov 2026)
+The hard limits above gate the build. These are the goals the work aims at after them; a CI step reports each, and it becomes a gate once it is met.
+| # | What | Stretch target | Today |
+|---|---|---|---|
+| S1 | Idle, total | **under 50 MB** | 105–115 MB (WebView2 is about 100 of it) |
+| S2 | Peak in normal use (island open, panels, chat, Settings) | **under 150 MB** | about 190 MB with Settings open |
+| S3 | Peak in a call with a cloud brain and cloud or Windows voice (no local model loaded) | **under 150 MB** | about 160 MB (331 less the 171 MB voice helper) |
+| S4 | Peak in a call with the local voice and local speech-to-text | **as low as possible**; first goal under 200 MB | 331 MB |
+- The reference app is measured on the same runner with the same counters (`.github/workflows/reference-measure.yml`); its numbers sit beside Groovy's in `STATUS.md`.
+- Round `FIXES_ROUND4F.md` holds the work.
 
 ## 9. Licence
 - **Apache-2.0** for Groovy's code. Name, character and artwork stay SSD's (`LICENSE-ASSETS.md`).
