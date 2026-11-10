@@ -458,8 +458,8 @@ export const Bridge = {
   setCollapsed: (collapsed: boolean) => call<void>("set_collapsed", { collapsed }),
   /** Asks Rust to put the resting island to sleep (round 4F item 1). False: not now. */
   islandSleep: () => call<boolean>("island_sleep"),
-  /** [asleep, times slept, last wake in ms], for the tests. */
-  islandSleepStats: () => call<[boolean, number, number]>("island_sleep_stats"),
+  /** Settings' answer to "hub-idle" (round 4A item 3): its page, and whether it is busy. */
+  hubIdleReply: (page: string, busy: boolean) => call<void>("hub_idle_reply", { page, busy }),
 
   /**
    * Pushes the island shape in window coordinates. Rust flips click-through from

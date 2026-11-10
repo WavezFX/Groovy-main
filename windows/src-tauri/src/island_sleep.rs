@@ -198,13 +198,6 @@ const WAKING: u8 = 3;
 static PHASE: AtomicU8 = AtomicU8::new(AWAKE);
 static QUEUE: Mutex<Queue> = Mutex::new(Queue { items: Vec::new() });
 static STARTED: Mutex<Option<Instant>> = Mutex::new(None);
-/// How many times the island slept, and how long the last wake took (ms).
-static STATS: Mutex<(u32, u64)> = Mutex::new((0, 0));
-
-pub fn asleep() -> bool {
-    PHASE.load(Ordering::Relaxed) != AWAKE
-}
-
 /// Called once at start: watches the island's events for a sleeping page.
 pub fn init(app: &AppHandle) {
     *STARTED.lock().unwrap() = Some(Instant::now());
@@ -260,17 +253,9 @@ pub fn island_sleep(app: AppHandle) -> bool {
     true
 }
 
-/// What the smoke test reads: (asleep, times slept, last wake in ms).
-#[tauri::command]
-pub fn island_sleep_stats() -> (bool, u32, u64) {
-    let (n, ms) = *STATS.lock().unwrap();
-    (asleep(), n, ms)
-}
-
 /// Asleep for good: called by the OS side once the webview is suspended.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn fell_asleep(app: &AppHandle) {
-    STATS.lock().unwrap().0 += 1;
     // Something may have arrived while he was falling asleep.
     let pending = QUEUE.lock().unwrap().items.iter().any(|(name, _)| held(name) == Held::Wake);
     PHASE.store(ASLEEP, Ordering::SeqCst);
@@ -300,7 +285,6 @@ pub fn wake_up(app: &AppHandle, why: &str) {
 fn woke(app: &AppHandle, since: Instant) {
     let items = QUEUE.lock().unwrap().take();
     PHASE.store(AWAKE, Ordering::SeqCst);
-    STATS.lock().unwrap().1 = since.elapsed().as_millis() as u64;
     crate::log::line(format!("island: awake after {} ms", since.elapsed().as_millis()));
     for (name, payload) in items {
         let value: Value = serde_json::from_str(&payload).unwrap_or(Value::Null);
@@ -559,12 +543,29 @@ mod os {
         std::thread::Builder::new()
             .name("groovy-island-asleep".into())
             .spawn(move || {
-                // Let the suspended renderer settle, then give its pages back.
+                // Let the suspended renderer settle, then give the pages back.
+                // Not while another Groovy window (Settings) is being used:
+                // its pages are handed back once it loses the focus.
                 std::thread::sleep(Duration::from_millis(1500));
-                if PHASE.load(Ordering::Relaxed) == ASLEEP {
-                    crate::resources::ceiling::trim_tree();
-                }
+                let mut handed_back = false;
+                let mut ticks: u32 = 0;
                 while PHASE.load(Ordering::Relaxed) == ASLEEP {
+                    if ticks % 20 == 0 {
+                        let in_use = app.webview_windows().values().any(|w| w.label() != crate::island::WINDOW_LABEL && w.is_focused().unwrap_or(false));
+                        if in_use {
+                            handed_back = false;
+                        } else if !handed_back {
+                            handed_back = true;
+                            let before = crate::resources::ceiling::total_mb();
+                            crate::resources::ceiling::trim_tree();
+                            std::thread::sleep(Duration::from_millis(300));
+                            crate::log::line(format!(
+                                "island: asleep, {before:.0} MB suspended, {:.0} MB after handing memory back",
+                                crate::resources::ceiling::total_mb()
+                            ));
+                        }
+                    }
+                    ticks = ticks.wrapping_add(1);
                     std::thread::sleep(Duration::from_millis(100));
                     let Some(cursor) = crate::platform::cursor_physical() else { continue };
                     let rect = *PLACE.lock().unwrap();

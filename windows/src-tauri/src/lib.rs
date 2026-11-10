@@ -16,6 +16,7 @@ mod glass;
 mod growth_clock;
 mod github;
 mod hooks;
+mod hub_idle;
 mod i18n;
 mod pc;
 mod browser;
@@ -993,7 +994,9 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
     }
     let app = app.clone();
     *HUB_PAINTED.0.lock().unwrap() = false;
-    let url = page_url(&app, "settings.html", hub_query(page).as_deref());
+    // Closed for sitting unused (round 4A item 3): back on the page it was on.
+    let remembered = if page.is_none() { hub_idle::take_place() } else { None };
+    let url = page_url(&app, "settings.html", hub_query(page.or(remembered.as_deref())).as_deref());
     let _ = std::thread::Builder::new().name("groovy-hub-window".into()).spawn(move || {
         let built = WebviewWindowBuilder::new(&app, HUB_LABEL, url)
             .additional_browser_args(BROWSER_ARGS)
@@ -1019,7 +1022,14 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
                 grow_out_of_island(&app, &win);
                 let closing = win.clone();
                 let app2 = app.clone();
+                let idle_win = win.clone();
+                let idle_app = app.clone();
                 win.on_window_event(move |event| {
+                    match event {
+                        tauri::WindowEvent::Focused(focused) => hub_idle::focus_changed(&idle_app, &idle_win, *focused),
+                        tauri::WindowEvent::Destroyed => hub_idle::closed(),
+                        _ => {}
+                    }
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         // Folds back into the island, then goes (round 3B item 8).
                         if CLOSING.swap(true, Ordering::SeqCst) {
@@ -1395,7 +1405,7 @@ pub fn run() {
             set_system_languages,
             set_collapsed,
             island_sleep::island_sleep,
-            island_sleep::island_sleep_stats,
+            hub_idle::hub_idle_reply,
             set_island_rect,
             fit_island,
             save_growth,

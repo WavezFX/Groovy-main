@@ -3,6 +3,7 @@
 // page on the right with tabs for the merged pages. It remembers the last
 // page. Ported from Groovy 0.5.0's hub (MIT).
 
+import { hubBusy } from "./busy";
 import { nameOf } from "../mochi/naming";
 import "./fonts/manrope.css";
 import "./hub.css";
@@ -370,6 +371,9 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     const to = resolvePage(page);
     if (to) void show(to);
   });
+  // Left unused for a long while (round 4A item 3): Rust asks before closing
+  // the window, which then reopens on this page. Busy means leave it open.
+  void onEvent<null>("hub-idle", () => void Bridge.hubIdleReply(place.page, hubBusy(document)));
   void onEvent<FlowPrefs>("flow-prefs", (prefs) => {
     status = { ...status, prefs };
   });

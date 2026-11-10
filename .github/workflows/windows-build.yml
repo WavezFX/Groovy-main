@@ -150,7 +150,7 @@ jobs:
         shell: pwsh
         run: |
           $has = { param($path, $text) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains($text) }
-          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW", "GROOVY_SLEEP_TEST"
+          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW", "GROOVY_SLEEP_TEST", "GROOVY_HUB_IDLE_SECS"
           foreach ($v in $switches) { if (& $has release/groovy.exe $v) { throw "the shipped groovy.exe reads $v" } }
           npx tauri build --no-bundle --features ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -179,6 +179,12 @@ jobs:
       - name: The island sleeps at idle and wakes for the cursor
         shell: pwsh
         run: ./scripts/sleep-test.ps1 -Exe release/test/groovy.exe -OutDir sleep-shots
+
+      # Round 4A item 3: idle under 150 MB with Settings open too. Reports the
+      # total with Settings in use, left unfocused, and after it closes itself.
+      - name: Idle with Settings open, left unfocused, and closed after sitting unused
+        shell: pwsh
+        run: ./scripts/settings-idle-test.ps1 -Exe release/test/groovy.exe
 
       - name: Upload the sleep screenshots
         if: always()

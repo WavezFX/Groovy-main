@@ -861,6 +861,11 @@ fn reap_idle() {
 static CANCEL: AtomicBool = AtomicBool::new(false);
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 
+/// A model is being downloaded (Settings isn't closed under it, hub_idle.rs).
+pub fn downloading() -> bool {
+    DOWNLOADING.load(Ordering::Relaxed)
+}
+
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
