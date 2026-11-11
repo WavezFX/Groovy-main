@@ -208,7 +208,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 7. Checks
 
 ### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
-- [ ] 1. Original motion for the character; growth art unchanged (Opus)
+- [ ] 1. Original motion for the character; growth art unchanged (Opus). **Steps 1 and 2 done** (`docs/plan/CHARACTER_MOTION.md`: three quarters of the engine is still the original's; Groovy's own motion designed). **The rewrite waits for the owner to approve that design.**
 - [ ] 2. Remove every mention of other projects and their characters (CI name check)
 - [ ] 3. The copied-code ledger (`docs/plan/REWRITE_LEDGER.md`)
 - [ ] 4. Asset inventory (`docs/ASSETS.md`)

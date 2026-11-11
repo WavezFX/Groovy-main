@@ -10,8 +10,9 @@ Read `docs/GROOVY_SPEC.md` (sections 2, 9, 10) first. One commit for the round w
 
 ## Item 1: Original motion for the character (Opus)
 **Finding:** `windows/src/mochi/engine.ts` says in its header that it is a direct port of another project's animation engine (same constants, tweens, easings, particles). The outline is already Groovy's own (`pillow.ts`); the motion is not.
+**State (11 Nov):** steps 1 and 2 are done in `docs/plan/CHARACTER_MOTION.md` (the method-by-method table, and the design). Steps 3 and 4 wait for the owner's approval of the design.
 **Goal:** every tween, easing, cycle, emote and particle is Groovy's own. **The growth art, the looks and the pillow outline don't change.**
-**Files:** `windows/src/mochi/engine.ts`, `skins.ts` (eye and mouth drawing), `core/layout.ts` (state and emote names), `core/anim.ts`, new `docs/plan/CHARACTER_MOTION.md`.
+**Files:** `windows/src/mochi/engine.ts`, `skins.ts` (eye and mouth drawing), `core/layout.ts` (state and emote names), `core/anim.ts`, `docs/plan/CHARACTER_MOTION.md`.
 **Steps:**
 1. List every state, emote, timing constant, easing and particle in `engine.ts` in `CHARACTER_MOTION.md`, each marked **ported** or **Groovy's own**. Read the original only to mark the list.
 2. Design the replacement on paper first, in the same file: Night's sharp glowing eyes and halo pulse; a blink, breathing and idle cycle with different rhythm and shape; gestures made with his wisps (leaf flick, flame lick, droplet bob); look-specific particles. Contact sheet (`scripts/body-sheet.mjs`) for the owner.
