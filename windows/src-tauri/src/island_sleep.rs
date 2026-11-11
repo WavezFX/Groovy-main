@@ -260,8 +260,10 @@ fn blockers(app: &AppHandle) -> Blockers {
 pub fn island_sleep(app: AppHandle) -> bool {
     let b = blockers(&app);
     if !may_sleep(b) {
+        crate::log::line(format!("island: not sleeping yet ({b:?})"));
         return false;
     }
+    crate::log::line("island: falling asleep".to_string());
     if PHASE.compare_exchange(AWAKE, FALLING, Ordering::SeqCst, Ordering::SeqCst).is_err() {
         return false;
     }
@@ -519,21 +521,25 @@ mod os {
         controller.cast::<ICoreWebView2Controller2>().is_ok_and(|c| c.SetDefaultBackgroundColor(COREWEBVIEW2_COLOR { A: a, R: v, G: v, B: v }).is_ok())
     }
 
-    /// Gives up falling asleep: the page is as it was, and awake.
-    fn give_up(app: &AppHandle, why: &str) {
+    /// Gives up falling asleep: the page is as it was, and awake. On the main
+    /// thread, with the webview's controller in hand.
+    unsafe fn give_up(app: &AppHandle, controller: &ICoreWebView2Controller, why: &str) {
         *ON_BLACK.lock().unwrap() = None;
-        let why = why.to_string();
-        let handle = app.clone();
-        let restored = crate::island::window(app).map(|win| {
-            win.with_webview(move |webview| unsafe {
-                set_background(&webview.controller(), 0, 0);
-                drop_window(&COVER);
-                stay_awake(&handle, &why);
-            })
-        });
-        if !matches!(restored, Some(Ok(()))) {
+        set_background(controller, 0, 0);
+        drop_window(&COVER);
+        stay_awake(app, why);
+    }
+
+    /// The same from another thread, when the webview itself can't be reached.
+    fn give_up_without(app: &AppHandle, why: &str) {
+        *ON_BLACK.lock().unwrap() = None;
+        let (handle, why) = (app.clone(), why.to_string());
+        let posted = app.run_on_main_thread(move || {
             drop_window(&COVER);
-            stay_awake(app, "the webview is gone");
+            stay_awake(&handle, &why);
+        });
+        if posted.is_err() {
+            stay_awake(app, "the app is closing");
         }
     }
 
@@ -543,6 +549,9 @@ mod os {
     ///      (WebView2 photographs without transparency: the two give it back);
     ///   3. the picture made from them takes the cover's place, and the
     ///      webview is hidden and suspended.
+    /// No step calls into the webview from inside another one's callback: each
+    /// photograph is asked for from a short-lived thread, a moment after the
+    /// background changed.
     pub fn fall_asleep(app: &AppHandle) {
         let Some(win) = crate::island::window(app) else { return stay_awake(app, "no island window") };
         let Some(place) = island_place(app) else { return stay_awake(app, "no window place") };
@@ -558,7 +567,10 @@ mod os {
                 return stay_awake(&app, "the screen could not be copied");
             };
             *COVER.lock().unwrap() = Some(cover);
-            photograph(&app, place, false);
+            if !set_background(&controller, 255, 0) {
+                return give_up(&app, &controller, "the webview's background could not be set");
+            }
+            photograph_soon(&app, place, false);
         });
         if posted.is_err() {
             stay_awake(app, "the webview is gone");
@@ -567,106 +579,95 @@ mod os {
 
     /// One photograph, on black (`white` false) or on white, a moment after
     /// the background changed so the page has drawn on it.
-    fn photograph(app: &AppHandle, place: (f64, f64, f64, f64), white: bool) {
-        let Some(win) = crate::island::window(app) else { return give_up(app, "no island window") };
-        let ready = win.with_webview(move |webview| unsafe {
-            set_background(&webview.controller(), 255, if white { 255 } else { 0 });
-        });
-        if ready.is_err() {
-            return give_up(app, "the webview is gone");
-        }
+    fn photograph_soon(app: &AppHandle, place: (f64, f64, f64, f64), white: bool) {
         let app = app.clone();
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(90));
-            let Some(win) = crate::island::window(&app) else { return give_up(&app, "no island window") };
+            let Some(win) = crate::island::window(&app) else { return give_up_without(&app, "no island window") };
             let handle = app.clone();
             let posted = win.with_webview(move |webview| unsafe {
                 let app = handle;
-                let Ok(core) = webview.controller().CoreWebView2() else { return give_up(&app, "no webview") };
-                let Ok(stream) = CreateStreamOnHGlobal(Default::default(), true) else { return give_up(&app, "no memory stream") };
-                let (after, stream_after) = (app.clone(), stream.clone());
+                let controller = webview.controller();
+                let Ok(core) = controller.CoreWebView2() else { return give_up(&app, &controller, "no webview") };
+                let Ok(stream) = CreateStreamOnHGlobal(Default::default(), true) else { return give_up(&app, &controller, "no memory stream") };
+                let (after, stream_after, controller_after) = (app.clone(), stream.clone(), controller.clone());
                 let handler = CapturePreviewCompletedHandler::create(Box::new(move |result| {
-                    let app = after;
+                    let (app, controller) = (after, controller_after);
                     if let Err(err) = result {
-                        give_up(&app, &format!("the photograph failed: {err}"));
+                        give_up(&app, &controller, &format!("the photograph failed: {err}"));
                         return Ok(());
                     }
                     match read_png(&stream_after) {
-                        Err(err) => give_up(&app, &err),
+                        Err(err) => give_up(&app, &controller, &err),
                         Ok(shot) if !white => {
                             *ON_BLACK.lock().unwrap() = Some(shot);
-                            photograph(&app, place, true);
+                            if set_background(&controller, 255, 255) {
+                                photograph_soon(&app, place, true);
+                            } else {
+                                give_up(&app, &controller, "the webview's background could not be set");
+                            }
                         }
-                        Ok(shot) => finish(&app, place, shot),
+                        Ok(shot) => finish(&app, &controller, place, shot),
                     }
                     Ok(())
                 }));
                 if let Err(err) = core.CapturePreview(COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG, &stream, &handler) {
-                    give_up(&app, &format!("the photograph could not start: {err}"));
+                    give_up(&app, &controller, &format!("the photograph could not start: {err}"));
                 }
             });
             if posted.is_err() {
-                give_up(&app, "the webview is gone");
+                give_up_without(&app, "the webview is gone");
             }
         });
     }
 
     /// Both photographs are in: the stand-in replaces the cover, the webview goes to sleep.
-    fn finish(app: &AppHandle, place: (f64, f64, f64, f64), on_white: (Vec<u8>, u32, u32)) {
-        let Some((black, w, h)) = ON_BLACK.lock().unwrap().take() else { return give_up(app, "the first photograph is missing") };
+    unsafe fn finish(app: &AppHandle, controller: &ICoreWebView2Controller, place: (f64, f64, f64, f64), on_white: (Vec<u8>, u32, u32)) {
+        let Some((black, w, h)) = ON_BLACK.lock().unwrap().take() else { return give_up(app, controller, "the first photograph is missing") };
         let (white, w2, h2) = on_white;
         if (w, h) != (w2, h2) {
-            return give_up(app, "the two photographs differ in size");
+            return give_up(app, controller, "the two photographs differ in size");
         }
         // The photographs may be at another scale than the window.
         if ((place.2 / w as f64) - 1.0).abs() > 0.01 || ((place.3 / h as f64) - 1.0).abs() > 0.01 {
-            return give_up(app, "the photographs are not at the window's scale");
+            return give_up(app, controller, &format!("the photographs are {w}x{h}, the window {}x{}", place.2, place.3));
         }
         let pic = match picture(&black, &white, w, h) {
             Ok(pic) => pic,
-            Err(err) => return give_up(app, err),
+            Err(err) => return give_up(app, controller, err),
         };
-        let Some(win) = crate::island::window(app) else { return give_up(app, "no island window") };
-        let handle = app.clone();
-        let posted = win.with_webview(move |webview| unsafe {
-            let app = handle;
-            let controller = webview.controller();
-            let rect = match &pic {
-                // Folded away: nothing to show, the cursor wakes it over its strip.
-                None => place,
-                Some(pic) => {
-                    let (bx, by, bw, bh) = pic.bounds;
-                    let (x, y) = (place.0 + bx as f64, place.1 + by as f64);
-                    match show_layered(&pic.bgra, bw, bh, x as i32, y as i32) {
-                        Some(hwnd) => *STANDIN.lock().unwrap() = Some(hwnd),
-                        None => return give_up(&app, "the stand-in window could not be made"),
-                    }
-                    (x, y, bw as f64, bh as f64)
+        let rect = match &pic {
+            // Folded away: nothing to show, the cursor wakes it over its strip.
+            None => place,
+            Some(pic) => {
+                let (bx, by, bw, bh) = pic.bounds;
+                let (x, y) = (place.0 + bx as f64, place.1 + by as f64);
+                match show_layered(&pic.bgra, bw, bh, x as i32, y as i32) {
+                    Some(hwnd) => *STANDIN.lock().unwrap() = Some(hwnd),
+                    None => return give_up(app, controller, "the stand-in window could not be made"),
                 }
-            };
-            *PLACE.lock().unwrap() = Some(rect);
-            if controller.SetIsVisible(false).is_err() {
-                drop_standin();
-                return give_up(&app, "the webview could not be hidden");
+                (x, y, bw as f64, bh as f64)
             }
-            // Hidden: back to its clear background for the wake, and the cover can go.
-            set_background(&controller, 0, 0);
-            drop_window(&COVER);
-            let Ok(core3) = controller.CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_3>()) else { return asleep_now(&app) };
-            let done = app.clone();
-            let suspended = TrySuspendCompletedHandler::create(Box::new(move |result, ok| {
-                if result.is_err() || !ok {
-                    crate::log::line("island: hidden but not suspended (WebView2 said no)".to_string());
-                }
-                asleep_now(&done);
-                Ok(())
-            }));
-            if core3.TrySuspend(&suspended).is_err() {
-                asleep_now(&app);
+        };
+        *PLACE.lock().unwrap() = Some(rect);
+        if controller.SetIsVisible(false).is_err() {
+            drop_standin();
+            return give_up(app, controller, "the webview could not be hidden");
+        }
+        // Hidden: back to its clear background for the wake, and the cover can go.
+        set_background(controller, 0, 0);
+        drop_window(&COVER);
+        let Ok(core3) = controller.CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_3>()) else { return asleep_now(app) };
+        let done = app.clone();
+        let suspended = TrySuspendCompletedHandler::create(Box::new(move |result, ok| {
+            if result.is_err() || !ok {
+                crate::log::line("island: hidden but not suspended (WebView2 said no)".to_string());
             }
-        });
-        if posted.is_err() {
-            give_up(app, "the webview is gone");
+            asleep_now(&done);
+            Ok(())
+        }));
+        if core3.TrySuspend(&suspended).is_err() {
+            asleep_now(app);
         }
     }
 

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { IslandSleep, LONGEST_WAIT_MS, QUIET_MS, canSleep } from "../src/island/sleep.ts";
 
 const resting = { expanded: false, moving: false, talking: false, asking: false, strip: false, away: false };
@@ -89,7 +90,7 @@ test("every event the island's page listens to is watched by the sleeping island
   const rust = readFileSync(new URL("../src-tauri/src/island_sleep.rs", import.meta.url), "utf8");
   const list = rust.slice(rust.indexOf("pub const ISLAND_EVENTS"), rust.indexOf("];", rust.indexOf("pub const ISLAND_EVENTS")));
   const known = new Set([...list.matchAll(/"([a-z0-9:_-]+)"/g)].map((m) => m[1]));
-  const root = new URL("../src/", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("../src", import.meta.url));
   // The Settings window, the Coding Studio and the desktop Groovy are other pages.
   const others = ["hub", "settings", "studio", "desktop"];
   const files = [];
@@ -97,11 +98,11 @@ test("every event the island's page listens to is watched by the sleeping island
     for (const name of readdirSync(dir)) {
       const path = join(dir, name);
       if (statSync(path).isDirectory()) {
-        if (!(dir === root.replace(/\/$/, "") && others.includes(name))) walk(path);
+        if (!(dir === root && others.includes(name))) walk(path);
       } else if (name.endsWith(".ts")) files.push(path);
     }
   };
-  walk(root.replace(/\/$/, ""));
+  walk(root);
   const heard = new Set();
   for (const file of files) {
     for (const m of readFileSync(file, "utf8").matchAll(/onEvent(?:<[^>]*>)?\(\s*"([a-z0-9:_-]+)"/g)) heard.add(m[1]);

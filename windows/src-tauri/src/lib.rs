@@ -1027,6 +1027,11 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
                 let app2 = app.clone();
                 let idle_win = win.clone();
                 let idle_app = app.clone();
+                // Opened without taking the focus (from another program): the
+                // wait starts now, not at a focus change that may never come.
+                if !win.is_focused().unwrap_or(false) {
+                    hub_idle::focus_changed(&app, &win, false);
+                }
                 win.on_window_event(move |event| {
                     match event {
                         tauri::WindowEvent::Focused(focused) => hub_idle::focus_changed(&idle_app, &idle_win, *focused),
