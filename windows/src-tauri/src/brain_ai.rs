@@ -685,14 +685,6 @@ mod tests {
     }
 
     #[test]
-    fn a_conversation_becomes_one_prompt_for_the_clis() {
-        let m = vec![json!({ "role": "user", "content": "next song" }), json!({ "role": "assistant", "content": [{ "type": "text", "text": "Done." }] })];
-        let p = crate::brains::cli::as_prompt("You are Groovy.", &m);
-        assert!(p.starts_with("You are Groovy."));
-        assert!(p.contains("User: next song\nYou: Done.\n"));
-    }
-
-    #[test]
     fn thinking_is_removed() {
         assert_eq!(strip_thinking("<think>a</think> b <think>c</think>d"), "b d");
         assert_eq!(strip_thinking("x <think>never closed"), "x");

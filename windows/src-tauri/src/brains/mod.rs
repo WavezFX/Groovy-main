@@ -320,6 +320,7 @@ mod tests {
         assert!(caps("ollama").local && !caps("ollama").vision);
         assert!(caps("custom").local);
         assert!(!caps("codex").local && !caps("claude-code").web_search);
+        assert!(caps("codex").tools && caps("claude-code").tools, "a subscription can ask for Groovy's tools (round 4D item 4)");
         assert_eq!(get("ollama").unwrap().auth(), Auth::None);
         assert!(Auth::None.ready() && !Auth::ApiKey { present: false }.ready() && Auth::Account { signed_in: true }.ready());
     }
