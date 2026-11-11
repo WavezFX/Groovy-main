@@ -324,9 +324,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             // The spotter heard "Hey Groovy" or "Yo Groovy" even if the engine
             // wrote it oddly. A bare "Groovy" has to be the first word written
             // too: the spotter alone can't tell it from « OK Groovy ».
-            let wake_rest = wake::after_wake(&heard).or_else(|| {
-                spotted.filter(|hit| hit.phrase != speech::kws::Phrase::Groovy && !wake::starts_with_ok(&heard)).map(|hit| wake::drop_wake_words(&heard, hit.phrase.words()))
-            });
+            let wake_rest = wake::command_after(&heard, spotted.map(|hit| (hit.phrase == speech::kws::Phrase::Groovy, hit.phrase.words())));
             let Some(route) = route(commands_on(&app), island_voice(&app)) else { continue };
             let question = match &mut mode {
                 Mode::Wake => match wake_rest {

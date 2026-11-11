@@ -324,8 +324,8 @@ mod os {
     use webview2_com::{CapturePreviewCompletedHandler, TrySuspendCompletedHandler};
     use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, SIZE, WPARAM};
     use windows::Win32::Graphics::Gdi::{
-        BitBlt, CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GetDC, ReleaseDC, SelectObject, AC_SRC_ALPHA, AC_SRC_OVER,
-        BITMAPINFO, BITMAPINFOHEADER, BI_RGB, BLENDFUNCTION, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
+        BitBlt, CreateCompatibleDC, CreateDIBSection, CreateRectRgn, DeleteDC, DeleteObject, GetDC, GetWindowRgn, PtInRegion, ReleaseDC, SelectObject,
+        AC_SRC_ALPHA, AC_SRC_OVER, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, BLENDFUNCTION, DIB_RGB_COLORS, HGDIOBJ, NULLREGION, RGN_ERROR, SRCCOPY,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
         CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, ShowWindow, UpdateLayeredWindow, SW_SHOWNOACTIVATE, ULW_ALPHA,
@@ -346,6 +346,11 @@ mod os {
     static STANDIN: Mutex<Option<isize>> = Mutex::new(None);
     /// The screenshot that covers the island while it is photographed.
     static COVER: Mutex<Option<isize>> = Mutex::new(None);
+    /// What the cover shows: the screen where the island is, BGRA, width, height.
+    static COVER_PIXELS: Mutex<Option<(Vec<u8>, u32, u32)>> = Mutex::new(None);
+    /// While a screenshot stands in: a row of the screen just under the island
+    /// (x, y, width, its pixels). When it changes, what is behind the glass has too.
+    static WATCH: Mutex<Option<(i32, i32, u32, Vec<u8>)>> = Mutex::new(None);
     /// The first photograph (on black): RGB, width, height.
     static ON_BLACK: Mutex<Option<(Vec<u8>, u32, u32)>> = Mutex::new(None);
     static PLACE: Mutex<Option<(f64, f64, f64, f64)>> = Mutex::new(None);
@@ -525,6 +530,7 @@ mod os {
     /// thread, with the webview's controller in hand.
     unsafe fn give_up(app: &AppHandle, controller: &ICoreWebView2Controller, why: &str) {
         *ON_BLACK.lock().unwrap() = None;
+        *COVER_PIXELS.lock().unwrap() = None;
         set_background(controller, 0, 0);
         drop_window(&COVER);
         stay_awake(app, why);
@@ -533,6 +539,7 @@ mod os {
     /// The same from another thread, when the webview itself can't be reached.
     fn give_up_without(app: &AppHandle, why: &str) {
         *ON_BLACK.lock().unwrap() = None;
+        *COVER_PIXELS.lock().unwrap() = None;
         let (handle, why) = (app.clone(), why.to_string());
         let posted = app.run_on_main_thread(move || {
             drop_window(&COVER);
@@ -563,10 +570,10 @@ mod os {
                 return stay_awake(&app, "this WebView2 cannot suspend");
             }
             let (x, y, w, h) = (place.0 as i32, place.1 as i32, place.2 as u32, place.3 as u32);
-            let Some(cover) = screen_pixels(x, y, w, h).and_then(|px| show_layered(&px, w, h, x, y)) else {
-                return stay_awake(&app, "the screen could not be copied");
-            };
+            let Some(pixels) = screen_pixels(x, y, w, h) else { return stay_awake(&app, "the screen could not be copied") };
+            let Some(cover) = show_layered(&pixels, w, h, x, y) else { return stay_awake(&app, "the cover window could not be made") };
             *COVER.lock().unwrap() = Some(cover);
+            *COVER_PIXELS.lock().unwrap() = Some((pixels, w, h));
             if !set_background(&controller, 255, 0) {
                 return give_up(&app, &controller, "the webview's background could not be set");
             }
@@ -597,7 +604,17 @@ mod os {
                         give_up(&app, &controller, &format!("the photograph failed: {err}"));
                         return Ok(());
                     }
-                    match read_png(&stream_after) {
+                    let shot = read_png(&stream_after);
+                    if let Ok((px, w, h)) = &shot {
+                        let last = px.len().saturating_sub(3);
+                        crate::log::line(format!(
+                            "island: photograph on {} is {w}x{h}, its corners {:?} and {:?}",
+                            if white { "white" } else { "black" },
+                            &px[..3.min(px.len())],
+                            &px[last..]
+                        ));
+                    }
+                    match shot {
                         Err(err) => give_up(&app, &controller, &err),
                         Ok(shot) if !white => {
                             *ON_BLACK.lock().unwrap() = Some(shot);
@@ -632,9 +649,28 @@ mod os {
         if ((place.2 / w as f64) - 1.0).abs() > 0.01 || ((place.3 / h as f64) - 1.0).abs() > 0.01 {
             return give_up(app, controller, &format!("the photographs are {w}x{h}, the window {}x{}", place.2, place.3));
         }
+        let kept = COVER_PIXELS.lock().unwrap().take();
+        *WATCH.lock().unwrap() = None;
         let pic = match picture(&black, &white, w, h) {
             Ok(pic) => pic,
-            Err(err) => return give_up(app, controller, err),
+            // No transparency to be had from this WebView2: the screenshot that
+            // covers the island stands in instead, cut to the island's shape.
+            // What is behind the glass no longer updates, so he wakes as soon
+            // as the screen around him changes (WATCH).
+            Err(why) => match kept.and_then(|(pixels, cw, ch)| screenshot_standin(app, &pixels, cw, ch)) {
+                Some(pic) => {
+                    crate::log::line(format!("island: {why}; a screenshot stands in until the screen around him changes"));
+                    let (bx, by, bw, _) = pic.as_ref().map(|p| p.bounds).unwrap_or((0, 0, 0, 0));
+                    if let Some(p) = &pic {
+                        let (rx, ry) = (place.0 as i32 + bx as i32, place.1 as i32 + (by + p.bounds.3) as i32 + 3);
+                        if let Some(row) = screen_pixels(rx, ry, bw, 1) {
+                            *WATCH.lock().unwrap() = Some((rx, ry, bw, row));
+                        }
+                    }
+                    pic
+                }
+                None => return give_up(app, controller, why),
+            },
         };
         let rect = match &pic {
             // Folded away: nothing to show, the cursor wakes it over its strip.
@@ -671,6 +707,62 @@ mod os {
         }
     }
 
+    /// The screenshot of the island's window, cut to the island's shape (the
+    /// window's own region). `Some(None)`: the island is folded away, nothing
+    /// to show. `None`: the shape can't be read.
+    unsafe fn screenshot_standin(app: &AppHandle, pixels: &[u8], w: u32, h: u32) -> Option<Option<super::Picture>> {
+        if app.state::<crate::Shared>().gate.collapsed.load(Ordering::Relaxed) {
+            return Some(None);
+        }
+        let win = crate::island::window(app)?;
+        let hwnd = HWND(win.hwnd().ok()?.0 as *mut std::ffi::c_void);
+        let region = CreateRectRgn(0, 0, 0, 0);
+        let kind = GetWindowRgn(hwnd, region);
+        if kind == RGN_ERROR || kind == NULLREGION {
+            let _ = DeleteObject(HGDIOBJ(region.0));
+            return None;
+        }
+        let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0u32, 0u32);
+        let mut inside = vec![false; (w * h) as usize];
+        for y in 0..h {
+            for x in 0..w {
+                if PtInRegion(region, x as i32, y as i32).as_bool() {
+                    inside[(y * w + x) as usize] = true;
+                    x0 = x0.min(x);
+                    x1 = x1.max(x + 1);
+                    y0 = y0.min(y);
+                    y1 = y1.max(y + 1);
+                }
+            }
+        }
+        let _ = DeleteObject(HGDIOBJ(region.0));
+        if x1 <= x0 || y1 <= y0 {
+            return Some(None);
+        }
+        let (bw, bh) = (x1 - x0, y1 - y0);
+        let mut bgra = Vec::with_capacity((bw * bh * 4) as usize);
+        for y in y0..y1 {
+            for x in x0..x1 {
+                let i = ((y * w + x) * 4) as usize;
+                if inside[(y * w + x) as usize] && i + 3 < pixels.len() {
+                    bgra.extend_from_slice(&[pixels[i], pixels[i + 1], pixels[i + 2], 255]);
+                } else {
+                    bgra.extend_from_slice(&[0, 0, 0, 0]);
+                }
+            }
+        }
+        Some(Some(super::Picture { bgra, bounds: (x0, y0, bw, bh) }))
+    }
+
+    /// How far a row of the screen is from what it was (mean per colour, 0-255).
+    fn row_changed(was: &[u8], now: &[u8]) -> f64 {
+        if was.len() != now.len() || was.is_empty() {
+            return 255.0;
+        }
+        let sum: u64 = was.chunks_exact(4).zip(now.chunks_exact(4)).map(|(a, b)| (0..3).map(|c| (a[c] as i32 - b[c] as i32).unsigned_abs() as u64).sum::<u64>()).sum();
+        sum as f64 / (was.len() / 4 * 3) as f64
+    }
+
     /// Suspended: park the 60 Hz cursor poll, hand memory back, watch the cursor.
     fn asleep_now(app: &AppHandle) {
         let gate = app.state::<crate::Shared>().gate.clone();
@@ -702,6 +794,16 @@ mod os {
                             ));
                         }
                     }
+                    // A screenshot is standing in: when the screen just under
+                    // the island changes, so has what shows through the glass.
+                    if ticks % 5 == 4 {
+                        let watch = WATCH.lock().unwrap().clone();
+                        if let Some((x, y, w, was)) = watch {
+                            if unsafe { screen_pixels(x, y, w, 1) }.is_some_and(|now| row_changed(&was, &now) > 8.0) {
+                                super::wake_up(&app, "the screen around him changed");
+                            }
+                        }
+                    }
                     ticks = ticks.wrapping_add(1);
                     std::thread::sleep(Duration::from_millis(100));
                     let Some(cursor) = crate::platform::cursor_physical() else { continue };
@@ -715,6 +817,7 @@ mod os {
     }
 
     pub fn wake(app: &AppHandle, since: Instant) {
+        *WATCH.lock().unwrap() = None;
         let Some(win) = crate::island::window(app) else { return woke(app, since) };
         let handle = app.clone();
         let posted = win.with_webview(move |webview| unsafe {

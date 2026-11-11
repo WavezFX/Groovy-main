@@ -241,7 +241,7 @@ fn command(app: &AppHandle, dir: &Path) -> Result<String, String> {
     let t = Instant::now();
     let heard = speech::transcribe(&samples).ok_or("the speech model did not load")?.text;
     let words_ms = t.elapsed().as_millis();
-    let rest = crate::okgroovy::wake::after_wake(&heard).unwrap_or_else(|| crate::okgroovy::wake::drop_wake_words(&heard, hit.phrase.words()));
+    let rest = crate::okgroovy::wake::command_after(&heard, Some((hit.phrase == speech::kws::Phrase::Groovy, hit.phrase.words()))).ok_or_else(|| format!("no wake phrase in “{heard}”"))?;
     let basic = crate::okgroovy::basic::parse(&rest).ok_or_else(|| format!("no command in “{heard}”"))?;
     let t = Instant::now();
     let answer = crate::okgroovy::basic::run(app, &basic);

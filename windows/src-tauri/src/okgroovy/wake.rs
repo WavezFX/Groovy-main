@@ -88,6 +88,16 @@ pub fn after_wake(text: &str) -> Option<String> {
     Some(words[end..].join(" ").trim_start_matches([',', '.', '!', ' ']).trim().to_string())
 }
 
+/// What was said after a wake, given the words the speech engine wrote and
+/// what the spotter heard (`spotted`: whether it was a bare "Groovy", and how
+/// many words its phrase is). The words decide when they hold a wake phrase.
+/// When they don't, the spotter is believed for "Hey Groovy" and "Yo Groovy"
+/// (the engine may have written them oddly), but never for a bare "Groovy"
+/// and never when what was said begins with "OK": that one is gone.
+pub fn command_after(text: &str, spotted: Option<(bool, usize)>) -> Option<String> {
+    after_wake(text).or_else(|| spotted.filter(|(bare, _)| !bare && !starts_with_ok(text)).map(|(_, words)| drop_wake_words(text, words)))
+}
+
 /// What was said begins with "OK" or "Okay": « OK Groovy », which no longer
 /// wakes him, however the spotter took it.
 pub fn starts_with_ok(text: &str) -> bool {
@@ -244,6 +254,20 @@ mod tests {
         // He hears his name twice: what follows the last one is the command.
         assert_eq!(after_wake("Groovy… hey Groovy, what time is it?").as_deref(), Some("what time is it?"));
         assert_eq!(normalize("Ça VA, Élodie ?"), "ca va elodie");
+    }
+
+    #[test]
+    fn the_words_and_the_spotter_together_decide() {
+        // The words hold the phrase: the spotter isn't needed.
+        assert_eq!(command_after("Hey Groovy, next song", None).as_deref(), Some("next song"));
+        // Written oddly, heard by the spotter as "Hey Groovy": believed.
+        assert_eq!(command_after("Hay Gruby, next song", Some((false, 2))).as_deref(), Some("next song"));
+        // A bare "Groovy" from the spotter alone is not enough.
+        assert_eq!(command_after("that's really gruby", Some((true, 1))), None);
+        // « OK Groovy », even when the spotter takes it for "Hey Groovy".
+        assert_eq!(command_after("OK Groovy, what time is it?", Some((false, 2))), None);
+        assert_eq!(command_after("Okay Gruby, what time is it?", Some((false, 2))), None);
+        assert_eq!(command_after("nothing of the kind", None), None);
     }
 
     #[test]
