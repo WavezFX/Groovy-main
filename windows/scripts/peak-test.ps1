@@ -6,7 +6,7 @@
 # Starts Groovy with GROOVY_PEAK_TEST and GROOVY_SMOKE_VIEW=peak: the island is
 # held open and turned through the music layout, Reminders and the wardrobe;
 # Settings opens on Brains and stays open; a mail refresh, a dictation, a live
-# voice call answered out loud (Kokoro) and an « Hey Groovy » command run, the
+# voice call answered out loud (the light voice, round 4A item 1) and an « Hey Groovy » command run, the
 # dictation and the call at the same time, twice. The built-in local model is
 # off, as it is by default.
 #
@@ -87,7 +87,7 @@ if ($done) {
 $results["peak under $CeilingMB MB by Windows' counters ($readings readings; was $seen)"] = $seen -lt $CeilingMB
 
 Write-Host ""
-Write-Host "Peak test (island on music, Reminders and the wardrobe; Settings on Brains; mail, dictation, a live call with Kokoro, Hey Groovy):"
+Write-Host "Peak test (island on music, Reminders and the wardrobe; Settings on Brains; mail, dictation, a live call with the light voice, Hey Groovy):"
 if ($done) {
   foreach ($s in $done.steps) {
     Write-Host ("  [{0}] {1} ({2} ms): {3}" -f $(if ($s.ok) { "PASS" } else { "FAIL" }), $s.name, $s.ms, $s.detail)
@@ -100,7 +100,7 @@ foreach ($k in $results.Keys) {
   if (-not $ok) { $failed++ }
   Write-Host ("  [{0}] {1}" -f $(if ($ok) { "PASS" } else { "FAIL" }), $k)
 }
-if (Test-Path $log) { Get-Content $log | Select-String "memory:|peak test|Kokoro|Whisper" | ForEach-Object { Write-Host "  log: $_" } }
+if (Test-Path $log) { Get-Content $log | Select-String "memory:|peak test|Kokoro|light voice|Whisper" | ForEach-Object { Write-Host "  log: $_" } }
 if ($env:GITHUB_STEP_SUMMARY) {
   "### Peak: $(if ($done) { "$($done.peakMb) MB (Groovy's meter)" } else { 'not measured' }), $seen MB (Windows' counters); ceiling $CeilingMB MB" | Out-File -Append $env:GITHUB_STEP_SUMMARY
 }

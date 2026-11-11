@@ -341,10 +341,13 @@ jobs:
 
       # Groovy's offline voice (round 3B item 8c): Kokoro downloaded as
       # Settings would, then a sentence spoken through the same path.
-      - name: Kokoro speaks
+      - name: Kokoro and the light voice speak
         shell: pwsh
         run: |
           cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # Round 4A item 1: the light voice and Kokoro, memory and speed side by side.
+          cargo test -p groovy voices_measured -- --ignored --nocapture
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cargo test -p groovy kws_hears -- --ignored --nocapture
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

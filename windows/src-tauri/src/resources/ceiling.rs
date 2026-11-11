@@ -30,6 +30,9 @@ pub const WHISPER_MB: f64 = 150.0;
 /// Kokoro's helper while it speaks (about 165 MB), plus what a call adds to the
 /// island and Groovy meanwhile (about 70 MB: 105 MB before the call, 342 at its end).
 pub const KOKORO_MB: f64 = 235.0;
+/// The light offline voice's helper while it speaks, plus what a call adds
+/// (round 4A item 1; estimate until the Windows build measures it).
+pub const LIGHT_MB: f64 = 150.0;
 
 /// How often the watcher reads the total.
 pub const EVERY: Duration = Duration::from_secs(3);
@@ -81,6 +84,23 @@ pub fn by_kind(parts: &[Part]) -> Vec<Part> {
     }
     out.sort_by(|a, b| b.mb.total_cmp(&a.mb));
     out
+}
+
+/// This process's own private memory (the voice test, run in-process).
+#[cfg(test)]
+pub fn own_mb() -> f64 {
+    #[cfg(windows)]
+    return os::private_working_set(std::process::id()).unwrap_or(0.0);
+    // Elsewhere: anonymous memory only (mapped weights are file pages, which
+    // Windows' private working set doesn't count either).
+    #[cfg(not(windows))]
+    return std::fs::read_to_string("/proc/self/smaps_rollup")
+        .unwrap_or_default()
+        .lines()
+        .filter(|l| l.starts_with("Anonymous:"))
+        .filter_map(|l| l.split_whitespace().nth(1)?.parse::<f64>().ok())
+        .sum::<f64>()
+        / 1024.0;
 }
 
 pub fn total_mb() -> f64 {
@@ -305,7 +325,7 @@ mod os {
     use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS, PROCESS_MEMORY_COUNTERS_EX2};
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
 
-    fn private_working_set(pid: u32) -> Option<f64> {
+    pub(super) fn private_working_set(pid: u32) -> Option<f64> {
         unsafe {
             let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
             let mut c = PROCESS_MEMORY_COUNTERS_EX2 { cb: std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX2>() as u32, ..Default::default() };

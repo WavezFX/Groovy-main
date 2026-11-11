@@ -1,7 +1,13 @@
 // Groovy's voice (FIXES_ROUND3B item 8c). Fish Audio first whenever it is set
-// up (the user's own key, in the OS store, and a voice id), then Kokoro, the
-// offline voice (sherpa-onnx, downloaded only when the user asks), then
-// whatever answered before (ElevenLabs or Windows' own voices, in the page).
+// up (the user's own key, in the OS store, and a voice id), then the offline
+// voice on this PC, then whatever answered before (ElevenLabs or Windows' own
+// voices, in the page).
+//
+// The offline voice (round 4A item 1) is the light one by default: Piper's
+// "libritts_r medium" through sherpa-onnx, about 80 MB on disk, fast and small
+// in memory. Kokoro is the optional richer one, used when it is chosen, or
+// ("auto") when it was downloaded before the light voice existed. Either is
+// downloaded only when the user asks.
 //
 // A refused or failed Fish Audio request falls through to Kokoro for that
 // reply; no credit or a rate limit also rests Fish Audio for ten minutes, as
@@ -17,7 +23,7 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::json;
-use sherpa_onnx::{GenerationConfig, OfflineTts, OfflineTtsConfig, OfflineTtsKokoroModelConfig, OfflineTtsModelConfig};
+use sherpa_onnx::{GenerationConfig, OfflineTts, OfflineTtsConfig, OfflineTtsKokoroModelConfig, OfflineTtsModelConfig, OfflineTtsVitsModelConfig};
 use tauri::{AppHandle, Emitter};
 
 use super::ModelSet;
@@ -35,6 +41,61 @@ const GBP_PER_MILLION_CHARS: f64 = 11.5;
 
 /// Kokoro 82M v1.0, int8 (Apache-2.0), with espeak-ng's data (about 173 MB).
 pub static KOKORO: ModelSet = ModelSet { id: "kokoro-int8-v1_0", files: super::kokoro_files::FILES };
+
+/// The light offline voice: Piper's libritts_r medium, English (about 80 MB).
+pub static LIGHT: ModelSet = ModelSet { id: "piper-en-libritts-r-medium", files: super::light_files::FILES };
+
+/// Which offline voice speaks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Offline {
+    Light,
+    Kokoro,
+}
+
+impl Offline {
+    pub fn id(self) -> &'static str {
+        match self {
+            Offline::Light => "light",
+            Offline::Kokoro => "kokoro",
+        }
+    }
+
+    fn of(id: &str) -> Option<Offline> {
+        match id {
+            "light" => Some(Offline::Light),
+            "kokoro" => Some(Offline::Kokoro),
+            _ => None,
+        }
+    }
+
+    fn set(self) -> &'static ModelSet {
+        match self {
+            Offline::Light => &LIGHT,
+            Offline::Kokoro => &KOKORO,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Offline::Light => "the light voice",
+            Offline::Kokoro => "Kokoro",
+        }
+    }
+}
+
+/// The offline voice to use, from the choice in Settings (`pref`: "light",
+/// "kokoro" or "auto") and what is downloaded (`has`). "auto" is Kokoro when
+/// it is there (it was the only offline voice before), else the light one. A
+/// chosen voice that isn't downloaded gives way to the other if that one is.
+pub fn offline_for(pref: &str, has: impl Fn(Offline) -> bool) -> Option<Offline> {
+    let wanted = Offline::of(pref).unwrap_or(if has(Offline::Kokoro) { Offline::Kokoro } else { Offline::Light });
+    let other = if wanted == Offline::Light { Offline::Kokoro } else { Offline::Light };
+    [wanted, other].into_iter().find(|v| has(*v))
+}
+
+fn downloaded(v: Offline) -> bool {
+    v.set().is_present()
+}
 
 /// Something to play: an MP3 from Fish Audio or a WAV from Kokoro.
 pub struct Audio {
@@ -132,15 +193,17 @@ struct Prefs {
     pick: String,
     /// 0.5–2.0, every voice.
     speed: f32,
+    /// The offline voice: "light", "kokoro" or "auto".
+    offline: String,
 }
 
 fn prefs(app: &AppHandle) -> Prefs {
     crate::flow::get(app)
         .map(|f| {
             let p = &f.store.lock().unwrap().prefs;
-            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone(), pick: p.voice_pick.clone(), speed: clamp_speed(p.voice_speed) }
+            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone(), pick: p.voice_pick.clone(), speed: clamp_speed(p.voice_speed), offline: p.offline_voice.clone() }
         })
-        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into(), pick: "fish".into(), speed: 1.0 })
+        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into(), pick: "fish".into(), speed: 1.0, offline: "auto".into() })
 }
 
 /// A speed the voices accept: 0.5–2.0, 1.0 for anything else.
@@ -191,7 +254,7 @@ pub fn synthesize(app: &AppHandle, text: &str) -> Option<Audio> {
                 return Some(Audio { mime: "audio/mpeg", bytes, provider: "fish" });
             }
             Err(err) => {
-                crate::log::line(format!("voice: Fish Audio failed ({err:?}), Kokoro answers"));
+                crate::log::line(format!("voice: Fish Audio failed ({err:?}), the offline voice answers"));
                 let mut s = fish_state().lock().unwrap();
                 s.note = Some(err.note());
                 if err.rests() {
@@ -201,12 +264,14 @@ pub fn synthesize(app: &AppHandle, text: &str) -> Option<Audio> {
             }
         }
     }
-    kokoro_at(text, &p.gender, p.speed).map(|bytes| Audio { mime: "audio/wav", bytes, provider: "kokoro" })
+    let which = offline_for(&p.offline, downloaded)?;
+    offline_at(which, text, &p.gender, p.speed).map(|bytes| Audio { mime: "audio/wav", bytes, provider: which.id() })
 }
 
 // ── Kokoro ────────────────────────────────────────────────────────────────────
 
 struct Loaded {
+    which: Offline,
     tts: Arc<OfflineTts>,
     used: Instant,
 }
@@ -225,20 +290,38 @@ pub fn kokoro_speaker(gender: &str) -> i32 {
     }
 }
 
-fn load() -> Option<Arc<OfflineTts>> {
-    let mut e = engine().lock().unwrap();
-    if let Some(l) = e.as_mut() {
-        l.used = Instant::now();
-        return Some(l.tts.clone());
+/// The light voice's speakers, picked for a steady pitch: a woman's and a man's.
+pub fn light_speaker(gender: &str) -> i32 {
+    if gender == "male" {
+        31
+    } else {
+        38
     }
-    if !KOKORO.is_present() {
-        return None;
+}
+
+/// Memory the voice needs while it speaks (the ceiling's estimate).
+pub fn needs_mb(which: Offline) -> f64 {
+    match which {
+        Offline::Light => crate::resources::ceiling::LIGHT_MB,
+        Offline::Kokoro => crate::resources::ceiling::KOKORO_MB,
     }
-    // Speech recognition and the voice together only when both fit (round 3D item 7).
-    crate::resources::ceiling::make_room("voice", crate::resources::ceiling::KOKORO_MB);
-    let started = Instant::now();
-    let config = OfflineTtsConfig {
-        model: OfflineTtsModelConfig {
+}
+
+fn config(which: Offline) -> OfflineTtsConfig {
+    let model = match which {
+        Offline::Light => OfflineTtsModelConfig {
+            vits: OfflineTtsVitsModelConfig {
+                // Its weights mapped from disk, not copied, as Kokoro's are (mapped.rs).
+                model: Some(super::mapped::mapped_model(Path::new(&LIGHT.path("en_US-libritts_r-medium.onnx"))).map_or_else(|| LIGHT.path("en_US-libritts_r-medium.onnx"), |p| p.display().to_string())),
+                tokens: Some(LIGHT.path("tokens.txt")),
+                data_dir: Some(LIGHT.path("espeak-ng-data")),
+                ..Default::default()
+            },
+            num_threads: 2,
+            provider: super::low_memory_provider(),
+            ..Default::default()
+        },
+        Offline::Kokoro => OfflineTtsModelConfig {
             kokoro: OfflineTtsKokoroModelConfig {
                 // Its weights mapped from disk, not copied (mapped.rs).
                 model: Some(super::mapped::mapped_model(Path::new(&KOKORO.path("model.int8.onnx"))).map_or_else(|| KOKORO.path("model.int8.onnx"), |p| p.display().to_string())),
@@ -253,13 +336,28 @@ fn load() -> Option<Arc<OfflineTts>> {
             provider: super::low_memory_provider(),
             ..Default::default()
         },
-        max_num_sentences: 1,
-        ..Default::default()
     };
+    OfflineTtsConfig { model, max_num_sentences: 1, ..Default::default() }
+}
+
+fn load(which: Offline) -> Option<Arc<OfflineTts>> {
+    let mut e = engine().lock().unwrap();
+    if let Some(l) = e.as_mut().filter(|l| l.which == which) {
+        l.used = Instant::now();
+        return Some(l.tts.clone());
+    }
+    // The other voice goes first: never both in memory.
+    *e = None;
+    if !which.set().is_present() {
+        return None;
+    }
+    // Speech recognition and the voice together only when both fit (round 3D item 7).
+    crate::resources::ceiling::make_room("voice", needs_mb(which));
+    let started = Instant::now();
     crate::resources::loads::note(crate::resources::loads::Part::Kokoro, "the offline voice");
-    let tts = Arc::new(OfflineTts::create(&config)?);
-    crate::log::line(format!("Kokoro loaded in {:?}", started.elapsed()));
-    *e = Some(Loaded { tts: tts.clone(), used: Instant::now() });
+    let tts = Arc::new(OfflineTts::create(&config(which))?);
+    crate::log::line(format!("{} loaded in {:?}", which.name(), started.elapsed()));
+    *e = Some(Loaded { which, tts: tts.clone(), used: Instant::now() });
     // Unloaded once it has been quiet for the idle setting (round 3B item 10).
     crate::resources::register("kokoro", reap_idle);
     Some(tts)
@@ -269,7 +367,7 @@ fn reap_idle() {
     let Ok(mut e) = engine().try_lock() else { return };
     if e.as_ref().is_some_and(|l| crate::resources::idle::expired(l.used)) {
         *e = None;
-        crate::log::line("Kokoro unloaded");
+        crate::log::line("the offline voice unloaded");
     }
 }
 
@@ -283,7 +381,7 @@ pub fn is_loaded() -> bool {
 pub fn free() {
     if let Ok(mut e) = engine().try_lock() {
         if e.take().is_some() {
-            crate::log::line("Kokoro freed (memory)");
+            crate::log::line("the offline voice freed (memory)");
         }
     }
     super::helper::stop(super::helper::Kind::Tts);
@@ -330,15 +428,27 @@ fn clauses(text: &str, max: usize) -> Vec<String> {
     out
 }
 
-/// Kokoro's WAV for `text` at a speed (Settings → Speaking), if Kokoro is downloaded.
-/// In Kokoro's helper process (round 3N item 2), or here if it can't start.
+/// Kokoro's WAV for `text`, if Kokoro is downloaded (the tests' voice).
+#[cfg(test)]
 pub fn kokoro_at(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
+    offline_at(Offline::Kokoro, text, gender, speed)
+}
+
+/// The offline voice's WAV for `text` at a speed (Settings → Speaking), if it
+/// is downloaded. In the voice's helper process (round 3N item 2), or here if
+/// that can't start.
+pub fn offline_at(which: Offline, text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
     if super::helper::enabled() {
-        if let Some(r) = super::helper::kokoro(text, gender, speed) {
+        if let Some(r) = super::helper::speak(which.id(), text, gender, speed) {
             return r;
         }
     }
-    kokoro_here(text, gender, speed)
+    offline_here(which, text, gender, speed)
+}
+
+/// The helper's side: the voice named by `id` ("light" or "kokoro").
+pub(crate) fn offline_here_by_id(id: &str, text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
+    offline_here(Offline::of(id)?, text, gender, speed)
 }
 
 /// `samples` without leading silence, nor trailing silence beyond `keep` seconds.
@@ -349,13 +459,21 @@ fn trim_tail(samples: &[f32], rate: f32, keep: f32) -> &[f32] {
     &samples[start..(end + (keep * rate) as usize).min(samples.len())]
 }
 
-/// Kokoro's WAV, made in this process.
-pub(crate) fn kokoro_here(text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
-    let tts = load()?;
-    let config = GenerationConfig { sid: kokoro_speaker(gender), speed: clamp_speed(speed), ..Default::default() };
+/// The light voice speaks in clauses of up to 60 characters: 77 MB while speaking
+/// against 109 at 120 (measured on Linux, anonymous memory), and as fast.
+const LIGHT_CLAUSE_CHARS: usize = 60;
+
+/// The offline voice's WAV, made in this process.
+fn offline_here(which: Offline, text: &str, gender: &str, speed: f32) -> Option<Vec<u8>> {
+    let tts = load(which)?;
+    let (sid, max) = match which {
+        Offline::Light => (light_speaker(gender), LIGHT_CLAUSE_CHARS),
+        Offline::Kokoro => (kokoro_speaker(gender), CLAUSE_CHARS),
+    };
+    let config = GenerationConfig { sid, speed: clamp_speed(speed), ..Default::default() };
     let mut samples: Vec<f32> = Vec::new();
     let mut rate = 0;
-    let pieces = clauses(text, CLAUSE_CHARS);
+    let pieces = clauses(text, max);
     let last = pieces.len().saturating_sub(1);
     for (i, clause) in pieces.iter().enumerate() {
         let audio = tts.generate_with_config(clause, &config, None::<fn(&[f32], f32) -> bool>)?;
@@ -375,16 +493,18 @@ struct Download {
     error: Option<String>,
 }
 
-fn download_state() -> &'static Mutex<Download> {
-    static D: OnceLock<Mutex<Download>> = OnceLock::new();
-    D.get_or_init(|| Mutex::new(Download { running: false, fraction: 0.0, error: None }))
+fn download_state(which: Offline) -> &'static Mutex<Download> {
+    static K: OnceLock<Mutex<Download>> = OnceLock::new();
+    static L: OnceLock<Mutex<Download>> = OnceLock::new();
+    let cell = if which == Offline::Kokoro { &K } else { &L };
+    cell.get_or_init(|| Mutex::new(Download { running: false, fraction: 0.0, error: None }))
 }
 
-fn kokoro_state() -> super::ModelState {
-    let d = download_state().lock().unwrap();
+fn voice_state(which: Offline) -> super::ModelState {
+    let d = download_state(which).lock().unwrap();
     if d.running {
         super::ModelState::Downloading { fraction: d.fraction }
-    } else if KOKORO.is_present() {
+    } else if which.set().is_present() {
         super::ModelState::Ready
     } else if let Some(error) = &d.error {
         super::ModelState::Failed { error: error.clone() }
@@ -393,21 +513,33 @@ fn kokoro_state() -> super::ModelState {
     }
 }
 
-/// Kokoro's files, downloaded now if missing (CI's peak test).
+/// The offline voices' files, downloaded now if missing (CI's peak test).
 #[cfg(feature = "worktest")]
-pub async fn kokoro_fetch() -> Result<(), String> {
-    if KOKORO.is_present() {
-        return Ok(());
-    }
+pub async fn offline_fetch() -> Result<(), String> {
     let client = super::download_client()?;
-    let mut done = 0;
-    super::fetch_set(&client, &KOKORO, &mut done, &mut |_| {}).await
+    for set in [&LIGHT, &KOKORO] {
+        if !set.is_present() {
+            let mut done = 0;
+            super::fetch_set(&client, set, &mut done, &mut |_| {}).await?;
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
 pub fn kokoro_download(app: AppHandle) {
+    download(app, Offline::Kokoro);
+}
+
+/// The light offline voice's download (round 4A item 1).
+#[tauri::command]
+pub fn light_download(app: AppHandle) {
+    download(app, Offline::Light);
+}
+
+fn download(app: AppHandle, which: Offline) {
     {
-        let mut d = download_state().lock().unwrap();
+        let mut d = download_state(which).lock().unwrap();
         if d.running {
             return;
         }
@@ -415,15 +547,16 @@ pub fn kokoro_download(app: AppHandle) {
     }
     let _ = app.emit("tts-status-changed", ());
     tauri::async_runtime::spawn(async move {
-        let total = KOKORO.total_size();
+        let set = which.set();
+        let total = set.total_size();
         let mut done = 0;
         let mut last = Instant::now();
         let result = match super::download_client() {
             Ok(client) => {
-                super::fetch_set(&client, &KOKORO, &mut done, &mut |got| {
+                super::fetch_set(&client, set, &mut done, &mut |got| {
                     if last.elapsed() > Duration::from_millis(250) {
                         last = Instant::now();
-                        download_state().lock().unwrap().fraction = got as f64 / total as f64;
+                        download_state(which).lock().unwrap().fraction = got as f64 / total as f64;
                         let _ = app.emit("tts-status-changed", ());
                     }
                 })
@@ -432,13 +565,13 @@ pub fn kokoro_download(app: AppHandle) {
             Err(e) => Err(e),
         };
         {
-            let mut d = download_state().lock().unwrap();
+            let mut d = download_state(which).lock().unwrap();
             d.running = false;
             d.error = result.as_ref().err().cloned();
         }
         crate::log::line(match &result {
-            Ok(()) => "Kokoro downloaded".to_string(),
-            Err(e) => format!("Kokoro download failed: {e}"),
+            Ok(()) => format!("{} downloaded", which.name()),
+            Err(e) => format!("{} download failed: {e}", which.name()),
         });
         let _ = app.emit("tts-status-changed", ());
     });
@@ -447,6 +580,7 @@ pub fn kokoro_download(app: AppHandle) {
 #[tauri::command]
 pub fn kokoro_remove(app: AppHandle) {
     *engine().lock().unwrap() = None;
+    super::helper::stop(super::helper::Kind::Tts);
     let _ = std::fs::remove_dir_all(KOKORO.dir());
     let _ = app.emit("tts-status-changed", ());
 }
@@ -507,14 +641,30 @@ pub async fn tts_audio(app: AppHandle, text: String) -> Option<TtsAudio> {
 /// Settings → Speaking: Kokoro's voice for that card, at the chosen speed.
 #[tauri::command]
 pub async fn kokoro_preview(app: AppHandle, gender: String) -> Result<TtsAudio, String> {
+    preview(app, Offline::Kokoro, gender).await
+}
+
+/// Settings → Speaking: the light voice says a sentence.
+#[tauri::command]
+pub async fn light_preview(app: AppHandle, gender: String) -> Result<TtsAudio, String> {
+    preview(app, Offline::Light, gender).await
+}
+
+async fn preview(app: AppHandle, which: Offline, gender: String) -> Result<TtsAudio, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let p = prefs(&app);
-        if !KOKORO.is_present() {
-            return Err(t("Download Kokoro first."));
+        if !which.set().is_present() {
+            return Err(match which {
+                Offline::Kokoro => t("Download Kokoro first."),
+                Offline::Light => t("Download the light voice first."),
+            });
         }
         let text = t("Hi, I'm Groovy. This is how I sound.");
-        let bytes = kokoro_at(&text, &gender, p.speed).ok_or_else(|| t("Kokoro didn't speak."))?;
-        Ok(TtsAudio::from(Audio { mime: "audio/wav", bytes, provider: "kokoro" }))
+        let bytes = offline_at(which, &text, &gender, p.speed).ok_or_else(|| match which {
+            Offline::Kokoro => t("Kokoro didn't speak."),
+            Offline::Light => t("The light voice didn't speak."),
+        })?;
+        Ok(TtsAudio::from(Audio { mime: "audio/wav", bytes, provider: which.id() }))
     })
     .await
     .map_err(|e| e.to_string())?
@@ -551,7 +701,12 @@ pub struct TtsStatus {
     pub month_gbp: f64,
     pub kokoro: super::ModelState,
     pub kokoro_mb: u64,
-    /// Who speaks now: "fish", "kokoro" or "system".
+    /// The light offline voice (round 4A item 1).
+    pub light: super::ModelState,
+    pub light_mb: u64,
+    /// The offline voice that would speak now: "light", "kokoro", or None (none downloaded).
+    pub offline_voice: Option<&'static str>,
+    /// Who speaks now: "fish", "light", "kokoro" or "system".
     pub speaking: &'static str,
 }
 
@@ -561,7 +716,9 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
     let key = crate::secrets::get(FISH_KEY).is_some();
     let fish_ready = key && !p.voice.is_empty();
     let resting = fish_state().lock().unwrap().rest_until.is_some_and(|t| Instant::now() < t);
-    let kokoro = kokoro_state();
+    let kokoro = voice_state(Offline::Kokoro);
+    let light = voice_state(Offline::Light);
+    let offline = offline_for(&p.offline, downloaded);
     let chars = usage_this_month();
     TtsStatus {
         fish_ready,
@@ -572,19 +729,49 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
         month_gbp: cost_gbp(chars),
         speaking: if fish_ready && !resting {
             "fish"
-        } else if kokoro == super::ModelState::Ready {
-            "kokoro"
         } else {
-            "system"
+            offline.map_or("system", Offline::id)
         },
         kokoro,
         kokoro_mb: KOKORO.total_size() / 1_000_000,
+        light,
+        light_mb: LIGHT.total_size() / 1_000_000,
+        offline_voice: offline.map(Offline::id),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_light_voice_is_the_default_and_kokoro_stays_for_those_who_have_it() {
+        let has = |list: &'static [Offline]| move |v: Offline| list.contains(&v);
+        // A new install: the light voice, once it is downloaded.
+        assert_eq!(offline_for("auto", has(&[Offline::Light])), Some(Offline::Light));
+        assert_eq!(offline_for("auto", has(&[])), None);
+        // Kokoro downloaded before: it keeps speaking until the user changes it.
+        assert_eq!(offline_for("auto", has(&[Offline::Kokoro])), Some(Offline::Kokoro));
+        assert_eq!(offline_for("auto", has(&[Offline::Kokoro, Offline::Light])), Some(Offline::Kokoro));
+        // Chosen: that one, or the other if the chosen one isn't there.
+        assert_eq!(offline_for("light", has(&[Offline::Kokoro, Offline::Light])), Some(Offline::Light));
+        assert_eq!(offline_for("light", has(&[Offline::Kokoro])), Some(Offline::Kokoro));
+        assert_eq!(offline_for("kokoro", has(&[Offline::Light])), Some(Offline::Light));
+        assert_eq!(offline_for("nonsense", has(&[Offline::Light])), Some(Offline::Light));
+        assert_ne!(light_speaker("male"), light_speaker("female"));
+    }
+
+    #[test]
+    fn the_light_voice_is_a_pinned_checked_download_of_its_english_parts() {
+        let names: Vec<&str> = LIGHT.files.iter().map(|f| f.name).collect();
+        for needed in ["en_US-libritts_r-medium.onnx", "tokens.txt", "espeak-ng-data/phontab", "espeak-ng-data/en_dict", "espeak-ng-data/lang/gmw/en-US"] {
+            assert!(names.contains(&needed), "{needed}");
+        }
+        assert!(LIGHT.files.iter().all(|f| f.url.contains("/resolve/fe872db7e697e9f2a45d09328953f1fd2a9df630/") && f.sha256.len() == 64 && f.size > 0));
+        let mb = LIGHT.total_size() / 1_000_000;
+        assert!((70..=90).contains(&mb), "{mb} MB");
+        assert!(LIGHT.total_size() < KOKORO.total_size() / 2);
+    }
 
     #[test]
     fn replies_are_spoken_in_short_clauses_cut_between_words() {
@@ -729,5 +916,49 @@ mod with_models {
         println!("Kokoro: {} bytes of WAV in {:?}", wav.len(), started.elapsed());
         assert!(wav.len() > 44 + 24_000 * 2, "at least a second of audio");
         std::fs::write(super::KOKORO.dir().join("kokoro-test.wav"), &wav).unwrap();
+    }
+
+    /// Round 4A item 1: the light voice's memory while it speaks, and its speed,
+    /// beside Kokoro's, in this process (Task Manager's private working set on
+    /// Windows). Run on the Windows build: cargo test -p groovy voices_measured -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn voices_measured() {
+        let client = super::super::download_client().unwrap();
+        let texts = [
+            "Hi, I'm Groovy. It's a quarter past three, and the report is on its way to Sam.",
+            "Your next meeting is with the design team at four, in the small room upstairs.",
+            "I paused the music and turned the volume down a little, like you asked.",
+        ];
+        // One voice per process when asked (GROOVY_VOICE=light|kokoro), so neither is measured on the other's leftovers.
+        let only = std::env::var("GROOVY_VOICE").ok();
+        for which in [super::Offline::Light, super::Offline::Kokoro].into_iter().filter(|w| only.as_deref().is_none_or(|o| o == w.id())) {
+            let mut done = 0;
+            tauri::async_runtime::block_on(super::super::fetch_set(&client, which.set(), &mut done, &mut |_| {})).expect("download");
+            super::free();
+            crate::resources::ceiling::give_back();
+            let before = crate::resources::ceiling::own_mb();
+            let mut peak = before;
+            let mut times = Vec::new();
+            let mut bytes = 0;
+            for (i, text) in texts.iter().enumerate() {
+                let started = std::time::Instant::now();
+                let wav = super::offline_here(which, text, if i % 2 == 0 { "female" } else { "male" }, 1.0).expect("it speaks");
+                times.push(started.elapsed().as_secs_f32());
+                bytes += wav.len();
+                peak = peak.max(crate::resources::ceiling::own_mb());
+                std::fs::write(which.set().dir().join(format!("sample-{i}.wav")), &wav).unwrap();
+            }
+            println!(
+                "{}: {:.0} MB before, {:.0} MB at most while speaking (+{:.0} MB); {} seconds per sentence; {} KB of speech",
+                which.name(),
+                before,
+                peak,
+                peak - before,
+                times.iter().map(|t| format!("{t:.2}")).collect::<Vec<_>>().join(", "),
+                bytes / 1024
+            );
+            super::free();
+        }
     }
 }

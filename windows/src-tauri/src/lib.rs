@@ -1659,6 +1659,8 @@ pub fn run() {
             speech::tts::fish_test,
             speech::tts::kokoro_preview,
             speech::tts::kokoro_download,
+            speech::tts::light_download,
+            speech::tts::light_preview,
             speech::tts::kokoro_remove,
             okgroovy::okgroovy_test,
             skills::manage::skills_status,

@@ -9,7 +9,8 @@
 //!
 //! The wire format is a line of JSON, then `len` bytes. Requests: `{"op":"parakeet",
 //! "len"}` + f32 samples, `{"op":"whisper","model","language","wake","len"}` + f32
-//! samples, `{"op":"kokoro","text","gender","speed"}`, `{"op":"warm"}`. Answers:
+//! samples, `{"op":"voice","which","text","gender","speed"}` (`which`: "light" or
+//! "kokoro"), `{"op":"warm"}`. Answers:
 //! `{"ok","error","len"}` + the transcript (JSON), the text, or the WAV.
 //!
 //! If a helper cannot start, the engine runs in this process as before, so no
@@ -143,13 +144,14 @@ fn answer(kind: Kind, head: &Value, body: &[u8]) -> (Value, Vec<u8>) {
                 Err(e) => fail(&e),
             }
         }
-        (Kind::Tts, "kokoro") => {
+        (Kind::Tts, "voice") => {
+            let which = head["which"].as_str().unwrap_or_default();
             let text = head["text"].as_str().unwrap_or_default();
             let gender = head["gender"].as_str().unwrap_or_default();
             let speed = head["speed"].as_f64().unwrap_or(1.0) as f32;
-            match super::tts::kokoro_here(text, gender, speed) {
+            match super::tts::offline_here_by_id(which, text, gender, speed) {
                 Some(wav) => (json!({ "ok": true }), wav),
-                None => fail("Kokoro could not speak"),
+                None => fail("the offline voice could not speak"),
             }
         }
         _ => fail("unknown request"),
@@ -208,7 +210,8 @@ fn spawn(kind: Kind) -> Option<Running> {
     // The ceiling (round 3D item 7) makes room before a model loads, as it did in-process.
     match kind {
         Kind::Stt => crate::resources::ceiling::make_room("speech", crate::resources::ceiling::WHISPER_MB),
-        Kind::Tts => crate::resources::ceiling::make_room("voice", crate::resources::ceiling::KOKORO_MB),
+        // The voice's own room is made in `speak`, where it is known which voice it is.
+        Kind::Tts => {}
     }
     let exe = std::env::current_exe().ok()?;
     let mut cmd = Command::new(exe);
@@ -309,9 +312,14 @@ pub fn whisper(model: &str, language: Option<&str>, pcm: &[f32], wake: bool) -> 
     })
 }
 
-/// Kokoro, in its helper. Outer None: the helper is unavailable (use this process).
-pub fn kokoro(text: &str, gender: &str, speed: f32) -> Option<Option<Vec<u8>>> {
-    let (h, b) = call(Kind::Tts, json!({ "op": "kokoro", "text": text, "gender": gender, "speed": speed }), &[])?;
+/// The offline voice `which` ("light" or "kokoro"), in its helper. Outer None:
+/// the helper is unavailable (use this process).
+pub fn speak(which: &str, text: &str, gender: &str, speed: f32) -> Option<Option<Vec<u8>>> {
+    if !is_running(Kind::Tts) {
+        let mb = if which == "kokoro" { crate::resources::ceiling::KOKORO_MB } else { crate::resources::ceiling::LIGHT_MB };
+        crate::resources::ceiling::make_room("voice", mb);
+    }
+    let (h, b) = call(Kind::Tts, json!({ "op": "voice", "which": which, "text": text, "gender": gender, "speed": speed }), &[])?;
     Some(h["ok"].as_bool().unwrap_or(false).then_some(b))
 }
 

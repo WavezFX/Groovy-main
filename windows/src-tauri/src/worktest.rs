@@ -136,9 +136,9 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
         let t = Instant::now();
         let fetched = tauri::async_runtime::block_on(async {
             speech_models(&app).await?;
-            crate::speech::tts::kokoro_fetch().await
+            crate::speech::tts::offline_fetch().await
         });
-        step("models downloaded (Whisper, the spotter, Kokoro)", t, fetched.map(|_| "ready".into()));
+        step("models downloaded (Whisper, the spotter, the light voice, Kokoro)", t, fetched.map(|_| "ready".into()));
         let t = Instant::now();
         step("Settings open on Brains", t, open_settings(&app));
         let t = Instant::now();
@@ -192,10 +192,10 @@ fn open_settings(app: &AppHandle) -> Result<String, String> {
 }
 
 /// One turn of a live call on this PC: what was said is heard, and the answer
-/// is spoken with Groovy's own voice (Kokoro).
+/// is spoken with Groovy's default offline voice (the light one, round 4A item 1).
 fn live_call(_app: &AppHandle, dir: &Path) -> Result<String, String> {
     let heard = speech::transcribe(&wav(dir, "hey-groovy-time.wav")?).ok_or("the speech model did not load")?.text;
-    let wav = speech::tts::kokoro_at("It is a quarter past three, and the report is on its way to Sam.", "female", 1.0).ok_or("Kokoro did not speak")?;
+    let wav = speech::tts::offline_at(speech::tts::Offline::Light, "It is a quarter past three, and the report is on its way to Sam.", "female", 1.0).ok_or("the light voice did not speak")?;
     Ok(format!("heard “{heard}”, answered with {} KB of speech", wav.len() / 1024))
 }
 
