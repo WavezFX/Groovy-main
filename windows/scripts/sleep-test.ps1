@@ -107,9 +107,18 @@ try {
   Start-Sleep -Seconds 14
   $awake = Get-Total $proc.Id
   $metrics["awake, before sleeping (MB)"] = "$($awake.Total) ($($awake.Parts))"
-  $before = Get-Shot "1-awake.png"
+  # The island is still open on its greeting here: the picture to compare the
+  # stand-in with is taken later, once it has folded (just before it sleeps).
+  $null = Get-Shot "0-launch.png"
+  $before = $null
+  $deadline = (Get-Date).AddSeconds($SleepWithin)
+  while ((Get-Date) -lt $deadline -and (Count-Log "island: falling asleep") -lt 1) {
+    if ($before) { $before.Dispose() }
+    $before = Get-Shot "1-awake.png"
+    Start-Sleep -Milliseconds 700
+  }
 
-  if (-not (Wait-Log "island: asleep" 1 $SleepWithin)) {
+  if (-not (Wait-Log "island: asleep (" 1 $SleepWithin)) {
     $why = @(Select-String -Path $log -SimpleMatch "island: not sleeping" -ErrorAction SilentlyContinue | ForEach-Object { $_.Line }) | Select-Object -Last 3
     $failed = "the island did not fall asleep within $SleepWithin s. $($why -join ' | ')"
   } else {
@@ -119,7 +128,7 @@ try {
     $asleep = Get-Total $proc.Id
     $metrics["ASLEEP total (MB, stretch target S1: under 50)"] = "$($asleep.Total) ($($asleep.Parts))"
     $during = Get-Shot "2-asleep.png"
-    $metrics["stand-in against the live island (mean colour difference, 0-255)"] = Compare-Shots $before $during
+    if ($before) { $metrics["stand-in against the live island, up to 0.7 s before (mean colour difference, 0-255)"] = Compare-Shots $before $during }
 
     # The cursor comes to the island: how long until the page is back.
     [System.Windows.Forms.Cursor]::Position = $onIsland
@@ -136,7 +145,7 @@ try {
 
     # Left alone again, he sleeps again.
     [System.Windows.Forms.Cursor]::Position = $away
-    $second = Wait-Log "island: asleep" 2 ($SleepWithin + 20)
+    $second = Wait-Log "island: asleep (" 2 ($SleepWithin + 20)
     $metrics["falls asleep a second time"] = $second
     if ($second) {
       Start-Sleep -Seconds 6

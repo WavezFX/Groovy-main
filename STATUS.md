@@ -383,3 +383,26 @@ The reference app's Windows build (its `windows-latest` setup, installed silentl
 - **Caveat:** both ran on a fresh profile with default settings. The reference app had four renderers, so it very likely had windows open beyond its island (a first-run or settings window); its settled idle with one window may be lower. The run did not capture which windows were open.
 - Groovy read 116–122 MB here against 105–115 MB in the smoke test; this script waits 30 s, the smoke test 20 s, and it is a different run.
 - **What it means for the stretch targets:** in both apps a single awake WebView2 costs about 100 MB (renderer 58–62, browser 29–32, utility 12, GPU 7). Idle under 50 MB (S1) needs the WebView asleep or closed at idle: round 4F item 1.
+
+## Rounds 4A–4F, the Opus items (10–11 Nov, branch `fable-plan`, Windows builds 240–245)
+Numbers are Task Manager's private working set over every Groovy process, from the Windows runner. `fable-plan` builds never publish to "Groovy latest build".
+
+| | Before | Now | Limit / target |
+|---|---|---|---|
+| Idle, island only (smoke test, portable / installed) | 105–115 | 100–107 / 110–112 | under 150 (met) |
+| **Island asleep** (new) | — | **23.3 MB** (renderer 5.6, browser 10.2, utility 4.4, GPU 1.1, groovy.exe 1.2) | S1 under 50 (met in build 245) |
+| Wake for the cursor | — | **123 ms** | 200 ms (met) |
+| Awake again, 3 s after the wake | — | 57.5 MB (it climbs back toward about 125 as the page is used) | — |
+| **Idle with Settings in front** | about 190 | **146.0 / 147.4 / 149.1** (builds 241, 244, 245) | under 150 (met, by 1–4 MB) |
+| Settings left behind another window | — | 134 / 130 (island awake), **27** (island asleep) | under 150 |
+| After Settings closed itself for sitting unused | — | 114 (island awake), 5.8 right after the memory hand-back | — |
+| Peak test | 331 | 320–326 (voice helper 171) | under 300 (**not met**: needs the light voice, 4A item 1) |
+| Wake phrases heard / false wakes | 14 of 16 / 0 of 16 (old phrases) | Linux 9 of 10 / 0 of 20; **Windows 8 and 7 of 10** / 0 of 20 | P5: 9 of 10, 0 of 20 (**not met on Windows**) |
+
+- **4F item 1, the island sleeps (`island_sleep.rs`, `src/island/sleep.ts`).** After 20 s with nothing going on the page asks to sleep. Windows hides and suspends the webview and hands the working sets of Groovy's processes back; a click-through window shows a picture of the island in its place. The cursor, or any event the island listens to, wakes it; events are kept and delivered in order. **What CI showed, in order:** build 240, WebView2's capture has no alpha (it declined and stayed awake, as designed); builds 241–244, photographing on black and on white gives the same picture (no transparency to recover); build 245, the screenshot that covers the island stands in, cut to the island's window region: asleep at 23.3 MB. **Limits to know:** (1) suspending alone saved nothing (110 MB): the saving is the hand-back, so the pages return as he wakes; (2) what shows through the glass can't update while he sleeps, so he wakes as soon as the row of screen under him changes, and stays awake while things move there; (3) not built: Linux, a Settings switch (the escape hatch is the `GROOVY_NO_SLEEP` environment variable), a CI test for an event arriving while asleep; (4) not measured: CPU while asleep, frame time just after a wake, and how exactly the stand-in matches the live island (the test compared two different island states; the screenshot shows a correct folded island; the test is fixed for the next build). The sleep test's "falls asleep a second time" read true wrongly in build 245 (it matched the wrong log line; fixed).
+- **4A item 3, Settings open (`hub_idle.rs`).** Without the focus the Settings webview goes to the Low memory target; after ten minutes unused Rust asks the page and closes the window unless it is busy; it reopens on the same page. Not measured: a call started with Settings open (the peak is over 300 until the light voice).
+- **4B item 1, one wake listener.** The spotter's keywords are "Groovy", "Hey Groovy", "Yo Groovy"; « OK Groovy » is gone and refused when the spotter mistakes it; a bare "Groovy" counts only as the first thing said. The Rust listener also serves the island's own voice (Settings → Voice) and tells the page (`voice-wake`); the page no longer opens the microphone or transcribes to find a wake phrase. Every visible « OK Groovy » reads « Hey Groovy ». Waking to his given name is unchanged.
+- **4D item 1, `brains/`.** One `Brain` trait (id, name, what it can do, how the user is known to it, one turn) with adapters for Claude, the OpenAI-compatible services, the subscriptions' tools and the servers on this PC. `brain_ai.rs` `complete` and `tool_turn` are one loop over the registry; `chat.rs` still has its own dispatch (4D item 2).
+- **4D item 4, tools on subscription brains.** A strict one-line JSON request, read in `brains/cli.rs`, run by Groovy under the same approval rules. Unit-tested only.
+- **4C item 1** `docs/plan/SCREEN_BUDDY_NOTES.md`. **4E item 1** steps 1 and 2: `docs/plan/CHARACTER_MOTION.md` (about three quarters of the engine's methods are still the original's; the rewrite waits for the owner's approval of the design).
+- **Not started:** 4C item 5 (needs the capture and the tool path first).
