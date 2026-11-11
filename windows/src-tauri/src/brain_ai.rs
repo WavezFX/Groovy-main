@@ -118,27 +118,6 @@ pub fn order(prefs: &AssistantPrefs, chat_provider: &str, has_key: impl Fn(&str)
     v
 }
 
-fn key_entry(provider: &str) -> Option<&'static str> {
-    if provider == "anthropic" {
-        Some(crate::claude::KEY)
-    } else {
-        crate::openai_compat::provider(provider).map(|p| p.key)
-    }
-}
-
-fn has_key(provider: &str) -> bool {
-    key_entry(provider).is_some_and(crate::secrets::present)
-}
-
-/// The command-line tool of a subscription, when it is installed.
-pub fn cli_path(tool: &str) -> Option<std::path::PathBuf> {
-    match tool {
-        "claude-code" => crate::skills::cli::which("claude"),
-        "codex" => crate::skills::cli::which("codex"),
-        _ => None,
-    }
-}
-
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Clis {
@@ -149,7 +128,7 @@ pub struct Clis {
 /// Which subscription CLIs this PC has, for the AI setup.
 #[tauri::command]
 pub async fn ai_clis() -> Clis {
-    tauri::async_runtime::spawn_blocking(|| Clis { claude_code: cli_path("claude-code").is_some(), codex: cli_path("codex").is_some() })
+    tauri::async_runtime::spawn_blocking(|| Clis { claude_code: crate::brains::cli::path("claude-code").is_some(), codex: crate::brains::cli::path("codex").is_some() })
         .await
         .unwrap_or(Clis { claude_code: false, codex: false })
 }
@@ -162,7 +141,8 @@ fn current_order(s: &Settings) -> Vec<Who> {
 /// when one was chosen, then the Auto order.
 fn current_order_for(s: &Settings, job: &str) -> Vec<Who> {
     let prefs = s.assistant.clone().sanitised();
-    let mut v = order(&prefs, &s.chat_provider, has_key, |t| cli_path(t).is_some());
+    let ready = |id: &str| crate::brains::get(id).is_some_and(|b| b.auth().ready());
+    let mut v = order(&prefs, &s.chat_provider, ready, ready);
     if !local_configured(s, &prefs) {
         v.retain(|w| *w != Who::Local);
     }
@@ -225,7 +205,7 @@ pub fn states() -> Vec<(&'static str, &'static str)> {
     if let Some(name) = active_name() {
         v.push((name, "ready"));
     }
-    if !v.iter().any(|(n, _)| *n == "Claude") && !has_key("anthropic") {
+    if !v.iter().any(|(n, _)| *n == "Claude") && !crate::brains::get("anthropic").is_some_and(|b| b.auth().ready()) {
         v.push(("Claude", "no key"));
     }
     if !v.iter().any(|(n, _)| *n == "Local") {
@@ -268,10 +248,11 @@ fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
     }
 }
 
-/// Web search comes with Claude only; the others say they have no internet access.
+/// Whether the brain that answers first can search the web by itself (Claude
+/// only, today); the others say they have no internet access.
 pub fn has_web_search() -> bool {
     let Ok(app) = app() else { return false };
-    current_order(&settings(app)).first() == Some(&Who::Claude)
+    current_order(&settings(app)).first().is_some_and(|w| !matches!(w, Who::Local) && crate::brains::get(w.id()).is_some_and(|b| b.caps().web_search))
 }
 
 struct Local {
@@ -280,9 +261,8 @@ struct Local {
     key: Option<String>,
 }
 
-async fn local(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs) -> Result<Local, String> {
-    let resolved = crate::local_chat::resolve(s, &prefs.local_provider).await;
-    let id = resolved.as_str();
+/// The model server `id` on this PC ("llamacpp", "ollama", "lmstudio", "custom"), ready to be asked.
+async fn local(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, id: &str) -> Result<Local, String> {
     if id == "llamacpp" {
         let mut p = prefs.clone();
         let picked = crate::chat::model_for(s, crate::chat::LLAMACPP);
@@ -314,170 +294,77 @@ async fn post_to(endpoint: Url, key: Option<&str>, body: &Value, timeout: Durati
     serde_json::from_slice(&bytes).map_err(|e| e.to_string())
 }
 
-/// An OpenAI-style chat completion from the local model or a cloud provider.
-async fn openai_turn(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, who: Who, mut body: Value, timeout: Duration) -> Result<Value, String> {
+/// One turn in the OpenAI format, for the adapters in brains/: a cloud service
+/// (`cloud`: google, openai, openrouter) or a model server on this PC (`local`).
+/// In and out in the Messages shape; no tools means a plain answer.
+pub(crate) async fn openai_turn(ctx: crate::brains::Ctx<'_>, cloud: Option<&str>, local_id: Option<&str>, req: crate::brains::Request<'_>) -> Result<Value, String> {
+    let plain = req.tools.is_empty();
+    let mut body = if plain {
+        json!({
+            "max_tokens": req.max_tokens,
+            "stream": false,
+            "messages": [{ "role": "system", "content": req.system }, { "role": "user", "content": crate::brains::last_user_text(req.messages) }],
+        })
+    } else {
+        json!({
+            "max_tokens": req.max_tokens,
+            "stream": false,
+            "messages": to_openai_messages(req.system, req.messages),
+            "tools": to_openai_tools(req.tools),
+        })
+    };
+    let answer = if let Some(id) = cloud {
+        let p = crate::openai_compat::provider(id).ok_or("unknown provider")?;
+        let key = crate::secrets::get(p.key).ok_or_else(|| format!("No {} key.", p.name))?;
+        let picked = crate::chat::model_for(ctx.settings, id);
+        body["model"] = json!(if picked.is_empty() { p.default_model.to_string() } else { picked });
+        if let Some(n) = body.as_object_mut().and_then(|o| o.remove("max_tokens")) {
+            body[p.max_tokens_field] = n;
+        }
+        let endpoint = Url::parse(&format!("{}/chat/completions", p.base_url)).map_err(|e| e.to_string())?;
+        post_to(endpoint, Some(&key), &body, req.timeout).await?
+    } else {
+        let id = local_id.ok_or("not an OpenAI-style provider")?;
+        crate::resources::loads::note(crate::resources::loads::Part::LocalServer, "a local brain answers this request");
+        let l = local(ctx.app, ctx.settings, ctx.prefs, id).await?;
+        body["model"] = json!(l.model);
+        // Ollama lets the model go when Groovy is quiet (round 3D item 5).
+        body["keep_alive"] = json!(crate::local_chat::KEEP_ALIVE);
+        let endpoint = Url::parse(&crate::net::join(&l.base, "/v1/chat/completions")).map_err(|e| e.to_string())?;
+        let r = post_to(endpoint, l.key.as_deref(), &body, req.timeout).await;
+        crate::models::touch();
+        r?
+    };
+    if plain {
+        let text = strip_thinking(answer["choices"][0]["message"]["content"].as_str().unwrap_or(""));
+        if text.trim().is_empty() {
+            return Err("empty answer".into());
+        }
+        Ok(crate::brains::text_reply(text))
+    } else {
+        Ok(from_openai(&answer))
+    }
+}
+
+/// The brain behind a place in the order. This PC's is whichever server
+/// answers (Ollama, LM Studio, the built-in model, a custom address).
+async fn brain_of(who: Who, s: &Settings, prefs: &AssistantPrefs) -> Option<&'static dyn crate::brains::Brain> {
     match who {
-        Who::Local => {
-            crate::resources::loads::note(crate::resources::loads::Part::LocalServer, "a local brain answers this request");
-            let l = local(app, s, prefs).await?;
-            body["model"] = json!(l.model);
-            // Ollama lets the model go when Groovy is quiet (round 3D item 5).
-            body["keep_alive"] = json!(crate::local_chat::KEEP_ALIVE);
-            let endpoint = Url::parse(&crate::net::join(&l.base, "/v1/chat/completions")).map_err(|e| e.to_string())?;
-            let r = post_to(endpoint, l.key.as_deref(), &body, timeout).await;
-            crate::models::touch();
-            r
-        }
-        Who::Cloud(id) => {
-            let p = crate::openai_compat::provider(id).ok_or("unknown provider")?;
-            let key = crate::secrets::get(p.key).ok_or_else(|| format!("No {} key.", p.name))?;
-            let picked = crate::chat::model_for(s, id);
-            body["model"] = json!(if picked.is_empty() { p.default_model.to_string() } else { picked });
-            if let Some(n) = body.as_object_mut().and_then(|o| o.remove("max_tokens")) {
-                body[p.max_tokens_field] = n;
-            }
-            let endpoint = Url::parse(&format!("{}/chat/completions", p.base_url)).map_err(|e| e.to_string())?;
-            post_to(endpoint, Some(&key), &body, timeout).await
-        }
-        _ => Err("not an OpenAI-style provider".into()),
+        Who::Local => crate::brains::get(&crate::local_chat::resolve(s, &prefs.local_provider).await),
+        other => crate::brains::get(other.id()),
     }
 }
 
-/// A subscription's CLI answers one prompt, text only. No shell: the prompt
-/// goes in on stdin; Claude Code gets one turn (no tools), Codex a read-only
-/// sandbox in an empty folder.
-async fn cli_complete(tool: &'static str, prompt: String, timeout: Duration) -> Result<String, String> {
-    let exe = cli_path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
-    tauri::async_runtime::spawn_blocking(move || {
-        use std::io::Write;
-        let dir = std::env::temp_dir().join("groovy-brain");
-        let _ = std::fs::create_dir_all(&dir);
-        let mut cmd = std::process::Command::new(&exe);
-        match tool {
-            "claude-code" => cmd.args(["-p", "--output-format", "text", "--max-turns", "1"]),
-            _ => cmd.args(["exec", "--skip-git-repo-check", "-s", "read-only", "-"]),
-        };
-        cmd.current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
-        let mut child = crate::platform::no_console(&mut cmd).spawn().map_err(|e| format!("{tool} didn't start: {e}"))?;
-        crate::platform::contain(&child);
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(prompt.as_bytes());
-        }
-        let started = std::time::Instant::now();
-        loop {
-            if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-                break;
-            }
-            if started.elapsed() > timeout {
-                let _ = child.kill();
-                return Err(format!("{tool} took too long."));
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if !out.status.success() || text.is_empty() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
-        }
-        Ok(text)
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-/// A conversation as one plain-text prompt, for the subscription CLIs.
-pub fn as_prompt(system: &str, messages: &[Value]) -> String {
-    let mut out = format!("{system}\n\nConversation so far:\n");
-    for m in messages {
-        let role = if m["role"] == "assistant" { "You" } else { "User" };
-        let text = match &m["content"] {
-            Value::String(s) => s.clone(),
-            Value::Array(blocks) => blocks
-                .iter()
-                .filter_map(|b| match b["type"].as_str() {
-                    Some("text") => b["text"].as_str().map(String::from),
-                    Some("tool_result") => Some(format!("(result: {})", b["content"].as_str().unwrap_or(""))),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-                .join(" "),
-            _ => String::new(),
-        };
-        if !text.trim().is_empty() {
-            out.push_str(&format!("{role}: {text}\n"));
-        }
-    }
-    out.push_str("\nAnswer the user's last message. You have no tools here: say what you would do if a tool is needed.");
-    out
-}
-
-/// One question, one answer, no history (Flow's clean-up, the notes' summary).
-pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
-    let app = app()?;
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
+/// Asks each brain in `order` until one answers; the next one is tried only
+/// when the failure is one switching may fix (`may_switch`).
+async fn ask(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, order: Vec<Who>, req: crate::brains::Request<'_>) -> Result<Value, String> {
+    let ctx = crate::brains::Ctx { app, settings: s, prefs };
     let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
     let mut tally = CloudTally::default();
-    for who in current_order_for(&s, "writing") {
-        let r = match who {
-            Who::Claude => crate::claude::complete(CLAUDE_FAST, system, user, max_tokens, timeout).await,
-            Who::Cli(tool) => cli_complete(tool, format!("{system}\n\n{user}"), timeout).await,
-            Who::Local | Who::Cloud(_) => {
-                let body = json!({
-                    "max_tokens": max_tokens,
-                    "stream": false,
-                    "messages": [{ "role": "system", "content": system }, { "role": "user", "content": user }],
-                });
-                openai_turn(app, &s, &prefs, who, body, timeout).await.and_then(|v| {
-                    let text = strip_thinking(v["choices"][0]["message"]["content"].as_str().unwrap_or(""));
-                    if text.trim().is_empty() { Err("empty answer".into()) } else { Ok(text) }
-                })
-            }
-        };
-        match r {
-            Ok(t) => {
-                tally.answered(app, who);
-                return Ok(t);
-            }
-            Err(e) => {
-                crate::log::line(format!("brain ({who:?}): {e}"));
-                tally.failed(who, &e);
-                let stop = !may_switch(&prefs, &e);
-                last = e;
-                if stop {
-                    break;
-                }
-            }
-        }
-    }
-    tally.done(app);
-    Err(last)
-}
-
-/// One turn of a conversation with tools, in and out in Anthropic's Messages
-/// shape: `{ content: [blocks], stop_reason }`.
-pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
-    let app = app()?;
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
-    let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
-    let mut tally = CloudTally::default();
-    for who in current_order_for(&s, "commands") {
-        let r = match who {
-            Who::Claude => crate::claude::voice_turn(CLAUDE_FAST, system, messages, tools).await,
-            Who::Cli(tool) => cli_complete(tool, as_prompt(system, messages), Duration::from_secs(90))
-                .await
-                .map(|text| json!({ "content": [{ "type": "text", "text": text }], "stop_reason": "end_turn" })),
-            Who::Local | Who::Cloud(_) => {
-                let body = json!({
-                    "max_tokens": 1024,
-                    "stream": false,
-                    "messages": to_openai_messages(system, messages),
-                    "tools": to_openai_tools(tools),
-                });
-                openai_turn(app, &s, &prefs, who, body, Duration::from_secs(60)).await.map(|v| from_openai(&v))
-            }
+    for who in order {
+        let r = match brain_of(who, s, prefs).await {
+            Some(brain) => brain.turn(ctx, req).await,
+            None => Err(crate::brains::BrainError::of("No local model configured.")),
         };
         match r {
             Ok(v) => {
@@ -486,9 +373,9 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
             }
             Err(e) => {
                 crate::log::line(format!("brain ({who:?}): {e}"));
-                tally.failed(who, &e);
-                let stop = !may_switch(&prefs, &e);
-                last = e;
+                tally.failed(who, e.fault);
+                let stop = !may_switch(prefs, &e.message);
+                last = e.message;
                 if stop {
                     break;
                 }
@@ -497,6 +384,34 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
     }
     tally.done(app);
     Err(last)
+}
+
+/// Brains that can use tools first, in the order they were in (a request with tools).
+pub fn tools_first(order: Vec<Who>) -> Vec<Who> {
+    let can = |w: &Who| !matches!(w, Who::Local) && crate::brains::get(w.id()).is_some_and(|b| b.caps().tools) || matches!(w, Who::Local);
+    let (mut with, without): (Vec<Who>, Vec<Who>) = order.into_iter().partition(can);
+    with.extend(without);
+    with
+}
+
+/// One question, one answer, no history (Flow's clean-up, the notes' summary).
+pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
+    let app = app()?;
+    let s = settings(app);
+    let prefs = s.assistant.clone().sanitised();
+    let messages = [json!({ "role": "user", "content": user })];
+    let req = crate::brains::Request { system, messages: &messages, tools: &[], max_tokens, timeout };
+    ask(app, &s, &prefs, current_order_for(&s, "writing"), req).await.map(|reply| crate::brains::text_of(&reply))
+}
+
+/// One turn of a conversation with tools, in and out in Anthropic's Messages
+/// shape: `{ content: [blocks], stop_reason }`.
+pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
+    let app = app()?;
+    let s = settings(app);
+    let prefs = s.assistant.clone().sanitised();
+    let req = crate::brains::Request { system, messages, tools, max_tokens: 1024, timeout: Duration::from_secs(60) };
+    ask(app, &s, &prefs, tools_first(current_order_for(&s, "commands")), req).await
 }
 
 /// How the cloud brains fared on one request (round 3D item 10): all
@@ -510,13 +425,13 @@ struct CloudTally {
 }
 
 impl CloudTally {
-    fn failed(&mut self, who: Who, err: &str) {
+    fn failed(&mut self, who: Who, fault: crate::brains::Fault) {
         if matches!(who, Who::Claude | Who::Cloud(_)) {
             self.tried += 1;
-            if is_network(err) {
-                self.network += 1;
-            } else if is_limit(err) {
-                self.limits += 1;
+            match fault {
+                crate::brains::Fault::Network => self.network += 1,
+                crate::brains::Fault::Limit => self.limits += 1,
+                _ => {}
             }
         }
     }
@@ -545,12 +460,6 @@ impl CloudTally {
             None
         }
     }
-}
-
-/// An error that says the service couldn't be reached at all.
-pub fn is_network(err: &str) -> bool {
-    let e = err.to_ascii_lowercase();
-    ["network error", "error sending request", "dns error", "failed to lookup", "connection refused", "timed out", "couldn't reach"].iter().any(|w| e.contains(w))
 }
 
 // ── Format conversion (pure) ──────────────────────────────────────────────────
@@ -665,17 +574,17 @@ mod tests {
     fn the_cloud_unreachable_or_used_up_means_offline() {
         use crate::resources::state::Event;
         let mut t = CloudTally::default();
-        t.failed(Who::Claude, "Network error: error sending request");
-        t.failed(Who::Cloud("google"), "Network error: dns error");
-        t.failed(Who::Local, "Couldn't start llama-server");
+        t.failed(Who::Claude, crate::brains::BrainError::of("Network error: error sending request").fault);
+        t.failed(Who::Cloud("google"), crate::brains::BrainError::of("Network error: dns error").fault);
+        t.failed(Who::Local, crate::brains::BrainError::of("Couldn't start llama-server").fault);
         assert_eq!(t.verdict(), Some(Event::NetworkDown), "every cloud brain unreachable");
         let mut t = CloudTally::default();
-        t.failed(Who::Claude, "429 rate limit");
-        t.failed(Who::Cloud("openai"), "quota exceeded");
+        t.failed(Who::Claude, crate::brains::BrainError::of("429 rate limit").fault);
+        t.failed(Who::Cloud("openai"), crate::brains::BrainError::of("quota exceeded").fault);
         assert_eq!(t.verdict(), Some(Event::CloudExhausted));
         let mut t = CloudTally::default();
-        t.failed(Who::Claude, "429 rate limit");
-        t.failed(Who::Cloud("openai"), "Network error: timed out");
+        t.failed(Who::Claude, crate::brains::BrainError::of("429 rate limit").fault);
+        t.failed(Who::Cloud("openai"), crate::brains::BrainError::of("Network error: timed out").fault);
         assert_eq!(t.verdict(), None, "mixed: nothing to conclude");
         assert_eq!(CloudTally::default().verdict(), None, "no cloud brain tried");
     }
@@ -778,7 +687,7 @@ mod tests {
     #[test]
     fn a_conversation_becomes_one_prompt_for_the_clis() {
         let m = vec![json!({ "role": "user", "content": "next song" }), json!({ "role": "assistant", "content": [{ "type": "text", "text": "Done." }] })];
-        let p = as_prompt("You are Groovy.", &m);
+        let p = crate::brains::cli::as_prompt("You are Groovy.", &m);
         assert!(p.starts_with("You are Groovy."));
         assert!(p.contains("User: next song\nYou: Done.\n"));
     }

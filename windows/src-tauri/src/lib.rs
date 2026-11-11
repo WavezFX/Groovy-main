@@ -4,6 +4,7 @@ mod agent_hooks;
 mod agents;
 mod assistant;
 mod brain_ai;
+mod brains;
 mod chat;
 mod claude;
 mod codex_plan;
@@ -1408,6 +1409,7 @@ pub fn run() {
             set_collapsed,
             island_sleep::island_sleep,
             hub_idle::hub_idle_reply,
+            brains::brains,
             set_island_rect,
             fit_island,
             save_growth,
