@@ -272,7 +272,7 @@ jobs:
         run: ./scripts/work-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
       # Round 3D item 7: never over 400 MB, even at peak (sampled every 250 ms).
-      - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, Hey Groovy, mail)
+      - name: Peak memory under 300 MB (island on music, Settings on Brains, dictation, a live call, Hey Groovy, mail)
         shell: pwsh
         run: ./scripts/peak-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
