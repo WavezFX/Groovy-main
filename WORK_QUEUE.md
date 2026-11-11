@@ -162,7 +162,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ### 4A. `FIXES_ROUND4A.md` (RAM and performance; finishes 3N item 2 and 3D item 11)
 - [ ] 1. Light offline voice is the default (helper at most 80 MB); Kokoro an optional download
 - [ ] 2. A call adds at most 25 MB to the island (about 70 now)
-- [ ] 3. Idle under 150 MB with Settings open (about 190 now) (Opus)
+- [x] 3. Idle under 150 MB with Settings open (Opus). Windows builds 241–245: **146–149 MB** with Settings in front, 27–134 MB left behind another window, closes itself after sitting unused. The margin in front is 1–4 MB: 4F item 4 widens it. A call with Settings open under 300 MB waits for item 1 (the light voice).
 - [ ] 5. The work test gates at 300 MB (446 now)
 - [ ] 6. Start-up and idle CPU numbers in CI (P1, P8, P9)
 - [ ] 7. Island idle trim (**moved to 4F item 9**)
@@ -170,7 +170,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 8. Checks: gates at 150 / 150 / 300 / 300
 
 ### 4F. `FIXES_ROUND4F.md` (stretch RAM: idle under 50 MB, normal use and cloud calls under 150 MB, local calls as low as possible). **After 4A.** Ranked by MB saved.
-- [ ] 1. The island sleeps at idle: native strip, WebView suspended or closed (S1 under 50 MB) (Opus)
+- [x] 1. The island sleeps at idle (Opus). Windows build 245: **23.3 MB asleep** (S1 under 50), **123 ms** to wake for the cursor. A screenshot stands in (WebView2 gives no transparency), so he wakes when the screen around him changes. Left for item 10: asleep CPU, frame time after a wake, a CI test for an event arriving while asleep, a Settings switch.
 - [ ] 2. The lightest local voice and speech-to-text that still sound good; the owner picks from CI samples (S4 under 200 MB)
 - [ ] 3. Voice models exist only during a call; gone within 2 s of hang-up
 - [ ] 4. One renderer instead of several (Settings and desktop Groovy under 150 MB)
@@ -182,15 +182,15 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 10. Checks: S1–S4 reported, reference app re-measured
 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
-- [ ] 1. The `Brain` trait and a registry (Opus)
+- [x] 1. The `Brain` trait and a registry (Opus): `brains/`; `brain_ai.rs` asks through it. `chat.rs` moves onto it in item 2.
 - [ ] 2. One switcher for chat and background jobs
 - [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming
-- [ ] 4. Tools on subscription brains (Opus)
+- [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol). Not ticked: never run against a signed-in Claude Code or Codex.
 - [ ] 5. The router slot (`docs/ROUTER_PLUGIN.md`)
 - [ ] 6. Checks
 
 ### 4B. `FIXES_ROUND4B.md` (voice)
-- [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus)
+- [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus). **Built.** Not ticked: P5 is 9 of 10 on Linux but **7–8 of 10 on Windows** (0 of 20 false wakes on both), and waking to his given name is still there until the owner confirms removing it.
 - [ ] 2. Speech-to-text on this PC by default
 - [ ] 3. His voice on this PC by default (**needs 4A item 1**)
 - [ ] 4. CPU and response times (P2–P7)
@@ -203,7 +203,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 2. Screen capture, on request only (at most 400 KB, within 500 ms)
 - [ ] 3. "Look at my screen" in chat and by voice
 - [ ] 4. Live talk-back about the screen
-- [ ] 5. Pointing and drawing on the screen (Opus)
+- [ ] 5. Pointing and drawing on the screen (Opus). Not started: needs items 2 and 3 first.
 - [ ] 6. Settings and privacy
 - [ ] 7. Checks
 
