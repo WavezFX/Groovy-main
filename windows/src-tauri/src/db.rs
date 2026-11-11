@@ -171,7 +171,9 @@ fn prepare(conn: Connection) -> Result<Connection, String> {
 }
 
 fn migrate(conn: &Connection) -> Result<(), String> {
-    let version: usize = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(|e| e.to_string())?;
+    let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).map_err(|e| e.to_string())?;
+    // A negative version is not one Groovy wrote: treated as too new, never migrated over.
+    let version = usize::try_from(version).unwrap_or(usize::MAX);
     if version > MIGRATIONS.len() {
         return Err(format!(
             "groovy.db is from a newer Groovy (schema {version}, this one knows {}); not touching it",
@@ -181,7 +183,7 @@ fn migrate(conn: &Connection) -> Result<(), String> {
     for (i, sql) in MIGRATIONS.iter().enumerate().skip(version) {
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
         tx.execute_batch(sql).map_err(|e| format!("migration {}: {e}", i + 1))?;
-        tx.pragma_update(None, "user_version", i + 1).map_err(|e| e.to_string())?;
+        tx.pragma_update(None, "user_version", (i + 1) as i64).map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -232,8 +234,8 @@ mod tests {
     #[test]
     fn migrates_a_fresh_database_to_the_latest_schema() {
         let conn = open_in_memory().unwrap();
-        let v: usize = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(v, MIGRATIONS.len());
+        let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(v, MIGRATIONS.len() as i64);
         for table in ["memories", "conversations", "messages", "tasks", "usage", "tracks", "playlists", "playlist_tracks", "kv", "tool_log", "workspaces", "file_history"] {
             let n: i64 = conn
                 .query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1", [table], |r| r.get(0))
