@@ -20,9 +20,9 @@ Read `docs/GROOVY_SPEC.md` (sections 5, 8, 10) and `docs/plan/ARCHITECTURE_MAP.m
 ## Item 2: Screen capture, on request only
 **Files:** new `src-tauri/src/screen.rs`, `platform/windows.rs`, `portal.rs` (Linux: the desktop portal's Screenshot call), `Cargo.toml` (`windows` features; any new crate must be MIT, BSD, ISC or Apache-2.0 and pass `deny.toml`), `settings.rs`.
 **Steps:**
-1. Windows: GDI (`BitBlt` from the monitor's DC) for a monitor; `PrintWindow` or a cropped monitor capture for the active window. Groovy's own windows are left out (`SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`).
+1. Windows: the monitor under the pointer (`docs/plan/SCREEN_BUDDY_NOTES.md`). GDI (`BitBlt` from the monitor's DC) for a monitor; `PrintWindow` or a cropped monitor capture for the active window. Groovy's own windows are left out (`SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`).
 2. Linux: the portal's Screenshot request. Where there is none, return a clear error.
-3. Downscale so the long side is at most 1568 px, JPEG quality 80, in Rust. Return bytes plus the scale and origin. Free the full bitmap before returning.
+3. Downscale so the long side is at most 1568 px **and** the picture at most 1.15 megapixels, JPEG quality 80, in Rust. Return bytes plus the scale, the origin and where the pointer is in the picture. Free the full bitmap before returning.
 4. Setting `screenLook`: `ask` (default: an Allow button in the island for each look), `allowed`, `off`. An eye badge shows on the island for 2 s after every capture.
 5. Game Mode and a locked screen refuse.
 **Test:** unit tests for scaling and the setting gate; a Windows CI step captures the corner test's magenta desktop and checks the colour.
@@ -36,13 +36,14 @@ Read `docs/GROOVY_SPEC.md` (sections 5, 8, 10) and `docs/plan/ARCHITECTURE_MAP.m
 3. Chat: a "Look at my screen" button adds one capture to the next message, with a thumbnail and a remove button.
 4. The image is untrusted content: text in a screenshot cannot trigger an action without approval (reuse `as_data`).
 5. After the reply the image is dropped from the history; the text stays.
+6. Asked about the screen with no picture (refused, `off`, a locked screen): he says he can't see the screen right now and never guesses. Speech that isn't meant for him (a video, half a sentence) gets no reply.
 **Test:** approval required in `ask`; no image goes to a brain without `vision`; no image in the history after the turn.
 **Done when:** "Hey Groovy, what's this error on my screen?" is answered about the visible window with the eye badge shown, on a key brain **and** on a signed-in subscription brain.
 
 ## Item 4: Live talk-back about the screen
 **Files:** `src-tauri/src/calls.rs`, `src/island/voice.ts`, `src/voice/instant.ts`.
 **Steps:**
-1. In a call, `look_at_screen` works as in item 3: one capture per question that needs one. No stream.
+1. In a call, `look_at_screen` works as in item 3: one capture per question that needs one. No stream. An explanation may come in **steps** (up to 8): each is one or two spoken sentences with the marks that belong to it, drawn as he says them (item 5).
 2. Real-time voice models: when the model asks to look, one frame goes through the same Rust path.
 3. Switch "Keep watching during a call" (off by default): at most one frame every 5 s, only while the call is active and only when the screen changed (compare a 32×32 thumbnail). The eye badge stays lit.
 4. Add "a call with two looks" to the peak test.
@@ -53,8 +54,9 @@ Read `docs/GROOVY_SPEC.md` (sections 5, 8, 10) and `docs/plan/ARCHITECTURE_MAP.m
 **Files:** `src-tauri/src/desktop.rs`, `platform/windows.rs`, `src/desktop/main.ts`, new `src/desktop/draw.ts`, `okgroovy/brain.rs`.
 **Steps:**
 1. While drawing, the desktop Groovy window covers the monitor, fully click-through; it shrinks back when the marks clear. Linux: the existing layer overlay mode; where the desktop Groovy is unavailable, he says he can't draw there.
-2. Tool `draw_on_screen {marks: [{type, x, y, w, h, text}], seconds}` in the capture's pixel space. Rust maps to physical pixels with item 2's scale and origin, per monitor DPI. Marks are data only: canvas shapes and `fillText`, no HTML from a brain.
-3. He flies to the mark and points with his wisp. Marks draw in with the motion module and clear after `seconds` (default 6, at most 30), on Escape, a click, or "clear that".
+2. Tool `draw_on_screen {marks: [{shape, x, y, w, h, text, label, color}], steps, keep, clear}` in the capture's pixel space. Shapes: circle, box, underline, arrow (its w and h say where it ends and may be negative), highlight, write (short handwriting, at most 40 characters, `h` the letters' height, placed in a blank area). Colours: red, green, yellow, blue. Every mark is clamped to the picture; one that can't be placed is dropped and he says so. Rust maps to physical pixels with item 2's scale and origin, per monitor DPI. Marks are data only: canvas shapes and `fillText`, no HTML from a brain.
+3. He flies to the mark and points with his wisp. Marks draw in with the motion module and clear after 6 s, on Escape, a click, or "clear that"; `keep` holds them until the next request.
+5. **Circle and ask:** a shortcut lets the user draw around something; the next question is asked with a capture that has their circle on it.
 4. The canvas loop runs only while marks show.
 **Test:** mapping tests at 100, 150 and 200 % and on a second monitor; a CI screenshot with an arrow and a box at known places.
 **Done when:** marks land **within 10 px** in the CI screenshot, frame time while drawing is **p95 at most 20 ms (P10)**, the window shrinks back, and drawing during a call stays **under 300 MB**.
