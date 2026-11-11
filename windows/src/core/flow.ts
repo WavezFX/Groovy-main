@@ -6,7 +6,7 @@ import { showError } from "../views/toast";
 
 const QUIET = new Set([
   "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
-  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_audio", "tts_status",
+  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_say", "tts_status",
 ]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -302,7 +302,10 @@ export const FlowBridge = {
   liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
   /** The island has said what « Hey Groovy » answered. */
   /** Groovy's voice for one sentence (Fish Audio, then Kokoro); null: the page's own voice says it. */
-  ttsAudio: (text: string) => call<TtsAudio>("tts_audio", { text }),
+  /** Says a sentence with Groovy's own voice, played by Rust (round 4A item 2): who said it, or null (none could). */
+  ttsSay: (text: string) => call<"fish" | "light" | "kokoro">("tts_say", { text }),
+  /** Stops what Groovy is saying at once (barge-in, hang-up). */
+  ttsStop: () => call<void>("tts_stop"),
   ttsStatus: () => call<TtsStatus>("tts_status"),
   /** Fish Audio alone, so its own error shows; throws why it couldn't. */
   fishTest: () => callOrThrow<TtsAudio>("fish_test"),

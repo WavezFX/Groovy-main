@@ -632,10 +632,71 @@ impl From<Audio> for TtsAudio {
     }
 }
 
-/// Groovy's voice for one sentence, or null: the page then uses its own voice.
+// ── Played here, not in the page (round 4A item 2) ───────────────────────────
+//
+// A reply used to cross into the island's page as base64 and play in an
+// <audio> element: each sentence's decoded copy stayed in the renderer, and a
+// call added about 70 MB to it. Now Rust plays it (rodio, as the music does)
+// and the page only waits for the end. The audio device is opened for each
+// sentence and let go after it, so nothing stays open between replies.
+
+/// Bumped by every stop: a sentence still being made, or queued, is dropped.
+static SAY_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PLAYING: Mutex<Option<Arc<rodio::Player>>> = Mutex::new(None);
+
+/// Plays `audio` to the end, or until `tts_stop`. False: it couldn't be played.
+fn play(audio: &Audio, generation: u64) -> bool {
+    let stopped = || SAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst) != generation;
+    if stopped() {
+        return true;
+    }
+    let Ok(mut sink) = rodio::DeviceSinkBuilder::open_default_sink() else { return false };
+    sink.log_on_drop(false);
+    let Ok(decoder) = rodio::Decoder::new(std::io::Cursor::new(audio.bytes.clone())) else { return false };
+    let player = Arc::new(rodio::Player::connect_new(sink.mixer()));
+    player.append(decoder);
+    {
+        let mut playing = PLAYING.lock().unwrap();
+        // Stopped while the device was opening: don't start it.
+        if stopped() {
+            return true;
+        }
+        *playing = Some(player.clone());
+    }
+    player.sleep_until_end();
+    let mut playing = PLAYING.lock().unwrap();
+    if playing.as_ref().is_some_and(|p| Arc::ptr_eq(p, &player)) {
+        *playing = None;
+    }
+    true
+}
+
+/// Says one sentence with Groovy's own voice (Fish Audio, then the offline
+/// voice), played here. Resolves when it has been said or stopped, with who
+/// said it; null: none of Groovy's voices could, the page uses Windows' voice.
 #[tauri::command]
-pub async fn tts_audio(app: AppHandle, text: String) -> Option<TtsAudio> {
-    tauri::async_runtime::spawn_blocking(move || synthesize(&app, &text).map(TtsAudio::from)).await.ok().flatten()
+pub async fn tts_say(app: AppHandle, text: String) -> Option<&'static str> {
+    let generation = SAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst);
+    tauri::async_runtime::spawn_blocking(move || {
+        let audio = synthesize(&app, &text)?;
+        if SAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst) != generation {
+            return Some(audio.provider);
+        }
+        play(&audio, generation).then_some(audio.provider)
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
+/// Barge-in, a hang-up: what Groovy is saying stops at once, and what was
+/// still to be said is dropped.
+#[tauri::command]
+pub fn tts_stop() {
+    SAY_GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    if let Some(player) = PLAYING.lock().unwrap().take() {
+        player.stop();
+    }
 }
 
 /// Settings → Speaking: Kokoro's voice for that card, at the chosen speed.
@@ -743,6 +804,16 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_stop_drops_the_sentence_still_being_made() {
+        let audio = Audio { mime: "audio/wav", bytes: super::super::cloud::wav_at(&[0.0; 160], 16_000), provider: "light" };
+        let generation = SAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst);
+        tts_stop();
+        // Stopped before it started: nothing plays, and it counts as said.
+        assert!(play(&audio, generation));
+        assert!(PLAYING.lock().unwrap().is_none());
+    }
 
     #[test]
     fn the_light_voice_is_the_default_and_kokoro_stays_for_those_who_have_it() {
