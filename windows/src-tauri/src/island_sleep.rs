@@ -4,9 +4,11 @@
 // still for a while and nothing is going on, the page asks to sleep
 // (`island_sleep`). Windows only:
 //
-//   1. the island's webview is photographed (what it draws, with its
-//      transparency) and that picture is shown by a small native window in the
-//      island's exact place, so nothing changes on screen;
+//   1. the island's webview is photographed, on black and on white (WebView2
+//      photographs without transparency; the two give it back), behind a
+//      screenshot that covers it meanwhile, and that picture is shown by a
+//      small native window in the island's exact place, so nothing changes on
+//      screen;
 //   2. the webview is hidden and suspended (ICoreWebView2_3::TrySuspend), and
 //      the working sets of Groovy's processes are handed back to Windows.
 //
@@ -134,7 +136,7 @@ pub fn may_sleep(b: Blockers) -> bool {
     !(b.switched_off || b.young || b.call || b.conversation || b.cursor_near)
 }
 
-/// A picture of the island, straight alpha, and where its drawn part is.
+/// The island as its webview draws it, ready for a layered window.
 #[cfg_attr(not(windows), allow(dead_code))]
 pub struct Picture {
     /// The drawn part only: premultiplied BGRA, top row first.
@@ -143,19 +145,29 @@ pub struct Picture {
     pub bounds: (u32, u32, u32, u32),
 }
 
-/// The drawn part of an RGBA photograph of the webview, ready for a layered
-/// window. `Ok(None)`: nothing is drawn (the island is folded away).
-/// `Err`: the photograph has no transparency, so it can't stand in.
+/// WebView2 photographs a page without its transparency, so the island is
+/// photographed twice, once on black and once on white (RGB, same size). A
+/// pixel that is the same on both is opaque; one that follows the background
+/// is clear: alpha = 255 - (white - black), and the black photograph is
+/// already the colour multiplied by it.
+/// `Ok(None)`: nothing is drawn (the island is folded away).
+/// `Err`: the photographs can't stand in for the island.
 #[cfg_attr(not(windows), allow(dead_code))]
-pub fn picture(rgba: &[u8], width: u32, height: u32) -> Result<Option<Picture>, &'static str> {
-    if width == 0 || height == 0 || rgba.len() != (width as usize) * (height as usize) * 4 {
-        return Err("the photograph is the wrong size");
+pub fn picture(on_black: &[u8], on_white: &[u8], width: u32, height: u32) -> Result<Option<Picture>, &'static str> {
+    let len = (width as usize) * (height as usize) * 3;
+    if width == 0 || height == 0 || on_black.len() != len || on_white.len() != len {
+        return Err("the photographs are the wrong size");
     }
+    let alpha = |i: usize| -> u8 {
+        let d: i32 = (0..3).map(|c| (on_white[i + c] as i32 - on_black[i + c] as i32).max(0)).sum();
+        (255 - (d + 1) / 3).clamp(0, 255) as u8
+    };
+    // Anything fainter than this is the photograph's own noise.
+    const FAINT: u8 = 3;
     let (mut x0, mut y0, mut x1, mut y1) = (width, height, 0u32, 0u32);
     for y in 0..height {
-        let row = &rgba[(y * width * 4) as usize..((y + 1) * width * 4) as usize];
         for x in 0..width {
-            if row[(x * 4 + 3) as usize] != 0 {
+            if alpha(((y * width + x) * 3) as usize) > FAINT {
                 x0 = x0.min(x);
                 x1 = x1.max(x + 1);
                 y0 = y0.min(y);
@@ -167,18 +179,21 @@ pub fn picture(rgba: &[u8], width: u32, height: u32) -> Result<Option<Picture>, 
         return Ok(None);
     }
     let (w, h) = (x1 - x0, y1 - y0);
-    // The island is a strip at the top of a wider transparent window: a
-    // photograph drawn edge to edge was taken without its transparency.
+    // The island is a strip at the top of a wider clear window: opaque from
+    // edge to edge means the backgrounds never showed through.
     if w == width && h == height {
-        return Err("the photograph has no transparency");
+        return Err("the photographs show no transparency");
     }
     let mut bgra = Vec::with_capacity((w * h * 4) as usize);
     for y in y0..y1 {
         for x in x0..x1 {
-            let i = ((y * width + x) * 4) as usize;
-            let a = rgba[i + 3] as u32;
-            let pre = |c: u8| ((c as u32 * a + 127) / 255) as u8;
-            bgra.extend_from_slice(&[pre(rgba[i + 2]), pre(rgba[i + 1]), pre(rgba[i]), a as u8]);
+            let i = ((y * width + x) * 3) as usize;
+            let a = alpha(i);
+            if a <= FAINT {
+                bgra.extend_from_slice(&[0, 0, 0, 0]);
+            } else {
+                bgra.extend_from_slice(&[on_black[i + 2].min(a), on_black[i + 1].min(a), on_black[i].min(a), a]);
+            }
         }
     }
     Ok(Some(Picture { bgra, bounds: (x0, y0, w, h) }))
@@ -301,12 +316,14 @@ mod os {
     use std::time::{Duration, Instant};
 
     use tauri::{AppHandle, Manager};
-    use webview2_com::Microsoft::Web::WebView2::Win32::{ICoreWebView2_3, COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG};
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2Controller, ICoreWebView2Controller2, ICoreWebView2_3, COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG, COREWEBVIEW2_COLOR,
+    };
     use webview2_com::{CapturePreviewCompletedHandler, TrySuspendCompletedHandler};
     use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, SIZE, WPARAM};
     use windows::Win32::Graphics::Gdi::{
-        CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, SelectObject, AC_SRC_ALPHA, AC_SRC_OVER, BITMAPINFO, BITMAPINFOHEADER,
-        BI_RGB, BLENDFUNCTION, DIB_RGB_COLORS, HGDIOBJ,
+        BitBlt, CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GetDC, ReleaseDC, SelectObject, AC_SRC_ALPHA, AC_SRC_OVER,
+        BITMAPINFO, BITMAPINFOHEADER, BI_RGB, BLENDFUNCTION, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
         CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, ShowWindow, UpdateLayeredWindow, SW_SHOWNOACTIVATE, ULW_ALPHA,
@@ -317,7 +334,7 @@ mod os {
     use wv2_windows::Win32::System::Com::StructuredStorage::CreateStreamOnHGlobal;
     use wv2_windows::Win32::System::Com::{STREAM_SEEK_SET, STATFLAG_NONAME, STATSTG};
 
-    use super::{fell_asleep, picture, stay_awake, woke, Picture, ASLEEP, PHASE};
+    use super::{fell_asleep, picture, stay_awake, woke, ASLEEP, PHASE};
 
     pub const SUPPORTED: bool = true;
     /// How close the cursor may be for the island to fall asleep or to wake (physical px).
@@ -325,6 +342,10 @@ mod os {
 
     /// The stand-in window (its handle) and the sleeping island's place on screen.
     static STANDIN: Mutex<Option<isize>> = Mutex::new(None);
+    /// The screenshot that covers the island while it is photographed.
+    static COVER: Mutex<Option<isize>> = Mutex::new(None);
+    /// The first photograph (on black): RGB, width, height.
+    static ON_BLACK: Mutex<Option<(Vec<u8>, u32, u32)>> = Mutex::new(None);
     static PLACE: Mutex<Option<(f64, f64, f64, f64)>> = Mutex::new(None);
 
     fn island_place(app: &AppHandle) -> Option<(f64, f64, f64, f64)> {
@@ -354,15 +375,17 @@ mod os {
         DefWindowProcW(hwnd, msg, wparam, lparam)
     }
 
-    /// Shows `pic` at (`x`, `y`) on the screen in a click-through, top-most
-    /// layered window. Main thread only.
-    unsafe fn show_standin(pic: &Picture, x: i32, y: i32) -> Option<isize> {
+    /// Shows premultiplied BGRA pixels at (`x`, `y`) on the screen in a
+    /// click-through, top-most layered window. Main thread only.
+    unsafe fn show_layered(bgra: &[u8], w: u32, h: u32, x: i32, y: i32) -> Option<isize> {
+        if w == 0 || h == 0 || bgra.len() != (w * h * 4) as usize {
+            return None;
+        }
         static CLASS: std::sync::Once = std::sync::Once::new();
         CLASS.call_once(|| {
             let class = WNDCLASSW { lpfnWndProc: Some(standin_proc), lpszClassName: w!("GroovyIslandAsleep"), ..Default::default() };
             RegisterClassW(&class);
         });
-        let (_, _, w, h) = pic.bounds;
         let hwnd = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
             w!("GroovyIslandAsleep"),
@@ -378,21 +401,9 @@ mod os {
             None,
         )
         .ok()?;
-        let info = BITMAPINFO {
-            bmiHeader: BITMAPINFOHEADER {
-                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                biWidth: w as i32,
-                biHeight: -(h as i32),
-                biPlanes: 1,
-                biBitCount: 32,
-                biCompression: BI_RGB.0,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
         let dc = CreateCompatibleDC(None);
         let mut bits: *mut std::ffi::c_void = std::ptr::null_mut();
-        let Ok(bitmap) = CreateDIBSection(Some(dc), &info, DIB_RGB_COLORS, &mut bits, None, 0) else {
+        let Ok(bitmap) = CreateDIBSection(Some(dc), &dib(w, h), DIB_RGB_COLORS, &mut bits, None, 0) else {
             let _ = DeleteDC(dc);
             let _ = DestroyWindow(hwnd);
             return None;
@@ -403,7 +414,7 @@ mod os {
             let _ = DestroyWindow(hwnd);
             return None;
         }
-        std::ptr::copy_nonoverlapping(pic.bgra.as_ptr(), bits as *mut u8, pic.bgra.len());
+        std::ptr::copy_nonoverlapping(bgra.as_ptr(), bits as *mut u8, bgra.len());
         let old = SelectObject(dc, HGDIOBJ(bitmap.0));
         let size = SIZE { cx: w as i32, cy: h as i32 };
         let origin = POINT { x: 0, y: 0 };
@@ -421,15 +432,60 @@ mod os {
         Some(hwnd.0 as isize)
     }
 
-    fn drop_standin() {
-        if let Some(h) = STANDIN.lock().unwrap().take() {
+    fn dib(w: u32, h: u32) -> BITMAPINFO {
+        BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: w as i32,
+                biHeight: -(h as i32),
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    /// What is on the screen in this rectangle right now, opaque, as BGRA.
+    unsafe fn screen_pixels(x: i32, y: i32, w: u32, h: u32) -> Option<Vec<u8>> {
+        let screen = GetDC(None);
+        let dc = CreateCompatibleDC(Some(screen));
+        let mut bits: *mut std::ffi::c_void = std::ptr::null_mut();
+        let bitmap = CreateDIBSection(Some(dc), &dib(w, h), DIB_RGB_COLORS, &mut bits, None, 0).ok();
+        let mut out = None;
+        if let Some(bitmap) = bitmap {
+            if !bits.is_null() {
+                let old = SelectObject(dc, HGDIOBJ(bitmap.0));
+                if BitBlt(dc, 0, 0, w as i32, h as i32, Some(screen), x, y, SRCCOPY).is_ok() {
+                    let mut px = std::slice::from_raw_parts(bits as *const u8, (w * h * 4) as usize).to_vec();
+                    for p in px.chunks_exact_mut(4) {
+                        p[3] = 255;
+                    }
+                    out = Some(px);
+                }
+                SelectObject(dc, old);
+            }
+            let _ = DeleteObject(HGDIOBJ(bitmap.0));
+        }
+        let _ = DeleteDC(dc);
+        ReleaseDC(None, screen);
+        out
+    }
+
+    fn drop_window(slot: &Mutex<Option<isize>>) {
+        if let Some(h) = slot.lock().unwrap().take() {
             unsafe {
                 let _ = DestroyWindow(HWND(h as *mut std::ffi::c_void));
             }
         }
     }
 
-    /// The PNG the webview wrote into `stream`, decoded to RGBA.
+    fn drop_standin() {
+        drop_window(&STANDIN);
+    }
+
+    /// The PNG the webview wrote into `stream`, decoded to RGB.
     unsafe fn read_png(stream: &wv2_windows::Win32::System::Com::IStream) -> Result<(Vec<u8>, u32, u32), String> {
         let mut stat = STATSTG::default();
         stream.Stat(&mut stat, STATFLAG_NONAME).map_err(|e| e.to_string())?;
@@ -449,89 +505,168 @@ mod os {
         let mut reader = decoder.read_info().map_err(|e| e.to_string())?;
         let mut buf = vec![0u8; reader.output_buffer_size().ok_or("a photograph too large to decode")?];
         let frame = reader.next_frame(&mut buf).map_err(|e| e.to_string())?;
-        if frame.color_type != png::ColorType::Rgba {
-            return Err("the photograph has no transparency".into());
-        }
         buf.truncate(frame.buffer_size());
-        Ok((buf, frame.width, frame.height))
+        let rgb = match frame.color_type {
+            png::ColorType::Rgb => buf,
+            png::ColorType::Rgba => buf.chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]).collect(),
+            other => return Err(format!("a photograph in {other:?}")),
+        };
+        Ok((rgb, frame.width, frame.height))
     }
 
+    /// The webview's background, behind whatever the page leaves clear.
+    unsafe fn set_background(controller: &ICoreWebView2Controller, a: u8, v: u8) -> bool {
+        controller.cast::<ICoreWebView2Controller2>().is_ok_and(|c| c.SetDefaultBackgroundColor(COREWEBVIEW2_COLOR { A: a, R: v, G: v, B: v }).is_ok())
+    }
+
+    /// Gives up falling asleep: the page is as it was, and awake.
+    fn give_up(app: &AppHandle, why: &str) {
+        *ON_BLACK.lock().unwrap() = None;
+        let why = why.to_string();
+        let handle = app.clone();
+        let restored = crate::island::window(app).map(|win| {
+            win.with_webview(move |webview| unsafe {
+                set_background(&webview.controller(), 0, 0);
+                drop_window(&COVER);
+                stay_awake(&handle, &why);
+            })
+        });
+        if !matches!(restored, Some(Ok(()))) {
+            drop_window(&COVER);
+            stay_awake(app, "the webview is gone");
+        }
+    }
+
+    /// Falling asleep, in steps on the main thread:
+    ///   1. a screenshot of the island covers it, so nothing below shows;
+    ///   2. the webview is photographed on a black background, then on white
+    ///      (WebView2 photographs without transparency: the two give it back);
+    ///   3. the picture made from them takes the cover's place, and the
+    ///      webview is hidden and suspended.
     pub fn fall_asleep(app: &AppHandle) {
         let Some(win) = crate::island::window(app) else { return stay_awake(app, "no island window") };
+        let Some(place) = island_place(app) else { return stay_awake(app, "no window place") };
         let handle = app.clone();
-        let place = island_place(app);
         let posted = win.with_webview(move |webview| unsafe {
             let app = handle;
             let controller = webview.controller();
-            let Ok(core) = controller.CoreWebView2() else { return stay_awake(&app, "no webview") };
-            let Ok(core3) = core.cast::<ICoreWebView2_3>() else { return stay_awake(&app, "this WebView2 cannot suspend") };
-            let Ok(stream) = CreateStreamOnHGlobal(Default::default(), true) else { return stay_awake(&app, "no memory stream") };
-            let Some(place) = place else { return stay_awake(&app, "no window place") };
-            let (after, stream_after, controller_after) = (app.clone(), stream.clone(), controller.clone());
-            let handler = CapturePreviewCompletedHandler::create(Box::new(move |result| {
-                let app = after;
-                if let Err(err) = result {
-                    stay_awake(&app, &format!("the photograph failed: {err}"));
-                    return Ok(());
-                }
-                let (rgba, w, h) = match read_png(&stream_after) {
-                    Ok(v) => v,
-                    Err(err) => {
-                        stay_awake(&app, &err);
-                        return Ok(());
-                    }
-                };
-                // The photograph may be at another scale than the window.
-                let (sx, sy) = (place.2 / w as f64, place.3 / h as f64);
-                let rect = match picture(&rgba, w, h) {
-                    Err(err) => {
-                        stay_awake(&app, err);
-                        return Ok(());
-                    }
-                    // Folded away: nothing to show, the cursor wakes it over its strip.
-                    Ok(None) => place,
-                    Ok(Some(pic)) => {
-                        if (sx - 1.0).abs() > 0.01 || (sy - 1.0).abs() > 0.01 {
-                            stay_awake(&app, "the photograph is not at the window's scale");
-                            return Ok(());
-                        }
-                        let (bx, by, bw, bh) = pic.bounds;
-                        let (x, y) = (place.0 + bx as f64, place.1 + by as f64);
-                        match show_standin(&pic, x as i32, y as i32) {
-                            Some(hwnd) => *STANDIN.lock().unwrap() = Some(hwnd),
-                            None => {
-                                stay_awake(&app, "the stand-in window could not be made");
-                                return Ok(());
-                            }
-                        }
-                        (x, y, bw as f64, bh as f64)
-                    }
-                };
-                *PLACE.lock().unwrap() = Some(rect);
-                if controller_after.SetIsVisible(false).is_err() {
-                    drop_standin();
-                    stay_awake(&app, "the webview could not be hidden");
-                    return Ok(());
-                }
-                let done = app.clone();
-                let suspended = TrySuspendCompletedHandler::create(Box::new(move |result, ok| {
-                    if result.is_err() || !ok {
-                        crate::log::line("island: hidden but not suspended (WebView2 said no)".to_string());
-                    }
-                    asleep_now(&done);
-                    Ok(())
-                }));
-                if core3.TrySuspend(&suspended).is_err() {
-                    asleep_now(&app);
-                }
-                Ok(())
-            }));
-            if let Err(err) = core.CapturePreview(COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG, &stream, &handler) {
-                stay_awake(&app, &format!("the photograph could not start: {err}"));
+            if controller.cast::<ICoreWebView2Controller2>().is_err() || controller.CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_3>()).is_err() {
+                return stay_awake(&app, "this WebView2 cannot suspend");
             }
+            let (x, y, w, h) = (place.0 as i32, place.1 as i32, place.2 as u32, place.3 as u32);
+            let Some(cover) = screen_pixels(x, y, w, h).and_then(|px| show_layered(&px, w, h, x, y)) else {
+                return stay_awake(&app, "the screen could not be copied");
+            };
+            *COVER.lock().unwrap() = Some(cover);
+            photograph(&app, place, false);
         });
         if posted.is_err() {
             stay_awake(app, "the webview is gone");
+        }
+    }
+
+    /// One photograph, on black (`white` false) or on white, a moment after
+    /// the background changed so the page has drawn on it.
+    fn photograph(app: &AppHandle, place: (f64, f64, f64, f64), white: bool) {
+        let Some(win) = crate::island::window(app) else { return give_up(app, "no island window") };
+        let ready = win.with_webview(move |webview| unsafe {
+            set_background(&webview.controller(), 255, if white { 255 } else { 0 });
+        });
+        if ready.is_err() {
+            return give_up(app, "the webview is gone");
+        }
+        let app = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(90));
+            let Some(win) = crate::island::window(&app) else { return give_up(&app, "no island window") };
+            let handle = app.clone();
+            let posted = win.with_webview(move |webview| unsafe {
+                let app = handle;
+                let Ok(core) = webview.controller().CoreWebView2() else { return give_up(&app, "no webview") };
+                let Ok(stream) = CreateStreamOnHGlobal(Default::default(), true) else { return give_up(&app, "no memory stream") };
+                let (after, stream_after) = (app.clone(), stream.clone());
+                let handler = CapturePreviewCompletedHandler::create(Box::new(move |result| {
+                    let app = after;
+                    if let Err(err) = result {
+                        give_up(&app, &format!("the photograph failed: {err}"));
+                        return Ok(());
+                    }
+                    match read_png(&stream_after) {
+                        Err(err) => give_up(&app, &err),
+                        Ok(shot) if !white => {
+                            *ON_BLACK.lock().unwrap() = Some(shot);
+                            photograph(&app, place, true);
+                        }
+                        Ok(shot) => finish(&app, place, shot),
+                    }
+                    Ok(())
+                }));
+                if let Err(err) = core.CapturePreview(COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG, &stream, &handler) {
+                    give_up(&app, &format!("the photograph could not start: {err}"));
+                }
+            });
+            if posted.is_err() {
+                give_up(&app, "the webview is gone");
+            }
+        });
+    }
+
+    /// Both photographs are in: the stand-in replaces the cover, the webview goes to sleep.
+    fn finish(app: &AppHandle, place: (f64, f64, f64, f64), on_white: (Vec<u8>, u32, u32)) {
+        let Some((black, w, h)) = ON_BLACK.lock().unwrap().take() else { return give_up(app, "the first photograph is missing") };
+        let (white, w2, h2) = on_white;
+        if (w, h) != (w2, h2) {
+            return give_up(app, "the two photographs differ in size");
+        }
+        // The photographs may be at another scale than the window.
+        if ((place.2 / w as f64) - 1.0).abs() > 0.01 || ((place.3 / h as f64) - 1.0).abs() > 0.01 {
+            return give_up(app, "the photographs are not at the window's scale");
+        }
+        let pic = match picture(&black, &white, w, h) {
+            Ok(pic) => pic,
+            Err(err) => return give_up(app, err),
+        };
+        let Some(win) = crate::island::window(app) else { return give_up(app, "no island window") };
+        let handle = app.clone();
+        let posted = win.with_webview(move |webview| unsafe {
+            let app = handle;
+            let controller = webview.controller();
+            let rect = match &pic {
+                // Folded away: nothing to show, the cursor wakes it over its strip.
+                None => place,
+                Some(pic) => {
+                    let (bx, by, bw, bh) = pic.bounds;
+                    let (x, y) = (place.0 + bx as f64, place.1 + by as f64);
+                    match show_layered(&pic.bgra, bw, bh, x as i32, y as i32) {
+                        Some(hwnd) => *STANDIN.lock().unwrap() = Some(hwnd),
+                        None => return give_up(&app, "the stand-in window could not be made"),
+                    }
+                    (x, y, bw as f64, bh as f64)
+                }
+            };
+            *PLACE.lock().unwrap() = Some(rect);
+            if controller.SetIsVisible(false).is_err() {
+                drop_standin();
+                return give_up(&app, "the webview could not be hidden");
+            }
+            // Hidden: back to its clear background for the wake, and the cover can go.
+            set_background(&controller, 0, 0);
+            drop_window(&COVER);
+            let Ok(core3) = controller.CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_3>()) else { return asleep_now(&app) };
+            let done = app.clone();
+            let suspended = TrySuspendCompletedHandler::create(Box::new(move |result, ok| {
+                if result.is_err() || !ok {
+                    crate::log::line("island: hidden but not suspended (WebView2 said no)".to_string());
+                }
+                asleep_now(&done);
+                Ok(())
+            }));
+            if core3.TrySuspend(&suspended).is_err() {
+                asleep_now(&app);
+            }
+        });
+        if posted.is_err() {
+            give_up(app, "the webview is gone");
         }
     }
 
@@ -675,32 +810,41 @@ mod tests {
         assert_eq!(held("voice-say"), Held::Wake);
     }
 
-    fn photo(w: u32, h: u32, drawn: (u32, u32, u32, u32), rgba: [u8; 4]) -> Vec<u8> {
-        let mut px = vec![0u8; (w * h * 4) as usize];
+    /// The island drawn in `rgb` at `alpha` (0-255) inside `drawn`, photographed on a `background`.
+    fn photo(w: u32, h: u32, drawn: (u32, u32, u32, u32), rgb: [u8; 3], alpha: u32, background: u8) -> Vec<u8> {
+        let mut px = vec![background; (w * h * 3) as usize];
         for y in drawn.1..drawn.1 + drawn.3 {
             for x in drawn.0..drawn.0 + drawn.2 {
-                px[((y * w + x) * 4) as usize..((y * w + x) * 4 + 4) as usize].copy_from_slice(&rgba);
+                for c in 0..3 {
+                    px[((y * w + x) * 3) as usize + c] = ((rgb[c] as u32 * alpha + background as u32 * (255 - alpha) + 127) / 255) as u8;
+                }
             }
         }
         px
     }
 
     #[test]
-    fn the_stand_in_is_the_drawn_part_premultiplied() {
-        let px = photo(20, 10, (5, 0, 8, 4), [200, 100, 50, 128]);
-        let pic = picture(&px, 20, 10).unwrap().expect("something is drawn");
-        assert_eq!(pic.bounds, (5, 0, 8, 4));
+    fn the_stand_in_comes_from_a_photograph_on_black_and_one_on_white() {
+        let drawn = (5, 0, 8, 4);
+        let (black, white) = (photo(20, 10, drawn, [200, 100, 50], 128, 0), photo(20, 10, drawn, [200, 100, 50], 128, 255));
+        let pic = picture(&black, &white, 20, 10).unwrap().expect("something is drawn");
+        assert_eq!(pic.bounds, drawn);
         assert_eq!(pic.bgra.len(), 8 * 4 * 4);
-        // BGRA, each colour multiplied by its alpha.
+        // BGRA, each colour already multiplied by its alpha (half of 50, 100, 200).
         assert_eq!(&pic.bgra[..4], &[25, 50, 100, 128]);
+        // A fully opaque island comes out opaque, in its own colours.
+        let (black, white) = (photo(20, 10, drawn, [10, 20, 30], 255, 0), photo(20, 10, drawn, [10, 20, 30], 255, 255));
+        let pic = picture(&black, &white, 20, 10).unwrap().unwrap();
+        assert_eq!(&pic.bgra[..4], &[30, 20, 10, 255]);
     }
 
     #[test]
-    fn a_folded_island_needs_no_stand_in_and_an_opaque_photograph_is_refused() {
-        assert!(picture(&vec![0u8; 20 * 10 * 4], 20, 10).unwrap().is_none());
-        let opaque = photo(20, 10, (0, 0, 20, 10), [0, 0, 0, 255]);
-        assert!(picture(&opaque, 20, 10).is_err(), "a photograph without transparency would paint a black box");
-        assert!(picture(&[0u8; 7], 20, 10).is_err());
+    fn a_folded_island_needs_no_stand_in_and_photographs_without_transparency_are_refused() {
+        let (black, white) = (vec![0u8; 20 * 10 * 3], vec![255u8; 20 * 10 * 3]);
+        assert!(picture(&black, &white, 20, 10).unwrap().is_none(), "nothing drawn: the backgrounds show everywhere");
+        let same = photo(20, 10, (0, 0, 20, 10), [9, 9, 9], 255, 0);
+        assert!(picture(&same, &same, 20, 10).is_err(), "the same on black and on white: a black box would be painted");
+        assert!(picture(&[0u8; 7], &[0u8; 7], 20, 10).is_err());
     }
 
     #[test]
