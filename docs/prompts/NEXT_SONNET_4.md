@@ -20,8 +20,9 @@ it, [build] in its subject ("Round 4A: ... [build]"). Read the Windows run's
 summary. If a number misses a "done when" line, make a fix commit, also with
 [build]. Don't start the next round on a red build.
 
-Skip every item marked (Opus) and every item blocked on the owner: leave it
-unticked, write "left for Opus" or what is missing in STATUS.md, carry on.
+Skip every item already ticked, every item still marked (Opus) and every
+item blocked on the owner: leave it as it is, write what is missing in
+STATUS.md, carry on. The list under this prompt says what is already built.
 
 Hard limits (private working set, all Groovy processes):
 - idle under 150 MB, with Settings open too
@@ -54,11 +55,23 @@ Stop when section 4 has only (Opus) and owner-blocked items left. Write
 "ready for the owner" in STATUS.md: what to test, what is waiting.
 ```
 
-## Items for an Opus or Fable session
-4A item 3 · 4F item 1 · 4D items 1 and 4 · 4B item 1 · 4C items 1 and 5 · 4E item 1.
-Sonnet can't start 4D item 2 before 4D item 1, or 4C before 4D items 1, 2 and 4, so run Opus on 4D item 1 first.
+## Already built by the Opus/Fable session (11 Nov): skip these
+- **4F item 1** (the island sleeps at idle): built; see `STATUS.md` for what CI measured. Don't rewrite `island_sleep.rs`; the Settings switch "Reduce memory at idle" (today the escape hatch is the `GROOVY_NO_SLEEP` environment variable) is yours to add with 4F item 7.
+- **4A item 3** (Settings open idle): built (`hub_idle.rs`, the CI step "Idle with Settings open…"). 4F item 4 goes further if the number is still over 150 MB.
+- **4B item 1** (one wake listener, three wake words): built. Waking to his given name was left as it is: remove it only if the owner confirms (spec section 4).
+- **4D item 1** (the `Brain` trait and registry, `brains/`) and **4D item 4** (tools on subscription brains, `brains/cli.rs`): built. 4D item 2 now moves `chat.rs` onto `brains::` and deletes `Who`; 4D item 3 adds the Gemini tool as one more `cli::Cli` in the registry and real sign-in detection in `Cli::auth`.
+- **4C item 1** (behaviour notes): `docs/plan/SCREEN_BUDDY_NOTES.md`.
+- **4E item 1**: steps 1 and 2 only (`docs/plan/CHARACTER_MOTION.md`); the rewrite waits for the owner.
+
+So build, in this order: **4A** items 1, 2, 5, 6, 8 · **4F** items 2 to 10 (all of them are yours now) · **4D** items 2, 3, 5, 6 · **4B** items 2 to 7 (and 4A item 4) · **4C** items 2, 3, 4, 6, 7 · **4E** items 2 to 7.
+
+## Still for an Opus or Fable session
+- **4C item 5** (pointing and drawing on screen): not started. It needs 4C items 2 and 3 first (the capture's scale and origin, and the tool path).
+- **4E item 1 steps 3 to 5** (the motion rewrite), once the owner approves the design.
 
 ## Waiting on the owner
+- Approve the motion design in `docs/plan/CHARACTER_MOTION.md` section 2.
 - Listen to the voice and speech samples from round 4F item 2 and pick.
 - Confirm that waking to his given name is removed (spec section 4).
+- Run "Hey Groovy, pause the music" once with only Claude Code or Codex signed in (4D item 4 could not be run against a real sign-in in CI).
 - The Android app's source (smooth phone link; renaming the link's wire names).
