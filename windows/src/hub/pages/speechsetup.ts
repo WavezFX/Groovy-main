@@ -1,5 +1,5 @@
 // The guided speech setup (FIXES_ROUND1 item 3), shown the first time
-// dictation, the Notetaker or « OK Groovy » is turned on, and from the pill
+// dictation, the Notetaker or « Hey Groovy » is turned on, and from the pill
 // when the model is missing: 1. the microphone, with a live level meter;
 // 2. the speech model, with its size and a progress bar; 3. a five-second test
 // that shows the words heard. Finishing turns on what was asked for.
@@ -116,7 +116,7 @@ export async function speechSetupPage(page: HTMLElement, ctx: HubContext) {
       });
     }, 1000);
   }, "primary");
-  const finish = button(pending === "voice" ? t("Done: turn on « OK Groovy »") : pending === "dictation" ? t("Done: turn on dictation") : t("Done"), () => {
+  const finish = button(pending === "voice" ? t("Done: turn on « Hey Groovy »") : pending === "dictation" ? t("Done: turn on dictation") : t("Done"), () => {
     const what = pending;
     pending = "";
     void ctx.setPrefs((p) => {

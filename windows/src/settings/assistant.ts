@@ -128,7 +128,7 @@ export function assistantSection(settings: Settings, save: () => void, _toggle: 
     modeHint,
     h("div", { class: "row" }, h("label", { text: t("Local model") }), select(LOCALS, p.localProvider, (v) => set("localProvider", v))),
     h("div", { class: "row" }, h("label", { text: t("Voice and dictation") }), select(BRAINS, p.brain, (v) => set("brain", v))),
-    h("div", { class: "hint", text: t("What answers « OK Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.") }),
+    h("div", { class: "hint", text: t("What answers « Hey Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.") }),
     h("div", { class: "row" }, h("label", { text: t("Online messages per day") }), limit, h("span", { class: "hint", text: t("0 = no limit") })),
     // Round 3D item 3: one place for each setting. "Remember things" lives in Memory.
     openMemory ? h("div", { class: "row" },

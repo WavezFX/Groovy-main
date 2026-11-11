@@ -23,7 +23,7 @@ pub const KNOWN_KEYS: &[&str] = &[
     "neon-api-key",
     "livekit-api-key",
     "livekit-api-secret",
-    // « OK Groovy »'s answers in an ElevenLabs voice (optional; the system voice is the default).
+    // « Hey Groovy »'s answers in an ElevenLabs voice (optional; the system voice is the default).
     "elevenlabs-api-key",
     // Dictation's cloud speech-to-text (speech/cloud.rs), first when present.
     "deepgram-api-key",

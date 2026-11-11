@@ -1,4 +1,4 @@
-// « OK Groovy »: say it, then ask anything. Turning it on, how Groovy answers
+// « Hey Groovy »: say it, then ask anything. Turning it on, how Groovy answers
 // out loud, and what leaves the computer. Port of the Mac's Settings → Voice.
 
 import { needsSetup } from "./speechsetup";
@@ -49,7 +49,7 @@ function keyBox(secret: string, placeholder: string, onChange?: () => void): HTM
   return box;
 }
 
-/** ✓/✗ for the microphone, the speech model and the AI, and "Test OK Groovy" (round 4 item 1). */
+/** ✓/✗ for the microphone, the speech model and the AI, and "Test Hey Groovy" (round 4 item 1). */
 function checkCard(): HTMLElement {
   const list = h("div", { class: "ok-checks" });
   const mark = (ok: boolean, text: string) => h("div", { class: ok ? "ok-check ok" : "ok-check bad" }, h("span", { text: ok ? "✓" : "✗" }), h("span", { text }));
@@ -58,7 +58,7 @@ function checkCard(): HTMLElement {
     clear(list);
     if (!s) return;
     list.append(
-      mark(s.on, s.on ? (s.listening ? t("« OK Groovy » is on and listening") : t("« OK Groovy » is on, not listening yet")) : t("« OK Groovy » is off")),
+      mark(s.on, s.on ? (s.listening ? t("« Hey Groovy » is on and listening") : t("« Hey Groovy » is on, not listening yet")) : t("« Hey Groovy » is off")),
       mark(!s.micError && !!s.mic, s.micError ? t("Microphone “{mic}” didn't open: {error}", { mic: s.mic, error: s.micError }) : t("Listening to “{mic}”", { mic: s.mic || t("the default microphone") })),
       mark(s.speech, s.speech ? t("Speech model ready") : t("Speech model not downloaded")),
       mark(!!s.ai, s.ai ? t("AI: {name}", { name: s.ai }) : t("No AI: music, volume, the time, timers and opening apps still work")),
@@ -66,15 +66,15 @@ function checkCard(): HTMLElement {
   };
   const steps = h("ol", { class: "ok-steps" });
   const STEPS: [OkTestStep["step"], string][] = [
-    ["wake", t("Heard « OK Groovy »")],
+    ["wake", t("Heard « Hey Groovy »")],
     ["words", t("Understood the words")],
     ["answer", t("Got an answer")],
     ["spoken", t("Said it out loud")],
   ];
-  const test = button(t("Test OK Groovy"), () => {
+  const test = button(t("Test Hey Groovy"), () => {
     clear(steps);
     for (const [id, text] of STEPS) steps.append(h("li", { class: "ok-step", "data-step": id, text: `… ${text}` }));
-    hint.textContent = t("Say « OK Groovy, what time is it? »");
+    hint.textContent = t("Say « Hey Groovy, what time is it? »");
     FlowBridge.okTest().catch((err: unknown) => {
       clear(steps);
       hint.textContent = String(err);
@@ -91,7 +91,7 @@ function checkCard(): HTMLElement {
     if (step.step === "spoken" || !step.ok) void draw();
   });
   void draw();
-  return card(list, divider(), row(t("Test OK Groovy"), t("Shows each step of the next « OK Groovy »."), test), steps, hint);
+  return card(list, divider(), row(t("Test Hey Groovy"), t("Shows each step of the next « Hey Groovy »."), test), steps, hint);
 }
 
 const FISH = "fish-audio-api-key";
@@ -159,34 +159,34 @@ function groovyVoiceCard(ctx: HubContext, prefs: FlowPrefs): HTMLElement {
   return body;
 }
 
-/** Voice → Listening (round 3D item 1): « OK Groovy », its check, and what leaves the PC. */
+/** Voice → Listening (round 3D item 1): « Hey Groovy », its check, and what leaves the PC. */
 export async function listeningPage(page: HTMLElement, ctx: HubContext) {
   const status = await ctx.refresh();
   const prefs = status.prefs;
-  page.append(ctx.hero("listening", t("Listening"), t("Say « OK Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.")));
+  page.append(ctx.hero("listening", t("Listening"), t("Say « Hey Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.")));
 
   const ready = status.models.parakeet.state === "ready";
   page.append(label(t("Listening")));
   const main = card(
-    row(t("Listen for « OK Groovy »"), t("The microphone stays open; only what follows « OK Groovy » goes further."),
+    row(t("Listen for « Hey Groovy »"), t("The microphone stays open; only what follows « Hey Groovy » goes further."),
       toggle(prefs.voice, (on) => {
         if (on && needsSetup(ctx, "voice")) return;
         void ctx.setPrefs((p) => (p.voice = on)).then(() => ctx.navigate("listening"));
       })),
     divider(),
-    row(t("Parakeet, on your computer"), t("Hears « OK Groovy » here, without the internet."), modelsControl(ctx, () => ctx.navigate("voice"))),
+    row(t("Parakeet, on your computer"), t("Hears « Hey Groovy » here, without the internet."), modelsControl(ctx, () => ctx.navigate("voice"))),
   );
   if (prefs.voice && !ready) {
     main.append(h("div", { class: "hub-warn", text: t("Download the voice model so Groovy can hear you.") }));
   }
-  // Round 5 item 6: his own name as a wake word too; « OK Groovy » always works.
+  // Round 5 item 6: his own name as a wake word too; « Hey Groovy » always works.
   const settings = (await Bridge.boot())?.settings;
   if (settings) {
     const name = nameOf(settings);
     const fit = wakeName(name);
     const hint = h("div", { class: "hub-note" });
-    hint.textContent = fit === "ok" ? t("Say “{name}” or “Hey {name}” as well as « OK Groovy ».", { name })
-      : fit === "groovy" ? t("He is called Groovy: « OK Groovy » already wakes him. Give him a name in Settings → Groovy.")
+    hint.textContent = fit === "ok" ? t("Say “{name}” or “Hey {name}” as well as « Hey Groovy ».", { name })
+      : fit === "groovy" ? t("He is called Groovy: « Hey Groovy » already wakes him. Give him a name in Settings → Groovy.")
       : fit === "short" ? t("“{name}” is short: a name of two syllables or more is heard more reliably.", { name })
       : t("The wake word spotter knows English letters only, so “{name}” can't be listened for.", { name });
     main.append(divider(), row(t("Also wake to his name"), null,
@@ -209,7 +209,7 @@ export async function listeningPage(page: HTMLElement, ctx: HubContext) {
 
 function privacyCard(): HTMLElement {
   return card(
-    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet turns it into text here. What follows « OK Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.") }),
+    h("div", { class: "hub-note", text: t("Your voice never leaves this computer: Parakeet turns it into text here. What follows « Hey Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.") }),
     divider(),
     h("div", { class: "hub-note", text: t("An email is never sent by Groovy: your mail app opens with it written, and you send it.") }),
   );
@@ -298,7 +298,7 @@ export async function speakingPage(page: HTMLElement, ctx: HubContext) {
   );
 
   // ── Listening ──
-  const chips = h("div", { class: "hub-v-chips" }, h("span", { class: "hub-v-chip", text: "OK Groovy" }), h("span", { class: "hub-v-chip", text: "Hey Groovy" }));
+  const chips = h("div", { class: "hub-v-chips" }, h("span", { class: "hub-v-chip", text: "Hey Groovy" }), h("span", { class: "hub-v-chip", text: "Hey Groovy" }));
   const mics: [string, string][] = [["", t("System default")], ...status.mics.map((m): [string, string] => [m.name, m.name])];
   if (prefs.mic && !mics.some(([id]) => id === prefs.mic)) mics.push([prefs.mic, prefs.mic]);
   const mic = select(mics, prefs.mic, (m) => void ctx.setPrefs((p) => (p.mic = m)));

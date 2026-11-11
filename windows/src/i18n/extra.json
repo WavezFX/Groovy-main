@@ -8773,16 +8773,16 @@
    "ru": "Ключ ElevenLabs",
    "id": "Kunci ElevenLabs"
   },
-  "Say « OK Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.": {
-   "zh-Hans": "说「OK Groovy」，然后随便问：添加一个胶囊、播放音乐、天气、准备一封邮件。",
-   "hi": "« OK Groovy » कहें, फिर कुछ भी पूछें: एक पिल जोड़ें, संगीत चलाएँ, मौसम, कोई ईमेल तैयार करें।",
-   "es": "Di « OK Groovy » y pide lo que quieras: añadir una píldora, poner música, el tiempo, un correo por preparar.",
-   "ar": "قل « OK Groovy »، ثم اطلب أي شيء: إضافة كبسولة، تشغيل الموسيقى، الطقس، بريد إلكتروني لتجهيزه.",
-   "fr": "Dis « OK Groovy », puis demande ce que tu veux : ajouter une pilule, lancer de la musique, la météo, un e-mail à préparer.",
-   "bn": "« OK Groovy » বলুন, তারপর যা খুশি জিজ্ঞেস করুন: একটি পিল যোগ করা, গান চালানো, আবহাওয়া, একটি ইমেল তৈরি করা।",
-   "pt-BR": "Diga « OK Groovy » e peça o que quiser: adicionar uma pílula, tocar música, o clima, um e-mail para preparar.",
-   "ru": "Скажите « OK Groovy » и просите что угодно: добавить плашку, включить музыку, погоду, подготовить письмо.",
-   "id": "Ucapkan « OK Groovy », lalu minta apa saja: tambah pil, putar musik, cuaca, email yang perlu disiapkan."
+  "Say « Hey Groovy », then ask anything: add a pill, play music, the weather, an email to prepare.": {
+   "zh-Hans": "说「Hey Groovy」，然后随便问：添加一个胶囊、播放音乐、天气、准备一封邮件。",
+   "hi": "« Hey Groovy » कहें, फिर कुछ भी पूछें: एक पिल जोड़ें, संगीत चलाएँ, मौसम, कोई ईमेल तैयार करें।",
+   "es": "Di « Hey Groovy » y pide lo que quieras: añadir una píldora, poner música, el tiempo, un correo por preparar.",
+   "ar": "قل « Hey Groovy »، ثم اطلب أي شيء: إضافة كبسولة، تشغيل الموسيقى، الطقس، بريد إلكتروني لتجهيزه.",
+   "fr": "Dis « Hey Groovy », puis demande ce que tu veux : ajouter une pilule, lancer de la musique, la météo, un e-mail à préparer.",
+   "bn": "« Hey Groovy » বলুন, তারপর যা খুশি জিজ্ঞেস করুন: একটি পিল যোগ করা, গান চালানো, আবহাওয়া, একটি ইমেল তৈরি করা।",
+   "pt-BR": "Diga « Hey Groovy » e peça o que quiser: adicionar uma pílula, tocar música, o clima, um e-mail para preparar.",
+   "ru": "Скажите « Hey Groovy » и просите что угодно: добавить плашку, включить музыку, погоду, подготовить письмо.",
+   "id": "Ucapkan « Hey Groovy », lalu minta apa saja: tambah pil, putar musik, cuaca, email yang perlu disiapkan."
   },
   "Listening": {
    "zh-Hans": "聆听",
@@ -8795,38 +8795,38 @@
    "ru": "Прослушивание",
    "id": "Mendengarkan"
   },
-  "Listen for « OK Groovy »": {
-   "zh-Hans": "聆听「OK Groovy」",
-   "hi": "« OK Groovy » के लिए सुनें",
-   "es": "Escuchar « OK Groovy »",
-   "ar": "الاستماع إلى « OK Groovy »",
-   "fr": "Écouter « OK Groovy »",
-   "bn": "« OK Groovy »-এর জন্য শুনুন",
-   "pt-BR": "Escutar « OK Groovy »",
-   "ru": "Слушать « OK Groovy »",
-   "id": "Dengarkan « OK Groovy »"
+  "Listen for « Hey Groovy »": {
+   "zh-Hans": "聆听「Hey Groovy」",
+   "hi": "« Hey Groovy » के लिए सुनें",
+   "es": "Escuchar « Hey Groovy »",
+   "ar": "الاستماع إلى « Hey Groovy »",
+   "fr": "Écouter « Hey Groovy »",
+   "bn": "« Hey Groovy »-এর জন্য শুনুন",
+   "pt-BR": "Escutar « Hey Groovy »",
+   "ru": "Слушать « Hey Groovy »",
+   "id": "Dengarkan « Hey Groovy »"
   },
-  "The microphone stays open; only what follows « OK Groovy » goes further.": {
-   "zh-Hans": "麦克风保持开启；只有「OK Groovy」之后的内容才会被进一步处理。",
-   "hi": "माइक्रोफ़ोन खुला रहता है; केवल « OK Groovy » के बाद कही गई बात ही आगे जाती है।",
-   "es": "El micrófono sigue abierto; solo lo que va después de « OK Groovy » llega más lejos.",
-   "ar": "يبقى الميكروفون مفتوحًا؛ ولا يتجاوز الحاسوب إلا ما يأتي بعد « OK Groovy ».",
-   "fr": "Le micro reste ouvert ; seul ce qui suit « OK Groovy » va plus loin.",
-   "bn": "মাইক্রোফোন খোলা থাকে; কেবল « OK Groovy »-এর পরে যা বলা হয় সেটুকুই আরও এগোয়।",
-   "pt-BR": "O microfone fica aberto; só o que vem depois de « OK Groovy » vai adiante.",
-   "ru": "Микрофон остаётся включённым; дальше уходит только то, что сказано после « OK Groovy ».",
-   "id": "Mikrofon tetap terbuka; hanya yang diucapkan setelah « OK Groovy » yang diteruskan."
+  "The microphone stays open; only what follows « Hey Groovy » goes further.": {
+   "zh-Hans": "麦克风保持开启；只有「Hey Groovy」之后的内容才会被进一步处理。",
+   "hi": "माइक्रोफ़ोन खुला रहता है; केवल « Hey Groovy » के बाद कही गई बात ही आगे जाती है।",
+   "es": "El micrófono sigue abierto; solo lo que va después de « Hey Groovy » llega más lejos.",
+   "ar": "يبقى الميكروفون مفتوحًا؛ ولا يتجاوز الحاسوب إلا ما يأتي بعد « Hey Groovy ».",
+   "fr": "Le micro reste ouvert ; seul ce qui suit « Hey Groovy » va plus loin.",
+   "bn": "মাইক্রোফোন খোলা থাকে; কেবল « Hey Groovy »-এর পরে যা বলা হয় সেটুকুই আরও এগোয়।",
+   "pt-BR": "O microfone fica aberto; só o que vem depois de « Hey Groovy » vai adiante.",
+   "ru": "Микрофон остаётся включённым; дальше уходит только то, что сказано после « Hey Groovy ».",
+   "id": "Mikrofon tetap terbuka; hanya yang diucapkan setelah « Hey Groovy » yang diteruskan."
   },
-  "Hears « OK Groovy » here, without the internet.": {
-   "zh-Hans": "在这台电脑上听到「OK Groovy」，无需联网。",
-   "hi": "« OK Groovy » यहीं सुनता है, इंटरनेट के बिना।",
-   "es": "Oye « OK Groovy » aquí, sin internet.",
-   "ar": "يسمع « OK Groovy » هنا، دون إنترنت.",
-   "fr": "Entend « OK Groovy » ici, sans internet.",
-   "bn": "« OK Groovy » এখানেই শোনে, ইন্টারনেট ছাড়াই।",
-   "pt-BR": "Ouve « OK Groovy » aqui, sem internet.",
-   "ru": "Слышит « OK Groovy » прямо здесь, без интернета.",
-   "id": "Mendengar « OK Groovy » di sini, tanpa internet."
+  "Hears « Hey Groovy » here, without the internet.": {
+   "zh-Hans": "在这台电脑上听到「Hey Groovy」，无需联网。",
+   "hi": "« Hey Groovy » यहीं सुनता है, इंटरनेट के बिना।",
+   "es": "Oye « Hey Groovy » aquí, sin internet.",
+   "ar": "يسمع « Hey Groovy » هنا، دون إنترنت.",
+   "fr": "Entend « Hey Groovy » ici, sans internet.",
+   "bn": "« Hey Groovy » এখানেই শোনে, ইন্টারনেট ছাড়াই।",
+   "pt-BR": "Ouve « Hey Groovy » aqui, sem internet.",
+   "ru": "Слышит « Hey Groovy » прямо здесь, без интернета.",
+   "id": "Mendengar « Hey Groovy » di sini, tanpa internet."
   },
   "Download the voice model so Groovy can hear you.": {
    "zh-Hans": "下载语音模型，Groovy 才能听到你。",
@@ -9257,16 +9257,16 @@
    "ru": "С локальной моделью очистка остаётся на этом компьютере. Текст (но никогда не голос) уходит в Anthropic, только если вы выбрали Claude в качестве мозга.",
    "id": "Dengan model lokal, perapian tetap di komputer ini. Teks (tidak pernah suaramu) dikirim ke Anthropic hanya jika kamu memilih Claude sebagai otak."
   },
-  "Your voice never leaves this computer: Parakeet turns it into text here. What follows « OK Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.": {
-   "zh-Hans": "你的声音绝不会离开这台电脑：Parakeet 在本地把它转成文字。« OK Groovy » 之后的话由本地模型回答；只有当你选择 Claude 作为大脑时才会发送给 Anthropic，只有当你选择 ElevenLabs 朗读回答时才会发送给 ElevenLabs。",
-   "hi": "आपकी आवाज़ कभी इस कंप्यूटर से बाहर नहीं जाती: Parakeet यहीं उसे टेक्स्ट में बदलता है। « OK Groovy » के बाद की बात का जवाब स्थानीय मॉडल देता है; वह Anthropic को तभी जाती है जब आपने Claude को दिमाग़ चुना हो, और ElevenLabs को तभी जब आपने उसे जवाबों के लिए चुना हो।",
-   "es": "Tu voz nunca sale de este ordenador: Parakeet la convierte en texto aquí. Lo que sigue a « OK Groovy » lo responde el modelo local; solo va a Anthropic si elegiste Claude como cerebro, y a ElevenLabs solo si lo elegiste para las respuestas.",
-   "ar": "لا يغادر صوتك هذا الكمبيوتر أبدًا: يحوّله Parakeet إلى نص هنا. يجيب النموذج المحلي عمّا يلي « OK Groovy »؛ ولا يُرسل إلى Anthropic إلا إذا اخترت Claude عقلًا، ولا إلى ElevenLabs إلا إذا اخترته للإجابات.",
-   "fr": "Ta voix ne quitte jamais cet ordinateur : Parakeet la transforme en texte ici. Ce qui suit « OK Groovy » reçoit une réponse du modèle local ; ça ne part chez Anthropic que si tu as choisi Claude comme cerveau, et chez ElevenLabs que si tu l'as choisi pour les réponses.",
-   "bn": "আপনার কণ্ঠ কখনও এই কম্পিউটার ছাড়ে না: Parakeet এখানেই তা টেক্সটে রূপান্তর করে। « OK Groovy »-এর পরের কথার উত্তর দেয় স্থানীয় মডেল; আপনি Claude-কে মস্তিষ্ক হিসেবে বেছে নিলে তবেই তা Anthropic-এ যায়, আর উত্তরের জন্য ElevenLabs বেছে নিলে তবেই ElevenLabs-এ।",
-   "pt-BR": "Sua voz nunca sai deste computador: o Parakeet a transforma em texto aqui. O que vem depois de « OK Groovy » é respondido pelo modelo local; só vai para a Anthropic se você escolheu o Claude como cérebro, e para a ElevenLabs só se você a escolheu para as respostas.",
-   "ru": "Ваш голос никогда не покидает этот компьютер: Parakeet превращает его в текст здесь. На сказанное после « OK Groovy » отвечает локальная модель; в Anthropic это уходит, только если вы выбрали Claude в качестве мозга, а в ElevenLabs — только если вы выбрали его для ответов.",
-   "id": "Suaramu tidak pernah keluar dari komputer ini: Parakeet mengubahnya menjadi teks di sini. Ucapan setelah « OK Groovy » dijawab oleh model lokal; dikirim ke Anthropic hanya jika kamu memilih Claude sebagai otak, dan ke ElevenLabs hanya jika kamu memilihnya untuk jawaban."
+  "Your voice never leaves this computer: Parakeet turns it into text here. What follows « Hey Groovy » is answered by the local model; it goes to Anthropic only if you chose Claude as the brain, and to ElevenLabs only if you picked it for the answers.": {
+   "zh-Hans": "你的声音绝不会离开这台电脑：Parakeet 在本地把它转成文字。« Hey Groovy » 之后的话由本地模型回答；只有当你选择 Claude 作为大脑时才会发送给 Anthropic，只有当你选择 ElevenLabs 朗读回答时才会发送给 ElevenLabs。",
+   "hi": "आपकी आवाज़ कभी इस कंप्यूटर से बाहर नहीं जाती: Parakeet यहीं उसे टेक्स्ट में बदलता है। « Hey Groovy » के बाद की बात का जवाब स्थानीय मॉडल देता है; वह Anthropic को तभी जाती है जब आपने Claude को दिमाग़ चुना हो, और ElevenLabs को तभी जब आपने उसे जवाबों के लिए चुना हो।",
+   "es": "Tu voz nunca sale de este ordenador: Parakeet la convierte en texto aquí. Lo que sigue a « Hey Groovy » lo responde el modelo local; solo va a Anthropic si elegiste Claude como cerebro, y a ElevenLabs solo si lo elegiste para las respuestas.",
+   "ar": "لا يغادر صوتك هذا الكمبيوتر أبدًا: يحوّله Parakeet إلى نص هنا. يجيب النموذج المحلي عمّا يلي « Hey Groovy »؛ ولا يُرسل إلى Anthropic إلا إذا اخترت Claude عقلًا، ولا إلى ElevenLabs إلا إذا اخترته للإجابات.",
+   "fr": "Ta voix ne quitte jamais cet ordinateur : Parakeet la transforme en texte ici. Ce qui suit « Hey Groovy » reçoit une réponse du modèle local ; ça ne part chez Anthropic que si tu as choisi Claude comme cerveau, et chez ElevenLabs que si tu l'as choisi pour les réponses.",
+   "bn": "আপনার কণ্ঠ কখনও এই কম্পিউটার ছাড়ে না: Parakeet এখানেই তা টেক্সটে রূপান্তর করে। « Hey Groovy »-এর পরের কথার উত্তর দেয় স্থানীয় মডেল; আপনি Claude-কে মস্তিষ্ক হিসেবে বেছে নিলে তবেই তা Anthropic-এ যায়, আর উত্তরের জন্য ElevenLabs বেছে নিলে তবেই ElevenLabs-এ।",
+   "pt-BR": "Sua voz nunca sai deste computador: o Parakeet a transforma em texto aqui. O que vem depois de « Hey Groovy » é respondido pelo modelo local; só vai para a Anthropic se você escolheu o Claude como cérebro, e para a ElevenLabs só se você a escolheu para as respostas.",
+   "ru": "Ваш голос никогда не покидает этот компьютер: Parakeet превращает его в текст здесь. На сказанное после « Hey Groovy » отвечает локальная модель; в Anthropic это уходит, только если вы выбрали Claude в качестве мозга, а в ElevenLabs — только если вы выбрали его для ответов.",
+   "id": "Suaramu tidak pernah keluar dari komputer ini: Parakeet mengubahnya menjadi teks di sini. Ucapan setelah « Hey Groovy » dijawab oleh model lokal; dikirim ke Anthropic hanya jika kamu memilih Claude sebagai otak, dan ke ElevenLabs hanya jika kamu memilihnya untuk jawaban."
   },
   "What Groovy remembers about you, on this computer only.": {
    "zh-Hans": "Groovy 记得的关于你的事，只保存在这台电脑上。",
@@ -10610,16 +10610,16 @@
    "ru": "Используется: {what}.",
    "id": "Digunakan: {what}."
   },
-  "Choose the AI Groovy uses for the chat, « OK Groovy », dictation and notes. Nothing loads until you choose.": {
-   "zh-Hans": "选择 Groovy 用于聊天、« OK Groovy »、听写和笔记的 AI。在你选择之前不会加载任何东西。",
-   "hi": "चुनें कि Groovy चैट, « OK Groovy », डिक्टेशन और नोट्स के लिए कौन-सा AI उपयोग करे। आपके चुनने तक कुछ भी लोड नहीं होता।",
-   "es": "Elige la IA que Groovy usa para el chat, « OK Groovy », el dictado y las notas. No se carga nada hasta que elijas.",
-   "ar": "اختر الذكاء الاصطناعي الذي يستخدمه Groovy للدردشة و« OK Groovy » والإملاء والملاحظات. لا يُحمَّل شيء حتى تختار.",
-   "fr": "Choisis l'IA que Groovy utilise pour le chat, « OK Groovy », la dictée et les notes. Rien ne se charge avant ton choix.",
-   "bn": "চ্যাট, « OK Groovy », ডিক্টেশন ও নোটের জন্য Groovy কোন AI ব্যবহার করবে তা বেছে নিন। আপনি বেছে না নেওয়া পর্যন্ত কিছুই লোড হয় না।",
-   "pt-BR": "Escolha a IA que o Groovy usa no chat, no « OK Groovy », no ditado e nas notas. Nada é carregado até você escolher.",
-   "ru": "Выберите ИИ, который Groovy использует для чата, « OK Groovy », диктовки и заметок. Пока вы не выберете, ничего не загружается.",
-   "id": "Pilih AI yang dipakai Groovy untuk obrolan, « OK Groovy », dikte, dan catatan. Tidak ada yang dimuat sampai kamu memilih."
+  "Choose the AI Groovy uses for the chat, « Hey Groovy », dictation and notes. Nothing loads until you choose.": {
+   "zh-Hans": "选择 Groovy 用于聊天、« Hey Groovy »、听写和笔记的 AI。在你选择之前不会加载任何东西。",
+   "hi": "चुनें कि Groovy चैट, « Hey Groovy », डिक्टेशन और नोट्स के लिए कौन-सा AI उपयोग करे। आपके चुनने तक कुछ भी लोड नहीं होता।",
+   "es": "Elige la IA que Groovy usa para el chat, « Hey Groovy », el dictado y las notas. No se carga nada hasta que elijas.",
+   "ar": "اختر الذكاء الاصطناعي الذي يستخدمه Groovy للدردشة و« Hey Groovy » والإملاء والملاحظات. لا يُحمَّل شيء حتى تختار.",
+   "fr": "Choisis l'IA que Groovy utilise pour le chat, « Hey Groovy », la dictée et les notes. Rien ne se charge avant ton choix.",
+   "bn": "চ্যাট, « Hey Groovy », ডিক্টেশন ও নোটের জন্য Groovy কোন AI ব্যবহার করবে তা বেছে নিন। আপনি বেছে না নেওয়া পর্যন্ত কিছুই লোড হয় না।",
+   "pt-BR": "Escolha a IA que o Groovy usa no chat, no « Hey Groovy », no ditado e nas notas. Nada é carregado até você escolher.",
+   "ru": "Выберите ИИ, который Groovy использует для чата, « Hey Groovy », диктовки и заметок. Пока вы не выберете, ничего не загружается.",
+   "id": "Pilih AI yang dipakai Groovy untuk obrolan, « Hey Groovy », dikte, dan catatan. Tidak ada yang dimuat sampai kamu memilih."
   },
   "Use Gemini": {
    "zh-Hans": "使用 Gemini",
@@ -10764,16 +10764,16 @@
    "ru": "Подписка Claude Code или Codex",
    "id": "Langganan Claude Code atau Codex"
   },
-  "Uses the command-line tool you already signed in to, for « OK Groovy », dictation and notes (answers without tools). The chat still needs a key.": {
-   "zh-Hans": "使用你已登录的命令行工具，用于 « OK Groovy »、听写和笔记（回答时不使用工具）。聊天仍然需要密钥。",
-   "hi": "« OK Groovy », डिक्टेशन और नोट्स के लिए आपका पहले से साइन-इन किया कमांड-लाइन टूल उपयोग करता है (बिना टूल्स के जवाब)। चैट के लिए अब भी कुंजी चाहिए।",
-   "es": "Usa la herramienta de línea de comandos en la que ya iniciaste sesión, para « OK Groovy », el dictado y las notas (responde sin herramientas). El chat sigue necesitando una clave.",
-   "ar": "يستخدم أداة سطر الأوامر التي سجّلت الدخول إليها، لـ « OK Groovy » والإملاء والملاحظات (يجيب دون أدوات). ما زالت الدردشة تحتاج إلى مفتاح.",
-   "fr": "Utilise l'outil en ligne de commande où tu es déjà connecté, pour « OK Groovy », la dictée et les notes (réponses sans outils). Le chat a toujours besoin d'une clé.",
-   "bn": "« OK Groovy », ডিক্টেশন ও নোটের জন্য আপনার আগে থেকে সাইন-ইন করা কমান্ড-লাইন টুল ব্যবহার করে (টুল ছাড়া উত্তর)। চ্যাটের জন্য এখনও কী দরকার।",
-   "pt-BR": "Usa a ferramenta de linha de comando em que você já entrou, para o « OK Groovy », ditado e notas (responde sem ferramentas). O chat ainda precisa de uma chave.",
-   "ru": "Использует инструмент командной строки, в который вы уже вошли, для « OK Groovy », диктовки и заметок (ответы без инструментов). Для чата по-прежнему нужен ключ.",
-   "id": "Memakai alat baris perintah yang sudah kamu masuki, untuk « OK Groovy », dikte, dan catatan (jawaban tanpa alat). Obrolan tetap butuh kunci."
+  "Uses the command-line tool you already signed in to, for « Hey Groovy », dictation and notes (answers without tools). The chat still needs a key.": {
+   "zh-Hans": "使用你已登录的命令行工具，用于 « Hey Groovy »、听写和笔记（回答时不使用工具）。聊天仍然需要密钥。",
+   "hi": "« Hey Groovy », डिक्टेशन और नोट्स के लिए आपका पहले से साइन-इन किया कमांड-लाइन टूल उपयोग करता है (बिना टूल्स के जवाब)। चैट के लिए अब भी कुंजी चाहिए।",
+   "es": "Usa la herramienta de línea de comandos en la que ya iniciaste sesión, para « Hey Groovy », el dictado y las notas (responde sin herramientas). El chat sigue necesitando una clave.",
+   "ar": "يستخدم أداة سطر الأوامر التي سجّلت الدخول إليها، لـ « Hey Groovy » والإملاء والملاحظات (يجيب دون أدوات). ما زالت الدردشة تحتاج إلى مفتاح.",
+   "fr": "Utilise l'outil en ligne de commande où tu es déjà connecté, pour « Hey Groovy », la dictée et les notes (réponses sans outils). Le chat a toujours besoin d'une clé.",
+   "bn": "« Hey Groovy », ডিক্টেশন ও নোটের জন্য আপনার আগে থেকে সাইন-ইন করা কমান্ড-লাইন টুল ব্যবহার করে (টুল ছাড়া উত্তর)। চ্যাটের জন্য এখনও কী দরকার।",
+   "pt-BR": "Usa a ferramenta de linha de comando em que você já entrou, para o « Hey Groovy », ditado e notas (responde sem ferramentas). O chat ainda precisa de uma chave.",
+   "ru": "Использует инструмент командной строки, в который вы уже вошли, для « Hey Groovy », диктовки и заметок (ответы без инструментов). Для чата по-прежнему нужен ключ.",
+   "id": "Memakai alat baris perintah yang sudah kamu masuki, untuk « Hey Groovy », dikte, dan catatan (jawaban tanpa alat). Obrolan tetap butuh kunci."
   },
   "Use local AI": {
    "zh-Hans": "使用本地 AI",
@@ -10830,16 +10830,16 @@
    "ru": "ИИ, выбранный выше",
    "id": "AI yang dipilih di atas"
   },
-  "What answers « OK Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.": {
-   "zh-Hans": "负责回答 « OK Groovy »、整理听写和总结笔记。云端 AI 只在有其密钥时使用，且在“仅本机”模式下从不使用；只有选择了本地 AI，本地模型才会接手。",
-   "hi": "जो « OK Groovy » का जवाब देता है, डिक्टेशन साफ़ करता है और नोट्स का सारांश बनाता है। क्लाउड AI केवल उसकी कुंजी होने पर उपयोग होता है और “केवल यह PC” मोड में कभी नहीं; स्थानीय मॉडल तभी संभालता है जब स्थानीय AI चुना गया हो।",
-   "es": "Lo que responde a « OK Groovy », limpia el dictado y resume las notas. Una IA en la nube solo se usa con su clave y nunca en el modo «Solo este PC»; el modelo local solo toma el relevo si se eligió la IA local.",
-   "ar": "ما يجيب على « OK Groovy » وينظّف الإملاء ويلخّص الملاحظات. لا يُستخدم الذكاء الاصطناعي السحابي إلا بمفتاحه، وأبدًا في وضع «هذا الكمبيوتر فقط»؛ ولا يتولّى النموذج المحلي إلا إذا اخترت الذكاء الاصطناعي المحلي.",
-   "fr": "Ce qui répond à « OK Groovy », nettoie la dictée et résume les notes. Une IA en ligne n'est utilisée qu'avec sa clé, et jamais en mode « Ce PC uniquement » ; le modèle local ne prend le relais que si l'IA locale a été choisie.",
-   "bn": "যা « OK Groovy »-র উত্তর দেয়, ডিক্টেশন পরিষ্কার করে এবং নোটের সারাংশ বানায়। ক্লাউড AI শুধু তার কী থাকলে ব্যবহৃত হয় এবং “শুধু এই PC” মোডে কখনও নয়; স্থানীয় AI বেছে নিলে তবেই স্থানীয় মডেল দায়িত্ব নেয়।",
-   "pt-BR": "O que responde ao « OK Groovy », limpa o ditado e resume as notas. Uma IA na nuvem só é usada com a chave dela e nunca no modo “Só este PC”; o modelo local só assume se a IA local foi escolhida.",
-   "ru": "То, что отвечает на « OK Groovy », очищает диктовку и составляет сводки заметок. Облачный ИИ используется только с его ключом и никогда в режиме «Только этот ПК»; локальная модель подключается, только если выбран локальный ИИ.",
-   "id": "Yang menjawab « OK Groovy », merapikan dikte, dan meringkas catatan. AI cloud hanya dipakai dengan kuncinya dan tidak pernah dalam mode “Hanya PC ini”; model lokal hanya mengambil alih jika AI lokal dipilih."
+  "What answers « Hey Groovy », cleans up dictation and summarises notes. A cloud AI is used only with its key and never in “This PC only” mode; the local model stands in only if local AI was chosen.": {
+   "zh-Hans": "负责回答 « Hey Groovy »、整理听写和总结笔记。云端 AI 只在有其密钥时使用，且在“仅本机”模式下从不使用；只有选择了本地 AI，本地模型才会接手。",
+   "hi": "जो « Hey Groovy » का जवाब देता है, डिक्टेशन साफ़ करता है और नोट्स का सारांश बनाता है। क्लाउड AI केवल उसकी कुंजी होने पर उपयोग होता है और “केवल यह PC” मोड में कभी नहीं; स्थानीय मॉडल तभी संभालता है जब स्थानीय AI चुना गया हो।",
+   "es": "Lo que responde a « Hey Groovy », limpia el dictado y resume las notas. Una IA en la nube solo se usa con su clave y nunca en el modo «Solo este PC»; el modelo local solo toma el relevo si se eligió la IA local.",
+   "ar": "ما يجيب على « Hey Groovy » وينظّف الإملاء ويلخّص الملاحظات. لا يُستخدم الذكاء الاصطناعي السحابي إلا بمفتاحه، وأبدًا في وضع «هذا الكمبيوتر فقط»؛ ولا يتولّى النموذج المحلي إلا إذا اخترت الذكاء الاصطناعي المحلي.",
+   "fr": "Ce qui répond à « Hey Groovy », nettoie la dictée et résume les notes. Une IA en ligne n'est utilisée qu'avec sa clé, et jamais en mode « Ce PC uniquement » ; le modèle local ne prend le relais que si l'IA locale a été choisie.",
+   "bn": "যা « Hey Groovy »-র উত্তর দেয়, ডিক্টেশন পরিষ্কার করে এবং নোটের সারাংশ বানায়। ক্লাউড AI শুধু তার কী থাকলে ব্যবহৃত হয় এবং “শুধু এই PC” মোডে কখনও নয়; স্থানীয় AI বেছে নিলে তবেই স্থানীয় মডেল দায়িত্ব নেয়।",
+   "pt-BR": "O que responde ao « Hey Groovy », limpa o ditado e resume as notas. Uma IA na nuvem só é usada com a chave dela e nunca no modo “Só este PC”; o modelo local só assume se a IA local foi escolhida.",
+   "ru": "То, что отвечает на « Hey Groovy », очищает диктовку и составляет сводки заметок. Облачный ИИ используется только с его ключом и никогда в режиме «Только этот ПК»; локальная модель подключается, только если выбран локальный ИИ.",
+   "id": "Yang menjawab « Hey Groovy », merapikan dikte, dan meringkas catatan. AI cloud hanya dipakai dengan kuncinya dan tidak pernah dalam mode “Hanya PC ini”; model lokal hanya mengambil alih jika AI lokal dipilih."
   },
   "Use local AI on this PC": {
    "zh-Hans": "在这台电脑上使用本地 AI",
@@ -11083,16 +11083,16 @@
    "ru": "Услышано: «{0}»",
    "id": "Terdengar: “{0}”"
   },
-  "Done: turn on « OK Groovy »": {
-   "zh-Hans": "完成：开启 « OK Groovy »",
-   "hi": "हो गया: « OK Groovy » चालू करें",
-   "es": "Listo: activar « OK Groovy »",
-   "ar": "تم: تشغيل « OK Groovy »",
-   "fr": "Terminé : activer « OK Groovy »",
-   "bn": "সম্পন্ন: « OK Groovy » চালু করুন",
-   "pt-BR": "Pronto: ligar o « OK Groovy »",
-   "ru": "Готово: включить « OK Groovy »",
-   "id": "Selesai: nyalakan « OK Groovy »"
+  "Done: turn on « Hey Groovy »": {
+   "zh-Hans": "完成：开启 « Hey Groovy »",
+   "hi": "हो गया: « Hey Groovy » चालू करें",
+   "es": "Listo: activar « Hey Groovy »",
+   "ar": "تم: تشغيل « Hey Groovy »",
+   "fr": "Terminé : activer « Hey Groovy »",
+   "bn": "সম্পন্ন: « Hey Groovy » চালু করুন",
+   "pt-BR": "Pronto: ligar o « Hey Groovy »",
+   "ru": "Готово: включить « Hey Groovy »",
+   "id": "Selesai: nyalakan « Hey Groovy »"
   },
   "Done: turn on dictation": {
    "zh-Hans": "完成：开启听写",
@@ -11985,16 +11985,16 @@
    "ru": "На этом компьютере",
    "id": "Di komputer ini"
   },
-  "Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».": {
-   "zh-Hans": "下载一次，处处可用：通话、听写、笔记助手和 « OK Groovy »。",
-   "hi": "एक बार डाउनलोड, हर जगह इस्तेमाल: कॉल, डिक्टेशन, नोटटेकर और « OK Groovy »।",
-   "es": "Se descarga una vez y se usa en todo: llamadas, dictado, el Notetaker y « OK Groovy ».",
-   "ar": "يُنزَّل مرة واحدة ويُستخدم في كل مكان: المكالمات والإملاء ومدوّن الملاحظات و« OK Groovy ».",
-   "fr": "Téléchargé une fois, utilisé partout : appels, dictée, le Notetaker et « OK Groovy ».",
-   "bn": "একবার ডাউনলোড, সব জায়গায় ব্যবহার: কল, ডিক্টেশন, নোটটেকার ও « OK Groovy »।",
-   "pt-BR": "Baixado uma vez e usado em tudo: chamadas, ditado, o Notetaker e « OK Groovy ».",
-   "ru": "Скачивается один раз и работает везде: звонки, диктовка, Notetaker и « OK Groovy ».",
-   "id": "Diunduh sekali dan dipakai di mana saja: panggilan, dikte, Notetaker, dan « OK Groovy »."
+  "Downloaded once and used everywhere: calls, dictation, the Notetaker and « Hey Groovy ».": {
+   "zh-Hans": "下载一次，处处可用：通话、听写、笔记助手和 « Hey Groovy »。",
+   "hi": "एक बार डाउनलोड, हर जगह इस्तेमाल: कॉल, डिक्टेशन, नोटटेकर और « Hey Groovy »।",
+   "es": "Se descarga una vez y se usa en todo: llamadas, dictado, el Notetaker y « Hey Groovy ».",
+   "ar": "يُنزَّل مرة واحدة ويُستخدم في كل مكان: المكالمات والإملاء ومدوّن الملاحظات و« Hey Groovy ».",
+   "fr": "Téléchargé une fois, utilisé partout : appels, dictée, le Notetaker et « Hey Groovy ».",
+   "bn": "একবার ডাউনলোড, সব জায়গায় ব্যবহার: কল, ডিক্টেশন, নোটটেকার ও « Hey Groovy »।",
+   "pt-BR": "Baixado uma vez e usado em tudo: chamadas, ditado, o Notetaker e « Hey Groovy ».",
+   "ru": "Скачивается один раз и работает везде: звонки, диктовка, Notetaker и « Hey Groovy ».",
+   "id": "Diunduh sekali dan dipakai di mana saja: panggilan, dikte, Notetaker, dan « Hey Groovy »."
   },
   "Not downloaded yet": {
    "zh-Hans": "尚未下载",
@@ -13305,16 +13305,16 @@
    "ru": "микрофон по умолчанию",
    "id": "mikrofon bawaan"
   },
-  "« OK Groovy » can't hear you: the microphone “{mic}” didn't open.": {
-   "zh-Hans": "« OK Groovy » 听不到你：麦克风“{mic}”无法打开。",
-   "hi": "« OK Groovy » आपको सुन नहीं पा रहा: माइक्रोफ़ोन “{mic}” नहीं खुला।",
-   "es": "« OK Groovy » no te oye: el micrófono «{mic}» no se abrió.",
-   "ar": "لا يستطيع « OK Groovy » سماعك: لم يُفتح الميكروفون “{mic}”.",
-   "fr": "« OK Groovy » ne vous entend pas : le micro « {mic} » ne s'est pas ouvert.",
-   "bn": "« OK Groovy » আপনাকে শুনতে পাচ্ছে না: মাইক্রোফোন “{mic}” খোলেনি।",
-   "pt-BR": "« OK Groovy » não consegue ouvir você: o microfone “{mic}” não abriu.",
-   "ru": "« OK Groovy » вас не слышит: микрофон «{mic}» не открылся.",
-   "id": "« OK Groovy » tidak bisa mendengar Anda: mikrofon “{mic}” tidak terbuka."
+  "« Hey Groovy » can't hear you: the microphone “{mic}” didn't open.": {
+   "zh-Hans": "« Hey Groovy » 听不到你：麦克风“{mic}”无法打开。",
+   "hi": "« Hey Groovy » आपको सुन नहीं पा रहा: माइक्रोफ़ोन “{mic}” नहीं खुला।",
+   "es": "« Hey Groovy » no te oye: el micrófono «{mic}» no se abrió.",
+   "ar": "لا يستطيع « Hey Groovy » سماعك: لم يُفتح الميكروفون “{mic}”.",
+   "fr": "« Hey Groovy » ne vous entend pas : le micro « {mic} » ne s'est pas ouvert.",
+   "bn": "« Hey Groovy » আপনাকে শুনতে পাচ্ছে না: মাইক্রোফোন “{mic}” খোলেনি।",
+   "pt-BR": "« Hey Groovy » não consegue ouvir você: o microfone “{mic}” não abriu.",
+   "ru": "« Hey Groovy » вас не слышит: микрофон «{mic}» не открылся.",
+   "id": "« Hey Groovy » tidak bisa mendengar Anda: mikrofon “{mic}” tidak terbuka."
   },
   "Choose a microphone": {
    "zh-Hans": "选择麦克风",
@@ -13327,16 +13327,16 @@
    "ru": "Выбрать микрофон",
    "id": "Pilih mikrofon"
   },
-  "« OK Groovy » is on, but Groovy can't hear it yet: download the speech model.": {
-   "zh-Hans": "« OK Groovy » 已开启，但 Groovy 还听不到：请下载语音模型。",
-   "hi": "« OK Groovy » चालू है, पर Groovy अभी सुन नहीं सकता: स्पीच मॉडल डाउनलोड करें।",
-   "es": "« OK Groovy » está activado, pero Groovy aún no puede oírlo: descarga el modelo de voz.",
-   "ar": "« OK Groovy » مفعّل، لكن Groovy لا يستطيع سماعه بعد: نزّل نموذج الكلام.",
-   "fr": "« OK Groovy » est activé, mais Groovy ne l'entend pas encore : téléchargez le modèle vocal.",
-   "bn": "« OK Groovy » চালু আছে, কিন্তু Groovy এখনও শুনতে পারে না: স্পিচ মডেল ডাউনলোড করুন।",
-   "pt-BR": "« OK Groovy » está ligado, mas o Groovy ainda não consegue ouvir: baixe o modelo de fala.",
-   "ru": "« OK Groovy » включён, но Groovy пока его не слышит: скачайте речевую модель.",
-   "id": "« OK Groovy » aktif, tetapi Groovy belum bisa mendengarnya: unduh model suara."
+  "« Hey Groovy » is on, but Groovy can't hear it yet: download the speech model.": {
+   "zh-Hans": "« Hey Groovy » 已开启，但 Groovy 还听不到：请下载语音模型。",
+   "hi": "« Hey Groovy » चालू है, पर Groovy अभी सुन नहीं सकता: स्पीच मॉडल डाउनलोड करें।",
+   "es": "« Hey Groovy » está activado, pero Groovy aún no puede oírlo: descarga el modelo de voz.",
+   "ar": "« Hey Groovy » مفعّل، لكن Groovy لا يستطيع سماعه بعد: نزّل نموذج الكلام.",
+   "fr": "« Hey Groovy » est activé, mais Groovy ne l'entend pas encore : téléchargez le modèle vocal.",
+   "bn": "« Hey Groovy » চালু আছে, কিন্তু Groovy এখনও শুনতে পারে না: স্পিচ মডেল ডাউনলোড করুন।",
+   "pt-BR": "« Hey Groovy » está ligado, mas o Groovy ainda não consegue ouvir: baixe o modelo de fala.",
+   "ru": "« Hey Groovy » включён, но Groovy пока его не слышит: скачайте речевую модель.",
+   "id": "« Hey Groovy » aktif, tetapi Groovy belum bisa mendengarnya: unduh model suara."
   },
   "I heard you, but I need an AI to answer that. Add a free Gemini key in Settings.": {
    "zh-Hans": "我听到了，但需要 AI 才能回答。请在设置中添加免费的 Gemini 密钥。",
@@ -13404,16 +13404,16 @@
    "ru": "Микрофон не открылся: выберите другой.",
    "id": "Mikrofon tidak terbuka: pilih yang lain."
   },
-  "Turn on « OK Groovy » first.": {
-   "zh-Hans": "请先开启 « OK Groovy »。",
-   "hi": "पहले « OK Groovy » चालू करें।",
-   "es": "Activa primero « OK Groovy ».",
-   "ar": "فعّل « OK Groovy » أولًا.",
-   "fr": "Activez d'abord « OK Groovy ».",
-   "bn": "আগে « OK Groovy » চালু করুন।",
-   "pt-BR": "Ligue o « OK Groovy » primeiro.",
-   "ru": "Сначала включите « OK Groovy ».",
-   "id": "Aktifkan « OK Groovy » terlebih dahulu."
+  "Turn on « Hey Groovy » first.": {
+   "zh-Hans": "请先开启 « Hey Groovy »。",
+   "hi": "पहले « Hey Groovy » चालू करें।",
+   "es": "Activa primero « Hey Groovy ».",
+   "ar": "فعّل « Hey Groovy » أولًا.",
+   "fr": "Activez d'abord « Hey Groovy ».",
+   "bn": "আগে « Hey Groovy » চালু করুন।",
+   "pt-BR": "Ligue o « Hey Groovy » primeiro.",
+   "ru": "Сначала включите « Hey Groovy ».",
+   "id": "Aktifkan « Hey Groovy » terlebih dahulu."
   },
   "Thinking about “{1}”…": {
    "zh-Hans": "正在思考“{1}”…",
@@ -13437,38 +13437,38 @@
    "ru": "Услышано: «{1}»",
    "id": "Terdengar “{1}”"
   },
-  "« OK Groovy » is on and listening": {
-   "zh-Hans": "« OK Groovy » 已开启并在聆听",
-   "hi": "« OK Groovy » चालू है और सुन रहा है",
-   "es": "« OK Groovy » está activado y escuchando",
-   "ar": "« OK Groovy » مفعّل ويستمع",
-   "fr": "« OK Groovy » est activé et écoute",
-   "bn": "« OK Groovy » চালু এবং শুনছে",
-   "pt-BR": "« OK Groovy » está ligado e ouvindo",
-   "ru": "« OK Groovy » включён и слушает",
-   "id": "« OK Groovy » aktif dan mendengarkan"
+  "« Hey Groovy » is on and listening": {
+   "zh-Hans": "« Hey Groovy » 已开启并在聆听",
+   "hi": "« Hey Groovy » चालू है और सुन रहा है",
+   "es": "« Hey Groovy » está activado y escuchando",
+   "ar": "« Hey Groovy » مفعّل ويستمع",
+   "fr": "« Hey Groovy » est activé et écoute",
+   "bn": "« Hey Groovy » চালু এবং শুনছে",
+   "pt-BR": "« Hey Groovy » está ligado e ouvindo",
+   "ru": "« Hey Groovy » включён и слушает",
+   "id": "« Hey Groovy » aktif dan mendengarkan"
   },
-  "« OK Groovy » is on, not listening yet": {
-   "zh-Hans": "« OK Groovy » 已开启，但尚未聆听",
-   "hi": "« OK Groovy » चालू है, पर अभी सुन नहीं रहा",
-   "es": "« OK Groovy » está activado, pero aún no escucha",
-   "ar": "« OK Groovy » مفعّل، لكنه لا يستمع بعد",
-   "fr": "« OK Groovy » est activé, mais n'écoute pas encore",
-   "bn": "« OK Groovy » চালু, কিন্তু এখনও শুনছে না",
-   "pt-BR": "« OK Groovy » está ligado, mas ainda não está ouvindo",
-   "ru": "« OK Groovy » включён, но ещё не слушает",
-   "id": "« OK Groovy » aktif, tetapi belum mendengarkan"
+  "« Hey Groovy » is on, not listening yet": {
+   "zh-Hans": "« Hey Groovy » 已开启，但尚未聆听",
+   "hi": "« Hey Groovy » चालू है, पर अभी सुन नहीं रहा",
+   "es": "« Hey Groovy » está activado, pero aún no escucha",
+   "ar": "« Hey Groovy » مفعّل، لكنه لا يستمع بعد",
+   "fr": "« Hey Groovy » est activé, mais n'écoute pas encore",
+   "bn": "« Hey Groovy » চালু, কিন্তু এখনও শুনছে না",
+   "pt-BR": "« Hey Groovy » está ligado, mas ainda não está ouvindo",
+   "ru": "« Hey Groovy » включён, но ещё не слушает",
+   "id": "« Hey Groovy » aktif, tetapi belum mendengarkan"
   },
-  "« OK Groovy » is off": {
-   "zh-Hans": "« OK Groovy » 已关闭",
-   "hi": "« OK Groovy » बंद है",
-   "es": "« OK Groovy » está desactivado",
-   "ar": "« OK Groovy » متوقف",
-   "fr": "« OK Groovy » est désactivé",
-   "bn": "« OK Groovy » বন্ধ",
-   "pt-BR": "« OK Groovy » está desligado",
-   "ru": "« OK Groovy » выключен",
-   "id": "« OK Groovy » nonaktif"
+  "« Hey Groovy » is off": {
+   "zh-Hans": "« Hey Groovy » 已关闭",
+   "hi": "« Hey Groovy » बंद है",
+   "es": "« Hey Groovy » está desactivado",
+   "ar": "« Hey Groovy » متوقف",
+   "fr": "« Hey Groovy » est désactivé",
+   "bn": "« Hey Groovy » বন্ধ",
+   "pt-BR": "« Hey Groovy » está desligado",
+   "ru": "« Hey Groovy » выключен",
+   "id": "« Hey Groovy » nonaktif"
   },
   "Microphone “{mic}” didn't open: {error}": {
    "zh-Hans": "麦克风“{mic}”无法打开：{error}",
@@ -13536,16 +13536,16 @@
    "ru": "Нет ИИ: музыка, громкость, время, таймеры и запуск приложений всё равно работают",
    "id": "Tanpa AI: musik, volume, waktu, timer, dan membuka aplikasi tetap berfungsi"
   },
-  "Heard « OK Groovy »": {
-   "zh-Hans": "听到了 « OK Groovy »",
-   "hi": "« OK Groovy » सुना",
-   "es": "Oyó « OK Groovy »",
-   "ar": "سُمع « OK Groovy »",
-   "fr": "« OK Groovy » entendu",
-   "bn": "« OK Groovy » শোনা গেছে",
-   "pt-BR": "Ouviu « OK Groovy »",
-   "ru": "Услышано « OK Groovy »",
-   "id": "Mendengar « OK Groovy »"
+  "Heard « Hey Groovy »": {
+   "zh-Hans": "听到了 « Hey Groovy »",
+   "hi": "« Hey Groovy » सुना",
+   "es": "Oyó « Hey Groovy »",
+   "ar": "سُمع « Hey Groovy »",
+   "fr": "« Hey Groovy » entendu",
+   "bn": "« Hey Groovy » শোনা গেছে",
+   "pt-BR": "Ouviu « Hey Groovy »",
+   "ru": "Услышано « Hey Groovy »",
+   "id": "Mendengar « Hey Groovy »"
   },
   "Understood the words": {
    "zh-Hans": "听懂了内容",
@@ -13580,38 +13580,38 @@
    "ru": "Произнесено вслух",
    "id": "Diucapkan dengan keras"
   },
-  "Test OK Groovy": {
-   "zh-Hans": "测试 OK Groovy",
-   "hi": "OK Groovy जाँचें",
-   "es": "Probar OK Groovy",
-   "ar": "اختبار OK Groovy",
-   "fr": "Tester OK Groovy",
-   "bn": "OK Groovy পরীক্ষা করুন",
-   "pt-BR": "Testar OK Groovy",
-   "ru": "Проверить OK Groovy",
-   "id": "Uji OK Groovy"
+  "Test Hey Groovy": {
+   "zh-Hans": "测试 Hey Groovy",
+   "hi": "Hey Groovy जाँचें",
+   "es": "Probar Hey Groovy",
+   "ar": "اختبار Hey Groovy",
+   "fr": "Tester Hey Groovy",
+   "bn": "Hey Groovy পরীক্ষা করুন",
+   "pt-BR": "Testar Hey Groovy",
+   "ru": "Проверить Hey Groovy",
+   "id": "Uji Hey Groovy"
   },
-  "Shows each step of the next « OK Groovy ».": {
-   "zh-Hans": "显示下一次 « OK Groovy » 的每个步骤。",
-   "hi": "अगले « OK Groovy » का हर कदम दिखाता है।",
-   "es": "Muestra cada paso del próximo « OK Groovy ».",
-   "ar": "يعرض كل خطوة من « OK Groovy » التالي.",
-   "fr": "Montre chaque étape du prochain « OK Groovy ».",
-   "bn": "পরের « OK Groovy »-এর প্রতিটি ধাপ দেখায়।",
-   "pt-BR": "Mostra cada etapa do próximo « OK Groovy ».",
-   "ru": "Показывает каждый шаг следующего « OK Groovy ».",
-   "id": "Menampilkan setiap langkah « OK Groovy » berikutnya."
+  "Shows each step of the next « Hey Groovy ».": {
+   "zh-Hans": "显示下一次 « Hey Groovy » 的每个步骤。",
+   "hi": "अगले « Hey Groovy » का हर कदम दिखाता है।",
+   "es": "Muestra cada paso del próximo « Hey Groovy ».",
+   "ar": "يعرض كل خطوة من « Hey Groovy » التالي.",
+   "fr": "Montre chaque étape du prochain « Hey Groovy ».",
+   "bn": "পরের « Hey Groovy »-এর প্রতিটি ধাপ দেখায়।",
+   "pt-BR": "Mostra cada etapa do próximo « Hey Groovy ».",
+   "ru": "Показывает каждый шаг следующего « Hey Groovy ».",
+   "id": "Menampilkan setiap langkah « Hey Groovy » berikutnya."
   },
-  "Say « OK Groovy, what time is it? »": {
-   "zh-Hans": "请说 « OK Groovy，现在几点？»",
-   "hi": "कहें « OK Groovy, कितने बजे हैं? »",
-   "es": "Di « OK Groovy, ¿qué hora es? »",
-   "ar": "قل « OK Groovy، كم الساعة؟ »",
-   "fr": "Dites « OK Groovy, quelle heure est-il ? »",
-   "bn": "বলুন « OK Groovy, কয়টা বাজে? »",
-   "pt-BR": "Diga « OK Groovy, que horas são? »",
-   "ru": "Скажите « OK Groovy, который час? »",
-   "id": "Ucapkan « OK Groovy, jam berapa sekarang? »"
+  "Say « Hey Groovy, what time is it? »": {
+   "zh-Hans": "请说 « Hey Groovy，现在几点？»",
+   "hi": "कहें « Hey Groovy, कितने बजे हैं? »",
+   "es": "Di « Hey Groovy, ¿qué hora es? »",
+   "ar": "قل « Hey Groovy، كم الساعة؟ »",
+   "fr": "Dites « Hey Groovy, quelle heure est-il ? »",
+   "bn": "বলুন « Hey Groovy, কয়টা বাজে? »",
+   "pt-BR": "Diga « Hey Groovy, que horas são? »",
+   "ru": "Скажите « Hey Groovy, который час? »",
+   "id": "Ucapkan « Hey Groovy, jam berapa sekarang? »"
   },
   "Voice ID from fish.audio": {
    "zh-Hans": "fish.audio 上的声音 ID",
@@ -13965,16 +13965,16 @@
    "ru": "Щелчок мимо",
    "id": "Klik di luar"
   },
-  "« OK Groovy »": {
-   "zh-Hans": "« OK Groovy »",
-   "hi": "« OK Groovy »",
-   "es": "« OK Groovy »",
-   "ar": "« OK Groovy »",
-   "fr": "« OK Groovy »",
-   "bn": "« OK Groovy »",
-   "pt-BR": "« OK Groovy »",
-   "ru": "« OK Groovy »",
-   "id": "« OK Groovy »"
+  "« Hey Groovy »": {
+   "zh-Hans": "« Hey Groovy »",
+   "hi": "« Hey Groovy »",
+   "es": "« Hey Groovy »",
+   "ar": "« Hey Groovy »",
+   "fr": "« Hey Groovy »",
+   "bn": "« Hey Groovy »",
+   "pt-BR": "« Hey Groovy »",
+   "ru": "« Hey Groovy »",
+   "id": "« Hey Groovy »"
   },
   "Island closes": {
    "zh-Hans": "岛何时收起",
@@ -16737,16 +16737,16 @@
    "ru": "Прослушивание и звонки",
    "id": "Mendengarkan & panggilan"
   },
-  "« OK Groovy », the microphone, and talking with him like a phone call.": {
-   "zh-Hans": "« OK Groovy »、麦克风，以及像打电话一样和他交谈。",
-   "hi": "« OK Groovy », माइक्रोफ़ोन, और फ़ोन कॉल की तरह उससे बात करना।",
-   "es": "« OK Groovy », el micrófono y hablar con él como en una llamada.",
-   "ar": "« OK Groovy »، والميكروفون، والتحدث معه كمكالمة هاتفية.",
-   "fr": "« OK Groovy », le micro, et lui parler comme au téléphone.",
-   "bn": "« OK Groovy », মাইক্রোফোন, আর ফোন কলের মতো তার সাথে কথা বলা।",
-   "pt-BR": "« OK Groovy », o microfone e conversar com ele como numa ligação.",
-   "ru": "« OK Groovy », микрофон и разговор с ним, как по телефону.",
-   "id": "« OK Groovy », mikrofon, dan berbicara dengannya seperti panggilan telepon."
+  "« Hey Groovy », the microphone, and talking with him like a phone call.": {
+   "zh-Hans": "« Hey Groovy »、麦克风，以及像打电话一样和他交谈。",
+   "hi": "« Hey Groovy », माइक्रोफ़ोन, और फ़ोन कॉल की तरह उससे बात करना।",
+   "es": "« Hey Groovy », el micrófono y hablar con él como en una llamada.",
+   "ar": "« Hey Groovy »، والميكروفون، والتحدث معه كمكالمة هاتفية.",
+   "fr": "« Hey Groovy », le micro, et lui parler comme au téléphone.",
+   "bn": "« Hey Groovy », মাইক্রোফোন, আর ফোন কলের মতো তার সাথে কথা বলা।",
+   "pt-BR": "« Hey Groovy », o microfone e conversar com ele como numa ligação.",
+   "ru": "« Hey Groovy », микрофон и разговор с ним, как по телефону.",
+   "id": "« Hey Groovy », mikrofon, dan berbicara dengannya seperti panggilan telepon."
   },
   "What the island shows, how it looks and when it opens. Changes appear live.": {
    "zh-Hans": "岛显示什么、外观如何、何时打开。更改即时生效。",
@@ -19773,27 +19773,27 @@
    "ru": "Зима и Рождество",
    "id": "Musim dingin & Natal"
   },
-  "Say “{name}” or “Hey {name}” as well as « OK Groovy ».": {
-   "zh-Hans": "除了 « OK Groovy »，也可以说“{name}”或“Hey {name}”。",
-   "hi": "« OK Groovy » के साथ “{name}” या “Hey {name}” भी कहें।",
-   "es": "Di “{name}” o “Hey {name}”, además de « OK Groovy ».",
-   "ar": "قل “{name}” أو “Hey {name}” إلى جانب « OK Groovy ».",
-   "fr": "Dites « {name} » ou « Hey {name} », en plus de « OK Groovy ».",
-   "bn": "« OK Groovy »-র পাশাপাশি “{name}” বা “Hey {name}” বলুন।",
-   "pt-BR": "Diga “{name}” ou “Hey {name}”, além de « OK Groovy ».",
-   "ru": "Говорите «{name}» или «Hey {name}», а также « OK Groovy ».",
-   "id": "Ucapkan “{name}” atau “Hey {name}”, selain « OK Groovy »."
+  "Say “{name}” or “Hey {name}” as well as « Hey Groovy ».": {
+   "zh-Hans": "除了 « Hey Groovy »，也可以说“{name}”或“Hey {name}”。",
+   "hi": "« Hey Groovy » के साथ “{name}” या “Hey {name}” भी कहें।",
+   "es": "Di “{name}” o “Hey {name}”, además de « Hey Groovy ».",
+   "ar": "قل “{name}” أو “Hey {name}” إلى جانب « Hey Groovy ».",
+   "fr": "Dites « {name} » ou « Hey {name} », en plus de « Hey Groovy ».",
+   "bn": "« Hey Groovy »-র পাশাপাশি “{name}” বা “Hey {name}” বলুন।",
+   "pt-BR": "Diga “{name}” ou “Hey {name}”, além de « Hey Groovy ».",
+   "ru": "Говорите «{name}» или «Hey {name}», а также « Hey Groovy ».",
+   "id": "Ucapkan “{name}” atau “Hey {name}”, selain « Hey Groovy »."
   },
-  "He is called Groovy: « OK Groovy » already wakes him. Give him a name in Settings → Groovy.": {
-   "zh-Hans": "他叫 Groovy：« OK Groovy » 已经能唤醒他。可以在 设置 → Groovy 中给他取名。",
-   "hi": "उसका नाम Groovy है: « OK Groovy » उसे पहले से जगाता है। सेटिंग्स → Groovy में उसे नाम दें।",
-   "es": "Se llama Groovy: « OK Groovy » ya lo despierta. Ponle un nombre en Ajustes → Groovy.",
-   "ar": "اسمه Groovy: عبارة « OK Groovy » توقظه بالفعل. أعطه اسمًا في الإعدادات ← Groovy.",
-   "fr": "Il s’appelle Groovy : « OK Groovy » le réveille déjà. Donnez-lui un nom dans Réglages → Groovy.",
-   "bn": "ওর নাম Groovy: « OK Groovy » আগেই ওকে জাগায়। সেটিংস → Groovy-তে ওকে একটা নাম দিন।",
-   "pt-BR": "Ele se chama Groovy: « OK Groovy » já o acorda. Dê um nome a ele em Configurações → Groovy.",
-   "ru": "Его зовут Groovy: « OK Groovy » уже его будит. Дайте ему имя в Настройки → Groovy.",
-   "id": "Namanya Groovy: « OK Groovy » sudah membangunkannya. Beri ia nama di Pengaturan → Groovy."
+  "He is called Groovy: « Hey Groovy » already wakes him. Give him a name in Settings → Groovy.": {
+   "zh-Hans": "他叫 Groovy：« Hey Groovy » 已经能唤醒他。可以在 设置 → Groovy 中给他取名。",
+   "hi": "उसका नाम Groovy है: « Hey Groovy » उसे पहले से जगाता है। सेटिंग्स → Groovy में उसे नाम दें।",
+   "es": "Se llama Groovy: « Hey Groovy » ya lo despierta. Ponle un nombre en Ajustes → Groovy.",
+   "ar": "اسمه Groovy: عبارة « Hey Groovy » توقظه بالفعل. أعطه اسمًا في الإعدادات ← Groovy.",
+   "fr": "Il s’appelle Groovy : « Hey Groovy » le réveille déjà. Donnez-lui un nom dans Réglages → Groovy.",
+   "bn": "ওর নাম Groovy: « Hey Groovy » আগেই ওকে জাগায়। সেটিংস → Groovy-তে ওকে একটা নাম দিন।",
+   "pt-BR": "Ele se chama Groovy: « Hey Groovy » já o acorda. Dê um nome a ele em Configurações → Groovy.",
+   "ru": "Его зовут Groovy: « Hey Groovy » уже его будит. Дайте ему имя в Настройки → Groovy.",
+   "id": "Namanya Groovy: « Hey Groovy » sudah membangunkannya. Beri ia nama di Pengaturan → Groovy."
   },
   "“{name}” is short: a name of two syllables or more is heard more reliably.": {
    "zh-Hans": "“{name}”比较短：两个音节以上的名字更容易被听清。",
@@ -20367,16 +20367,16 @@
    "ru": "Тишина во время игр и презентаций",
    "id": "Diam saat bermain game dan presentasi"
   },
-  "While a full-screen game or presentation runs, Groovy stops listening for « OK Groovy », pauses background checks and ignores shortcuts except Mute and the island.": {
-   "zh-Hans": "全屏游戏或演示运行时，Groovy 会停止监听“OK Groovy”，暂停后台检查，并忽略除静音和灵动岛之外的快捷键。",
-   "hi": "फ़ुल-स्क्रीन गेम या प्रस्तुति चलने पर Groovy « OK Groovy » सुनना बंद कर देता है, बैकग्राउंड जाँचें रोक देता है और म्यूट और आइलैंड को छोड़कर शॉर्टकट अनदेखे करता है।",
-   "es": "Mientras se ejecuta un juego o una presentación a pantalla completa, Groovy deja de escuchar « OK Groovy », pausa las comprobaciones en segundo plano e ignora los atajos salvo Silenciar y la isla.",
-   "ar": "أثناء تشغيل لعبة أو عرض تقديمي بملء الشاشة، يتوقف Groovy عن الاستماع إلى « OK Groovy » ويوقف الفحوصات الخلفية مؤقتًا ويتجاهل الاختصارات عدا كتم الصوت والجزيرة.",
-   "fr": "Pendant un jeu ou une présentation en plein écran, Groovy cesse d'écouter « OK Groovy », met en pause les vérifications en arrière-plan et ignore les raccourcis, sauf Muet et l'île.",
-   "bn": "ফুল-স্ক্রিন গেম বা প্রেজেন্টেশন চললে Groovy « OK Groovy » শোনা বন্ধ করে, ব্যাকগ্রাউন্ড চেক থামিয়ে দেয় এবং মিউট ও আইল্যান্ড ছাড়া শর্টকাট উপেক্ষা করে।",
-   "pt-BR": "Enquanto um jogo ou apresentação em tela cheia está em execução, o Groovy para de ouvir « OK Groovy », pausa as verificações em segundo plano e ignora atalhos, exceto Silenciar e a ilha.",
-   "ru": "Пока идёт полноэкранная игра или презентация, Groovy перестаёт слушать « OK Groovy », приостанавливает фоновые проверки и игнорирует сочетания клавиш, кроме «Без звука» и острова.",
-   "id": "Saat game atau presentasi layar penuh berjalan, Groovy berhenti mendengarkan « OK Groovy », menjeda pemeriksaan latar belakang, dan mengabaikan pintasan kecuali Bisukan dan pulau."
+  "While a full-screen game or presentation runs, Groovy stops listening for « Hey Groovy », pauses background checks and ignores shortcuts except Mute and the island.": {
+   "zh-Hans": "全屏游戏或演示运行时，Groovy 会停止监听“Hey Groovy”，暂停后台检查，并忽略除静音和灵动岛之外的快捷键。",
+   "hi": "फ़ुल-स्क्रीन गेम या प्रस्तुति चलने पर Groovy « Hey Groovy » सुनना बंद कर देता है, बैकग्राउंड जाँचें रोक देता है और म्यूट और आइलैंड को छोड़कर शॉर्टकट अनदेखे करता है।",
+   "es": "Mientras se ejecuta un juego o una presentación a pantalla completa, Groovy deja de escuchar « Hey Groovy », pausa las comprobaciones en segundo plano e ignora los atajos salvo Silenciar y la isla.",
+   "ar": "أثناء تشغيل لعبة أو عرض تقديمي بملء الشاشة، يتوقف Groovy عن الاستماع إلى « Hey Groovy » ويوقف الفحوصات الخلفية مؤقتًا ويتجاهل الاختصارات عدا كتم الصوت والجزيرة.",
+   "fr": "Pendant un jeu ou une présentation en plein écran, Groovy cesse d'écouter « Hey Groovy », met en pause les vérifications en arrière-plan et ignore les raccourcis, sauf Muet et l'île.",
+   "bn": "ফুল-স্ক্রিন গেম বা প্রেজেন্টেশন চললে Groovy « Hey Groovy » শোনা বন্ধ করে, ব্যাকগ্রাউন্ড চেক থামিয়ে দেয় এবং মিউট ও আইল্যান্ড ছাড়া শর্টকাট উপেক্ষা করে।",
+   "pt-BR": "Enquanto um jogo ou apresentação em tela cheia está em execução, o Groovy para de ouvir « Hey Groovy », pausa as verificações em segundo plano e ignora atalhos, exceto Silenciar e a ilha.",
+   "ru": "Пока идёт полноэкранная игра или презентация, Groovy перестаёт слушать « Hey Groovy », приостанавливает фоновые проверки и игнорирует сочетания клавиш, кроме «Без звука» и острова.",
+   "id": "Saat game atau presentasi layar penuh berjalan, Groovy berhenti mendengarkan « Hey Groovy », menjeda pemeriksaan latar belakang, dan mengabaikan pintasan kecuali Bisukan dan pulau."
   },
   "Links to": {
    "zh-Hans": "链接到",

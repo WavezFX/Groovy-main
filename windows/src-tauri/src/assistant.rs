@@ -44,7 +44,7 @@ pub struct AssistantPrefs {
     pub gpu_layers: u32,
     /// Online messages allowed per day; 0 = no limit.
     pub daily_online_limit: u32,
-    /// Who answers « OK Groovy », Flow's clean-up and the call notes (brain_ai.rs):
+    /// Who answers « Hey Groovy », Flow's clean-up and the call notes (brain_ai.rs):
     /// "auto" (the AI chosen at setup: a cloud key, then a subscription CLI, then
     /// local if allowed), or one of BRAINS.
     pub brain: String,
@@ -67,7 +67,7 @@ pub struct AssistantPrefs {
     /// Off: Groovy stops and says the limit is reached.
     pub switch_on_limit: bool,
     /// Who does each job, by job ("chat" is the chat's own picker; "writing":
-    /// Flow's clean-up, the notes' and calls' summaries; "commands": « OK Groovy »).
+    /// Flow's clean-up, the notes' and calls' summaries; "commands": « Hey Groovy »).
     /// A brain id puts that brain first for the job; missing or "auto": the Auto order.
     pub job_brains: std::collections::BTreeMap<String, String>,
 }

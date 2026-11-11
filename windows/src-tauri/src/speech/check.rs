@@ -1,7 +1,7 @@
 // The guided speech setup (FIXES_ROUND1 item 3): a live level meter for the
 // microphone being picked, and a short recording turned into text with the
 // engine chosen (Parakeet or Whisper), so the user sees it work before
-// relying on dictation, the Notetaker or « OK Groovy ». Nothing is kept.
+// relying on dictation, the Notetaker or « Hey Groovy ». Nothing is kept.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};

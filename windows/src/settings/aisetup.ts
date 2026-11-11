@@ -68,7 +68,7 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
       h("h2", {}, h("span", { text: t("Groovy's AI") })),
       current
         ? h("div", { class: "notice ok", text: t("In use: {what}.", { what: current }) })
-        : h("div", { class: "notice warn", text: t("Choose the AI Groovy uses for the chat, « OK Groovy », dictation and notes. Nothing loads until you choose.") }),
+        : h("div", { class: "notice warn", text: t("Choose the AI Groovy uses for the chat, « Hey Groovy », dictation and notes. Nothing loads until you choose.") }),
     );
 
     // 1. Gemini: free.
@@ -124,7 +124,7 @@ export function aiSetupSection(settings: Settings, save: () => void, prefs: () =
     section.append(
       h("div", { class: "subhead", text: t("Claude Code or Codex subscription") }),
       sub,
-      h("div", { class: "hint", text: t("Uses the command-line tool you already signed in to, for « OK Groovy », dictation and notes (answers without tools). The chat still needs a key.") }),
+      h("div", { class: "hint", text: t("Uses the command-line tool you already signed in to, for « Hey Groovy », dictation and notes (answers without tools). The chat still needs a key.") }),
     );
 
     // 4. Light local: one small model picked for this PC, one click.

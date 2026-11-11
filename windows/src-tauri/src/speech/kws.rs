@@ -1,6 +1,6 @@
-// « OK Groovy »'s ear (round 3B item 10): a 3.3 M-parameter keyword spotter
-// (sherpa-onnx's zipformer trained on GigaSpeech, Apache-2.0, about 5 MB)
-// listens for "OK Groovy", "Okay Groovy" and "Hey Groovy". Only stretches of
+// Groovy's ear (round 3B item 10, round 4B item 1): a 3.3 M-parameter keyword
+// spotter (sherpa-onnx's zipformer trained on GigaSpeech, Apache-2.0, about
+// 5 MB) listens for "Groovy", "Hey Groovy" and "Yo Groovy". Only stretches of
 // speech reach it (wake::Vad gates it, so silence costs almost nothing); only
 // once it fires is the full speech engine, cloud or Parakeet, asked for the
 // words. It comes with the speech models, in one 17.6 MB archive that is
@@ -27,8 +27,62 @@ const FILES: &[(&str, u64, &str)] = &[
     ("tokens.txt", 5_006, "fd2ded4050a55d2b1578870ba8697d02371980217806b7558bd0a5cc60f3ba53"),
 ];
 
-/// The wake phrases in the model's BPE pieces (its bpe.model, by sentencepiece).
-const KEYWORDS: &str = "▁O K ▁G RO O V Y @OK_GROOVY\n▁OKAY ▁G RO O V Y @OKAY_GROOVY\n▁HE Y ▁G RO O V Y @HEY_GROOVY";
+/// The three wake phrases, and only these (round 4B item 1), in the model's
+/// BPE pieces (its bpe.model, by sentencepiece). A bare "Groovy" is the
+/// easiest to mistake, so it has to score higher than the other two (`#`).
+const KEYWORDS: &str = "▁G RO O V Y :2.0 #0.1 @GROOVY\n▁HE Y ▁G RO O V Y @HEY_GROOVY\n▁ Y O ▁G RO O V Y @YO_GROOVY";
+
+/// Which wake phrase the spotter heard.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Phrase {
+    /// "Groovy" alone: only a wake when it is the first thing said.
+    Groovy,
+    HeyGroovy,
+    YoGroovy,
+    /// The name he was given, alone or after "Hey" (« Also wake to his name »).
+    Name,
+    HeyName,
+}
+
+impl Phrase {
+    fn of(label: &str) -> Phrase {
+        match label.trim_start_matches('@') {
+            "HEY_GROOVY" => Phrase::HeyGroovy,
+            "YO_GROOVY" => Phrase::YoGroovy,
+            "HIS_NAME" => Phrase::Name,
+            "HEY_HIS_NAME" => Phrase::HeyName,
+            _ => Phrase::Groovy,
+        }
+    }
+
+    /// How many words the phrase is, when what was said has to be cut after it.
+    pub fn words(self) -> usize {
+        match self {
+            Phrase::Groovy | Phrase::Name => 1,
+            _ => 2,
+        }
+    }
+}
+
+/// A wake phrase the spotter heard, and how far into the stretch of speech it began (seconds).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Heard {
+    pub phrase: Phrase,
+    pub start: f32,
+}
+
+/// A bare "Groovy" counts only at the start of what was said: the stretch
+/// begins with about 0.3 s of lead-in, and a filler ("um") may come first.
+pub const BARE_BY: f32 = 0.75;
+
+impl Heard {
+    /// Whether this is a wake by itself. A bare "Groovy" later in a sentence
+    /// ("that's really groovy") is not; one at the start still has to be the
+    /// first word of what the speech engine writes (okgroovy/wake.rs).
+    pub fn in_place(&self) -> bool {
+        self.phrase != Phrase::Groovy || self.start <= BARE_BY
+    }
+}
 /// « Also wake to his name » (round 5 item 6): the name he was given, and a
 /// count that moves on each change so a loaded spotter knows to load again.
 static NAME: std::sync::Mutex<(Option<String>, u64)> = std::sync::Mutex::new((None, 0));
@@ -81,8 +135,9 @@ fn keywords(vocab: &std::collections::HashSet<String>) -> String {
     all
 }
 
-/// Tuned on synthetic voices: 14 of 16 wake phrases heard, none of 16 other
-/// sentences ("OK, let's go…", "…really groovy") taken for one.
+/// Tuned on synthetic voices (the offline voice, both genders): 9 of 10 wake
+/// phrases heard, none of 20 other sentences ("OK Groovy…", "…really groovy")
+/// taken for one (`kws_hears_the_three_wake_phrases_and_nothing_else`).
 const SCORE: f32 = 1.5;
 const THRESHOLD: f32 = 0.15;
 
@@ -168,7 +223,7 @@ pub fn heard_shared(speech: &[f32]) -> Option<bool> {
     }
     let (spotter, used) = shared.as_mut()?;
     *used = std::time::Instant::now();
-    Some(spotter.heard(speech))
+    Some(spotter.heard(speech).is_some())
 }
 
 pub fn free_if_idle() {
@@ -222,20 +277,26 @@ impl Spotter {
         self.generation != name_generation()
     }
 
-    /// The wake phrase is in this stretch of speech (16 kHz mono).
-    pub fn heard(&self, speech: &[f32]) -> bool {
+    /// The wake phrase in this stretch of speech (16 kHz mono), if there is one.
+    pub fn heard(&self, speech: &[f32]) -> Option<Heard> {
         let stream = self.kws.create_stream();
         stream.accept_waveform(SAMPLE_RATE as i32, speech);
-        // Half a second of silence lets the last word through.
-        stream.accept_waveform(SAMPLE_RATE as i32, &vec![0.0; SAMPLE_RATE as usize / 2]);
+        // A second of silence lets the last word through.
+        stream.accept_waveform(SAMPLE_RATE as i32, &vec![0.0; SAMPLE_RATE as usize]);
         stream.input_finished();
         while self.kws.is_ready(&stream) {
             self.kws.decode(&stream);
-            if self.kws.get_result(&stream).is_some_and(|r| !r.keyword.is_empty()) {
-                return true;
+            if let Some(r) = self.kws.get_result(&stream).filter(|r| !r.keyword.is_empty()) {
+                let start = r.timestamps.first().copied().unwrap_or(0.0) + r.start_time;
+                let heard = Heard { phrase: Phrase::of(&r.keyword), start };
+                if heard.in_place() {
+                    return Some(heard);
+                }
+                // A "groovy" in the middle of a sentence: keep listening to the rest.
+                self.kws.reset(&stream);
             }
         }
-        false
+        None
     }
 }
 
@@ -244,11 +305,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_keywords_name_groovy_three_ways() {
+    fn the_keywords_are_the_three_wake_phrases_and_no_others() {
         let lines: Vec<&str> = KEYWORDS.lines().collect();
         assert_eq!(lines.len(), 3);
-        assert!(lines.iter().all(|l| l.contains("▁G RO O V Y @")));
+        assert!(lines.iter().all(|l| l.contains("▁G RO O V Y ")));
+        let labels: Vec<&str> = lines.iter().filter_map(|l| l.rsplit('@').next()).collect();
+        assert_eq!(labels, ["GROOVY", "HEY_GROOVY", "YO_GROOVY"]);
+        assert!(!KEYWORDS.contains("▁O K") && !KEYWORDS.contains("OKAY"), "« OK Groovy » is gone (round 4B item 1)");
         assert_eq!(FILES.iter().map(|f| f.1).sum::<u64>(), 5_253_530);
+    }
+
+    #[test]
+    fn a_bare_groovy_only_counts_at_the_start() {
+        let at = |phrase, start| Heard { phrase, start };
+        assert!(at(Phrase::Groovy, 0.4).in_place());
+        assert!(!at(Phrase::Groovy, 1.8).in_place(), "“that's really groovy”");
+        assert!(at(Phrase::HeyGroovy, 2.5).in_place(), "“…hey Groovy” counts anywhere");
+        assert!(at(Phrase::YoGroovy, 2.5).in_place());
+        assert_eq!(Phrase::of("HEY_GROOVY"), Phrase::HeyGroovy);
+        assert_eq!(Phrase::of("@YO_GROOVY"), Phrase::YoGroovy);
+        assert_eq!(Phrase::of("GROOVY"), Phrase::Groovy);
+        assert_eq!(Phrase::of("HEY_HIS_NAME"), Phrase::HeyName);
+        assert_eq!((Phrase::Groovy.words(), Phrase::HeyGroovy.words(), Phrase::YoGroovy.words()), (1, 2, 2));
     }
 
     #[test]
@@ -286,17 +364,110 @@ mod tests {
         assert_eq!(is_present(), before);
     }
 
+    /// 24 kHz 16-bit mono WAV (Kokoro's) to 16 kHz samples.
+    fn to_16k(wav: &[u8]) -> Vec<f32> {
+        let data = wav.windows(4).position(|w| w == b"data").expect("a data chunk") + 8;
+        let src: Vec<f32> = wav[data..].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect();
+        let n = src.len() * 2 / 3;
+        (0..n)
+            .map(|i| {
+                let at = i as f32 * 1.5;
+                let (a, f) = (at as usize, at.fract());
+                src[a] * (1.0 - f) + src.get(a + 1).copied().unwrap_or(0.0) * f
+            })
+            .collect()
+    }
+
+    /// What the microphone loop hands the spotter: 0.3 s of lead-in, then the words.
+    fn said(text: &str, gender: &str) -> Vec<f32> {
+        let wav = super::super::tts::kokoro_at(text, gender, 1.0).expect("Kokoro speaks");
+        let mut samples = vec![0.0; SAMPLE_RATE as usize * 3 / 10];
+        samples.extend(to_16k(&wav));
+        samples
+    }
+
+    /// Round 4B item 1 (target P5): at least 9 of 10 wake phrases heard, none
+    /// of 20 other sentences taken for one. The clips are made here with the
+    /// offline voice. Run on the Windows build (it downloads the models):
+    /// cargo test -p groovy kws_ -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn kws_hears_the_three_wake_phrases_and_nothing_else() {
+        let client = super::super::download_client().unwrap();
+        tauri::async_runtime::block_on(download(&client)).expect("download");
+        let mut done = 0;
+        tauri::async_runtime::block_on(super::super::fetch_set(&client, &super::super::tts::KOKORO, &mut done, &mut |_| {})).expect("download");
+        let spotter = Spotter::load().expect("the spotter loads");
+        let wakes = [
+            ("Groovy, what time is it?", "female"),
+            ("Groovy, pause the music.", "male"),
+            ("Groovy.", "female"),
+            ("Hey Groovy, what's on today?", "female"),
+            ("Hey Groovy, turn the volume down.", "male"),
+            ("Hey Groovy.", "male"),
+            ("So, hey Groovy, are you there?", "female"),
+            ("Yo Groovy, what time is it?", "male"),
+            ("Yo Groovy, open the calculator.", "female"),
+            ("Yo Groovy.", "female"),
+        ];
+        let others = [
+            "OK Groovy, what time is it?",
+            "Okay Groovy, pause the music.",
+            "OK, let's go to the store.",
+            "That song is really groovy.",
+            "I was feeling groovy today, to be honest.",
+            "We had a groovy time at the party last night.",
+            "The movie was pretty groovy, I liked it.",
+            "Send the report to Sam before lunch.",
+            "Hey Google, what's the weather?",
+            "Hey, are you coming to the meeting?",
+            "Yo, what's up with the build?",
+            "The gravy was too salty.",
+            "He drove through the grove this morning.",
+            "It's a movie about a groom and a bride.",
+            "Can you approve the pull request?",
+            "Let's groove to some music later.",
+            "My cat is called Ruby, not Louie.",
+            "Turn the volume down a little, please.",
+            "What time does the store open tomorrow?",
+            "I think the groovy one is in the second drawer.",
+        ];
+        let mut heard = 0;
+        for (text, gender) in wakes {
+            let hit = spotter.heard(&said(text, gender));
+            println!("wake  {:<44} {:?}", text, hit);
+            heard += hit.is_some() as usize;
+        }
+        let mut taken = Vec::new();
+        for (i, text) in others.iter().enumerate() {
+            let hit = spotter.heard(&said(text, if i % 2 == 0 { "female" } else { "male" }));
+            println!("other {:<44} {:?}", text, hit);
+            // « OK Groovy » may still reach the spotter as a bare "Groovy" near
+            // the start: the words then decide (okgroovy/wake.rs), as in the app.
+            let is_wake = hit.is_some_and(|h| h.phrase != Phrase::Groovy || crate::okgroovy::wake::after_wake(text).is_some());
+            if is_wake {
+                taken.push(*text);
+            }
+        }
+        println!("{heard} of {} wake phrases heard; {} of {} other sentences taken for one", wakes.len(), taken.len(), others.len());
+        assert!(heard >= 9, "{heard} of 10 wake phrases heard");
+        assert!(taken.is_empty(), "taken for a wake phrase: {taken:?}");
+    }
+
     /// Run on the Windows build (it downloads the model): cargo test -p groovy kws_ -- --ignored
     #[test]
     #[ignore]
-    fn kws_hears_ok_groovy_and_nothing_else() {
+    fn kws_hears_hey_groovy_in_a_recording_and_nothing_else() {
         let client = super::super::download_client().unwrap();
         tauri::async_runtime::block_on(download(&client)).expect("download");
         let spotter = Spotter::load().expect("the spotter loads");
         let wav = |name: &str| super::super::tests_audio(name);
-        assert!(spotter.heard(&wav("ok-groovy-time.wav")), "OK Groovy");
-        assert!(!spotter.heard(&wav("not-wake.wav")), "OK, let's go to the store");
-        assert!(!spotter.heard(&wav("dictation.wav")), "a dictation");
-        println!("the spotter heard « OK Groovy » and nothing else");
+        assert!(spotter.heard(&wav("hey-groovy-time.wav")).is_some(), "Hey Groovy");
+        assert!(spotter.heard(&wav("not-wake.wav")).is_none(), "OK, let's go to the store");
+        assert!(spotter.heard(&wav("dictation.wav")).is_none(), "a dictation");
+        // « OK Groovy » is gone: if the spotter still takes its "Groovy", the words refuse it.
+        let old = spotter.heard(&wav("ok-groovy-time.wav"));
+        assert!(old.is_none_or(|h| h.phrase == Phrase::Groovy && crate::okgroovy::wake::after_wake("OK Groovy, what time is it?").is_none()), "{old:?}");
+        println!("the spotter heard “Hey Groovy” and nothing else");
     }
 }

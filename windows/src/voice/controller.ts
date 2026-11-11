@@ -1,16 +1,19 @@
-// Groovy's ears: listens for "Groovy" / "Hey Groovy" / "Yo Groovy", then for
-// what you ask, and hands the words to the island.
+// Groovy's ears during a call or a dictation: what you say, cut into turns,
+// handed to the island as text.
+//
+// The wake phrases ("Groovy", "Hey Groovy", "Yo Groovy") are not listened for
+// here any more: one listener in Rust hears them (round 4B item 1,
+// okgroovy/mod.rs) and tells the island (`voice-wake`). This controller runs
+// only while the page has the microphone, for a call or a dictation.
 //
 // Everything here is pure logic fed 16 kHz mono frames, so it runs the same in
 // the tests as with the microphone (./mic.ts). Speech is turned into text by
 // whoever the controller is given — Whisper on this computer (Rust, voice.rs).
 //
-//   wake      the VAD cuts speech into segments; each short one is transcribed
-//             and checked for the wake phrase. "Hey Groovy, what's on today?"
-//             in one breath goes straight through as a command.
-//   command   after a bare "Groovy": the next thing said, ended by a longer
-//             pause, is the command. Nothing said within a few seconds, or
-//             "never mind", goes back to waiting.
+//   wake      waiting: nothing is transcribed.
+//   command   the next thing said, ended by a longer pause, is the turn (or
+//             the dictation). Nothing said within a few seconds, or "never
+//             mind", goes back to waiting.
 //   paused    a LiveKit conversation (or anything else) has the microphone.
 
 import { EnergyVAD, power } from "./vad";
@@ -40,8 +43,6 @@ export const PARTIAL_EVERY = 1.0;
 
 /** Seconds of audio kept from just before speech starts, so the first word isn't clipped. */
 const PRE_ROLL = 0.35;
-/** A wake segment is only checked on its first seconds: the name comes first. */
-const WAKE_CHECK = 3.0;
 /** Shorter than this is a click or a cough. */
 const MIN_SEGMENT = 0.3;
 /** Pauses that end a segment: short while waiting for the name, longer for a command. */
@@ -176,44 +177,9 @@ export class VoiceController {
     const pcm = concat(this.segment);
     this.clearSegment();
     if (pcm.length / SAMPLE_RATE < MIN_SEGMENT) return;
-    if (this.phase === "wake") void this.checkWake(pcm);
-    else if (this.phase === "command") void this.takeCommand(pcm);
-  }
-
-  private async checkWake(pcm: Float32Array) {
-    const epoch = this.epoch;
-    const head = pcm.length > WAKE_CHECK * SAMPLE_RATE ? pcm.subarray(0, WAKE_CHECK * SAMPLE_RATE) : pcm;
-    this.setPhase("transcribing");
-    let text = "";
-    try {
-      text = await this.transcribe(head, "wake");
-    } catch {
-      text = "";
-    }
-    if (epoch !== this.epoch) return;
-    let split = splitWake(text);
-    if (!split.matched) {
-      this.setPhase("wake");
-      return;
-    }
-    // Said in one breath: transcribe the whole thing properly for the command.
-    if (head !== pcm || split.command) {
-      try {
-        const full = await this.transcribe(pcm, "command");
-        if (epoch !== this.epoch) return;
-        const again = splitWake(full);
-        if (again.matched) split = again;
-      } catch {
-        // keep what the quick pass heard
-      }
-    }
-    if (split.command) {
-      this.toWake();
-      this.deliver(split.command);
-    } else {
-      this.toCommand();
-      this.cb.onWake();
-    }
+    // Waiting ("wake"): nothing is transcribed here. The wake phrases are
+    // heard in Rust by the one listener (round 4B item 1, okgroovy/mod.rs).
+    if (this.phase === "command") void this.takeCommand(pcm);
   }
 
   private async takeCommand(pcm: Float32Array) {

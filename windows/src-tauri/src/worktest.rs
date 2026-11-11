@@ -2,7 +2,7 @@
 // folder of 16 kHz recordings (src-tauri/tests/audio), Groovy downloads the
 // speech models, the wake word spotter, llama.cpp and the smallest local
 // model if they aren't there, then does real work with them: one dictation,
-// one « OK Groovy » command and one local AI reply. Then it waits for the
+// one « Hey Groovy » command and one local AI reply. Then it waits for the
 // idle unload and writes work-test.json, which scripts/work-test.ps1 reads
 // before it measures Groovy's idle memory and CPU. Nothing here runs
 // without that variable.
@@ -47,7 +47,7 @@ pub fn start(app: &AppHandle) {
         let t = Instant::now();
         step("dictation", t, dictation(&app, &dir));
         let t = Instant::now();
-        step("OK Groovy command", t, command(&app, &dir));
+        step("Hey Groovy command", t, command(&app, &dir));
         let t = Instant::now();
         step("back to Standby after the follow-up window", t, back_to_standby());
         let t = Instant::now();
@@ -94,7 +94,7 @@ async fn speech_models(app: &AppHandle) -> Result<(), String> {
 // With GROOVY_PEAK_TEST (and GROOVY_SMOKE_VIEW=peak, which holds the island
 // open and turns it through the music layout, Reminders and the wardrobe):
 // Settings opens on Brains, its heaviest page, and stays open; then a mail
-// refresh, a dictation, an « OK Groovy » command and a live voice call (heard,
+// refresh, a dictation, an « Hey Groovy » command and a live voice call (heard,
 // then answered out loud with Kokoro) run, the dictation and the call at the
 // same time. Groovy's own meter (resources/ceiling.rs: the private working set of every
 // process it owns, as Task Manager counts it) is read every 250 ms the whole
@@ -152,7 +152,7 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             step(&format!("dictation {round}"), t, dictation(&app, &dir));
             step(&format!("live voice call {round}"), t, call.join().unwrap_or_else(|_| Err("the call thread stopped".into())));
             let t = Instant::now();
-            step(&format!("OK Groovy command {round}"), t, command(&app, &dir));
+            step(&format!("Hey Groovy command {round}"), t, command(&app, &dir));
         }
         // A last look with everything still open.
         std::thread::sleep(Duration::from_secs(3));
@@ -194,7 +194,7 @@ fn open_settings(app: &AppHandle) -> Result<String, String> {
 /// One turn of a live call on this PC: what was said is heard, and the answer
 /// is spoken with Groovy's own voice (Kokoro).
 fn live_call(_app: &AppHandle, dir: &Path) -> Result<String, String> {
-    let heard = speech::transcribe(&wav(dir, "ok-groovy-time.wav")?).ok_or("the speech model did not load")?.text;
+    let heard = speech::transcribe(&wav(dir, "hey-groovy-time.wav")?).ok_or("the speech model did not load")?.text;
     let wav = speech::tts::kokoro_at("It is a quarter past three, and the report is on its way to Sam.", "female", 1.0).ok_or("Kokoro did not speak")?;
     Ok(format!("heard “{heard}”, answered with {} KB of speech", wav.len() / 1024))
 }
@@ -227,21 +227,21 @@ fn dictation(app: &AppHandle, dir: &Path) -> Result<String, String> {
 
 fn command(app: &AppHandle, dir: &Path) -> Result<String, String> {
     let spotter = speech::kws::Spotter::load().ok_or("the spotter did not load")?;
-    if spotter.heard(&wav(dir, "not-wake.wav")?) {
-        return Err("“OK, let's go to the store” was taken for « OK Groovy »".into());
+    if spotter.heard(&wav(dir, "not-wake.wav")?).is_some() {
+        return Err("“OK, let's go to the store” was taken for a wake phrase".into());
     }
-    let samples = wav(dir, "ok-groovy-time.wav")?;
+    let samples = wav(dir, "hey-groovy-time.wav")?;
     let t = Instant::now();
-    if !spotter.heard(&samples) {
-        return Err("the spotter did not hear « OK Groovy »".into());
-    }
+    let Some(hit) = spotter.heard(&samples) else {
+        return Err("the spotter did not hear “Hey Groovy”".into());
+    };
     let wake_ms = t.elapsed().as_millis();
     // Round 3D item 10: the wake word starts a conversation.
     crate::resources::state::fire(app, crate::resources::state::Event::Wake);
     let t = Instant::now();
     let heard = speech::transcribe(&samples).ok_or("the speech model did not load")?.text;
     let words_ms = t.elapsed().as_millis();
-    let rest = crate::okgroovy::wake::after_wake(&heard).unwrap_or_else(|| crate::okgroovy::wake::drop_wake_words(&heard));
+    let rest = crate::okgroovy::wake::after_wake(&heard).unwrap_or_else(|| crate::okgroovy::wake::drop_wake_words(&heard, hit.phrase.words()));
     let basic = crate::okgroovy::basic::parse(&rest).ok_or_else(|| format!("no command in “{heard}”"))?;
     let t = Instant::now();
     let answer = crate::okgroovy::basic::run(app, &basic);

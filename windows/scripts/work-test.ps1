@@ -4,7 +4,7 @@
 #
 # Starts Groovy with GROOVY_WORK_TEST: it downloads the speech models, the
 # wake word spotter, llama.cpp and the smallest local model (cached by the
-# workflow), then does one dictation, one « OK Groovy » command and one local
+# workflow), then does one dictation, one « Hey Groovy » command and one local
 # AI reply, waits for the idle unload and writes work-test.json. Meanwhile
 # this script records the peak memory of Groovy's whole process tree (groovy.exe,
 # every WebView2 child, llama-server). Then it measures 60 s of idle: fails if
@@ -95,7 +95,7 @@ try {
       break
     }
   }
-  $results["Groovy did the work (dictation, OK Groovy, local AI) and freed the models"] = [bool]($done -and $done.ok)
+  $results["Groovy did the work (dictation, Hey Groovy, local AI) and freed the models"] = [bool]($done -and $done.ok)
 
   if ($done -and -not $proc.HasExited) {
     # Idle: the island folded away, nothing playing, the models freed.

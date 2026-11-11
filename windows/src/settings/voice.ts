@@ -263,7 +263,7 @@ export function voiceSection(
     text: t("Speech is turned into text on this computer: no audio leaves it. The model is downloaded once from Hugging Face (whisper.cpp)."),
   });
 
-  // ── Recognition: the one speech engine calls, dictation, notes and « OK Groovy » share ──
+  // ── Recognition: the one speech engine calls, dictation, notes and « Hey Groovy » share ──
   const recognition = h("select", {},
     h("option", { value: "whisper", text: t("Whisper (light, 99 languages)") }),
     h("option", { value: "parakeet", text: t(PARAKEET_LABEL) }),
@@ -278,7 +278,7 @@ export function voiceSection(
   const setupSpeech = h("button", { text: t("Set up speech"), onclick: () => void Bridge.openSettingsWindow("speechsetup") });
   const parakeetState = h("span", { class: "hint" });
   const recognitionRow = h("div", { class: "row" }, h("label", { text: t("Recognition") }), recognition, parakeetState, setupSpeech);
-  const recognitionHint = h("div", { class: "hint", text: t("Downloaded once and used everywhere: calls, dictation, the Notetaker and « OK Groovy ».") });
+  const recognitionHint = h("div", { class: "hint", text: t("Downloaded once and used everywhere: calls, dictation, the Notetaker and « Hey Groovy ».") });
   const parakeetWarning = h("div", { class: "notice warn", text: t(PARAKEET_OVER_LIMIT) });
 
   function draw() {

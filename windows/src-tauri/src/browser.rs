@@ -1,5 +1,5 @@
 // The browser Groovy uses (round 4 item 4). Every "open a website" and
-// "search for…" — from « OK Groovy », the chat, the tools or the AI — goes
+// "search for…" — from « Hey Groovy », the chat, the tools or the AI — goes
 // through here, to the browser chosen in Settings → Browser (Windows' default
 // unless another is picked) and the search engine chosen there (DuckDuckGo
 // by default). Nothing here is hard-wired to Chrome.

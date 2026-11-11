@@ -909,7 +909,7 @@ mod tests {
         assert_eq!(parse("Add milk to my to-do list"), Some(Call::Todo("Milk".into())));
         assert_eq!(parse("add a to-do: call mum"), Some(Call::Todo("Call mum".into())));
         assert_eq!(parse("How's my battery?"), Some(Call::SystemStatus));
-        assert_eq!(parse("OK Groovy, any new emails?"), Some(Call::Mail));
+        assert_eq!(parse("Hey Groovy, any new emails?"), Some(Call::Mail));
         assert_eq!(parse("do I have any new mail"), Some(Call::Mail));
         assert_eq!(parse("check my inbox"), Some(Call::Mail));
         assert_eq!(parse("how much ram is free"), Some(Call::SystemStatus));

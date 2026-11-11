@@ -123,7 +123,7 @@ export interface AssistantPrefs {
   gpuLayers: number;
   /** Online messages per day; 0 = no limit. */
   dailyOnlineLimit: number;
-  /** What answers « OK Groovy », cleans up dictation and summarises notes (brain_ai.rs). */
+  /** What answers « Hey Groovy », cleans up dictation and summarises notes (brain_ai.rs). */
   brain: "auto" | "local" | "claude" | "google" | "openai" | "openrouter" | "claude-code" | "codex";
   /** The AI setup's choice: "" (not asked yet), "cloud", "subscription" or "local" (assistant.rs). */
   aiSetup: "" | "cloud" | "subscription" | "local";
@@ -302,7 +302,7 @@ export interface Settings {
   seasonalEarned: string[];
   /** Round 5 item 6: he was hatched with a chosen look and name (or told he can be named now). */
   hatchDone: boolean;
-  /** « Also wake to his name »: the spotter hears his name as well as « OK Groovy ». */
+  /** « Also wake to his name »: the spotter hears his name as well as « Hey Groovy ». */
   wakeToName: boolean;
   /** What grows his looks (round 3H item 3): "running" (the default) or "days". */
   growthRule: string;
@@ -441,7 +441,7 @@ class AppState {
   appearancePreview: import("../mochi/appearance").Appearance | null = null;
   /** Dictation is listening for one message to put in the text field. */
   dictating = false;
-  /** Flow dictation (the hotkey), a recorded call and « OK Groovy », from flow/live.rs. */
+  /** Flow dictation (the hotkey), a recorded call and « Hey Groovy », from flow/live.rs. */
   live: import("./flow").LiveState = { phase: "idle", key: "", noteStartedAt: null, enabled: false, voice: null };
   /** What dictation heard, waiting for the chat view to put in the text field. */
   dictation: string | null = null;

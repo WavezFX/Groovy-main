@@ -1,5 +1,5 @@
 //! Game Mode (round 3J item 3): while a full-screen game or presentation runs,
-//! « OK Groovy » stops listening, the scheduler's jobs rest and global
+//! « Hey Groovy » stops listening, the scheduler's jobs rest and global
 //! shortcuts are ignored except Mute and the island. No new polling: one
 //! scheduler job, slow while the island is folded, idle when the switch is off.
 

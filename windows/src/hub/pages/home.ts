@@ -99,7 +99,7 @@ export async function homePage(page: HTMLElement, ctx: HubContext) {
   const flip = (on: boolean, change: (v: boolean) => void) => toggle(on, change);
   const s = settings;
   const toggles = h("div", { class: "hub-card hub-b-list" },
-    homeRow("OK Groovy", t("Listen for the wake word"), flip(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
+    homeRow("Hey Groovy", t("Listen for the wake word"), flip(status.prefs.voice, (on) => void ctx.setPrefs((p) => (p.voice = on)))),
     homeRow(t("Dictation"), t("Hold {key} to talk", { key: keyLabel(status.prefs.key, status.platform) }), flip(status.prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
     homeRow(t("Do not disturb"), t("No toasts or sounds"), flip(!!s?.doNotDisturb, (on) => {
       if (!s) return;

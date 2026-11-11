@@ -281,13 +281,13 @@ pub(crate) async fn download_all(app: &AppHandle) -> Result<(), String> {
         })
         .await?;
     }
-    // « OK Groovy »'s ear comes with them (round 3B item 10).
+    // « Hey Groovy »'s ear comes with them (round 3B item 10).
     kws::download(&client).await?;
     Ok(())
 }
 
 /// The models came before the wake word spotter did: it follows on its own
-/// when « OK Groovy » is turned on (the speech models were already agreed to).
+/// when « Hey Groovy » is turned on (the speech models were already agreed to).
 pub fn fetch_kws() {
     static FETCHING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     if kws::is_present() || !PARAKEET.is_present() || FETCHING.swap(true, std::sync::atomic::Ordering::SeqCst) {

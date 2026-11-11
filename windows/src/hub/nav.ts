@@ -71,7 +71,7 @@ export const SECTIONS: NavSection[] = [
   ] },
   { id: "voice", title: N_("Voice"), pages: [
     p("speaking", I.speaking, N_("Speaking"), N_("Pick his voice. Fish Audio goes first; Kokoro takes over offline so he's never silent."), N_("How Groovy sounds")),
-    p("listening", I.listening, N_("Listening & calls"), N_("« OK Groovy », the microphone, and talking with him like a phone call.")),
+    p("listening", I.listening, N_("Listening & calls"), N_("« Hey Groovy », the microphone, and talking with him like a phone call.")),
     p("dictation", I.dictation, N_("Dictation"), N_("Speak instead of typing, in any app.")),
   ] },
   { id: "island", title: N_("Island"), pages: [
@@ -233,8 +233,8 @@ export const SETTINGS: SettingEntry[] = [
   s(N_("Memory"), "memory", "remember facts forget"),
   s(N_("Groovy's voice"), "speaking", "fish audio kokoro voice tts speak"),
   s(N_("Groovy answers out loud"), "speaking", "speak elevenlabs system voice"),
-  s(N_("Listen for « OK Groovy »"), "listening", "wake word ok groovy hey groovy"),
-  s(N_("Test OK Groovy"), "listening", "check test wake"),
+  s(N_("Listen for « Hey Groovy »"), "listening", "wake word ok groovy hey groovy"),
+  s(N_("Test Hey Groovy"), "listening", "check test wake"),
   s(N_("Microphone"), "listening", "mic input"),
   s(N_("Let me interrupt him"), "listening", "barge interrupt"),
   s(N_("Dictation"), "dictation", "dictate speech to text hold key", "dictation"),

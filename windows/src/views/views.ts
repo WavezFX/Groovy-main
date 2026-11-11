@@ -754,7 +754,7 @@ function buildSettings(actions: ViewActions): ViewHost {
     h("button", { onclick: () => actions.setAutoClose(s) }, s === 0 ? tl("When I leave") : s === CLICK_AWAY ? tl("Click away") : `${s} s`),
   );
   const aiLine = h("span", { class: "qs-status" });
-  const okSwitch = h("button", { class: "switch", "aria-label": tl("« OK Groovy »") });
+  const okSwitch = h("button", { class: "switch", "aria-label": tl("« Hey Groovy »") });
   const okChecks = h("span", { class: "qs-status" });
   const voiceNote = h("div", { class: "qs-note" });
   let status: QuickStatus | null = null;
@@ -776,7 +776,7 @@ function buildSettings(actions: ViewActions): ViewHost {
       h("span", { class: "qs-label", text: tl("AI") }), aiLine,
       h("button", { class: "link-btn qs-link", text: tl("Change"), onclick: () => void Bridge.openSettingsWindow("assistant") }),
     ),
-    h("div", { class: "qs-row" }, okSwitch, h("span", { class: "qs-label", text: tl("« OK Groovy »") }), okChecks),
+    h("div", { class: "qs-row" }, okSwitch, h("span", { class: "qs-label", text: tl("« Hey Groovy »") }), okChecks),
     voiceNote,
     h("div", { class: "qs-row qs-end" },
       h("button", { class: "link-btn qs-all", text: tl("All settings →"), onclick: () => actions.openSettingsWindow() }),

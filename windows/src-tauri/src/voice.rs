@@ -332,7 +332,7 @@ mod tests {
     }
 
     /// Downloads Whisper base and hears CI's three clips, as dictation and
-    /// « OK Groovy » do: `cargo test -p groovy whisper_base_hears -- --ignored`.
+    /// « Hey Groovy » do: `cargo test -p groovy whisper_base_hears -- --ignored`.
     #[test]
     #[ignore]
     fn whisper_base_hears_the_dictation_and_the_wake_phrase() {

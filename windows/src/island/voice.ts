@@ -94,7 +94,9 @@ export class VoiceHost {
         },
       },
     );
-    // "OK Groovy, let's talk" (okgroovy/mod.rs).
+    // The one listener in Rust heard a wake phrase for this page (round 4B item 1).
+    void onEvent<{ text: string | null; cancelled: boolean }>("voice-wake", (wake) => this.woken(wake));
+    // "Hey Groovy, let's talk" (okgroovy/mod.rs).
     void onEvent("voice-call-start", () => {
       if (!State.voiceCall) void this.startCall();
     });
@@ -124,7 +126,9 @@ export class VoiceHost {
 
   /** Called whenever the state changes: the microphone, and answers to read out. */
   sync() {
-    const want = (!!State.settings.voiceEnabled || State.voiceCall || State.dictating) && !State.paused;
+    // The wake word is heard in Rust, by the one listener (round 4B item 1):
+    // this page opens the microphone only for a call or a dictation.
+    const want = (State.voiceCall || State.dictating) && !State.paused;
     if (want !== this.wanted) {
       this.wanted = want;
       // Turned off and on again: try again after a failure.
@@ -148,7 +152,7 @@ export class VoiceHost {
           return false;
         }
         if (!status.ready) {
-          // One speech model for calls, dictation, notes and « OK Groovy »:
+          // One speech model for calls, dictation, notes and « Hey Groovy »:
           // set up once in Voice and dictation, not a second download here.
           State.voiceProblem = t("Calls need the speech model. It's downloaded once and used for dictation too.");
           State.callFix = "speech";
@@ -335,7 +339,7 @@ export class VoiceHost {
     // Owner, 6 Nov: a call was hard to end and Groovy had to be quit. A hang-up now ends it
     // whatever it was doing: a LiveKit call lets go of `this.live` first (so the button can't
     // keep trying to hang up the same call), and nothing of the call is left on screen. The
-    // microphone stays with sync(): « OK Groovy » shares it.
+    // microphone stays with sync(): « Hey Groovy » shares it.
     const live = this.live;
     this.live = null;
     live?.hangUp();
@@ -372,6 +376,25 @@ export class VoiceHost {
     State.notify();
   }
 
+  /**
+   * Rust heard a wake phrase that is this page's to answer (`voice-wake`):
+   * `text` is what was said after it (null: nothing yet, the question
+   * follows), `cancelled` that nothing came.
+   */
+  woken(wake: { text: string | null; cancelled: boolean }) {
+    if (State.paused) return;
+    if (wake.cancelled) {
+      this.cancelled();
+    } else if (wake.text) {
+      this.command(wake.text);
+    } else if (wakeStartsCall(State.settings.voiceEngine, !!State.settings.voiceCall, State.voiceCall)) {
+      // A conversation: this page takes the microphone from here.
+      void this.startCall();
+    } else {
+      this.heard();
+    }
+  }
+
   // ── What the controller heard ─────────────────────────────────────────────
 
   private heard() {
@@ -381,11 +404,6 @@ export class VoiceHost {
     }
     Sound.play("peek");
     this.engine.triggerEmote("surprised", 0.9);
-    if (State.settings.voiceCall && !State.voiceCall) {
-      State.voiceCall = true;
-      this.call("start");
-      this.callBegan();
-    }
     State.voiceListening = true;
     this.actions.openChat();
     State.notify();
@@ -547,7 +565,7 @@ export class VoiceHost {
     void Bridge.voiceCallActive(true);
   }
 
-  /** Hung up: « OK Groovy » listens again, and a short summary goes to chat history. */
+  /** Hung up: « Hey Groovy » listens again, and a short summary goes to chat history. */
   private callEnded() {
     this.controller.partials = false;
     // Cleared first, so its own end doesn't hang up a second time.
@@ -671,4 +689,9 @@ export class VoiceHost {
 /** One line in voice.log: stages and timings, never what was said. */
 function log(line: string) {
   void Bridge.voiceLog(line);
+}
+
+/** A bare wake starts a conversation (a call, or the LiveKit room) rather than one question. */
+export function wakeStartsCall(engine: string | undefined, callOnWake: boolean, inCall: boolean): boolean {
+  return engine === "livekit" || (callOnWake && !inCall);
 }

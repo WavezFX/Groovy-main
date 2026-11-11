@@ -181,7 +181,7 @@ pub async fn complete(model: &str, system: &str, user: &str, max_tokens: u32, ti
     Ok(text)
 }
 
-/// One turn of « OK Groovy »'s conversation with tools: the API's whole answer
+/// One turn of « Hey Groovy »'s conversation with tools: the API's whole answer
 /// (content blocks and stop_reason).
 pub async fn voice_turn(model: &str, system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
     let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;

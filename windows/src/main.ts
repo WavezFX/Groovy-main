@@ -200,7 +200,7 @@ async function main() {
   registerIntegrationHandlers(island);
   registerShortcutHandlers(island, () => setPaused(false));
   registerVoiceHandlers();
-  // Dictation, calls being recorded, « OK Groovy » and Groovy's messages (flow/live.rs).
+  // Dictation, calls being recorded, « Hey Groovy » and Groovy's messages (flow/live.rs).
   void registerLiveHandlers(island);
   // "My island": a new mail from Windows' notifications pops up when the island has a Mail tile.
   await onEvent<MailNote>("mail-notification", (n) => {

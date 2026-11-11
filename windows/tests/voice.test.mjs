@@ -91,62 +91,56 @@ function controller(answers) {
   return { c, log, heard };
 }
 
-test("“Hey Groovy, …” in one breath goes straight through as a command", async () => {
-  const { c, log } = controller(["hey groovy what time is it", "Hey Groovy, what time is it?"]);
+test("waiting, nothing is transcribed: the wake phrases are heard in Rust now", async () => {
+  const { c, log, heard } = controller(["hey groovy what time is it"]);
   feed(c, "quiet", 1);
   feed(c, "speech", 1.5);
   feed(c, "quiet", 1.2);
   await tick();
-  await tick();
-  assert.deepEqual(log, ["command:what time is it?"]);
+  assert.equal(heard.length, 0, "no segment goes to the speech engine while waiting");
+  assert.deepEqual(log, []);
   assert.equal(c.phase, "wake");
 });
 
-test("a bare “Groovy” opens listening, and the next thing said is the command", async () => {
-  const { c, log } = controller(["Groovy.", "turn the music down"]);
+test("asked to listen, the next thing said is the command", async () => {
+  const { c, log } = controller(["turn the music down"]);
   feed(c, "quiet", 1);
-  feed(c, "speech", 0.6);
-  feed(c, "quiet", 1);
-  await tick();
-  assert.deepEqual(log, ["wake"]);
+  c.listen();
   assert.equal(c.phase, "command");
   feed(c, "quiet", 1);
   feed(c, "speech", 1.5);
   feed(c, "quiet", 2);
   await tick();
-  assert.deepEqual(log, ["wake", "command:turn the music down"]);
+  assert.deepEqual(log, ["command:turn the music down"]);
   assert.equal(c.phase, "wake");
 });
 
-test("silence after “Groovy” gives up and goes back to waiting", async () => {
-  const { c, log } = controller(["groovy"]);
+test("his name at the start of a turn is dropped, and “never mind” cancels", async () => {
+  const { c, log } = controller(["Groovy, what time is it?", "never mind"]);
   feed(c, "quiet", 1);
-  feed(c, "speech", 0.6);
-  feed(c, "quiet", 1);
+  c.listen();
+  feed(c, "speech", 1.5);
+  feed(c, "quiet", 2);
   await tick();
-  feed(c, "quiet", 7);
-  assert.deepEqual(log, ["wake", "cancel"]);
-  assert.equal(c.phase, "wake");
-});
-
-test("other talk is ignored, and “never mind” cancels", async () => {
-  const { c, log } = controller(["what a nice day", "groovy", "never mind"]);
-  feed(c, "quiet", 1);
-  feed(c, "speech", 1);
-  feed(c, "quiet", 1);
-  await tick();
-  assert.deepEqual(log, []);
-  feed(c, "speech", 0.6);
-  feed(c, "quiet", 1);
-  await tick();
+  assert.deepEqual(log, ["command:what time is it?"]);
+  c.listen();
   feed(c, "speech", 1);
   feed(c, "quiet", 2);
   await tick();
-  assert.deepEqual(log, ["wake", "cancel"]);
+  assert.deepEqual(log, ["command:what time is it?", "cancel"]);
+});
+
+test("silence after being asked to listen gives up and goes back to waiting", async () => {
+  const { c, log } = controller([]);
+  feed(c, "quiet", 1);
+  c.listen();
+  feed(c, "quiet", 7);
+  assert.deepEqual(log, ["cancel"]);
+  assert.equal(c.phase, "wake");
 });
 
 test("paused, the controller hears nothing until it resumes", async () => {
-  const { c, log, heard } = controller(["hey groovy hello"]);
+  const { c, log, heard } = controller(["hello there"]);
   feed(c, "quiet", 1);
   c.pause();
   feed(c, "speech", 1);
@@ -154,12 +148,13 @@ test("paused, the controller hears nothing until it resumes", async () => {
   await tick();
   assert.equal(heard.length, 0);
   c.resume();
+  c.listen();
   feed(c, "quiet", 0.5);
   feed(c, "speech", 1);
-  feed(c, "quiet", 1);
+  feed(c, "quiet", 2);
   await tick();
   await tick();
-  assert.deepEqual(log, ["command:hello"]);
+  assert.deepEqual(log, ["command:hello there"]);
 });
 
 test("samples go to Rust as 16-bit integers", () => {

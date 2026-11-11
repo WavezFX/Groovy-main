@@ -111,7 +111,7 @@ export interface UpdateReport {
   output: string;
 }
 
-/** What « OK Groovy » asked to install or remove: the page confirms it. */
+/** What « Hey Groovy » asked to install or remove: the page confirms it. */
 export interface VoiceConfirm {
   action: "install" | "remove";
   skill: string;
@@ -138,7 +138,7 @@ export function risks(p: Pick<Preview, "frontmatter" | "scripts">): { tools: str
 
 export const SkillsBridge = {
   status: () => callOrThrow<SkillsStatus>("skills_status"),
-  /** What « OK Groovy » asked to install or remove, once (skills/manage.rs). */
+  /** What « Hey Groovy » asked to install or remove, once (skills/manage.rs). */
   takeConfirm: () => callOrThrow<VoiceConfirm | null>("skills_take_confirm").catch(() => null),
   installNode: () => callOrThrow<string>("skills_install_node"),
   projects: () => callOrThrow<string[]>("skills_projects"),

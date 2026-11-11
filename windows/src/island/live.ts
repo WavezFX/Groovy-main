@@ -1,9 +1,9 @@
 // What used to live in the pill at the bottom of the screen, now in the island
 // (round 3: one island only). Rust (flow/live.rs) sends:
-// - `live-state`: dictation, a recorded call and « OK Groovy », whole on every change;
+// - `live-state`: dictation, a recorded call and « Hey Groovy », whole on every change;
 // - `live-bands`: the nine voice levels while you speak;
 // - `island-notice`: a message with an optional button, which opens the island;
-// - `voice-say`: what « OK Groovy » answers, to say out loud here.
+// - `voice-say`: what « Hey Groovy » answers, to say out loud here.
 
 import { onEvent, IS_TAURI } from "../core/bridge";
 import { FlowBridge, type LiveState, type Notice } from "../core/flow";
@@ -37,7 +37,7 @@ export const Notices = {
   },
 };
 
-/** Something is listening (dictation, a call being recorded, « OK Groovy »). */
+/** Something is listening (dictation, a call being recorded, « Hey Groovy »). */
 export function liveBusy(s: LiveState = State.live): boolean {
   return s.phase !== "idle" || s.noteStartedAt !== null || s.voice !== null;
 }
@@ -47,7 +47,7 @@ export function noticeIcon(icon: string): string {
   return ({ mic: "mic", lock: "lock", clipboard: "copy", download: "download", check: "check", error: "x", bolt: "bolt" } as Record<string, string>)[icon] ?? "check";
 }
 
-// ── « OK Groovy » speaks ──────────────────────────────────────────────────────
+// ── « Hey Groovy » speaks ──────────────────────────────────────────────────────
 
 interface Say {
   id: number;
@@ -161,13 +161,13 @@ export interface LiveView {
   timed: boolean;
   /** What Stop does: a live_action, or the island call's toggle; null: no Stop. */
   stop: "finish" | "stopNote" | "endCall" | null;
-  /** « OK Groovy »'s words: what it heard, then its answer ({1} in the label). */
+  /** « Hey Groovy »'s words: what it heard, then its answer ({1} in the label). */
   words?: string;
 }
 
 /**
  * What the badge shows, the most important first: a call being recorded,
- * dictation, a voice call with Groovy, « OK Groovy », a short message.
+ * dictation, a voice call with Groovy, « Hey Groovy », a short message.
  * Null: nothing is listening, no badge.
  */
 export function liveView(s: LiveState, voiceCall: boolean): LiveView | null {

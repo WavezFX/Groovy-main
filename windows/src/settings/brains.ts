@@ -60,7 +60,7 @@ export const BRAIN_STRINGS = {
   writingJob: N_("Writing"),
   writingJobDetail: N_("Dictation clean-up, notes and call summaries"),
   commandsJob: N_("Commands"),
-  commandsJobDetail: N_("« OK Groovy »"),
+  commandsJobDetail: N_("« Hey Groovy »"),
   auto: N_("Auto order"),
 };
 

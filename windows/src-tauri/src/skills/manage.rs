@@ -743,7 +743,7 @@ pub async fn skills_session_started(app: AppHandle, cwd: String) -> Result<(), S
     store::save(&project, &state)
 }
 
-// ── « OK Groovy » ────────────────────────────────────────────────────────────
+// ── « Hey Groovy » ────────────────────────────────────────────────────────────
 
 /// The `skills` voice tool. Searching, listing and recommending answer at once;
 /// install and remove never act from the voice: the Control Centre opens on
@@ -801,7 +801,7 @@ pub fn voice_tool(app: &AppHandle, input: &serde_json::Value) -> (String, bool) 
     }
 }
 
-/// What « OK Groovy » asked to install or remove, until the Skills page shows it.
+/// What « Hey Groovy » asked to install or remove, until the Skills page shows it.
 static PENDING_CONFIRM: std::sync::Mutex<Option<serde_json::Value>> = std::sync::Mutex::new(None);
 
 /// The Skills page takes what waits for the user's confirmation (once).

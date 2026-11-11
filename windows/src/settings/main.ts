@@ -1,5 +1,5 @@
 // The Control Centre window (settings.html): every setting of Groovy, Flow
-// dictation, the Notetaker and « OK Groovy » — the place where anything that
+// dictation, the Notetaker and « Hey Groovy » — the place where anything that
 // writes to disk is confirmed. The window's frame and the voice and dictation
 // pages live in ../hub; Groovy's own sections are drawn here, one page at a time.
 
@@ -1046,7 +1046,7 @@ function generalSection(): HTMLElement {
     ),
     h("div", { class: "hint", text: t("Keeps the last 20 texts you copy, in memory only; it is forgotten when Groovy closes or this is turned off. Anything a password manager marks private is skipped.") }),
     clipList,
-    h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « OK Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
+    h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « Hey Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
     ...recapRows(),
     languageRow(),
   );

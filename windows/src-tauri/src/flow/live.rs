@@ -1,4 +1,4 @@
-// What dictation, a recorded call and « OK Groovy » are doing, shown in the
+// What dictation, a recorded call and « Hey Groovy » are doing, shown in the
 // island (round 3: one island only, no window of its own at the bottom of the
 // screen). Rust keeps the state and sends it whole to the island page on every
 // change (`live-state`); messages with a button go there as notices
@@ -13,7 +13,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::island::WINDOW_LABEL;
 
-/// What the island shows of dictation, calls and « OK Groovy ».
+/// What the island shows of dictation, calls and « Hey Groovy ».
 #[derive(Debug, Clone, Serialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct LiveState {
@@ -25,7 +25,7 @@ pub struct LiveState {
     pub note_started_at: Option<u64>,
     /// Dictation is on.
     pub enabled: bool,
-    /// « OK Groovy » is talking with you.
+    /// « Hey Groovy » is talking with you.
     pub voice: Option<crate::okgroovy::VoiceView>,
 }
 

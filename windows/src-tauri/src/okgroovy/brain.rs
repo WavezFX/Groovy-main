@@ -1,4 +1,4 @@
-// « OK Groovy »'s brain: the local model by default, or Claude when chosen
+// « Hey Groovy »'s brain: the local model by default, or Claude when chosen
 // (brain_ai.rs), with Groovy's tools —
 // pills, music, the user's own data, opening an app, preparing an email (the
 // mail app opens with it filled in; the user sends it) and Anthropic's web

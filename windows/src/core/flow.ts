@@ -46,7 +46,7 @@ export interface FlowPrefs {
   /** The guided speech setup was done once. */
   speechSetupDone: boolean;
   openAtLaunch: boolean;
-  /** « OK Groovy »: listen for it and answer with Groovy's AI (local by default). */
+  /** « Hey Groovy »: listen for it and answer with Groovy's AI (local by default). */
   voice: boolean;
   voiceOutput: VoiceOutput;
   voiceGender: "female" | "male";
@@ -190,14 +190,14 @@ export interface Notice {
   seconds: number;
 }
 
-/** What the island shows of dictation, a recorded call and « OK Groovy ». */
+/** What the island shows of dictation, a recorded call and « Hey Groovy ». */
 export interface LiveState {
   phase: "idle" | "listening" | "thinking" | "locked" | "copied" | "failed" | "pastedAgain";
   /** "wayland" where the desktop holds the shortcut. */
   key: FlowKey | "wayland" | "";
   noteStartedAt: number | null;
   enabled: boolean;
-  /** « OK Groovy » is talking with you. */
+  /** « Hey Groovy » is talking with you. */
   voice: VoiceView | null;
 }
 
@@ -250,7 +250,7 @@ export interface QuickStatus {
   voice: "fish" | "kokoro" | "system";
 }
 
-/** One step of "Test OK Groovy": "wake", "words", "answer", "spoken". */
+/** One step of "Test Hey Groovy": "wake", "words", "answer", "spoken". */
 export interface OkTestStep {
   step: "wake" | "words" | "answer" | "spoken";
   ok: boolean;
@@ -293,7 +293,7 @@ export const FlowBridge = {
   liveState: () => call<LiveState>("live_state"),
   liveNotices: () => call<Notice[]>("live_notices"),
   liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
-  /** The island has said what « OK Groovy » answered. */
+  /** The island has said what « Hey Groovy » answered. */
   /** Groovy's voice for one sentence (Fish Audio, then Kokoro); null: the page's own voice says it. */
   ttsAudio: (text: string) => call<TtsAudio>("tts_audio", { text }),
   ttsStatus: () => call<TtsStatus>("tts_status"),
@@ -303,11 +303,11 @@ export const FlowBridge = {
   /** Kokoro's voice for a Speaking card. */
   kokoroPreview: (gender: "female" | "male") => callOrThrow<TtsAudio>("kokoro_preview", { gender }),
   kokoroRemove: () => call<void>("kokoro_remove"),
-  /** « OK Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
+  /** « Hey Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
   okStatus: () => call<OkStatus>("okgroovy_status"),
-  /** Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice. */
+  /** Quick settings (round 4 item 2): the AI, « Hey Groovy » and the voice. */
   quickStatus: () => call<QuickStatus>("quick_status"),
-  /** Reports each step of the next « OK Groovy » ("okgroovy-test" events); throws why it can't. */
+  /** Reports each step of the next « Hey Groovy » ("okgroovy-test" events); throws why it can't. */
   okTest: () => callOrThrow<void>("okgroovy_test"),
   voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),
   /** speech-dispatcher or espeak-ng, where the webview has no voice. */

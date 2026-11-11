@@ -64,6 +64,7 @@ pub const ISLAND_EVENTS: &[&str] = &[
     "voice-ask",
     "voice-call-start",
     "voice-say",
+    "voice-wake",
 ];
 
 /// What an event does to a sleeping island.

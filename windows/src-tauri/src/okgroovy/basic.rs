@@ -1,8 +1,8 @@
-// What « OK Groovy » does with no AI at all (FIXES_ROUND4 item 1): music,
+// What « Hey Groovy » does with no AI at all (FIXES_ROUND4 item 1): music,
 // volume, the time and date, timers, and what tools.rs already understands
 // from a plain sentence (open an app, a website or a folder, reminders,
 // to-dos, the system status). These are tried first; only what they don't
-// cover goes to the AI, so "OK Groovy, play music" works with zero keys.
+// cover goes to the AI, so "Hey Groovy, play music" works with zero keys.
 
 use tauri::AppHandle;
 

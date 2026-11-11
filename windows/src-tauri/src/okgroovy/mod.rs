@@ -1,9 +1,9 @@
-// « OK Groovy » on Windows and Linux: say it, then ask anything. Port of the
+// « Hey Groovy » on Windows and Linux: say it, then ask anything. Port of the
 // Mac's Voice/ (VoiceEngine.swift and its friends).
 //
 // While it is on, the microphone is open and a cheap energy detector cuts what
 // you say into stretches; only a stretch of speech goes to Parakeet, on this
-// computer, and only a stretch that starts with « OK Groovy » goes further:
+// computer, and only a stretch that starts with « Hey Groovy » goes further:
 // what you said after it goes to Claude with your own key (brain.rs), never
 // the audio. Groovy shows it all in the island —
 // listening, thinking, then the answer, said out loud by the system's voice
@@ -24,7 +24,7 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::flow::live;
 use crate::speech::{self, audio};
@@ -35,7 +35,7 @@ use crate::speech::{self, audio};
 pub struct VoiceView {
     /// "listening", "thinking", "speaking".
     pub phase: String,
-    /// What you said (after « OK Groovy »).
+    /// What you said (after « Hey Groovy »).
     pub heard: String,
     /// Groovy's answer.
     pub answer: String,
@@ -54,21 +54,21 @@ fn pending() -> &'static Mutex<HashMap<u64, mpsc::Sender<String>>> {
 }
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
-/// Whether « OK Groovy » can listen: the speech model. An AI is not needed
+/// Whether « Hey Groovy » can listen: the speech model. An AI is not needed
 /// to listen: the basic commands work without one, and Groovy says when a
 /// question needs one (FIXES_ROUND4 item 1).
 pub fn requirements_met() -> bool {
     speech::is_ready()
 }
 
-/// The microphone « OK Groovy » listens to, and why it couldn't open it.
+/// The microphone « Hey Groovy » listens to, and why it couldn't open it.
 static MIC: Mutex<(String, Option<String>)> = Mutex::new((String::new(), None));
-/// "Test OK Groovy": each step is reported until then.
+/// "Test Hey Groovy": each step is reported until then.
 static TEST_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 /// The missing speech model was told once this run.
 static TOLD_NO_SPEECH: AtomicBool = AtomicBool::new(false);
 
-/// One step of "Test OK Groovy": "wake", "words", "answer", "spoken".
+/// One step of "Test Hey Groovy": "wake", "words", "answer", "spoken".
 fn test_step(app: &AppHandle, step: &str, ok: bool, detail: &str) {
     let mut until = TEST_UNTIL.lock().unwrap();
     if until.is_none_or(|t| Instant::now() > t) {
@@ -98,14 +98,17 @@ fn tell(app: &AppHandle, heard: &str, text: String, action: Option<(String, &str
 /// Starts or stops listening to follow the preference.
 pub fn sync(app: &AppHandle) {
     // A full-screen game or presentation: the microphone loop rests (round 3J item 3).
-    let wanted = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.voice) && !crate::gamemode::active();
+    // One listener for every wake (round 4B item 1): on for voice commands
+    // (« Hey Groovy » in Voice and dictation) and for the island's own
+    // "Hey Groovy" (Settings → Voice), which used to listen in the page.
+    let wanted = (commands_on(app) || island_voice(app).is_some()) && !crate::gamemode::active();
     // On, but it can't hear anything yet: say so, with the download.
     if wanted && !speech::is_ready() && !TOLD_NO_SPEECH.swap(true, Ordering::Relaxed) {
         live::announce(
             app,
             "download",
             "#FFB020",
-            crate::i18n::t("« OK Groovy » is on, but Groovy can't hear it yet: download the speech model."),
+            crate::i18n::t("« Hey Groovy » is on, but Groovy can't hear it yet: download the speech model."),
             Some((crate::i18n::t("Download"), "openSpeechSetup")),
             15,
         );
@@ -119,7 +122,7 @@ pub fn sync(app: &AppHandle) {
             std::thread::Builder::new().name("groovy-voice".into()).spawn(move || run(app2, stop2)).ok();
             *running = Some(Running { stop });
             speech::fetch_kws();
-            crate::log::line("voice: « OK Groovy » listening");
+            crate::log::line("voice: « Hey Groovy » listening");
         }
         (false, true) => {
             if let Some(r) = running.take() {
@@ -129,10 +132,60 @@ pub fn sync(app: &AppHandle) {
             if !dictation && !crate::notes::is_recording(app) {
                 speech::unload();
             }
-            crate::log::line("voice: « OK Groovy » off");
+            crate::log::line("voice: « Hey Groovy » off");
         }
         _ => {}
     }
+}
+
+/// Voice commands are on (the tools: music, apps, mail, skills…).
+fn commands_on(app: &AppHandle) -> bool {
+    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.voice)
+}
+
+/// Where a wake goes when the island's own voice is on (Settings → Voice):
+/// a question in the chat, or a conversation (a call, or the LiveKit room).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IslandVoice {
+    Question,
+    Conversation,
+}
+
+fn island_voice(app: &AppHandle) -> Option<IslandVoice> {
+    let shared = app.try_state::<crate::Shared>()?;
+    let s = shared.settings.lock().unwrap();
+    island_voice_of(s.voice_enabled, s.voice_call, &s.voice_engine)
+}
+
+pub fn island_voice_of(enabled: bool, call: bool, engine: &str) -> Option<IslandVoice> {
+    enabled.then(|| if call || engine == "livekit" { IslandVoice::Conversation } else { IslandVoice::Question })
+}
+
+/// Who takes what was said after a wake.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Route {
+    /// Voice commands, answered here with the tools.
+    Commands,
+    /// The island's chat: the words are sent to the page.
+    Chat,
+    /// A conversation: the page takes the microphone from here.
+    Conversation,
+}
+
+/// Voice commands win when both are on (they can start a conversation too: "let's talk").
+pub fn route(commands: bool, island: Option<IslandVoice>) -> Option<Route> {
+    match (commands, island) {
+        (true, _) => Some(Route::Commands),
+        (false, Some(IslandVoice::Question)) => Some(Route::Chat),
+        (false, Some(IslandVoice::Conversation)) => Some(Route::Conversation),
+        (false, None) => None,
+    }
+}
+
+/// Tells the island's page about a wake that is its to answer: `text` is what
+/// was said after the wake phrase (None: nothing yet), `cancelled` that nothing came.
+fn to_island(app: &AppHandle, text: Option<&str>, cancelled: bool) {
+    let _ = app.emit_to(crate::island::WINDOW_LABEL, "voice-wake", json!({ "text": text, "cancelled": cancelled }));
 }
 
 /// Cloud speech answers first (Settings → Voice), when it has a key.
@@ -151,7 +204,7 @@ fn hear(app: &AppHandle, samples: &[f32]) -> Option<String> {
     speech::transcribe(samples).map(|t| t.text.trim().to_string())
 }
 
-/// « OK Groovy » is listening.
+/// « Hey Groovy » is listening.
 pub fn is_listening() -> bool {
     RUNNING.lock().unwrap().is_some()
 }
@@ -169,11 +222,11 @@ fn show(app: &AppHandle, view: Option<VoiceView>) {
 }
 
 enum Mode {
-    /// Waiting for « OK Groovy ».
+    /// Waiting for « Hey Groovy ».
     Wake,
-    /// Heard « OK Groovy » alone: what comes next is the question.
+    /// Heard « Hey Groovy » alone: what comes next is the question.
     Command { text: String, until: Instant },
-    /// Groovy asked something back: an answer comes without « OK Groovy ».
+    /// Groovy asked something back: an answer comes without « Hey Groovy ».
     FollowUp { until: Instant },
 }
 
@@ -195,7 +248,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
         }
         Err(err) => {
             crate::log::line(format!("voice: microphone: {err}"));
-            let text = crate::i18n::tf("« OK Groovy » can't hear you: the microphone “{mic}” didn't open.", &[("mic", &mic_name)]);
+            let text = crate::i18n::tf("« Hey Groovy » can't hear you: the microphone “{mic}” didn't open.", &[("mic", &mic_name)]);
             *MIC.lock().unwrap() = (mic_name, Some(err));
             tell(&app, "", text, Some((crate::i18n::t("Choose a microphone"), "openVoice")));
             *RUNNING.lock().unwrap() = None;
@@ -203,11 +256,13 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
         }
     };
     let mut vad = wake::Vad::default();
-    // The small spotter hears « OK Groovy »; the full engine is asked only after it.
+    // The small spotter hears « Hey Groovy »; the full engine is asked only after it.
     let mut spotter = speech::kws::Spotter::load();
     let mut mode = Mode::Wake;
     let mut brain = brain::Brain::default();
     let mut hide_at: Option<Instant> = None;
+    // The island's chat is waiting for the question that follows a bare wake.
+    let mut chat_waits = false;
     while !stop.load(Ordering::Relaxed) {
         let chunk = match rx.recv_timeout(Duration::from_millis(300)) {
             Ok(c) => Some(c),
@@ -225,6 +280,9 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                 mode = Mode::Wake;
                 vad.hangover = 25;
                 show(&app, None);
+                if std::mem::take(&mut chat_waits) {
+                    to_island(&app, None, true);
+                }
             }
             _ => {}
         }
@@ -242,11 +300,16 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             if (spotter.is_none() || spotter.as_ref().is_some_and(|k| k.stale())) && speech::kws::is_present() {
                 spotter = speech::kws::Spotter::load();
             }
-            let spotted = matches!(mode, Mode::Wake) && spotter.is_some();
-            if spotted && !spotter.as_ref().is_some_and(|k| k.heard(&segment)) {
-                continue;
-            }
-            if spotted {
+            // Waiting for the wake phrase with the spotter loaded: nothing goes
+            // further unless it heard one of the three.
+            let spotted = match (&mode, &spotter) {
+                (Mode::Wake, Some(k)) => match k.heard(&segment) {
+                    Some(hit) => Some(hit),
+                    None => continue,
+                },
+                _ => None,
+            };
+            if spotted.is_some() {
                 // Conversation: the cloud engines are warmed now, in parallel (round 3D item 10).
                 crate::resources::state::fire(&app, crate::resources::state::Event::Wake);
                 // Loads now, while the command is still being said.
@@ -255,19 +318,38 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                 }
             }
             let Some(heard) = hear(&app, &segment) else { continue };
-            if heard.is_empty() && !spotted {
+            if heard.is_empty() && spotted.is_none() {
                 continue;
             }
-            // The spotter heard the wake phrase even if the engine wrote it oddly.
-            let wake_rest = wake::after_wake(&heard).or_else(|| spotted.then(|| wake::drop_wake_words(&heard)));
+            // The spotter heard "Hey Groovy" or "Yo Groovy" even if the engine
+            // wrote it oddly. A bare "Groovy" has to be the first word written
+            // too: the spotter alone can't tell it from « OK Groovy ».
+            let wake_rest = wake::after_wake(&heard).or_else(|| {
+                spotted.filter(|hit| hit.phrase != speech::kws::Phrase::Groovy && !wake::starts_with_ok(&heard)).map(|hit| wake::drop_wake_words(&heard, hit.phrase.words()))
+            });
+            let Some(route) = route(commands_on(&app), island_voice(&app)) else { continue };
             let question = match &mut mode {
                 Mode::Wake => match wake_rest {
                     Some(rest) => {
-                        crate::log::line("voice: « OK Groovy » heard");
+                        crate::log::line("voice: « Hey Groovy » heard");
                         test_step(&app, "wake", true, "");
                         hide_at = None;
+                        if route == Route::Conversation {
+                            // The page starts the call (or joins the LiveKit room) and
+                            // listens from here itself: its microphone cancels his echo.
+                            let rest = rest.trim();
+                            to_island(&app, (!rest.is_empty()).then_some(rest), false);
+                            continue;
+                        }
                         if crate::flow::text::word_count(&rest) >= 2 {
                             Some(rest)
+                        } else if route == Route::Chat {
+                            // The chat opens and shows it is listening; the question is heard here.
+                            to_island(&app, None, false);
+                            chat_waits = true;
+                            mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
+                            vad.hangover = 40;
+                            None
                         } else {
                             show(&app, Some(VoiceView { phase: "listening".into(), heard: rest.clone(), answer: String::new() }));
                             mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
@@ -287,9 +369,15 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             let Some(question) = question else { continue };
             mode = Mode::Wake;
             vad.hangover = 25;
+            if route == Route::Chat {
+                // Asked in the island's chat like a typed question, and read out there.
+                chat_waits = false;
+                to_island(&app, Some(question.trim()), false);
+                continue;
+            }
             test_step(&app, "words", true, &question);
             show(&app, Some(VoiceView { phase: "thinking".into(), heard: question.clone(), answer: String::new() }));
-            // "OK Groovy, let's talk": a conversation in the island (round 4 item 3).
+            // "Hey Groovy, let's talk": a conversation in the island (round 4 item 3).
             if crate::calls::is_talk(&question) {
                 crate::log::line("voice: starting a conversation");
                 show(&app, None);
@@ -353,7 +441,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
     show(&app, None);
 }
 
-// ── Status and the test (Control Centre → OK Groovy, quick settings) ──────────
+// ── Status and the test (Control Centre → Hey Groovy, quick settings) ──────────
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -395,7 +483,7 @@ pub fn okgroovy_status(app: AppHandle) -> OkStatus {
     }
 }
 
-/// "Test OK Groovy": the next « OK Groovy » reports each step for 30 seconds.
+/// "Test Hey Groovy": the next « Hey Groovy » reports each step for 30 seconds.
 #[tauri::command]
 pub fn okgroovy_test() -> Result<(), String> {
     if !is_listening() {
@@ -404,7 +492,7 @@ pub fn okgroovy_test() -> Result<(), String> {
         } else if MIC.lock().unwrap().1.is_some() {
             crate::i18n::t("The microphone didn't open: choose another one.")
         } else {
-            crate::i18n::t("Turn on « OK Groovy » first.")
+            crate::i18n::t("Turn on « Hey Groovy » first.")
         });
     }
     *TEST_UNTIL.lock().unwrap() = Some(Instant::now() + Duration::from_secs(30));
@@ -841,6 +929,20 @@ fn find_app(wanted: &str) -> Option<(String, Box<dyn FnOnce()>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_listener_sends_a_wake_to_whoever_is_on() {
+        use super::{island_voice_of, route, IslandVoice, Route};
+        assert_eq!(island_voice_of(false, true, "local"), None);
+        assert_eq!(island_voice_of(true, false, "local"), Some(IslandVoice::Question));
+        assert_eq!(island_voice_of(true, true, "local"), Some(IslandVoice::Conversation));
+        assert_eq!(island_voice_of(true, false, "livekit"), Some(IslandVoice::Conversation));
+        assert_eq!(route(false, None), None, "nothing is on: nothing listens");
+        assert_eq!(route(true, None), Some(Route::Commands));
+        assert_eq!(route(true, Some(IslandVoice::Conversation)), Some(Route::Commands), "commands win, and can start a conversation");
+        assert_eq!(route(false, Some(IslandVoice::Question)), Some(Route::Chat));
+        assert_eq!(route(false, Some(IslandVoice::Conversation)), Some(Route::Conversation));
+    }
 
     #[test]
     fn answers_are_spoken_sentence_by_sentence() {

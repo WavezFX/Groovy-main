@@ -1,5 +1,6 @@
-// « OK Groovy »: hearing the wake phrase in what Parakeet wrote, and telling
-// speech from silence on the microphone. Nothing here touches the OS.
+// The wake phrases, "Groovy", "Hey Groovy" and "Yo Groovy" and no others
+// (round 4B item 1), in what the speech engine wrote; and telling speech from
+// silence on the microphone. Nothing here touches the OS.
 
 /// Lower case, accents gone, everything but letters and digits a space.
 pub fn normalize(text: &str) -> String {
@@ -22,9 +23,14 @@ pub fn normalize(text: &str) -> String {
     out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// How Parakeet may write "OK" (and the other ways Groovy is called).
-fn is_ok(word: &str) -> bool {
-    matches!(word, "ok" | "okay" | "oke" | "okey" | "hey" | "yo")
+/// How the speech engine may write "Hey" and "Yo".
+fn is_greeting(word: &str) -> bool {
+    matches!(word, "hey" | "hay" | "yo")
+}
+
+/// What may come before a bare "Groovy" without it being a sentence about him.
+fn is_filler(word: &str) -> bool {
+    matches!(word, "um" | "uh" | "erm" | "er" | "hmm" | "so" | "oh" | "ah" | "and")
 }
 
 /// How Parakeet may write "Groovy", in one word.
@@ -40,49 +46,64 @@ fn is_groovy_pair(a: &str, b: &str) -> bool {
     matches!((a, b), ("groo", "vy") | ("groove", "y") | ("groove", "e") | ("groove", "ee") | ("grew", "vee") | ("grew", "v"))
 }
 
-/// When `text` holds the wake phrase, what was said after it (maybe nothing).
-/// The words keep their case and punctuation, as Parakeet wrote them.
+/// When `text` holds a wake phrase, what was said after it (maybe nothing).
+/// "Hey Groovy" and "Yo Groovy" count anywhere; a bare "Groovy" only as the
+/// first word (a filler before it is fine), so a sentence that merely
+/// mentions the name doesn't wake him. What follows the last wake phrase is
+/// the command, with its case and punctuation as the engine wrote them.
 pub fn after_wake(text: &str) -> Option<String> {
     let words: Vec<&str> = text.split_whitespace().collect();
     let norm: Vec<String> = words.iter().map(|w| normalize(w)).collect();
-    // "o.k." and "o k" become two tokens: glue them.
+    let mut end = None;
     let mut i = 0;
     while i < norm.len() {
-        let mut ok_end = None;
-        if is_ok(&norm[i]) {
-            ok_end = Some(i + 1);
-        } else if norm[i] == "o k" || (norm[i] == "o" && norm.get(i + 1).map(String::as_str) == Some("k")) {
-            ok_end = Some(if norm[i] == "o" { i + 2 } else { i + 1 });
-        }
-        if let Some(j) = ok_end {
-            // A word made of two ("ok groovy" written as one token is rare but happens).
-            if let Some(w) = norm.get(j) {
-                let parts: Vec<&str> = w.split(' ').collect();
-                if parts.len() == 1 && is_groovy(parts[0]) {
-                    return Some(words[j + 1..].join(" ").trim_start_matches([',', '.', '!', ' ']).trim().to_string());
-                }
-                if let Some(next) = norm.get(j + 1) {
-                    if is_groovy_pair(w, next) {
-                        return Some(words[j + 2..].join(" ").trim_start_matches([',', '.', '!', ' ']).trim().to_string());
-                    }
-                }
+        let leading = norm[..i].iter().all(|w| w.is_empty() || is_filler(w));
+        let greeted = i > 0 && is_greeting(&norm[i - 1]);
+        // The name in one word, or in two ("groo vy").
+        let name = if is_groovy(&norm[i]) {
+            1
+        } else if norm.get(i + 1).is_some_and(|next| is_groovy_pair(&norm[i], next)) {
+            2
+        } else {
+            0
+        };
+        if name > 0 {
+            if greeted || leading {
+                end = Some(i + name);
             }
+            i += name;
+            continue;
         }
-        // "okgroovy" in one piece.
-        if let Some(rest) = norm[i].strip_prefix("okay").or_else(|| norm[i].strip_prefix("ok")) {
-            if is_groovy(rest.trim()) {
-                return Some(words[i + 1..].join(" ").trim().to_string());
-            }
+        // One token for the whole phrase: "hey,groovy" (two words once the
+        // comma is gone) or "heygroovy".
+        let parts: Vec<&str> = norm[i].split(' ').collect();
+        let glued = (parts.len() == 2 && is_greeting(parts[0]) && is_groovy(parts[1]))
+            || norm[i].strip_prefix("hey").or_else(|| norm[i].strip_prefix("yo")).is_some_and(is_groovy);
+        if glued {
+            end = Some(i + 1);
         }
         i += 1;
     }
-    None
+    let end = end?;
+    Some(words[end..].join(" ").trim_start_matches([',', '.', '!', ' ']).trim().to_string())
 }
 
-/// The spotter heard the wake phrase but the engine wrote it some other way
-/// ("Okey Gruby, what time…"): the two words it took are dropped.
-pub fn drop_wake_words(text: &str) -> String {
-    text.split_whitespace().skip(2).collect::<Vec<_>>().join(" ").trim_start_matches([',', '.', '!', ' ']).to_string()
+/// What was said begins with "OK" or "Okay": « OK Groovy », which no longer
+/// wakes him, however the spotter took it.
+pub fn starts_with_ok(text: &str) -> bool {
+    let norm = normalize(text);
+    let mut words = norm.split(' ');
+    match words.next() {
+        Some("ok" | "okay" | "oke" | "okey") => true,
+        Some("o") => words.next() == Some("k"),
+        _ => false,
+    }
+}
+
+/// The spotter heard "Hey Groovy" or "Yo Groovy" but the engine wrote it some
+/// other way ("Hay Gruby, what time…"): the `words` it took are dropped.
+pub fn drop_wake_words(text: &str, words: usize) -> String {
+    text.split_whitespace().skip(words).collect::<Vec<_>>().join(" ").trim_start_matches([',', '.', '!', ' ']).to_string()
 }
 
 /// Speech or silence, 30 ms at a time, against a noise floor that follows the
@@ -197,28 +218,58 @@ pub fn speech_lang(text: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn a_misspelt_wake_phrase_heard_by_the_spotter_is_dropped() {
-        assert_eq!(drop_wake_words("Okey Gruby, what time is it?"), "what time is it?");
-        assert_eq!(drop_wake_words("Okey Gruby."), "");
-        assert_eq!(drop_wake_words(""), "");
-    }
-
     use super::*;
 
     #[test]
-    fn the_wake_phrase_however_parakeet_writes_it() {
-        assert_eq!(after_wake("OK Groovy, play some music.").as_deref(), Some("play some music."));
-        assert_eq!(after_wake("Okay, groovy! Quelle heure est-il ?").as_deref(), Some("Quelle heure est-il ?"));
-        assert_eq!(after_wake("O.K. Groovie what's the weather").as_deref(), Some("what's the weather"));
-        assert_eq!(after_wake("ok groo vy add Stripe").as_deref(), Some("add Stripe"));
-        assert_eq!(after_wake("OK Groovy.").as_deref(), Some(""));
+    fn a_misspelt_wake_phrase_heard_by_the_spotter_is_dropped() {
+        assert_eq!(drop_wake_words("Hay Gruby, what time is it?", 2), "what time is it?");
+        assert_eq!(drop_wake_words("Hay Gruby.", 2), "");
+        assert_eq!(drop_wake_words("Pippa, what time is it?", 1), "what time is it?");
+        assert_eq!(drop_wake_words("", 2), "");
+    }
+
+    #[test]
+    fn the_three_wake_phrases_however_the_engine_writes_them() {
+        assert_eq!(after_wake("Hey Groovy, play some music.").as_deref(), Some("play some music."));
         assert_eq!(after_wake("Hey groovy, ça va ?").as_deref(), Some("ça va ?"));
         assert_eq!(after_wake("Yo Groovy next song").as_deref(), Some("next song"));
-        assert_eq!(after_wake("okgroovy open notepad").as_deref(), Some("open notepad"));
-        assert_eq!(after_wake("that bass line is groovy"), None);
-        assert_eq!(after_wake("ok let's go"), None);
+        assert_eq!(after_wake("yo, groovie! Quelle heure est-il ?").as_deref(), Some("Quelle heure est-il ?"));
+        assert_eq!(after_wake("Groovy, what's the weather").as_deref(), Some("what's the weather"));
+        assert_eq!(after_wake("Um, groovy what time is it").as_deref(), Some("what time is it"));
+        assert_eq!(after_wake("hey groo vy add Stripe").as_deref(), Some("add Stripe"));
+        assert_eq!(after_wake("Hey,Groovy open notepad").as_deref(), Some("open notepad"));
+        assert_eq!(after_wake("heygroovy open notepad").as_deref(), Some("open notepad"));
+        assert_eq!(after_wake("Groovy.").as_deref(), Some(""));
+        assert_eq!(after_wake("Hey Groovy.").as_deref(), Some(""));
+        // He hears his name twice: what follows the last one is the command.
+        assert_eq!(after_wake("Groovy… hey Groovy, what time is it?").as_deref(), Some("what time is it?"));
         assert_eq!(normalize("Ça VA, Élodie ?"), "ca va elodie");
+    }
+
+    #[test]
+    fn ok_at_the_start_is_told_apart() {
+        assert!(starts_with_ok("OK Groovy, what time is it?"));
+        assert!(starts_with_ok("Okay, gruby."));
+        assert!(starts_with_ok("O.K. Groovie"));
+        assert!(!starts_with_ok("Hey Groovy, is it OK?"));
+        assert!(!starts_with_ok("Oklahoma is far"));
+        assert!(!starts_with_ok(""));
+    }
+
+    #[test]
+    fn nothing_else_wakes_him() {
+        // « OK Groovy » and « Okay Groovy » are gone (round 4B item 1).
+        assert_eq!(after_wake("OK Groovy, play some music."), None);
+        assert_eq!(after_wake("Okay, groovy! What time is it?"), None);
+        assert_eq!(after_wake("O.K. Groovie what's the weather"), None);
+        assert_eq!(after_wake("okgroovy open notepad"), None);
+        assert_eq!(after_wake("hi groovy"), None);
+        // A sentence that only mentions the name.
+        assert_eq!(after_wake("that bass line is groovy"), None);
+        assert_eq!(after_wake("I think the groovy one is in the drawer"), None);
+        assert_eq!(after_wake("hey, are you coming"), None);
+        assert_eq!(after_wake("yo what's up"), None);
+        assert_eq!(after_wake(""), None);
     }
 
     #[test]

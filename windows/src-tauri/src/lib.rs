@@ -236,6 +236,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     if i18n::set_picked(&settings.language) {
         language_changed(&app);
     }
+    // The one wake listener follows Settings → Voice too (round 4B item 1).
+    okgroovy::sync(&app);
     // Keep the other window in step (island ⇄ settings window).
     let _ = app.emit("settings-changed", settings);
 }
@@ -728,7 +730,7 @@ async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Ve
     let text = voice_words(&app, model, language, samples, wake).await?;
     // Heard by the spotter, written oddly by the engine: the wake phrase is put back.
     if spotted && okgroovy::wake::after_wake(&text).is_none() {
-        return Ok(format!("Hey Groovy, {}", okgroovy::wake::drop_wake_words(&text)).trim_end_matches([',', ' ']).to_string());
+        return Ok(format!("Hey Groovy, {}", okgroovy::wake::drop_wake_words(&text, 2)).trim_end_matches([',', ' ']).to_string());
     }
     Ok(text)
 }
@@ -736,7 +738,7 @@ async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Ve
 async fn voice_words(app: &AppHandle, model: String, language: Option<String>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
     let app = app.clone();
     // One speech engine for everything (round 2): calls use what dictation,
-    // the Notetaker and « OK Groovy » use — Parakeet, or Whisper when chosen.
+    // the Notetaker and « Hey Groovy » use — Parakeet, or Whisper when chosen.
     let whisper = flow::uses_whisper(&app);
     if whisper {
         return voice::transcribe(model, language, samples, wake).await;
@@ -756,7 +758,7 @@ async fn voice_words(app: &AppHandle, model: String, language: Option<String>, s
     Ok(text)
 }
 
-/// Quick settings (round 4 item 2): the AI, « OK Groovy » and the voice, in one call.
+/// Quick settings (round 4 item 2): the AI, « Hey Groovy » and the voice, in one call.
 /// Off the main thread: it reads Credential Manager and the microphone, which
 /// stalled the island's frames while quick settings opened (the frame test).
 #[tauri::command]
@@ -865,7 +867,7 @@ fn secret_set(app: AppHandle, key: String, value: String) -> Result<(), String> 
             integrations::github_token_changed(&app);
         }
     }
-    // A Claude key can make « OK Groovy » available (brain_ai.rs).
+    // A Claude key can make « Hey Groovy » available (brain_ai.rs).
     if key == claude::KEY {
         okgroovy::sync(&app);
     }

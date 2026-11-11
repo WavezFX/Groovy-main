@@ -204,7 +204,7 @@ pub struct Settings {
     /// He was hatched with a chosen look and name, or, for those hatched
     /// before round 5 item 6, told once that he can be named now.
     pub hatch_done: bool,
-    /// « Also wake to his name »: the spotter listens for his name as well as « OK Groovy ».
+    /// « Also wake to his name »: the spotter listens for his name as well as « Hey Groovy ».
     pub wake_to_name: bool,
     /// How his looks grow (round 3H item 3, the owner's choice): "running"
     /// (the time Groovy runs, the default) or "days" (calendar days the look

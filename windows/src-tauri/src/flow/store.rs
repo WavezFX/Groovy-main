@@ -106,7 +106,7 @@ pub struct Prefs {
     pub speech_setup_done: bool,
     /// Open the Groovy window when Groovy is opened (not when it starts with the computer).
     pub open_at_launch: bool,
-    /// « OK Groovy »: listen for it and answer with Groovy's AI (local by default).
+    /// « Hey Groovy »: listen for it and answer with Groovy's AI (local by default).
     pub voice: bool,
     /// How Groovy answers out loud: "system", "elevenlabs" or "off".
     pub voice_output: String,

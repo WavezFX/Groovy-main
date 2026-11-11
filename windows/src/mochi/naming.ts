@@ -1,7 +1,7 @@
 // His name (round 5 item 6): chosen when he hatches, changed in Settings at
 // any time. It is the assistant's name (`assistant.name`), so greetings, the
 // stage line, the tray, Settings and his replies all use it. The wake word
-// stays « OK Groovy »; « Also wake to his name » adds it to the spotter when it
+// stays « Hey Groovy »; « Also wake to his name » adds it to the spotter when it
 // is long enough to be heard reliably.
 
 import { N_ } from "../i18n/i18n";

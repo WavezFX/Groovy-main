@@ -8,7 +8,7 @@ import { LiveClock, Notices, liveBusy, liveClock, liveView, noticeIcon, systemVo
 
 const idle = { phase: "idle", key: "right_ctrl", noteStartedAt: null, enabled: true, voice: null };
 
-test("the island is busy while dictating, recording a call or talking with OK Groovy", () => {
+test("the island is busy while dictating, recording a call or talking with Hey Groovy", () => {
   assert.equal(liveBusy(idle), false);
   assert.equal(liveBusy({ ...idle, phase: "listening" }), true);
   assert.equal(liveBusy({ ...idle, noteStartedAt: 1 }), true);
@@ -33,7 +33,7 @@ test("every icon Rust sends has one in the island", () => {
   assert.equal(noticeIcon("unknown"), "check");
 });
 
-test("OK Groovy speaks in the answer's language, with the voice asked for", () => {
+test("Hey Groovy speaks in the answer's language, with the voice asked for", () => {
   const v = (name, lang) => ({ name, lang });
   const voices = [v("Microsoft David", "en-US"), v("Microsoft Zira", "en-US"), v("Microsoft Hortense", "fr-FR")];
   assert.equal(systemVoice(voices, "fr-FR", "female").name, "Microsoft Hortense");
@@ -81,7 +81,7 @@ test("the clock counts from when it began, the recording's from Rust's start", (
   assert.equal(clocks.start(liveView(rec, false), rec, 9000), 42);
 });
 
-test("the island shows what OK Groovy heard, then its answer (round 4 item 1)", () => {
+test("the island shows what Hey Groovy heard, then its answer (round 4 item 1)", () => {
   const heard = liveView({ ...idle, voice: { phase: "listening", heard: "play", answer: "" } }, false);
   assert.equal(heard.label, "Heard “{1}”");
   assert.equal(heard.words, "play");

@@ -264,12 +264,12 @@ jobs:
             ~/AppData/Local/Groovy/runtime
           key: windows-models-v3
 
-      - name: Realistic idle (models downloaded, one dictation, one OK Groovy, one local AI reply)
+      - name: Realistic idle (models downloaded, one dictation, one Hey Groovy, one local AI reply)
         shell: pwsh
         run: ./scripts/work-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
       # Round 3D item 7: never over 400 MB, even at peak (sampled every 250 ms).
-      - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, OK Groovy, mail)
+      - name: Peak memory under 400 MB (island on music, Settings on Brains, dictation, a live call, Hey Groovy, mail)
         shell: pwsh
         run: ./scripts/peak-test.ps1 -Exe release/test/groovy.exe -Audio src-tauri/tests/audio
 
@@ -343,7 +343,7 @@ jobs:
         run: |
           cargo test -p groovy kokoro_downloads_and_speaks -- --ignored --nocapture
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cargo test -p groovy kws_hears_ok_groovy -- --ignored --nocapture
+          cargo test -p groovy kws_hears -- --ignored --nocapture
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           # Round 3F item 5: dictation on sherpa-onnx's Whisper hears CI's clips.
           cargo test -p groovy whisper_base_hears -- --ignored --nocapture

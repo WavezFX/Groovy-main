@@ -1,5 +1,5 @@
 // Which model answers the background features ported from Coucou 0.5.0 —
-// Flow's clean-up, the Notetaker's summary and « OK Groovy »'s tool calls —
+// Flow's clean-up, the Notetaker's summary and « Hey Groovy »'s tool calls —
 // and how to talk to it.
 //
 // Cloud and subscription first, local last (FIXES_ROUND1 item 2: on an 8 GB

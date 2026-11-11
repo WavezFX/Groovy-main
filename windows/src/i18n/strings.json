@@ -145,16 +145,16 @@
    "ru": "Реклама",
    "id": "Iklan"
   },
-  "After «OK Groovy», what you say goes to Claude with your Anthropic API key, with what Groovy reads to answer (your pills, your services' data, a contact's address). It acts and searches the web. Never audio.": {
-   "zh-Hans": "说「OK Groovy」后，你说的话会用你的 Anthropic API 密钥发送给 Claude，同时发送 Groovy 为回答而读取的内容（你的药丸、你的服务数据、联系人地址）。它会执行操作并进行网页搜索。从不发送音频。",
-   "hi": "«OK Groovy» के बाद तुम जो कहते हो वह तुम्हारी Anthropic API कुंजी से Claude को जाता है, साथ में वह जो Groovy जवाब देने के लिए पढ़ता है (तुम्हारी पिल्स, तुम्हारी सेवाओं का डेटा, किसी संपर्क का पता)। वह काम करता है और वेब पर खोजता है। ऑडियो कभी नहीं।",
-   "es": "Tras «OK Groovy», lo que dices va a Claude con tu clave de API de Anthropic, junto con lo que Groovy lee para responder (tus píldoras, los datos de tus servicios, la dirección de un contacto). Actúa y busca en la web. Nunca el audio.",
-   "ar": "بعد «OK Groovy»، يُرسل ما تقوله إلى Claude بمفتاح Anthropic API الخاص بك، مع ما يقرؤه Groovy للإجابة (حبوبك، بيانات خدماتك، عنوان جهة اتصال). ينفّذ ويبحث على الويب. لا يُرسل الصوت أبدًا.",
-   "fr": "Après « OK Groovy », ce que tu dis part chez Claude avec ta clé API Anthropic, avec ce que Groovy lit pour répondre (tes pilules, les données de tes services, l'adresse d'un contact). Il agit et cherche sur le web. Jamais l'audio.",
-   "bn": "«OK Groovy»-এর পরে তুমি যা বলো তা তোমার Anthropic API কী দিয়ে Claude-এর কাছে যায়, সঙ্গে Groovy উত্তর দিতে যা পড়ে (তোমার পিল, তোমার সার্ভিসের ডেটা, কোনো কন্টাক্টের ঠিকানা)। সে কাজ করে আর ওয়েবে খোঁজে। অডিও কখনো নয়।",
-   "pt-BR": "Depois de «OK Groovy», o que você diz vai para o Claude com sua chave de API da Anthropic, junto com o que o Groovy lê para responder (suas pílulas, os dados dos seus serviços, o endereço de um contato). Ele age e pesquisa na web. Nunca o áudio.",
-   "ru": "После «OK Groovy» сказанное уходит в Claude по твоему ключу Anthropic API вместе с тем, что Groovy читает для ответа (твои пилюли, данные твоих сервисов, адрес контакта). Он действует и ищет в интернете. Звук — никогда.",
-   "id": "Setelah «OK Groovy», ucapanmu dikirim ke Claude dengan kunci API Anthropic-mu, beserta apa yang dibaca Groovy untuk menjawab (pil-mu, data layananmu, alamat kontak). Ia bertindak dan mencari di web. Tidak pernah audio."
+  "After «Hey Groovy», what you say goes to Claude with your Anthropic API key, with what Groovy reads to answer (your pills, your services' data, a contact's address). It acts and searches the web. Never audio.": {
+   "zh-Hans": "说「Hey Groovy」后，你说的话会用你的 Anthropic API 密钥发送给 Claude，同时发送 Groovy 为回答而读取的内容（你的药丸、你的服务数据、联系人地址）。它会执行操作并进行网页搜索。从不发送音频。",
+   "hi": "«Hey Groovy» के बाद तुम जो कहते हो वह तुम्हारी Anthropic API कुंजी से Claude को जाता है, साथ में वह जो Groovy जवाब देने के लिए पढ़ता है (तुम्हारी पिल्स, तुम्हारी सेवाओं का डेटा, किसी संपर्क का पता)। वह काम करता है और वेब पर खोजता है। ऑडियो कभी नहीं।",
+   "es": "Tras «Hey Groovy», lo que dices va a Claude con tu clave de API de Anthropic, junto con lo que Groovy lee para responder (tus píldoras, los datos de tus servicios, la dirección de un contacto). Actúa y busca en la web. Nunca el audio.",
+   "ar": "بعد «Hey Groovy»، يُرسل ما تقوله إلى Claude بمفتاح Anthropic API الخاص بك، مع ما يقرؤه Groovy للإجابة (حبوبك، بيانات خدماتك، عنوان جهة اتصال). ينفّذ ويبحث على الويب. لا يُرسل الصوت أبدًا.",
+   "fr": "Après « Hey Groovy », ce que tu dis part chez Claude avec ta clé API Anthropic, avec ce que Groovy lit pour répondre (tes pilules, les données de tes services, l'adresse d'un contact). Il agit et cherche sur le web. Jamais l'audio.",
+   "bn": "«Hey Groovy»-এর পরে তুমি যা বলো তা তোমার Anthropic API কী দিয়ে Claude-এর কাছে যায়, সঙ্গে Groovy উত্তর দিতে যা পড়ে (তোমার পিল, তোমার সার্ভিসের ডেটা, কোনো কন্টাক্টের ঠিকানা)। সে কাজ করে আর ওয়েবে খোঁজে। অডিও কখনো নয়।",
+   "pt-BR": "Depois de «Hey Groovy», o que você diz vai para o Claude com sua chave de API da Anthropic, junto com o que o Groovy lê para responder (suas pílulas, os dados dos seus serviços, o endereço de um contato). Ele age e pesquisa na web. Nunca o áudio.",
+   "ru": "После «Hey Groovy» сказанное уходит в Claude по твоему ключу Anthropic API вместе с тем, что Groovy читает для ответа (твои пилюли, данные твоих сервисов, адрес контакта). Он действует и ищет в интернете. Звук — никогда.",
+   "id": "Setelah «Hey Groovy», ucapanmu dikirim ke Claude dengan kunci API Anthropic-mu, beserta apa yang dibaca Groovy untuk menjawab (pil-mu, data layananmu, alamat kontak). Ia bertindak dan mencari di web. Tidak pernah audio."
   },
   "Agent": {
    "zh-Hans": "代理",
@@ -3874,16 +3874,16 @@
    "ru": "Что вы хотите с ним сделать?",
    "id": "Apa yang ingin Anda lakukan dengannya?"
   },
-  "When enabled, Groovy listens for the wake word « OK Groovy ». Speech recognition runs entirely on-device — no audio or transcript leaves your Mac.": {
-   "zh-Hans": "启用后，Groovy 会监听唤醒词« OK Groovy »。语音识别完全在设备上运行—任何音频或文字记录都不会离开您的 Mac。",
-   "hi": "सक्षम होने पर, Groovy वेक शब्द « OK Groovy » सुनता है। वाक् पहचान पूरी तरह डिवाइस पर चलती है — कोई ऑडियो या ट्रांसक्रिप्ट आपके Mac को नहीं छोड़ता।",
-   "es": "Cuando está activado, Groovy escucha la palabra de activación « OK Groovy ». El reconocimiento de voz se ejecuta completamente en el dispositivo — ningún audio ni transcripción sale de tu Mac.",
-   "ar": "عند التفعيل، يستمع Groovy لكلمة التنشيط « OK Groovy ». يعمل التعرف على الكلام بالكامل على الجهاز — لا يغادر أي صوت أو نص جهاز Mac.",
-   "fr": "Quand cette option est activée, Groovy écoute le mot de réveil « OK Groovy ». La reconnaissance vocale se fait entièrement sur l’appareil — aucun audio ni transcription ne quitte votre Mac.",
-   "bn": "সক্ষম হলে, Groovy ওয়েক ওয়ার্ড « OK Groovy » শোনে। ভাষণ স্বীকৃতি সম্পূর্ণ ডিভাইসে চলে — কোনো অডিও বা ট্রান্সক্রিপ্ট আপনার Mac ছেড়ে যায় না।",
-   "pt-BR": "Quando ativado, o Groovy escuta a palavra de ativação « OK Groovy ». O reconhecimento de fala é executado inteiramente no dispositivo — nenhum áudio ou transcrição sai do seu Mac.",
-   "ru": "Когда включено, Groovy слушает слово активации « OK Groovy ». Распознавание речи работает полностью на устройстве — никакие аудиозаписи или транскрипции не покидают ваш Mac.",
-   "id": "Saat diaktifkan, Groovy mendengarkan kata pengaktif « OK Groovy ». Pengenalan ucapan berjalan sepenuhnya di perangkat — tidak ada audio atau transkrip yang meninggalkan Mac Anda."
+  "When enabled, Groovy listens for the wake word « Hey Groovy ». Speech recognition runs entirely on-device — no audio or transcript leaves your Mac.": {
+   "zh-Hans": "启用后，Groovy 会监听唤醒词« Hey Groovy »。语音识别完全在设备上运行—任何音频或文字记录都不会离开您的 Mac。",
+   "hi": "सक्षम होने पर, Groovy वेक शब्द « Hey Groovy » सुनता है। वाक् पहचान पूरी तरह डिवाइस पर चलती है — कोई ऑडियो या ट्रांसक्रिप्ट आपके Mac को नहीं छोड़ता।",
+   "es": "Cuando está activado, Groovy escucha la palabra de activación « Hey Groovy ». El reconocimiento de voz se ejecuta completamente en el dispositivo — ningún audio ni transcripción sale de tu Mac.",
+   "ar": "عند التفعيل، يستمع Groovy لكلمة التنشيط « Hey Groovy ». يعمل التعرف على الكلام بالكامل على الجهاز — لا يغادر أي صوت أو نص جهاز Mac.",
+   "fr": "Quand cette option est activée, Groovy écoute le mot de réveil « Hey Groovy ». La reconnaissance vocale se fait entièrement sur l’appareil — aucun audio ni transcription ne quitte votre Mac.",
+   "bn": "সক্ষম হলে, Groovy ওয়েক ওয়ার্ড « Hey Groovy » শোনে। ভাষণ স্বীকৃতি সম্পূর্ণ ডিভাইসে চলে — কোনো অডিও বা ট্রান্সক্রিপ্ট আপনার Mac ছেড়ে যায় না।",
+   "pt-BR": "Quando ativado, o Groovy escuta a palavra de ativação « Hey Groovy ». O reconhecimento de fala é executado inteiramente no dispositivo — nenhum áudio ou transcrição sai do seu Mac.",
+   "ru": "Когда включено, Groovy слушает слово активации « Hey Groovy ». Распознавание речи работает полностью на устройстве — никакие аудиозаписи или транскрипции не покидают ваш Mac.",
+   "id": "Saat diaktifkan, Groovy mendengarkan kata pengaktif « Hey Groovy ». Pengenalan ucapan berjalan sepenuhnya di perangkat — tidak ada audio atau transkrip yang meninggalkan Mac Anda."
   },
   "Which pill do you want to add?": {
    "zh-Hans": "要添加哪个胶囊？",
@@ -4314,16 +4314,16 @@
    "ru": "{n} мин назад",
    "id": "{n} menit lalu"
   },
-  "« OK Groovy » — voice wake word": {
-   "zh-Hans": "« OK Groovy » — 语音唤醒词",
-   "hi": "« OK Groovy » — वॉइस वेक वर्ड",
-   "es": "« OK Groovy » — palabra de activación de voz",
-   "ar": "« OK Groovy » — كلمة التنشيط الصوتية",
-   "fr": "« OK Groovy » — commande vocale mains libres",
-   "bn": "« OK Groovy » — ভয়েস ওয়েক ওয়ার্ড",
-   "pt-BR": "« OK Groovy » — palavra de ativação de voz",
-   "ru": "« OK Groovy » — голосовая активация",
-   "id": "« OK Groovy » — kata pengaktif suara"
+  "« Hey Groovy » — voice wake word": {
+   "zh-Hans": "« Hey Groovy » — 语音唤醒词",
+   "hi": "« Hey Groovy » — वॉइस वेक वर्ड",
+   "es": "« Hey Groovy » — palabra de activación de voz",
+   "ar": "« Hey Groovy » — كلمة التنشيط الصوتية",
+   "fr": "« Hey Groovy » — commande vocale mains libres",
+   "bn": "« Hey Groovy » — ভয়েস ওয়েক ওয়ার্ড",
+   "pt-BR": "« Hey Groovy » — palavra de ativação de voz",
+   "ru": "« Hey Groovy » — голосовая активация",
+   "id": "« Hey Groovy » — kata pengaktif suara"
   },
   "✓ Amp plugin installed in ~/.config/amp/plugins/groovy.ts": {
    "zh-Hans": "✓ Amp 插件已安装至 ~/.config/amp/plugins/groovy.ts",

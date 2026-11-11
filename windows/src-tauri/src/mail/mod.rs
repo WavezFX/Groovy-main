@@ -247,7 +247,7 @@ pub fn spawn(_app: AppHandle) {
     crate::scheduler::add("mail", Duration::from_secs(20), next, check);
 }
 
-/// "OK Groovy, any new emails?": the count and the top senders, from the last check.
+/// "Hey Groovy, any new emails?": the count and the top senders, from the last check.
 pub fn summary() -> String {
     let connected = db::conn().and_then(|c| accounts(&c)).map(|l| l.len()).unwrap_or(0);
     if connected == 0 {

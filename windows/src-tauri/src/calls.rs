@@ -3,7 +3,7 @@
 // the barge-in (island/voice.ts); here are what it can't do itself:
 //
 //   - basic commands mid-conversation, without an AI (okgroovy/basic.rs);
-//   - « OK Groovy » keeps quiet while a conversation has the microphone;
+//   - « Hey Groovy » keeps quiet while a conversation has the microphone;
 //   - a short summary of the conversation saved to chat history;
 //   - "Instant voice": a real-time voice model (OpenAI Realtime over WebRTC,
 //     or Gemini Live) when the user chose it and has that key. The stored key
@@ -39,7 +39,7 @@ pub fn voice_basic(app: AppHandle, text: String) -> Option<String> {
     Some(crate::okgroovy::basic::run(&app, &basic))
 }
 
-/// "OK Groovy, let's talk": starts a conversation instead of one answer.
+/// "Hey Groovy, let's talk": starts a conversation instead of one answer.
 pub fn is_talk(text: &str) -> bool {
     let t = crate::okgroovy::wake::normalize(text);
     [

@@ -316,7 +316,7 @@ export async function skillsPage(page: HTMLElement, ctx: HubContext) {
     content.append(h("div", { class: "hub-note", text: t("Runs Vercel's skills CLI {0} with its telemetry off. Searches go to skills.sh; only GitHub may see a token, and only yours.", { 0: status.cliVersion }) }));
   }
 
-  // « OK Groovy » asked to install or remove: show it here to confirm.
+  // « Hey Groovy » asked to install or remove: show it here to confirm.
   const confirm = (c: VoiceConfirm | null) => {
     if (!c) return;
     if (c.project && c.project !== project) {
