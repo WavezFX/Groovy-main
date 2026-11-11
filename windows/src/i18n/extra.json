@@ -20553,6 +20553,17 @@
    "pt-BR": "Área de transferência",
    "ru": "Буфер обмена",
    "id": "Papan klip"
+  },
+  "I couldn't work out how to do that.": {
+   "zh-Hans": "我没弄明白该怎么做。",
+   "hi": "मैं समझ नहीं पाया कि यह कैसे करूँ।",
+   "es": "No he sabido cómo hacerlo.",
+   "ar": "لم أتمكن من معرفة كيفية فعل ذلك.",
+   "fr": "Je n'ai pas su comment faire ça.",
+   "bn": "এটা কীভাবে করতে হবে তা বুঝে উঠতে পারিনি।",
+   "pt-BR": "Não consegui descobrir como fazer isso.",
+   "ru": "Я не понял, как это сделать.",
+   "id": "Saya tidak tahu cara melakukannya."
   }
  }
 }
