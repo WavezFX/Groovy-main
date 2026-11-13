@@ -64,3 +64,19 @@ Read `docs/GROOVY_SPEC.md` (sections 6, 8, 10) and `docs/plan/ARCHITECTURE_MAP.m
 ## Item 6: Checks
 - `STATUS.md`: a table from `caps()` and `auth()`: brain, sign-in, key, tools, vision, streaming, tier.
 - Idle **under 150 MB**, peak **under 300 MB**, ten languages, no setting lost.
+
+## Item 7: Everyday commands never need an AI, and every brain can use Groovy's tools (owner, 13 Nov)
+The owner wants "pause the music" and commands like it to work as standard: no Claude Code or Codex sign-in, no key, and the same with a local model (Ollama, LM Studio, Groovy's own local model).
+1. **No AI first, everywhere:** `okgroovy/basic.rs` (`basic::parse`/`run`), `music.rs` and `tools.rs` already run before any brain, from voice, chat and calls. Keep that order on every path, and don't let 4D items 2–3 move any of these commands behind a brain.
+2. **Wider phrasing:**
+   - **Music:** play, pause, resume, stop, next, skip, back, previous, "play X", "play X on Spotify", like or save the song, shuffle, repeat, "what's playing".
+   - **Volume:** up, down, set to N, mute, unmute.
+   - **Timers, reminders and alarms.**
+   - **Open:** apps, sites and folders.
+   - **System:** brightness, lock, sleep, screenshot (the screenshot only when 4C's capture exists), battery, CPU and RAM.
+   - **The time and date.**
+   Word order and fillers ("please", "can you", "could you", "for me", "Groovy") must not matter. Add a table test of at least 60 phrasings in `basic.rs` and `music.rs`.
+3. **Tools on every brain:** the one-line JSON tool request from item 4 (`brains/cli.rs`) works for local brains too (`brains/mod.rs` `Local`), so anything the plain parser misses can still be done by whichever brain is chosen. Do this with a short system prompt plus the same strict parser, and with no extra memory at idle.
+4. **Checks:**
+   - With **no brain set up at all** (no keys, no sign-ins, no local model), a CI test runs the voice path for "Hey Groovy, pause the music", "volume up", "what time is it" and "set a timer for 5 minutes", and they all succeed.
+   - A unit test feeds a local brain's tool reply through the same parser.

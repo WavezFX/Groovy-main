@@ -6,6 +6,15 @@ Paste everything in the block.
 Pull groovy-ai-phase1 from WavezFX/Groovy-main, merge fable-plan into it if it
 isn't there yet, and work on groovy-ai-phase1.
 
+FIRST, before round 4A: the Check run is red. Upgrade rusqlite so
+libsqlite3-sys is >= 0.39 (RUSTSEC-2026-0459, SQLite CVE), run cargo test,
+and get the Check green (a "System libraries" failure is an Ubuntu mirror
+outage: re-run it).
+
+Owner's rule (13 Nov): everyday commands (music, volume, timers, reminders,
+opening things, the time) never need an AI: no Claude Code or Codex sign-in,
+no key, and they work the same with a local model. 4D item 7 says how.
+
 Read, in this order and nothing else up front:
 1. docs/GROOVY_SPEC.md   (what Groovy must be; it wins over every other file)
 2. graphify-out/GRAPH_REPORT.md   (run "graphify update ." if it is missing)
@@ -63,7 +72,7 @@ Stop when section 4 has only (Opus) and owner-blocked items left. Write
 - **4C item 1** (behaviour notes): `docs/plan/SCREEN_BUDDY_NOTES.md`.
 - **4E item 1**: steps 1 and 2 only (`docs/plan/CHARACTER_MOTION.md`); the rewrite waits for the owner.
 
-So build, in this order: **4A** items 1, 2, 5, 6, 8 · **4F** items 2 to 10 (all of them are yours now) · **4D** items 2, 3, 5, 6 · **4B** items 2 to 7 (and 4A item 4) · **4C** items 2, 3, 4, 6, 7 · **4E** items 2 to 7.
+So build, in this order: **4A** items 1, 2, 5, 6, 8 · **4F** items 2 to 10 (all of them are yours now) · **4D** items 2, 3, 5, 6, 7 · **4B** items 2 to 7 (and 4A item 4) · **4C** items 2, 3, 4, 6, 7 · **4E** items 2 to 7.
 
 ## Still for an Opus or Fable session
 - **4C item 5** (pointing and drawing on screen): not started. It needs 4C items 2 and 3 first (the capture's scale and origin, and the tool path).

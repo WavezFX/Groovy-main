@@ -188,6 +188,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol). Not ticked: never run against a signed-in Claude Code or Codex.
 - [ ] 5. The router slot (`docs/ROUTER_PLUGIN.md`)
 - [ ] 6. Checks
+- [ ] 7. Everyday commands never need an AI (no sign-in, no key, works with local models); tools on every brain incl. local (owner, 13 Nov)
 
 ### 4B. `FIXES_ROUND4B.md` (voice)
 - [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus). **Built.** Not ticked: P5 is 9 of 10 on Linux but **7–8 of 10 on Windows** (0 of 20 false wakes on both), and waking to his given name is still there until the owner confirms removing it.
