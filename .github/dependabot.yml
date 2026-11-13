@@ -1,0 +1,31 @@
+# Round 3G item 8: dependencies are checked every week, one pull request per
+# ecosystem (grouped), so a fix for an advisory arrives without anyone asking.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /windows
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      cargo:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /windows
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 3

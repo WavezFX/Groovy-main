@@ -1,0 +1,36 @@
+name: Clean up old runs
+
+# Round 3G item 9: the Actions page keeps the last two weeks of runs (and with
+# them their artifacts), not every run ever. Weekly, and by hand.
+
+run-name: "Clean up runs older than 14 days"
+
+on:
+  schedule:
+    - cron: '41 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Delete finished runs older than 14 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          cutoff=$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          deleted=0
+          for round in 1 2 3 4 5; do
+            ids=$(gh run list -R "$REPO" --status completed --created "<$cutoff" --limit 200 --json databaseId --jq '.[].databaseId')
+            [ -z "$ids" ] && break
+            for id in $ids; do
+              gh run delete "$id" -R "$REPO" >/dev/null && deleted=$((deleted + 1))
+            done
+          done
+          echo "deleted $deleted runs created before $cutoff"
