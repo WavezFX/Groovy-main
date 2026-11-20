@@ -280,6 +280,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             Mode::Command { until, .. } | Mode::FollowUp { until } if now > *until => {
                 mode = Mode::Wake;
                 vad.hangover = 25;
+                vad.short_extra = wake::SHORT_EXTRA;
                 show(&app, None);
                 if std::mem::take(&mut chat_waits) {
                     to_island(&app, None, true);
@@ -348,12 +349,14 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                             chat_waits = true;
                             mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
                             vad.hangover = 40;
+                            vad.short_extra = 0;
                             None
                         } else {
                             show(&app, Some(VoiceView { phase: "listening".into(), heard: rest.clone(), answer: String::new() }));
                             mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
                             // A question may come with pauses in it.
                             vad.hangover = 40;
+                            vad.short_extra = 0;
                             None
                         }
                     }
@@ -368,6 +371,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             let Some(question) = question else { continue };
             mode = Mode::Wake;
             vad.hangover = 25;
+            vad.short_extra = wake::SHORT_EXTRA;
             if route == Route::Chat {
                 // Asked in the island's chat like a typed question, and read out there.
                 chat_waits = false;
@@ -430,6 +434,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             if answer.trim_end().ends_with('?') {
                 mode = Mode::FollowUp { until: Instant::now() + Duration::from_secs(8) };
                 vad.hangover = 40;
+                vad.short_extra = 0;
                 show(&app, Some(VoiceView { phase: "listening".into(), heard: String::new(), answer }));
             } else {
                 hide_at = Some(Instant::now() + Duration::from_secs(6));

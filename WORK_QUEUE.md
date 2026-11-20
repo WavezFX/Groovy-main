@@ -196,7 +196,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. His voice on this PC by default (**needs 4A item 1**, brought over from fable-plan). `voiceMode` local/cloud; no voice request in local; older cloud-voice installs keep cloud with a one-time notice.
 - [ ] 4. CPU and response times (P2–P7)
 - [ ] 5. LiveKit as an option
-- [ ] 6. Better end of speech (closes 3J item 2)
+- [x] 6. Better end of speech (closes 3J item 2). Benchmark table in `STATUS.md`: Silero not adopted (no fewer cut-offs at the same silence, 0.6 % CPU); a short stretch waits 360 ms longer instead (early cut-offs 12–13 → 6 of 20, end time unchanged). P2/P3 to be read on Windows CI.
 - [ ] 7. Checks
 
 ### 4C. `FIXES_ROUND4C.md` (screen buddy). **Needs 4D items 1, 2 and 4.**

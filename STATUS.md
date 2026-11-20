@@ -8,6 +8,18 @@ unit-tested), **CI-verified** (built and run on a Windows runner),
 **Round 4B (voice), branch `elevate/4b-voice`: built, not yet proven on Windows.**
 - Item 2 (speech-to-text on this PC by default): `speechMode` (`local` default, `cloud-first`) in Flow's prefs; an older install that had cloud speech on *and* a key keeps `cloud-first`, everyone else is `local`, with a one-time island notice. In `local` no cloud speech request is built (dictation, « Hey Groovy » commands, and the wake-time connection warm-up). Settings → Voice shows what heard the last sentence. Calls already transcribed on the PC. RAM: none added (no new model; Whisper base in the helper as before). Not proven on Windows: the notice and the "last heard" line.
 - Item 3 (his voice on this PC by default): `voiceMode` (`local` default, `cloud`) in Flow's prefs; an install with Fish Audio (key + voice, picked) or ElevenLabs (key, chosen) keeps `cloud`, everyone else `local`, with a one-time notice. In `local` the Fish Audio key isn't read and no request is built (`fish_turn`), ElevenLabs answers fall back to Windows' voice, and the wake-time warm-up skips Fish Audio. Order inside `local`: the light voice (Kokoro if downloaded and chosen), then Windows' own voice. Settings → Voice → Answers: "Where his voice is made". RAM: the light voice is 4A item 1's (80 MB on Windows build 251); nothing new. Not proven on Windows: speaking with no network on a fresh install.
+- Item 6 (better end of speech): benchmark `windows/scripts/vad-bench.py` (20 utterances made with the light voice, a 0.25–1.2 s pause inside each, every third ending softly, room noise; Linux, sherpa-onnx 1.13.8). "Early" = the stretch ended before the speaker had finished; "end" = median time from the last word to the stretch being handed on; CPU per core.
+
+| Detector | Early cut-offs | End after last word | CPU | Memory |
+|---|---|---|---|---|
+| Energy, 750 ms (before) | 12–13 of 20 | 650–670 ms | 0.03 % | none |
+| **Energy, 750 ms, 1110 ms while the stretch is under 1.8 s (adopted)** | **6 of 20** | **680 ms** | 0.02 % | none |
+| Energy, 1050 ms | 5–7 of 20 | 950–970 ms | 0.02 % | none |
+| Silero VAD, 750 ms | 11–13 of 20 | 770–790 ms | 0.60 % | about 2 MB + an onnxruntime session |
+| Silero VAD, 500 ms | 15–16 of 20 | 510–530 ms | 0.60 % | same |
+| Silero VAD, 1050 ms | 5 of 20 | 1060–1070 ms | 0.60 % | same |
+
+  Silero was **not adopted**: at the same end silence it cuts off about as often as the energy detector (11–13 vs 12–13), and costs 0.6 % of a core against the 0.5 % budget. What cut people off was the length of the pause, so a short stretch ("Hey Groovy… play music") now waits 360 ms longer before it counts as ended (`okgroovy/wake.rs` `short_extra`, the page's `voice/vad.ts` likewise); a long one ends as before, so P6 is unchanged for normal sentences. Command mode (1.2 s) is unchanged. P2/P3 not re-measured (needs Windows CI); the change adds one counter per 30 ms frame.
 
 **Round 3K (pillow body + element wisps) and 3H item 1 (wardrobe fit): contact sheets ready to look at in the Windows build's "Settings screenshots" artifact:** `body/body-sheet.png` (each look at stages 1 to 6, idle/happy/thinking/surprised/sleepy, open and collapsed island, a hat row and a holding row) and `items/items-sheet.png` (every item at every angle on the new body). Growth art is unchanged; it follows the pillow's dipped crown. Items sit on anchors from the live outline (`headAnchors`); `items-check` measures rim 2 %, collar 3 %, lens 3 %.
 

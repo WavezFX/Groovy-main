@@ -130,7 +130,17 @@ pub struct Vad {
     preroll: std::collections::VecDeque<f32>,
     /// Silence that ends a stretch, in frames.
     pub hangover: usize,
+    /// Extra silence, in frames, for a stretch still under `SHORT_STRETCH`
+    /// frames (round 4B item 6): "Hey Groovy… play music" isn't cut in two.
+    pub short_extra: usize,
+    /// Frames since the stretch began.
+    stretch_frames: usize,
 }
+
+/// A stretch younger than this (1.8 s) waits `short_extra` frames longer.
+pub const SHORT_STRETCH: usize = 60;
+/// The default `short_extra`: 12 frames, 360 ms (round 4B item 6's benchmark).
+pub const SHORT_EXTRA: usize = 12;
 
 pub const FRAME: usize = 480; // 30 ms at 16 kHz
 const PREROLL: usize = 16_000 * 3 / 10;
@@ -147,6 +157,8 @@ impl Default for Vad {
             current: Vec::new(),
             preroll: std::collections::VecDeque::with_capacity(PREROLL),
             hangover: 25,
+            short_extra: SHORT_EXTRA,
+            stretch_frames: 0,
         }
     }
 }
@@ -177,7 +189,9 @@ impl Vad {
                 } else {
                     self.silent_frames += 1;
                 }
-                if self.silent_frames >= self.hangover || self.current.len() >= MAX_SEGMENT {
+                self.stretch_frames += 1;
+                let extra = if self.stretch_frames < SHORT_STRETCH { self.short_extra } else { 0 };
+                if self.silent_frames >= self.hangover + extra || self.current.len() >= MAX_SEGMENT {
                     done.push(std::mem::take(&mut self.current));
                     self.in_speech = false;
                     self.speech_frames = 0;
@@ -187,6 +201,7 @@ impl Vad {
                 self.speech_frames += 1;
                 if self.speech_frames >= 3 {
                     self.in_speech = true;
+                    self.stretch_frames = 0;
                     self.current = self.preroll.drain(..).collect();
                     self.current.extend_from_slice(&self.frame);
                 }
@@ -309,6 +324,24 @@ mod tests {
         // The tone, a pre-roll before it and the hangover after it.
         assert!(out[0].len() > 16_000 && out[0].len() <= 16_000 + 25 * FRAME + PREROLL + 2 * FRAME);
         assert!(!vad.in_speech());
+    }
+
+    #[test]
+    fn a_short_start_waits_a_little_longer_than_a_long_one() {
+        let tone = |secs: f32| -> Vec<f32> { (0..(16_000.0 * secs) as usize).map(|i| (i as f32 * 0.1).sin() * 0.3).collect() };
+        let gap = |ms: usize| vec![0.0f32; 16 * ms];
+        // "Hey Groovy", an 850 ms pause, then the command: one stretch, not two.
+        let mut vad = Vad::default();
+        vad.feed(&gap(500));
+        vad.feed(&tone(0.6));
+        assert!(vad.feed(&gap(850)).is_empty(), "a short start is not cut at a 850 ms pause");
+        vad.feed(&tone(0.8));
+        assert_eq!(vad.feed(&gap(1500)).len(), 1);
+        // A long stretch ends after the usual 750 ms.
+        let mut vad = Vad::default();
+        vad.feed(&gap(500));
+        vad.feed(&tone(2.5));
+        assert_eq!(vad.feed(&gap(850)).len(), 1);
     }
 
     #[test]
