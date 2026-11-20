@@ -40,6 +40,11 @@ fn app() -> Result<&'static AppHandle, String> {
     APP.get().ok_or_else(|| "not started".to_string())
 }
 
+/// The app, once Groovy has started (for callers without one: the phone).
+pub(crate) fn app_handle() -> Option<&'static AppHandle> {
+    APP.get()
+}
+
 fn settings(app: &AppHandle) -> Settings {
     app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().clone()).unwrap_or_default()
 }

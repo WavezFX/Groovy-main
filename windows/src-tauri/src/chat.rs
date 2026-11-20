@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use tauri::AppHandle;
 
 use crate::assistant::{self, AssistantPrefs};
+use crate::brains::switch::{keyed, Keyed};
 use crate::settings::Settings;
 use crate::{claude, local_chat, memory, openai_compat, secrets};
 
@@ -217,7 +218,7 @@ pub fn plain_question(first: bool, context: Option<&ChatContext>, query: &str) -
 
 /// The model chosen for `provider`, or its default.
 pub fn model_for(settings: &Settings, provider: &str) -> String {
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         let m = settings.model.trim();
         return if m.is_empty() { claude::DEFAULT_MODEL.to_string() } else { m.to_string() };
     }
@@ -468,11 +469,11 @@ async fn complete_with(
     let provider = this_pc(settings, prefs, provider).await;
     let provider = provider.as_str();
     let model = model_for(settings, provider);
-    let reply = if provider == ANTHROPIC {
+    let reply = if keyed(provider) == Keyed::Claude {
         claude::send(chat, &model, prompt, None).await?
     } else if let Some(p) = openai_compat::provider(provider) {
         openai_compat::send(chat, p, &model, prompt, None).await?
-    } else if provider == LLAMACPP {
+    } else if keyed(provider) == Keyed::ThisPc {
         let mut prefs = prefs.clone();
         if !model.is_empty() {
             prefs.local_model = model;
@@ -552,13 +553,13 @@ async fn send_to(
     let provider = this_pc(settings, prefs, provider).await;
     let provider = provider.as_str();
     let model = model_for(settings, provider);
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         return claude::send(chat, &model, query, context).await;
     }
     if let Some(p) = openai_compat::provider(provider) {
         return openai_compat::send(chat, p, &model, query, context).await;
     }
-    if provider == LLAMACPP {
+    if keyed(provider) == Keyed::ThisPc {
         // A model picked above the chat box wins over the one in Settings.
         let mut prefs = prefs.clone();
         if !model.is_empty() {
@@ -594,7 +595,20 @@ pub async fn send_for_phone(
 ) -> Result<ChatReply, String> {
     let prefs = settings.assistant.clone().sanitised();
     chat.set_instructions(&prefs.name, instructions(&prefs));
-    if provider == ANTHROPIC {
+    // No key for the phone's online brain: the switcher answers (a signed-in subscription first).
+    if needs_switcher(settings, provider) {
+        if let Some(app) = crate::brain_ai::app_handle() {
+            let mut messages = chat.inner.lock().unwrap().plain.clone();
+            messages.push(json!({ "role": "user", "content": query }));
+            if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
+                let (text, used) = answer?;
+                let turn = chat.begin(used);
+                chat.commit(&turn, json!({ "role": "user", "content": query }), json!({ "role": "assistant", "content": text }), &query, &text);
+                return Ok(ChatReply::text(text));
+            }
+        }
+    }
+    if keyed(provider) == Keyed::Claude {
         return claude::send(chat, model, query, None).await;
     }
     if let Some(p) = openai_compat::provider(provider) {
@@ -611,7 +625,7 @@ pub async fn send_for_phone(
 /// address): nothing is sent anywhere before that.
 pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo>, String> {
     let no_key = || crate::i18n::t("No API key — add it in Settings.");
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         let key = secrets::get(claude::KEY).ok_or_else(no_key)?;
         return claude::models(&key).await;
     }
@@ -619,7 +633,7 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
         let key = secrets::get(p.key).ok_or_else(no_key)?;
         return openai_compat::models(p, &key).await;
     }
-    if provider == LLAMACPP {
+    if keyed(provider) == Keyed::ThisPc {
         let models = crate::models::discover(&crate::models::models_dir(), 2048);
         if models.is_empty() {
             return Err(crate::i18n::t("No local model yet: download one in Settings → Models."));

@@ -199,6 +199,29 @@ async fn brain_of(who: Who, s: &Settings, prefs: &AssistantPrefs) -> Option<&'st
 }
 
 
+/// Which kind of brain a chat provider id is: the chat keeps its own history
+/// and streaming per kind, but which one it is is decided here, once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Keyed {
+    /// Claude with the user's key.
+    Claude,
+    /// An OpenAI-compatible cloud service with the user's key.
+    Compat,
+    /// Groovy's own local model.
+    ThisPc,
+    /// Anything else: a model server on this PC, a subscription, or unknown.
+    Other,
+}
+
+pub fn keyed(provider: &str) -> Keyed {
+    match provider {
+        "anthropic" => Keyed::Claude,
+        "llamacpp" => Keyed::ThisPc,
+        p if cloud_id(p).is_some() => Keyed::Compat,
+        _ => Keyed::Other,
+    }
+}
+
 /// After a failed brain: whether the next one may answer. Only a limit (when
 /// the user allows it), the network or a missing sign-in or key hand over.
 pub fn may_switch(prefs: &AssistantPrefs, e: &BrainError) -> bool {
@@ -455,6 +478,16 @@ mod tests {
         assert_eq!(ranked(&p, Job::WRITING, false, vec![]), vec![]);
         assert_eq!(need(Job::COMMANDS, true).tier, crate::brains::Tier::Small);
         assert!(need(Job { kind: Kind::Vision, weight: Weight::Heavy }, false).vision);
+    }
+
+    #[test]
+    fn each_chat_provider_is_one_kind_of_brain() {
+        assert_eq!(keyed("anthropic"), Keyed::Claude);
+        assert_eq!(keyed("google"), Keyed::Compat);
+        assert_eq!(keyed("openrouter"), Keyed::Compat);
+        assert_eq!(keyed("llamacpp"), Keyed::ThisPc);
+        assert_eq!(keyed("ollama"), Keyed::Other);
+        assert_eq!(keyed("codex"), Keyed::Other);
     }
 
     #[test]

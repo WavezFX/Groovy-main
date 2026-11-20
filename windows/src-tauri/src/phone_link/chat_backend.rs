@@ -82,7 +82,7 @@ fn is_local(provider: &str) -> bool {
 
 /// The credential store entry a provider's key lives in; None for the model servers.
 fn key_name(provider: &str) -> Option<&'static str> {
-    if provider == chat::ANTHROPIC {
+    if crate::brains::switch::keyed(provider) == crate::brains::switch::Keyed::Claude {
         return Some(claude::KEY);
     }
     openai_compat::provider(provider).map(|p| p.key)
