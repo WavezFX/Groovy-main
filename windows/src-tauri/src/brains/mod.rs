@@ -130,7 +130,13 @@ pub struct Request<'a> {
     pub tools: &'a [Value],
     pub max_tokens: u32,
     pub timeout: Duration,
+    /// Gets the answer so far as it is written, when the brain can stream
+    /// (round 4D item 3). Brains that answer all at once never call it.
+    pub on_delta: Option<&'a Delta<'a>>,
 }
+
+/// The answer so far, as it arrives.
+pub type Delta<'a> = dyn Fn(&str) + Send + Sync + 'a;
 
 /// What an adapter needs from the app to answer.
 #[derive(Clone, Copy)]

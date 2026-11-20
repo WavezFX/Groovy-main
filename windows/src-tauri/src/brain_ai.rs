@@ -237,7 +237,7 @@ pub(crate) async fn openai_turn(ctx: crate::brains::Ctx<'_>, cloud: Option<&str>
 pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
     let app = app()?;
     let messages = [json!({ "role": "user", "content": user })];
-    let req = crate::brains::Request { system, messages: &messages, tools: &[], max_tokens, timeout };
+    let req = crate::brains::Request { system, messages: &messages, tools: &[], max_tokens, timeout, on_delta: None };
     crate::brains::switch::run(app, &settings(app), Job::WRITING, req).await.map(|(reply, _)| crate::brains::text_of(&reply))
 }
 
@@ -245,7 +245,7 @@ pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Durati
 /// shape: `{ content: [blocks], stop_reason }`.
 pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
     let app = app()?;
-    let req = crate::brains::Request { system, messages, tools, max_tokens: 1024, timeout: Duration::from_secs(60) };
+    let req = crate::brains::Request { system, messages, tools, max_tokens: 1024, timeout: Duration::from_secs(60), on_delta: None };
     crate::brains::switch::run(app, &settings(app), Job::COMMANDS, req).await.map(|(reply, _)| reply)
 }
 

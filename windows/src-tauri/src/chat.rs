@@ -346,7 +346,7 @@ pub async fn send(
     if needs_switcher(settings, &route.primary) {
         let mut messages = chat.inner.lock().unwrap().plain.clone();
         messages.push(json!({ "role": "user", "content": plain }));
-        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages).await {
+        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
             let (text, used) = answer?;
             let turn = chat.begin(used);
             chat.commit(&turn, json!({ "role": "user", "content": plain }), json!({ "role": "assistant", "content": text }), &plain, &text);
@@ -417,7 +417,13 @@ pub async fn complete(
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
     if needs_switcher(settings, &route.primary) {
         let messages = [json!({ "role": "user", "content": prompt })];
-        if let Some(answer) = by_switcher(app, settings, system, &messages).await {
+        // The answer so far reaches the caller as the brain writes it.
+        let answer = {
+            let streamed = std::sync::Mutex::new(&mut on_delta);
+            let delta = |t: &str| (*streamed.lock().unwrap())(t.to_string());
+            by_switcher(app, settings, system, &messages, Some(&delta)).await
+        };
+        if let Some(answer) = answer {
             let (text, _) = answer?;
             on_delta(text.clone());
             return Ok(text);
@@ -497,13 +503,13 @@ fn needs_switcher(settings: &Settings, primary: &str) -> bool {
 
 /// One chat turn through the switcher; None when no brain is ready at all, so
 /// the chat's own brain gives its usual "set me up" message.
-async fn by_switcher(app: &AppHandle, settings: &Settings, system: &str, messages: &[Value]) -> Option<Result<(String, &'static str), String>> {
+async fn by_switcher(app: &AppHandle, settings: &Settings, system: &str, messages: &[Value], on_delta: Option<&crate::brains::Delta<'_>>) -> Option<Result<(String, &'static str), String>> {
     use crate::brains::switch::{order_for, run, Job, Kind, Weight};
     let job = Job { kind: Kind::Chat, weight: Weight::Heavy };
     if order_for(settings, job, false).is_empty() {
         return None;
     }
-    let req = crate::brains::Request { system, messages, tools: &[], max_tokens: 2048, timeout: std::time::Duration::from_secs(120) };
+    let req = crate::brains::Request { system, messages, tools: &[], max_tokens: 2048, timeout: std::time::Duration::from_secs(120), on_delta };
     Some(run(app, settings, job, req).await.map(|(reply, id)| (crate::brains::text_of(&reply), id)))
 }
 

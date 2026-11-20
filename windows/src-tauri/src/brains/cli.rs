@@ -37,7 +37,7 @@ impl Brain for Cli {
         self.name
     }
     fn caps(&self) -> Caps {
-        Caps { tools: true, vision: false, streaming: false, web_search: false, local: false, tier: Tier::Large }
+        Caps { tools: true, vision: false, streaming: true, web_search: false, local: false, tier: Tier::Large }
     }
     fn auth(&self) -> Auth {
         // Signed in: the tool is here and its own sign-in file is (round 4D
@@ -48,7 +48,7 @@ impl Brain for Cli {
         Box::pin(async move {
             if req.tools.is_empty() {
                 let prompt = format!("{}\n\n{}", req.system, transcript(req.messages));
-                return complete(self.id, prompt, req.timeout).await.map(text_reply).map_err(BrainError::of);
+                return complete_streaming(self.id, prompt, req.timeout, req.on_delta).await.map(text_reply).map_err(BrainError::of);
             }
             let names = tool_names(req.tools);
             let mut prompt = tool_prompt(req.system, req.messages, req.tools);
@@ -284,47 +284,102 @@ pub const SUBSCRIPTIONS: [&str; 3] = ["claude-code", "codex", "gemini-cli"];
 /// goes in on stdin; Claude Code gets one turn (no tools), Codex a read-only
 /// sandbox in an empty folder.
 pub(crate) async fn complete(tool: &'static str, prompt: String, timeout: Duration) -> Result<String, String> {
+    complete_streaming(tool, prompt, timeout, None).await
+}
+
+/// The same, with the answer so far handed to `on_delta` as the tool writes
+/// it (round 4D item 3): whatever the tool prints, as soon as it prints it.
+pub(crate) async fn complete_streaming(tool: &'static str, prompt: String, timeout: Duration, on_delta: Option<&super::Delta<'_>>) -> Result<String, String> {
     let exe = path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
-    tauri::async_runtime::spawn_blocking(move || {
-        use std::io::Write;
-        let dir = std::env::temp_dir().join("groovy-brain");
-        let _ = std::fs::create_dir_all(&dir);
+    let args: &'static [&'static str] = match tool {
+        "claude-code" => &["-p", "--output-format", "text", "--max-turns", "1"],
+        // Not a terminal and the prompt on stdin: the Gemini tool answers
+        // once and leaves; with no approval mode set, it runs none of its
+        // own tools that change anything.
+        "gemini-cli" => &[],
+        _ => &["exec", "--skip-git-repo-check", "-s", "read-only", "-"],
+    };
+    let dir = std::env::temp_dir().join("groovy-brain");
+    let _ = std::fs::create_dir_all(&dir);
+    run_tool(tool, exe, args, dir, prompt, timeout, on_delta).await
+}
+
+/// Runs one tool for one answer: the prompt on stdin, stdout read as it
+/// comes, killed (with everything it started) at `timeout`.
+pub(crate) async fn run_tool(
+    tool: &'static str,
+    exe: std::path::PathBuf,
+    args: &'static [&'static str],
+    dir: std::path::PathBuf,
+    prompt: String,
+    timeout: Duration,
+    on_delta: Option<&super::Delta<'_>>,
+) -> Result<String, String> {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+    let job = tauri::async_runtime::spawn_blocking(move || -> Result<(bool, String), String> {
+        use std::io::{Read, Write};
         let mut cmd = std::process::Command::new(&exe);
-        match tool {
-            "claude-code" => cmd.args(["-p", "--output-format", "text", "--max-turns", "1"]),
-            // Not a terminal and the prompt on stdin: the Gemini tool answers
-            // once and leaves; with no approval mode set, it runs none of its
-            // own tools that change anything.
-            "gemini-cli" => &mut cmd,
-            _ => cmd.args(["exec", "--skip-git-repo-check", "-s", "read-only", "-"]),
-        };
-        cmd.current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
+        cmd.args(args).current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
         let mut child = crate::platform::no_console(&mut cmd).spawn().map_err(|e| format!("{tool} didn't start: {e}"))?;
         crate::platform::contain(&child);
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(prompt.as_bytes());
         }
+        let mut stdout = child.stdout.take().ok_or("no output")?;
+        let reader = std::thread::spawn(move || {
+            let mut buf = [0u8; 4096];
+            while let Ok(n) = stdout.read(&mut buf) {
+                if n == 0 || tx.send(buf[..n].to_vec()).is_err() {
+                    break;
+                }
+            }
+        });
+        let mut stderr = child.stderr.take();
+        let errs = std::thread::spawn(move || {
+            let mut e = String::new();
+            if let Some(s) = stderr.as_mut() {
+                let _ = s.read_to_string(&mut e);
+            }
+            e
+        });
         let started = std::time::Instant::now();
-        loop {
-            if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-                break;
+        let status = loop {
+            if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+                break status;
             }
             if started.elapsed() > timeout {
                 let _ = child.kill();
+                let _ = child.wait();
                 return Err(format!("{tool} took too long."));
             }
-            std::thread::sleep(Duration::from_millis(100));
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        let _ = reader.join();
+        Ok((status.success(), errs.join().unwrap_or_default()))
+    });
+    tokio::pin!(job);
+    let mut bytes: Vec<u8> = Vec::new();
+    let take = |chunk: Vec<u8>, bytes: &mut Vec<u8>| {
+        bytes.extend_from_slice(&chunk);
+        if let Some(f) = on_delta {
+            f(String::from_utf8_lossy(bytes).trim_start());
         }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if !out.status.success() || text.is_empty() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
+    };
+    let done = loop {
+        tokio::select! {
+            Some(chunk) = rx.recv() => take(chunk, &mut bytes),
+            r = &mut job => break r,
         }
-        Ok(text)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    };
+    while let Ok(chunk) = rx.try_recv() {
+        take(chunk, &mut bytes);
+    }
+    let (ok, err) = done.map_err(|e| e.to_string())??;
+    let text = String::from_utf8_lossy(&bytes).trim().to_string();
+    if !ok || text.is_empty() {
+        return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
+    }
+    Ok(text)
 }
 
 #[cfg(test)]
@@ -349,6 +404,49 @@ mod tests {
         assert!(!signed_in("claude-code", &home));
         assert_eq!(sign_in_args("codex"), ["login"]);
         let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[cfg(unix)]
+    fn fake(script: &'static str, timeout_ms: u64, seen: std::sync::Arc<std::sync::Mutex<Vec<(std::time::Instant, String)>>>) -> Result<String, String> {
+        let dir = std::env::temp_dir();
+        tauri::async_runtime::block_on(async move {
+            let log = seen.clone();
+            let f = move |t: &str| log.lock().unwrap().push((std::time::Instant::now(), t.to_string()));
+            let args: &'static [&'static str] = Box::leak(Box::new(["-c", script]));
+            run_tool("fake-tool", "/bin/sh".into(), args, dir, "hello".into(), Duration::from_millis(timeout_ms), Some(&f)).await
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_streams_its_first_text_within_two_seconds_and_answers_whole() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let start = std::time::Instant::now();
+        let r = fake("read p; echo \"Hi $p,\"; sleep 2; echo there", 10_000, seen.clone());
+        assert_eq!(r.unwrap(), "Hi hello,\nthere", "the prompt went in on stdin and the whole answer came back");
+        let seen = seen.lock().unwrap();
+        let (at, first) = seen.first().expect("streamed");
+        assert_eq!(first.trim(), "Hi hello,");
+        assert!(at.duration_since(start) < Duration::from_millis(2000), "first text after {:?}", at.duration_since(start));
+        assert!(seen.last().unwrap().1.contains("there"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_that_takes_too_long_is_killed() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let start = std::time::Instant::now();
+        let r = fake("exec sleep 10", 300, seen);
+        assert_eq!(r.unwrap_err(), "fake-tool took too long.");
+        assert!(start.elapsed() < Duration::from_secs(3));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_that_fails_says_why() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let r = fake("echo 'Not logged in' >&2; exit 1", 5_000, seen);
+        assert_eq!(r.unwrap_err(), "fake-tool: Not logged in");
     }
 
     #[test]
