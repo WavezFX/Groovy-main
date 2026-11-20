@@ -30,6 +30,47 @@ pub fn voice_call_active(app: tauri::AppHandle, on: bool) {
     ACTIVE.store(on, Ordering::Relaxed);
     // A live call is a conversation until it ends (round 3D item 10).
     crate::resources::state::fire(&app, if on { crate::resources::state::Event::CallStarted } else { crate::resources::state::Event::CallEnded });
+    if !on {
+        free_voice_after_call();
+    }
+}
+
+/// Round 4F item 3: at hang-up the voice and speech models go at once, not
+/// after their helpers' 20 s idle: both helpers are stopped (and any model
+/// loaded in this process freed) within 2 s. A helper still answering holds
+/// its lock, so this tries again every 200 ms; a new call stops it. The
+/// keyword spotter stays: it is what listens for the wake word.
+fn free_voice_after_call() {
+    let _ = std::thread::Builder::new().name("groovy-call-free".into()).spawn(|| {
+        let tries = until_freed(HANG_UP_TRIES, active, || {
+            crate::speech::unload_idle_now();
+            crate::speech::tts::free();
+            !(crate::speech::helper::is_running(crate::speech::helper::Kind::Stt) || crate::speech::tts::is_loaded())
+        });
+        crate::log::line(match tries {
+            Some(n) => format!("call ended: voice and speech models freed ({} ms)", n * HANG_UP_STEP.as_millis() as u32),
+            None => "call ended: a model is still in use, its helper's idle limit frees it".to_string(),
+        });
+    });
+}
+
+const HANG_UP_STEP: std::time::Duration = std::time::Duration::from_millis(200);
+/// 9 tries, 200 ms apart: done inside 2 s.
+const HANG_UP_TRIES: u32 = 9;
+
+/// Calls `free` until it says everything is gone (Some(tries before that)),
+/// stopping early, with None, when `busy` turns true (a new call) or the tries run out.
+fn until_freed(tries: u32, busy: impl Fn() -> bool, free: impl Fn() -> bool) -> Option<u32> {
+    for n in 0..tries {
+        if busy() {
+            return None;
+        }
+        if free() {
+            return Some(n);
+        }
+        std::thread::sleep(HANG_UP_STEP);
+    }
+    None
 }
 
 /// Music, volume, the time, timers, opening things: answered at once, with no AI.
@@ -202,6 +243,32 @@ fn time_of(secs: u64) -> (i64, u32, u32, u32, u32, u32) {
     let month = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
     let year = yoe + era * 400 + if month <= 2 { 1 } else { 0 };
     (year, month, day, (rem / 3600) as u32, ((rem % 3600) / 60) as u32, (rem % 60) as u32)
+}
+
+#[cfg(test)]
+mod hang_up_tests {
+    use std::cell::Cell;
+
+    #[test]
+    fn models_go_within_two_seconds_of_hang_up_and_a_new_call_stops_the_freeing() {
+        // A fake helper that lets go on the third try (it was answering).
+        let calls = Cell::new(0);
+        let t0 = std::time::Instant::now();
+        let got = super::until_freed(super::HANG_UP_TRIES, || false, || {
+            calls.set(calls.get() + 1);
+            calls.get() >= 3
+        });
+        assert_eq!(got, Some(2));
+        assert!(t0.elapsed() < std::time::Duration::from_secs(2));
+        // Never gone: gives up inside 2 s (the helper's own idle limit takes over).
+        let t0 = std::time::Instant::now();
+        assert_eq!(super::until_freed(super::HANG_UP_TRIES, || false, || false), None);
+        assert!(t0.elapsed() < std::time::Duration::from_secs(2));
+        // A new call started: nothing is freed.
+        let freed = Cell::new(false);
+        assert_eq!(super::until_freed(super::HANG_UP_TRIES, || true, || { freed.set(true); true }), None);
+        assert!(!freed.get());
+    }
 }
 
 #[cfg(test)]

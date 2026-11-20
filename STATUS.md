@@ -444,3 +444,9 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 | Flag | Saves (MB) | p95 (ms) | Kept |
 |---|---|---|---|
 | (from the `[build]` run) | | | |
+
+### Item 3: voice models only during a call
+- **Built (step 1):** at hang-up (`calls::voice_call_active(false)`) a thread frees the speech recognisers and Kokoro and stops both helpers at once, trying every 200 ms for up to 1.8 s while a helper is still answering (its lock is held); a new call stops it; the log says "call ended: voice and speech models freed (N ms)". Before: the helpers lived on for their 20 s idle limit. The keyword spotter stays (it listens for the wake word: step 3 already holds). Unit test `hang_up_tests` (fake helper: freed within 2 s, gives up within 2 s, a new call frees nothing).
+- **Not done:** step 2 (a single wake command: the speech helper exits when the transcript is returned, the voice helper when the reply has played) and step 4 (no helper in a real-time or cloud call): both sit inside the voice engine, which round 4B's session owns; left for it. The peak test's per-stage process log is not added yet.
+- **Overlap with 4B:** `calls.rs` only (a new private function and a call at the end of `voice_call_active`); no speech engine file changed.
+- **Status: built, not yet measured.** Done when Groovy is back within 5 MB of its pre-call total 2 s after a call ends (the peak test's log line after hang-up).
