@@ -10,7 +10,10 @@
 //! the brain answering, and is dropped from the history after the reply
 //! (`drop_images`). Nothing here runs or holds memory until the first look.
 
+#[cfg(windows)]
+mod draw_win;
 pub mod gate;
+pub mod marks;
 pub mod shrink;
 #[cfg(windows)]
 mod win;
@@ -159,6 +162,77 @@ your reply.",
             "properties": { "target": { "type": "string", "enum": ["screen", "window"] } }
         }
     })
+}
+
+// ── Drawing (item 5) ──────────────────────────────────────────────────────────
+
+/// The `draw_on_screen` tool, as the brain sees it.
+pub fn draw_tool() -> Value {
+    json!({
+        "name": "draw_on_screen",
+        "description": "Point at things on the user's screen while you explain: marks in the pixels of the last \
+look_at_screen picture. Shapes: circle, box, underline, highlight (x, y = top-left, w, h = size); arrow (x, y = start, \
+w, h = where it ends, may be negative); write (short text, at most 40 characters, h = letter height, in a blank area). \
+Colours: red, green, yellow, blue. An optional label of a few words. Marks clear after 6 s unless keep is true; \
+clear: true removes them now.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "marks": { "type": "array", "items": { "type": "object", "properties": {
+                    "shape": { "type": "string", "enum": ["circle", "box", "underline", "arrow", "highlight", "write"] },
+                    "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number" }, "h": { "type": "number" },
+                    "text": { "type": "string" }, "label": { "type": "string" },
+                    "color": { "type": "string", "enum": ["red", "green", "yellow", "blue"] }
+                }, "required": ["shape", "x", "y"] } },
+                "keep": { "type": "boolean" },
+                "clear": { "type": "boolean" }
+            }
+        }
+    })
+}
+
+/// Draws the marks (or clears them); the words go back to the brain.
+pub fn draw(input: &Value) -> String {
+    #[cfg(windows)]
+    {
+        if input["clear"] == true {
+            draw_win::clear();
+            if input["marks"].as_array().is_none_or(|m| m.is_empty()) {
+                return "Cleared.".into();
+            }
+        }
+        let Some(frame) = last_frame() else {
+            return "Nothing drawn: look at the screen first (look_at_screen), then draw in that picture's pixels.".into();
+        };
+        let (found, dropped) = marks::parse(input, frame);
+        if found.is_empty() {
+            return "Nothing drawn: no mark could be placed in the picture. Tell the user you couldn't find it.".into();
+        }
+        let (scale, (ox, oy), w, h) = frame;
+        let area = (ox, oy, (w as f64 / scale).round() as i32, (h as f64 / scale).round() as i32);
+        let n = found.len();
+        draw_win::show(found, area, input["keep"] == true);
+        if dropped > 0 {
+            format!("Drew {n} mark(s); {dropped} couldn't be placed: tell the user you couldn't find that part.")
+        } else {
+            format!("Drew {n} mark(s).")
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (input, marks::MAX_MARKS);
+        "Nothing drawn: drawing on the screen is built for Windows first. Explain in words instead.".into()
+    }
+}
+
+/// The screen buddy's tools in the voice brain's loop: the result block, or None
+/// when `name` isn't one of them.
+pub fn run_tool(app: &AppHandle, name: &str, id: &Value, input: &Value) -> Option<Value> {
+    match name {
+        "look_at_screen" => Some(tool_result(app, id, input)),
+        "draw_on_screen" => Some(json!({ "type": "tool_result", "tool_use_id": id, "content": draw(input) })),
+        _ => None,
+    }
 }
 
 /// After the reply: every picture in the history becomes a short note; the words stay.

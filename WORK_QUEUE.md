@@ -204,7 +204,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Screen capture, on request only (at most 400 KB, within 500 ms). Built (`screen/`); not yet proven on Windows (see STATUS.md)
 - [x] 3. "Look at my screen" in chat and by voice. Built; not yet proven on Windows (see STATUS.md)
 - [ ] 4. Live talk-back about the screen
-- [ ] 5. Pointing and drawing on the screen (Opus). Not started: needs items 2 and 3 first.
+- [ ] 5. Pointing and drawing on the screen (Opus). **Partly built:** `draw_on_screen` and a native click-through overlay (see STATUS.md); the wisp pointing, Escape/click clearing, circle-and-ask and the CI screenshot test are left
 - [x] 6. Settings and privacy (Settings → General: look at the screen, keep watching in a call, the brains that can see, where a picture goes). Settings-open idle not re-measured
 - [ ] 7. Checks
 
