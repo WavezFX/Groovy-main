@@ -307,6 +307,53 @@ pub fn screen_look_forget() {
     forget_chat_look();
 }
 
+// ── Asked about the screen in words (item 4: calls, and typed questions) ─────
+
+/// Whether a question asks about what is on the screen (English and the
+/// commonest phrasings; the button and the voice tool cover the rest).
+pub fn asks_about_screen(text: &str) -> bool {
+    let t = text.to_lowercase();
+    let t = t.replace(['’', '\''], "'");
+    const PHRASES: [&str; 14] = [
+        "my screen",
+        "the screen",
+        "on screen",
+        "this screen",
+        "this window",
+        "this error",
+        "this page",
+        "what am i looking at",
+        "what's this on",
+        "where do i click",
+        "where should i click",
+        "what do i click",
+        "what should i click",
+        "look at this",
+    ];
+    PHRASES.iter().any(|p| t.contains(p))
+}
+
+/// Before a chat or call question that asks about the screen: one look for it.
+/// Returns words for the brain when no picture could be taken, so he says he
+/// can't see rather than guessing.
+pub async fn look_for_question(app: &AppHandle, query: &str) -> Option<String> {
+    if !asks_about_screen(query) || FOR_CHAT.lock().unwrap().is_some() {
+        return None;
+    }
+    if !chat_can_see(app) {
+        return Some("(Groovy has no picture of the screen: the brain answering can't see pictures. Say so in one sentence and name Claude with a key, Gemini or OpenAI as brains that can; don't guess what is on screen.)".into());
+    }
+    let app = app.clone();
+    let got = tauri::async_runtime::spawn_blocking(move || look(&app, false, false)).await.map_err(|e| e.to_string()).and_then(|r| r);
+    match got {
+        Ok(shot) => {
+            *FOR_CHAT.lock().unwrap() = Some(shot);
+            None
+        }
+        Err(why) => Some(format!("(Groovy has no picture of the screen: {why} Say you can't see the screen right now; never guess what is on it.)")),
+    }
+}
+
 /// The chat's "Look at my screen" button: one capture for the next message.
 /// The click is the user asking, so no Allow button; `off` and Game Mode still refuse.
 #[tauri::command]
@@ -337,6 +384,16 @@ pub async fn screen_look(app: AppHandle, target: Option<String>) -> Result<Value
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn questions_about_the_screen_are_told_apart() {
+        for q in ["Hey Groovy, what's this error on my screen?", "What am I looking at", "where do I click to save", "explain this window"] {
+            assert!(asks_about_screen(q), "{q}");
+        }
+        for q in ["play some music", "what's the weather", "remind me at 5", "open the settings"] {
+            assert!(!asks_about_screen(q), "{q}");
+        }
+    }
 
     #[test]
     fn no_picture_stays_in_the_history_after_the_reply() {

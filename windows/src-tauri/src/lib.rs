@@ -625,6 +625,11 @@ async fn chat_send(
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
     chat.set_spoken(spoken.unwrap_or(false));
+    // Round 4C item 4: a question about the screen (typed or in a call) takes one look for it.
+    let query = match screen::look_for_question(&app, &query).await {
+        Some(note) => format!("{query}\n\n{note}"),
+        None => query,
+    };
     let reply = chat::send(&app, &chat, &settings, query, context).await;
     // Round 4C item 3: a picture of the screen goes with one message at most.
     screen::forget_chat_look();
