@@ -476,10 +476,21 @@ pub fn find_best(conn: &Connection, what: &str, now: i64) -> Result<Option<(i64,
 
 /// Deletes the note: its file, its row, its index and links.
 pub fn forget(conn: &Connection, dir: &Path, id: i64) -> Result<(), String> {
+    // A note ended only because this one replaced it comes back into use,
+    // so nothing keeps pointing at the forgotten note.
+    let revived: Vec<i64> = {
+        let mut st = conn.prepare("SELECT id FROM memories WHERE replaced_by = ?1").map_err(sql)?;
+        let ids = st.query_map([id], |r| r.get(0)).map_err(sql)?.filter_map(Result::ok).collect();
+        ids
+    };
     remove_file(conn, dir, id);
     conn.execute("DELETE FROM memories WHERE id = ?1", [id]).map_err(sql)?;
     conn.execute("DELETE FROM memory_fts WHERE rowid = ?1", [id]).map_err(sql)?;
     conn.execute("DELETE FROM memory_links WHERE from_id = ?1 OR to_id = ?1", [id]).map_err(sql)?;
+    for old in revived {
+        conn.execute("UPDATE memories SET valid_until = NULL, replaced_by = NULL WHERE id = ?1", [old]).map_err(sql)?;
+        write_note(conn, dir, old)?;
+    }
     mark_dirty();
     Ok(())
 }
@@ -631,5 +642,9 @@ mod tests {
         forget(&c, &d, new).unwrap();
         assert!(!d.join("i-moved-to-york.md").exists());
         assert!(search(&c, "york", 5).unwrap().is_empty());
+        // Leeds was ended only because of the York note: it is back in use.
+        let leeds = std::fs::read_to_string(d.join("i-live-in-leeds.md")).unwrap();
+        assert!(!leeds.contains("valid_until") && !leeds.contains("replaced_by"));
+        assert!(recall_ids(&c, "where do I live", 300).unwrap().contains(&old));
     }
 }

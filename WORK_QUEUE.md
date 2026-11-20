@@ -126,7 +126,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Event-driven folder watcher (no polling)
 - [x] 3. FTS5 search index and link table, built on demand
 - [x] 4. Recall by relevance (pinned, matches, one-hop links, newest) inside the same 1500-character budget
-- [x] 4b. "Forget that" and facts that end (`valid_until`, `replaced_by`)
+- [x] 4b. "Forget that" and facts that end (`valid_until`, `replaced_by`); forgetting the newer note revives the one it ended
 - [x] 5. Checks (round-trip, forget, ended-note, budget tests pass; idle/peak numbers come from the [build] run, Obsidian check is the owner's)
 
 ## 1J. Fixes round 3J: `FIXES_ROUND3J.md` (licence housekeeping, a few daily-use wins; change only what is clearly better). **After 3I.**
