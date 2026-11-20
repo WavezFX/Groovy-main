@@ -63,10 +63,21 @@ pub fn claims(api_key: &str, room: &str, identity: &str, now: u64) -> serde_json
     })
 }
 
+/// Only LiveKit Cloud, as the island's CSP allows (`tauri.conf.json`,
+/// round 4B item 5); it is fixed at build time and not widened.
+pub fn host_allowed(url: &str) -> bool {
+    let Ok(u) = reqwest::Url::parse(url.trim()) else { return false };
+    let host = u.host_str().unwrap_or("");
+    u.scheme() == "wss" && (host == "livekit.cloud" || host.ends_with(".livekit.cloud"))
+}
+
 pub fn token(url: &str, room: &str, api_key: Option<String>, api_secret: Option<String>) -> Result<Access, String> {
     let url = url.trim();
-    if !(url.starts_with("wss://") || url.starts_with("ws://localhost") || url.starts_with("ws://127.0.0.1")) {
+    if url.is_empty() {
         return Err("Add your LiveKit server (wss://…) in Settings → Voice.".into());
+    }
+    if !host_allowed(url) {
+        return Err("Groovy can only reach LiveKit Cloud (wss://….livekit.cloud): the app's security policy is fixed when it is built.".into());
     }
     let (Some(key), Some(secret)) = (api_key, api_secret) else {
         return Err("Add your LiveKit API key and secret in Settings → Voice.".into());
@@ -106,6 +117,15 @@ mod tests {
         let c = claims("APIkey", "groovy", "groovy-1", 1_000);
         assert_eq!(c["video"]["room"], "groovy");
         assert_eq!(c["exp"], 1_000 + TTL_SECONDS);
+    }
+
+    #[test]
+    fn only_livekit_cloud_is_reached() {
+        assert!(host_allowed("wss://my-project.livekit.cloud"));
+        assert!(!host_allowed("wss://livekit.example.com"));
+        assert!(!host_allowed("wss://evil.com/.livekit.cloud"));
+        assert!(!host_allowed("ws://my-project.livekit.cloud"));
+        assert!(token("wss://lk.example.com", "r", Some("k".into()), Some("s".into())).unwrap_err().contains("LiveKit Cloud"));
     }
 
     #[test]

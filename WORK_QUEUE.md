@@ -195,7 +195,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. Speech-to-text on this PC by default. `speechMode` local/cloud-first; no cloud request in local; older cloud users keep cloud-first with a one-time notice; Settings → Voice shows what heard the last sentence. Step 3 (download offered, never silent) was already there (`openSpeechSetup`).
 - [x] 3. His voice on this PC by default (**needs 4A item 1**, brought over from fable-plan). `voiceMode` local/cloud; no voice request in local; older cloud-voice installs keep cloud with a one-time notice.
 - [ ] 4. CPU and response times (P2–P7)
-- [ ] 5. LiveKit as an option
+- [x] 5. LiveKit as an option. Opt-in and lazy (own chunk); "okay bye" leaves the room; Test connection; only *.livekit.cloud. Not proven against a real room (owner's LiveKit project needed).
 - [x] 6. Better end of speech (closes 3J item 2). Benchmark table in `STATUS.md`: Silero not adopted (no fewer cut-offs at the same silence, 0.6 % CPU); a short stretch waits 360 ms longer instead (early cut-offs 12–13 → 6 of 20, end time unchanged). P2/P3 to be read on Windows CI.
 - [ ] 7. Checks
 

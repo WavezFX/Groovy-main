@@ -20729,6 +20729,39 @@
    "pt-BR": "Voz na nuvem",
    "ru": "Облачный голос",
    "id": "Suara cloud"
+  },
+  "Test connection": {
+   "zh-Hans": "测试连接",
+   "hi": "कनेक्शन जाँचें",
+   "es": "Probar conexión",
+   "ar": "اختبار الاتصال",
+   "fr": "Tester la connexion",
+   "bn": "সংযোগ পরীক্ষা করুন",
+   "pt-BR": "Testar conexão",
+   "ru": "Проверить подключение",
+   "id": "Uji koneksi"
+  },
+  "Groovy can only reach LiveKit Cloud (wss://….livekit.cloud).": {
+   "zh-Hans": "Groovy 只能连接 LiveKit Cloud（wss://….livekit.cloud）。",
+   "hi": "Groovy केवल LiveKit Cloud (wss://….livekit.cloud) तक पहुँच सकता है।",
+   "es": "Groovy solo puede conectar con LiveKit Cloud (wss://….livekit.cloud).",
+   "ar": "يمكن لـ Groovy الوصول إلى LiveKit Cloud فقط (wss://….livekit.cloud).",
+   "fr": "Groovy ne peut joindre que LiveKit Cloud (wss://….livekit.cloud).",
+   "bn": "Groovy কেবল LiveKit Cloud (wss://….livekit.cloud)-এ পৌঁছাতে পারে।",
+   "pt-BR": "Groovy só consegue acessar o LiveKit Cloud (wss://….livekit.cloud).",
+   "ru": "Groovy может подключаться только к LiveKit Cloud (wss://….livekit.cloud).",
+   "id": "Groovy hanya bisa menjangkau LiveKit Cloud (wss://….livekit.cloud)."
+  },
+  "Connected to LiveKit.": {
+   "zh-Hans": "已连接到 LiveKit。",
+   "hi": "LiveKit से जुड़ गया।",
+   "es": "Conectado a LiveKit.",
+   "ar": "تم الاتصال بـ LiveKit.",
+   "fr": "Connecté à LiveKit.",
+   "bn": "LiveKit-এ সংযুক্ত হয়েছে।",
+   "pt-BR": "Conectado ao LiveKit.",
+   "ru": "Подключено к LiveKit.",
+   "id": "Terhubung ke LiveKit."
   }
  }
 }
