@@ -20608,6 +20608,83 @@
    "pt-BR": "Não enviar a imagem",
    "ru": "Не отправлять снимок",
    "id": "Jangan kirim gambarnya"
+  },
+  "Ask each time": {
+   "zh-Hans": "每次都询问",
+   "hi": "हर बार पूछें",
+   "es": "Preguntar cada vez",
+   "ar": "اسأل في كل مرة",
+   "fr": "Demander à chaque fois",
+   "bn": "প্রতিবার জিজ্ঞাসা করুন",
+   "pt-BR": "Perguntar sempre",
+   "ru": "Спрашивать каждый раз",
+   "id": "Tanya setiap kali"
+  },
+  "When I ask him": {
+   "zh-Hans": "在我要求时",
+   "hi": "जब मैं कहूँ",
+   "es": "Cuando se lo pida",
+   "ar": "عندما أطلب منه",
+   "fr": "Quand je le lui demande",
+   "bn": "যখন আমি বলি",
+   "pt-BR": "Quando eu pedir",
+   "ru": "Когда я попрошу",
+   "id": "Saat aku memintanya"
+  },
+  "Never": {
+   "zh-Hans": "从不",
+   "hi": "कभी नहीं",
+   "es": "Nunca",
+   "ar": "أبدًا",
+   "fr": "Jamais",
+   "bn": "কখনো না",
+   "pt-BR": "Nunca",
+   "ru": "Никогда",
+   "id": "Tidak pernah"
+  },
+  "Look at the screen": {
+   "zh-Hans": "查看屏幕",
+   "hi": "स्क्रीन देखना",
+   "es": "Mirar la pantalla",
+   "ar": "النظر إلى الشاشة",
+   "fr": "Regarder l'écran",
+   "bn": "স্ক্রিন দেখা",
+   "pt-BR": "Olhar a tela",
+   "ru": "Смотреть на экран",
+   "id": "Melihat layar"
+  },
+  "Keep watching during a call": {
+   "zh-Hans": "通话时持续查看",
+   "hi": "कॉल के दौरान देखते रहें",
+   "es": "Seguir mirando durante una llamada",
+   "ar": "المتابعة أثناء المكالمة",
+   "fr": "Continuer à regarder pendant un appel",
+   "bn": "কলের সময় দেখতে থাকুন",
+   "pt-BR": "Continuar olhando durante uma chamada",
+   "ru": "Продолжать смотреть во время звонка",
+   "id": "Terus melihat selama panggilan"
+  },
+  "Brains that can see the screen: {names}": {
+   "zh-Hans": "能看到屏幕的大脑：{names}",
+   "hi": "स्क्रीन देख सकने वाले ब्रेन: {names}",
+   "es": "Cerebros que pueden ver la pantalla: {names}",
+   "ar": "العقول التي ترى الشاشة: {names}",
+   "fr": "Cerveaux qui voient l'écran : {names}",
+   "bn": "যে ব্রেন স্ক্রিন দেখতে পারে: {names}",
+   "pt-BR": "Cérebros que veem a tela: {names}",
+   "ru": "Мозги, которые видят экран: {names}",
+   "id": "Otak yang bisa melihat layar: {names}"
+  },
+  "Groovy looks only when you ask. The picture stays in memory, goes only to the brain answering, and is dropped after the reply; it is never saved.": {
+   "zh-Hans": "Groovy 只在你要求时查看。图片只保存在内存中，只发送给正在回答的大脑，回答后即被丢弃；从不保存。",
+   "hi": "Groovy तभी देखता है जब आप कहें। तस्वीर सिर्फ़ मेमोरी में रहती है, सिर्फ़ जवाब देने वाले ब्रेन को जाती है और जवाब के बाद हटा दी जाती है; कभी सेव नहीं होती।",
+   "es": "Groovy solo mira cuando se lo pides. La imagen se queda en memoria, va solo al cerebro que responde y se descarta tras la respuesta; nunca se guarda.",
+   "ar": "لا ينظر Groovy إلا عندما تطلب. تبقى الصورة في الذاكرة، وتذهب فقط إلى العقل الذي يجيب، وتُحذف بعد الرد؛ ولا تُحفظ أبدًا.",
+   "fr": "Groovy ne regarde que si tu le demandes. L'image reste en mémoire, va seulement au cerveau qui répond et est effacée après la réponse ; elle n'est jamais enregistrée.",
+   "bn": "আপনি বললেই কেবল Groovy দেখে। ছবিটি শুধু মেমোরিতে থাকে, শুধু উত্তরদাতা ব্রেনের কাছে যায় এবং উত্তরের পরে মুছে যায়; কখনো সংরক্ষিত হয় না।",
+   "pt-BR": "O Groovy só olha quando você pede. A imagem fica na memória, vai só para o cérebro que responde e é descartada após a resposta; nunca é salva.",
+   "ru": "Groovy смотрит, только когда вы просите. Снимок хранится в памяти, уходит только мозгу, который отвечает, и удаляется после ответа; он никогда не сохраняется.",
+   "id": "Groovy hanya melihat saat kamu minta. Gambarnya tetap di memori, hanya dikirim ke otak yang menjawab, dan dibuang setelah balasan; tidak pernah disimpan."
   }
  }
 }

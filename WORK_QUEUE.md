@@ -205,7 +205,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 3. "Look at my screen" in chat and by voice. Built; not yet proven on Windows (see STATUS.md)
 - [ ] 4. Live talk-back about the screen
 - [ ] 5. Pointing and drawing on the screen (Opus). Not started: needs items 2 and 3 first.
-- [ ] 6. Settings and privacy
+- [x] 6. Settings and privacy (Settings → General: look at the screen, keep watching in a call, the brains that can see, where a picture goes). Settings-open idle not re-measured
 - [ ] 7. Checks
 
 ### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
