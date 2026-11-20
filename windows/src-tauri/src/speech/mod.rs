@@ -11,6 +11,7 @@ pub mod audio;
 pub mod check;
 pub mod cloud;
 mod kokoro_files;
+mod light_files;
 pub mod mapped;
 mod whisper_files;
 pub use whisper_files::set as whisper_set;

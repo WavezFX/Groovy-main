@@ -406,3 +406,18 @@ Numbers are Task Manager's private working set over every Groovy process, from t
 - **4D item 4, tools on subscription brains.** A strict one-line JSON request, read in `brains/cli.rs`, run by Groovy under the same approval rules. Unit-tested only.
 - **4C item 1** `docs/plan/SCREEN_BUDDY_NOTES.md`. **4E item 1** steps 1 and 2: `docs/plan/CHARACTER_MOTION.md` (about three quarters of the engine's methods are still the original's; the rewrite waits for the owner's approval of the design).
 - **Not started:** 4C item 5 (needs the capture and the tool path first).
+
+### Round 4A items 1 and 2 (12 Nov, Windows build 251)
+| | Before | Now | Limit / target |
+|---|---|---|---|
+| Offline voice while speaking (`voices_measured`, private working set) | Kokoro 171–189 MB | **light voice 80 MB**; Kokoro 189 | at most 80 (met) |
+| Time per sentence | Kokoro 5.8–9.3 s | light voice 0.2 s (2.2 s for the first, loading) | — |
+| **Peak test** (two calls with the light voice, dictation, Settings on Brains, mail, Hey Groovy) | 320–331 MB | **247.6 / 246.2 MB** (meter / Windows) | under 300 (**met**); gate lowered 350 → 300 |
+| Work test, peak while working (not gating) | 386–446 MB | 315.6 MB | 300 (round 4A item 5) |
+| Idle (smoke, portable / installed) | 100–112 | 107.4 / 113.0 | under 150 |
+| Settings in front | 146–149 | 144.9 | under 150 |
+| Island asleep / wake | 23.3 MB / 123 ms | 23.2 MB / 124 ms | S1 under 50 |
+| Wake phrases on Windows | 7–8 of 10 | 8 of 10, 0 of 20 false | P5 9 of 10 (not met) |
+
+- **4A item 1** (`speech/tts.rs`, `light_files.rs`): the default offline voice is Piper's libritts_r medium English voice (79 MB download, LibriTTS-R CC BY 4.0, credited in `docs/licenses/MODELS.md`), its weights mapped from disk and spoken in clauses of up to 60 characters. Kokoro stays an option; `offline_voice` "auto" keeps Kokoro for installs that have it. **Owner to confirm:** its download includes espeak-ng's English data files, the same GPL-3.0 question `MODELS.md` already raises for Kokoro.
+- **4A item 2**: replies are played by Rust (`tts_say`, `tts_stop`) instead of being decoded in the island's page. What a call adds to the island is not measured: the peak test's call runs in Rust only.

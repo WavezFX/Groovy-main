@@ -20564,6 +20564,72 @@
    "pt-BR": "Não consegui descobrir como fazer isso.",
    "ru": "Я не понял, как это сделать.",
    "id": "Saya tidak tahu cara melakukannya."
+  },
+  "Light voice · offline": {
+   "zh-Hans": "轻量语音 · 离线",
+   "hi": "हल्की आवाज़ · ऑफ़लाइन",
+   "es": "Voz ligera · sin conexión",
+   "ar": "صوت خفيف · دون اتصال",
+   "fr": "Voix légère · hors ligne",
+   "bn": "হালকা কণ্ঠ · অফলাইন",
+   "pt-BR": "Voz leve · offline",
+   "ru": "Лёгкий голос · офлайн",
+   "id": "Suara ringan · offline"
+  },
+  "Light voice (smaller, faster)": {
+   "zh-Hans": "轻量语音（更小、更快）",
+   "hi": "हल्की आवाज़ (छोटी, तेज़)",
+   "es": "Voz ligera (más pequeña y rápida)",
+   "ar": "صوت خفيف (أصغر وأسرع)",
+   "fr": "Voix légère (plus petite, plus rapide)",
+   "bn": "হালকা কণ্ঠ (ছোট, দ্রুত)",
+   "pt-BR": "Voz leve (menor, mais rápida)",
+   "ru": "Лёгкий голос (меньше, быстрее)",
+   "id": "Suara ringan (lebih kecil, lebih cepat)"
+  },
+  "Kokoro (richer, uses more memory)": {
+   "zh-Hans": "Kokoro（更丰富，占用更多内存）",
+   "hi": "Kokoro (ज़्यादा भरपूर, ज़्यादा मेमोरी लेती है)",
+   "es": "Kokoro (más rica, usa más memoria)",
+   "ar": "Kokoro (أغنى، يستهلك ذاكرة أكثر)",
+   "fr": "Kokoro (plus riche, utilise plus de mémoire)",
+   "bn": "Kokoro (আরও সমৃদ্ধ, বেশি মেমরি নেয়)",
+   "pt-BR": "Kokoro (mais rica, usa mais memória)",
+   "ru": "Kokoro (богаче, занимает больше памяти)",
+   "id": "Kokoro (lebih kaya, memakai lebih banyak memori)"
+  },
+  "The light voice isn't downloaded yet": {
+   "zh-Hans": "轻量语音尚未下载",
+   "hi": "हल्की आवाज़ अभी डाउनलोड नहीं हुई है",
+   "es": "La voz ligera aún no está descargada",
+   "ar": "لم يتم تنزيل الصوت الخفيف بعد",
+   "fr": "La voix légère n'est pas encore téléchargée",
+   "bn": "হালকা কণ্ঠ এখনও ডাউনলোড হয়নি",
+   "pt-BR": "A voz leve ainda não foi baixada",
+   "ru": "Лёгкий голос ещё не загружен",
+   "id": "Suara ringan belum diunduh"
+  },
+  "Download the light voice first.": {
+   "zh-Hans": "请先下载轻量语音。",
+   "hi": "पहले हल्की आवाज़ डाउनलोड करें।",
+   "es": "Descarga primero la voz ligera.",
+   "ar": "نزّل الصوت الخفيف أولاً.",
+   "fr": "Téléchargez d'abord la voix légère.",
+   "bn": "আগে হালকা কণ্ঠ ডাউনলোড করুন।",
+   "pt-BR": "Baixe a voz leve primeiro.",
+   "ru": "Сначала загрузите лёгкий голос.",
+   "id": "Unduh suara ringan terlebih dahulu."
+  },
+  "The light voice didn't speak.": {
+   "zh-Hans": "轻量语音没有出声。",
+   "hi": "हल्की आवाज़ नहीं बोली।",
+   "es": "La voz ligera no habló.",
+   "ar": "لم يتحدث الصوت الخفيف.",
+   "fr": "La voix légère n'a pas parlé.",
+   "bn": "হালকা কণ্ঠ কথা বলেনি।",
+   "pt-BR": "A voz leve não falou.",
+   "ru": "Лёгкий голос не заговорил.",
+   "id": "Suara ringan tidak berbicara."
   }
  }
 }

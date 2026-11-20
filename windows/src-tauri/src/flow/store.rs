@@ -121,6 +121,9 @@ pub struct Prefs {
     pub voice_pick: String,
     /// How fast every voice speaks, 0.5–2.0.
     pub voice_speed: f32,
+    /// The offline voice (round 4A item 1): "light", "kokoro", or "auto"
+    /// (Kokoro if it was downloaded before, else the light voice).
+    pub offline_voice: String,
     /// Cloud speech-to-text first when a key is there (speech/cloud.rs), the
     /// PC's engine after; off: only the PC's engine (round 3B item 6).
     pub cloud_speech: bool,
@@ -164,6 +167,7 @@ impl Default for Prefs {
             fish_model: "s2-pro".into(),
             voice_pick: "fish".into(),
             voice_speed: 1.0,
+            offline_voice: "auto".into(),
             cloud_speech: true,
             learn_words: true,
         }
