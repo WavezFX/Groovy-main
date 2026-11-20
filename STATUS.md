@@ -462,3 +462,9 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 - **Step 2 (cheapest first), measured not shipped:** a second Windows build step runs the Settings idle test with `--renderer-process-limit=1` through WebView2's environment switch, beside the plain one; the flag matrix (item 6) gives the island-only number and the frame p95 for the same flag. The flag goes into `BROWSER_ARGS` and `tauri.conf.json` only if Settings open drops and P10 holds with both on one main thread.
 - **Not done:** step 3 (Settings as a view in the island's own window) and the desktop Groovy measurement (no CI switch sends him out). Only if step 2 leaves Settings open over 150 MB.
 - **Status: built, not yet measured.**
+
+### Round 4F (this branch): what to read from the Windows build, and what is left
+- **Read:** "Nothing runs when nothing is happening" (frames, timeouts, intervals by source, CPU; JS heap and files), "Lighter WebView2 flags, each measured" (table; check the Applied column first), "Idle with Settings open" plain and with one renderer (phase 4: 10 s / 30 s after a user close), the peak test's log line "call ended: voice and speech models freed".
+- **Then:** tick 7 if it reads 0/0 and CPU ≤ 0.1 %; keep each flag saving ≥ 3 MB with P10 held (both places); ship `--renderer-process-limit=1` if Settings open drops and P10 holds; tick 8 if back within 5 MB at 10 s.
+- **Left:** item 3 steps 2 and 4 (voice engine, 4B), item 4 step 3 (Settings inside the island's window), item 9's lazy imports, tile icons as files and the CSS split (only if the numbers show over 5 MB), item 10. Rust was not compiled locally (sherpa-onnx-sys needs its download); the Linux "Check" run is the first compile.
+- **CI note:** `windows-build.yml` builds on push only for `main`, `groovy-ai-*` and `fable-plan`, so this branch's `[build]` push does not start it: run it by hand (Actions → Windows build → Run workflow on `elevate/4f-ram`) or after the merge.

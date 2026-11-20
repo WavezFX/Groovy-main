@@ -172,13 +172,13 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ### 4F. `FIXES_ROUND4F.md` (stretch RAM: idle under 50 MB, normal use and cloud calls under 150 MB, local calls as low as possible). **After 4A.** Ranked by MB saved.
 - [x] 1. The island sleeps at idle (Opus). Windows build 245: **23.3 MB asleep** (S1 under 50), **123 ms** to wake for the cursor. A screenshot stands in (WebView2 gives no transparency), so he wakes when the screen around him changes. Left for item 10: asleep CPU, frame time after a wake, a CI test for an event arriving while asleep, a Settings switch.
 - [ ] 2. The lightest local voice and speech-to-text that still sound good; the owner picks from CI samples (S4 under 200 MB)
-- [ ] 3. Voice models exist only during a call; gone within 2 s of hang-up
-- [ ] 4. One renderer instead of several (Settings and desktop Groovy under 150 MB)
+- [ ] 3. Voice models exist only during a call; gone within 2 s of hang-up. **Built, not yet measured** (branch `elevate/4f-ram`): both helpers stopped at hang-up within 1.8 s. Steps 2 and 4 left for 4B (voice engine).
+- [ ] 4. One renderer instead of several (Settings and desktop Groovy under 150 MB). **Step 2 measured in CI, not shipped** (`--renderer-process-limit=1` beside the plain Settings idle test); step 3 not started.
 - [ ] 5. A cloud call under 150 MB (S3)
-- [ ] 6. Lighter WebView2 flags, each measured
-- [ ] 7. Nothing runs when nothing is happening (0 timers and frames in 30 s idle)
-- [ ] 8. Settings fully unloaded when closed; no hidden page kept alive
-- [ ] 9. Anything else in the island
+- [ ] 6. Lighter WebView2 flags, each measured. **CI matrix built** (`flag-matrix.ps1`); no flag kept until its numbers are in `STATUS.md`.
+- [ ] 7. Nothing runs when nothing is happening (0 timers and frames in 30 s idle). **Built, not yet measured:** break reminders no longer poll; `quiet-test.ps1` counts callbacks by source.
+- [ ] 8. Settings fully unloaded when closed; no hidden page kept alive. **Built, not yet measured:** desktop window gone 8 s after he comes home (was 30), hand-back logged after a close, user-close phase in `settings-idle-test.ps1`.
+- [ ] 9. Anything else in the island. **Measured from the next build** (JS heap, DOM, largest files in the quiet test); wardrobe pictures dropped before sleep.
 - [ ] 10. Checks: S1–S4 reported, reference app re-measured
 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
