@@ -178,7 +178,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Lighter WebView2 flags, each measured. **CI matrix built** (`flag-matrix.ps1`); no flag kept until its numbers are in `STATUS.md`.
 - [ ] 7. Nothing runs when nothing is happening (0 timers and frames in 30 s idle). **Built, not yet measured:** break reminders no longer poll; `quiet-test.ps1` counts callbacks by source.
 - [ ] 8. Settings fully unloaded when closed; no hidden page kept alive. **Built, not yet measured:** desktop window gone 8 s after he comes home (was 30), hand-back logged after a close, user-close phase in `settings-idle-test.ps1`.
-- [ ] 9. Anything else in the island. **Measured from the next build** (JS heap, DOM, largest files in the quiet test); wardrobe pictures dropped before sleep.
+- [ ] 9. Anything else in the island. **Measured from the next build** (JS heap, DOM, largest files in the quiet test); wardrobe pictures dropped before sleep; the recap view loads on first open.
 - [ ] 10. Checks: S1–S4 reported, reference app re-measured
 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**

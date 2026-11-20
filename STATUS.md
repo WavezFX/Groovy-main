@@ -461,7 +461,7 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 ### Item 4: one renderer instead of several
 - **Step 1 (measure):** `settings-idle-test.ps1` already logs every process and the renderer count with Settings open; it now takes `-ExtraArgs`.
 - **Step 2 (cheapest first), measured not shipped:** a second Windows build step runs the Settings idle test with `--renderer-process-limit=1` through WebView2's environment switch, beside the plain one; the flag matrix (item 6) gives the island-only number and the frame p95 for the same flag. The flag goes into `BROWSER_ARGS` and `tauri.conf.json` only if Settings open drops and P10 holds with both on one main thread.
-- **Not done:** step 3 (Settings as a view in the island's own window) and the desktop Groovy measurement (no CI switch sends him out). Only if step 2 leaves Settings open over 150 MB.
+- **Step 3 not started, on purpose:** Settings inside the island's window, even behind a setting that is off by default, needs the island window to grow to Settings' size and back (Rust's window fitting, the click-through region, the glass, the focus rules), a same-origin frame or a merged page, a new setting in Rust, the page and `settings-keys.test.mjs`, and its label in ten languages. None of the window side can be compiled or seen here, so it waits for step 2's number: if one renderer already puts Settings open under 150 MB, step 3 is not needed. Also not done: and the desktop Groovy measurement (no CI switch sends him out). Only if step 2 leaves Settings open over 150 MB.
 - **Status: built, not yet measured.**
 
 ### Round 4F (this branch): what to read from the Windows build, and what is left
