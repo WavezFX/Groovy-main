@@ -1,17 +1,24 @@
-// Groovy — direct port of NotchBuddy/Sources/App/BotEngine.swift to Canvas 2D.
-// Same constants, same tweens, same easings, same particles. The only intentional
-// difference is the `happy`/`wink` eye arc, which follows the prototype
-// (design/prototype/notch-buddy.html, the visual source of truth) — the Swift
-// arc angles produce a different shape.
+// Groovy's character engine (round 4E item 1). Written from Groovy's own
+// motion design, docs/plan/CHARACTER_MOTION.md §2 (approved by the owner,
+// 20 Nov 2026): he is a soft pillow with an element living in him. The body
+// moves like something stuffed (it bows and puffs at the corners), and the
+// element wisps (leaf, flame, droplet) do the expressive work.
+//
+// Motion uses three tools only, from ./motion: a spring, an uneven breath and
+// a cubic ease-out. A move ("act") is a short function of its age that adds
+// offsets; the springs chase base + offsets, which gives anticipation,
+// overshoot and follow-through without keyframe tables. Every spring snaps to
+// exactly its target, so at rest nothing asks for another frame.
 
-import { Ease, lerp, type EaseFn } from "../core/anim";
+import { lerp } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
 import { drawOutfitBehind, drawOutfitFront, growthLift, makeHead } from "./outfits";
 import type { Outfit } from "./wardrobe";
 import { DEFAULT_SKIN, SHAPE, drawAlmondEye, drawSkinBehind, drawSkinBody, styleAt, drawSkinFront, drawSkinMouth, type MouthMood, type Skin, type SkinState, type SkinStyle } from "./skins";
 import { styleWith, type Appearance } from "./appearance";
-import { pillowXY } from "./pillow";
+import { PILLOW_BOW } from "./pillow";
+import { breath, easeOut, envelope, flicker, stepSpring, type Spring } from "./motion";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,92 +35,94 @@ export interface Badge {
 
 export type RGB = readonly [number, number, number]; // components 0…1
 
-export type TweenKey = readonly [target: number, durationMs: number, ease: EaseFn];
+/** Values a glide can move (eased, one target at a time). */
+type GlideKey = "roll" | "morph" | "hands" | "blush" | "badgeS" | "outfitPresence" | "tint" | "open";
 
-interface Tween {
-  prop: PropKey;
-  keys: TweenKey[];
-  index: number;
-  from: number;
-  startMs: number;
-  onComplete?: () => void;
+/** The values the springs chase; a lock (items-check, tests) holds one still. */
+type LockKey = GlideKey | "yaw" | "pitch" | "tilt" | "sx" | "sy" | "oy" | "ox" | "es";
+
+interface Glide { from: number; to: number; t0: number; dur: number; done?: () => void }
+
+/** What every act adds this frame. */
+interface Offsets {
+  yaw: number; pitch: number; tilt: number; sx: number; sy: number; oy: number; ox: number;
+  es: number; bow: number; close: number; over: number; glow: number;
+  flare: number; drop: number; wave: number; flickL: number; flickR: number; knit: number;
 }
 
-type PropKey =
-  | "yaw" | "pitch" | "roll" | "tilt" | "open" | "sx" | "sy"
-  | "oy" | "ox" | "tint" | "morph" | "hands" | "blush" | "es" | "badgeS"
-  | "outfitPresence";
+interface Act { t0: number; dur: number; fx: (age: number, o: Offsets) => void; done?: () => void }
 
-interface BotStateCfg {
+interface StateLook {
   color: RGB;
   tint: number;
   eye: EyeShape;
   badge: Badge | null;
-  bounces: boolean;
-  scans: boolean;
-  breathes: boolean;
-  zz: boolean;
-  sweat: boolean;
-  look: readonly [number, number] | null;
+  /** Leans toward the user (pitch). */
+  lean: number;
+  /** Head tilt, radians. */
   tilt: number;
+  /** A looping state: keeps the frame loop going while it is shown. */
+  loops: boolean;
 }
+
+type ParticleKind = "fleck" | "ember" | "bubble" | "drop" | "z" | "ring" | "glint";
 
 interface Particle {
-  type: "heart" | "star" | "spark" | "sweat" | "z";
+  kind: ParticleKind;
   x: number; y: number; vx: number; vy: number;
-  age: number; life: number; rot: number; size: number;
+  age: number; life: number; seed: number; size: number;
+  /** Spirals up instead of drifting (love). */
+  spiral: boolean;
 }
 
-// ── Constants (MochiConst / PISTES.mochi) ─────────────────────────────────────
+// ── Groovy's palette and states ───────────────────────────────────────────────
 
-const EYE_W = 0.25;
-const EYE_H = 0.27;
-const EYE_SP = 0.37;
-const EYE_P = -0.12;
-const INK = "rgb(26,20,18)"; // #1A1412
-const MINI_INK = "rgb(16,19,26)"; // #10131A
+const INK = "rgb(14,22,18)";
+const MINI_INK = "rgb(12,18,24)";
 
-const C = {
-  idle: [0.902, 0.914, 0.933] as RGB,
-  working: [0.231, 0.62, 1] as RGB,
-  thinking: [0.545, 0.361, 0.965] as RGB,
-  searching: [0.388, 0.396, 0.949] as RGB,
-  approval: [0.961, 0.647, 0.141] as RGB,
-  question: [0.133, 0.827, 0.933] as RGB,
-  error: [0.957, 0.314, 0.369] as RGB,
-  finished: [0.204, 0.831, 0.6] as RGB,
-  ratelimit: [0.984, 0.573, 0.235] as RGB,
-  sleeping: [0.58, 0.635, 0.722] as RGB,
-  dizzy: [0.957, 0.447, 0.714] as RGB,
+const P = {
+  calm: [0.88, 0.95, 0.9] as RGB,
+  work: [0.27, 0.66, 0.98] as RGB,
+  think: [0.6, 0.42, 0.95] as RGB,
+  seek: [0.36, 0.5, 0.96] as RGB,
+  ask: [0.98, 0.7, 0.2] as RGB,
+  query: [0.2, 0.84, 0.86] as RGB,
+  fault: [0.95, 0.33, 0.36] as RGB,
+  done: [0.3, 0.88, 0.55] as RGB,
+  limit: [0.98, 0.56, 0.26] as RGB,
+  rest: [0.55, 0.64, 0.74] as RGB,
+  dizzy: [0.93, 0.5, 0.74] as RGB,
 };
 
-const base = {
-  bounces: false, scans: false, breathes: false, zz: false, sweat: false,
-  look: null, tilt: 0,
-};
+const st = (color: RGB, tint: number, eye: EyeShape, badge: BadgeKind | null, extra: Partial<StateLook> = {}): StateLook => ({
+  color, tint, eye, badge: badge ? { kind: badge, color } : null, lean: 0, tilt: 0, loops: false, ...extra,
+});
 
-export const BOT_STATES: Record<BotStateName, BotStateCfg> = {
-  idle: { ...base, color: C.idle, tint: 0, eye: "pill", badge: null },
-  working: { ...base, color: C.working, tint: 0.72, eye: "pill", badge: { kind: "dots", color: C.working } },
-  thinking: { ...base, color: C.thinking, tint: 0.72, eye: "pill", badge: { kind: "dots", color: C.thinking }, look: [0.55, 0.55] },
-  searching: { ...base, color: C.searching, tint: 0.72, eye: "pill", badge: { kind: "dots", color: C.searching }, scans: true },
-  approval: { ...base, color: C.approval, tint: 0.78, eye: "wide", badge: { kind: "bang", color: C.approval }, bounces: true },
-  question: { ...base, color: C.question, tint: 0.75, eye: "pill", badge: { kind: "question", color: C.question }, tilt: 0.17 },
-  error: { ...base, color: C.error, tint: 0.78, eye: "flat", badge: { kind: "dot", color: C.error } },
-  finished: { ...base, color: C.finished, tint: 0.35, eye: "happy", badge: { kind: "dot", color: C.finished } },
-  ratelimit: { ...base, color: C.ratelimit, tint: 0.72, eye: "tired", badge: { kind: "dot", color: C.ratelimit }, sweat: true },
-  sleeping: { ...base, color: C.sleeping, tint: 0.32, eye: "closed", badge: null, breathes: true, zz: true },
-  dizzy: { ...base, color: C.dizzy, tint: 0.7, eye: "spiral", badge: null },
+export const BOT_STATES: Record<BotStateName, StateLook> = {
+  idle: st(P.calm, 0, "pill", null),
+  working: st(P.work, 0.66, "pill", "dots"),
+  thinking: st(P.think, 0.66, "pill", "dots"),
+  searching: st(P.seek, 0.66, "pill", "dots", { loops: true }),
+  approval: st(P.ask, 0.72, "wide", "bang", { lean: 0.08, loops: true }),
+  question: st(P.query, 0.7, "pill", "question", { tilt: 0.122 }),
+  error: st(P.fault, 0.74, "flat", "dot"),
+  finished: st(P.done, 0.3, "happy", "dot"),
+  ratelimit: st(P.limit, 0.66, "tired", "dot", { loops: true }),
+  sleeping: st(P.rest, 0.3, "closed", null, { loops: true }),
+  dizzy: st(P.dizzy, 0.64, "spiral", null),
 };
 
 const EMOTE_EYE: Record<BotEmoteName, EyeShape> = {
-  love: "heart", surprised: "dot", proud: "star", wink: "wink",
+  love: "happy", surprised: "wide", proud: "pill", wink: "wink",
   yawn: "tired", happy: "happy", annoyed: "line",
 };
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
 const now = () => performance.now() / 1000;
+// Eye placement on the head model (shared with the wardrobe's face items).
+const EYE_SP = 0.37;
+const EYE_P = -0.12;
+const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** Size of the element wisps that replace his hands (round 3K): one number to tune. */
 export const WISP_SCALE = 0.85;
@@ -180,8 +189,7 @@ function drawWisp(x: CanvasRenderingContext2D, kind: "leaf" | "flame" | "water",
 }
 
 export function hexToRGB(hex: string): RGB {
-  const h = hex.replace("#", "");
-  const v = parseInt(h, 16);
+  const v = parseInt(hex.replace("#", ""), 16);
   return [((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255];
 }
 
@@ -192,61 +200,52 @@ const mix3 = (a: RGB, b: RGB, t: number): RGB => [
   lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t),
 ];
 
-function roundRectPath(x: CanvasRenderingContext2D, X: number, Y: number, W: number, H: number, R: number) {
-  const r = Math.max(0, Math.min(R, W / 2, H / 2));
+/** A capsule centred on 0,0. */
+function capsule(x: CanvasRenderingContext2D, w: number, h: number) {
+  const r = Math.max(0, Math.min(w, h) / 2);
   x.beginPath();
-  x.moveTo(X + r, Y);
-  x.arcTo(X + W, Y, X + W, Y + H, r);
-  x.arcTo(X + W, Y + H, X, Y + H, r);
-  x.arcTo(X, Y + H, X, Y, r);
-  x.arcTo(X, Y, X + W, Y, r);
+  x.moveTo(-w / 2 + r, -h / 2);
+  x.lineTo(w / 2 - r, -h / 2);
+  x.arc(w / 2 - r, 0, r, -Math.PI / 2, Math.PI / 2);
+  x.lineTo(-w / 2 + r, h / 2);
+  x.arc(-w / 2 + r, 0, r, Math.PI / 2, Math.PI * 1.5);
   x.closePath();
 }
 
-function heartPath(x: CanvasRenderingContext2D, s: number) {
+/** A rounded rectangle from its top-left corner. */
+function rrect(x: CanvasRenderingContext2D, X: number, Y: number, W: number, H: number, r: number) {
   x.beginPath();
-  x.moveTo(0, s * 0.38);
-  x.bezierCurveTo(-s * 1.05, -s * 0.15, -s * 0.5, -s * 0.95, 0, -s * 0.38);
-  x.bezierCurveTo(s * 0.5, -s * 0.95, s * 1.05, -s * 0.15, 0, s * 0.38);
-  x.closePath();
-}
-
-function starPath(x: CanvasRenderingContext2D, ro: number, ri: number) {
-  x.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 ? ri : ro;
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    x.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-  }
-  x.closePath();
+  x.roundRect(X, Y, W, H, Math.min(r, W / 2, H / 2));
 }
 
 const FONT = `system-ui, "Segoe UI Variable Text", "Segoe UI", sans-serif`;
 
-// ── Dance (BotEngine.applyDance, macOS) ──────────────────────────────────────
+// ── Dance: a sway from the base, the element keeping the beat ─────────────────
 
-/** The dance fades in over 0.3 s and out over 0.5 s. */
+/** The dance fades in over 0.25 s and out over 0.45 s. */
 export function stepDanceLevel(level: number, dancing: boolean, dt: number): number {
-  const target = dancing ? 1 : 0;
-  if (level < target) return Math.min(target, level + dt / 0.3);
-  if (level > target) return Math.max(target, level - dt / 0.5);
-  return level;
+  return dancing ? Math.min(1, level + dt / 0.25) : Math.max(0, level - dt / 0.45);
 }
 
+/** Beats per minute of Groovy's sway. */
+export const DANCE_BPM = 104;
+
 /**
- * The 112-BPM bounce at `seconds`, for a body of radius R and a dance `level`
- * (0…1): a sideways sway, a hop, a tilt, and a squash on landing.
+ * The sway at `seconds`, for a body of radius R and a dance `level` (0…1): he
+ * rocks from his base, side to side once every two beats, and puffs a little
+ * just after each beat.
  */
 export function danceTransform(seconds: number, level: number, R: number) {
-  const beat = (seconds * 112) / 60;
-  const hop = Math.abs(Math.sin(Math.PI * beat));
-  const land = Math.pow(1 - hop, 6);
+  const beat = (seconds * DANCE_BPM) / 60;
+  const rock = Math.sin(Math.PI * beat);
+  const frac = beat - Math.floor(beat);
+  const puff = (1 - frac) * (1 - frac) * (1 - frac);
   return {
-    dx: 0.08 * R * Math.sin(Math.PI * beat) * level,
-    dy: -0.2 * R * hop * level,
-    rotate: 0.1 * Math.sin(Math.PI * beat) * level,
-    sx: 1 + 0.045 * land * level,
-    sy: 1 - 0.06 * land * level,
+    dx: 0.05 * R * rock * level,
+    dy: -0.035 * R * (1 - Math.abs(Math.cos(Math.PI * beat))) * level,
+    rotate: 0.07 * rock * level,
+    sx: 1 + 0.02 * puff * level,
+    sy: 1 + 0.03 * puff * level,
   };
 }
 
@@ -257,13 +256,11 @@ export class BotEngine {
   /** Solid body colour for mini bots / integration pills (null = Groovy gradient). */
   bodyColor: RGB | null = null;
 
-  // Animated state (BotEngine `s`)
+  // What is drawn. Springs and glides write these; tests may set them under a lock.
   yaw = 0; pitch = 0; roll = 0; tilt = 0; open = 1;
   sx = 1; sy = 1; oy = 0; ox = 0;
   tint = 0; morph = 0; hands = 0; blush = 0; es = 1; badgeS = 0;
 
-  // Outfit (the main Groovy only — minis never wear one). `outfit` is what is
-  // drawn; it changes only once the previous one has left.
   outfit: Outfit = "none";
   /** Groovy's look (the main character only — minis keep their flat colour). */
   skin: Skin = DEFAULT_SKIN;
@@ -274,7 +271,7 @@ export class BotEngine {
   layers: Outfit[] = [];
   /** The user's colours over the look (the main Groovy only). */
   appearance: Appearance | null = null;
-  /** How far the look has grown, 0–5 (growth.ts; FIXES_ROUND3 item 6). */
+  /** How far the look has grown, 0–6 (growth.ts). */
   stage = 0;
   /** Fewer particles and calmer motion (Lightweight profile, small portraits). */
   lite = false;
@@ -297,42 +294,42 @@ export class BotEngine {
     if (animated) this.squash();
   }
 
-  // Spring lag of the soft parts (pompoms, hat tips, scarf end), −1…1.
+  // Soft parts (pompoms, hat tips, scarf end) lag on a spring, −1…1.
   physDx = 0;
   physDy = 0;
-  private physVx = 0;
-  /** Dangling worn parts' pendulum (round 3M item 4): angle and its speed; exactly 0 at rest. */
+  get physVx() { return this.softX.vel; }
+  get physVy() { return this.softY.vel; }
+  private softX: Spring = { v: 0, vel: 0 };
+  private softY: Spring = { v: 0, vel: 0 };
+  /** Dangling worn parts' pendulum: angle; exactly 0 at rest. */
   swing = 0;
-  private swingV = 0;
-  private physVy = 0;
+  private swingS: Spring = { v: 0, vel: 0 };
+  get swingV() { return this.swingS.vel; }
   private prevYaw = 0;
   private prevOy = 0;
   private prevRoll = 0;
 
-  // Targets
+  // Base targets (before acts are added).
   tgYaw = 0; tgPitch = 0; tgTilt = 0; tgSy = 1; tgSx = 1; tgEs = 1;
 
-  /** Extra canvas height above the body so hearts can fly out without clipping. */
+  /** Extra canvas height above the body so particles can fly out without clipping. */
   particleOverhang = 0;
 
-  /** Dancing to music; `dancingLevel` follows it, 0→1 in 0.3 s, 1→0 in 0.5 s. */
   isDancing = false;
   dancingLevel = 0;
 
-  // Mouth spring (fraction of R)
-  slotH = 0; slotHTarget = 0; slotHVel = 0; isChewing = false;
+  /** The drop slot (file drag): height as a fraction of R, on a spring. */
+  slotH = 0; slotHTarget = 0; isChewing = false;
+  private slotV = 0;
+  /** The slot spring's speed (the island zeroes it when it resets the slot). */
+  get slotHVel() { return this.slotV; }
+  set slotHVel(v: number) { this.slotV = v; }
 
-  col: RGB = C.idle;
-  colT: RGB = C.idle;
+  col: RGB = P.calm;
+  colT: RGB = P.calm;
 
   state: BotStateName = "idle";
-  /** The emote playing now, for the hands' gestures. */
-  private gesture: BotEmoteName | null = null;
-  private gestureUntil = 0;
-  /** Smoothed hand positions (body-relative, in units of rx/ry) and the last frame time. */
-  private handPos = [{ x: -1.08, y: 0.7, r: 0 }, { x: 1.08, y: 0.7, r: 0 }];
-  private handT = 0;
-  cfg: BotStateCfg = BOT_STATES.idle;
+  cfg: StateLook = BOT_STATES.idle;
 
   eyeOverride: EyeShape | null = null;
   eyeOverrideUntil = 0;
@@ -342,30 +339,84 @@ export class BotEngine {
 
   badge: Badge | null = null;
   private badgeKey = "none";
-  private badgeToken = 0;
+  private badgeSwing: Spring = { v: 0, vel: 0 };
 
-  private tweens = new Map<PropKey, Tween>();
-  private locks = new Set<PropKey>();
+  /** Springs' speeds, by value. */
+  private vel: Record<string, number> = {};
+  private bow = PILLOW_BOW;
+  private glides = new Map<GlideKey, Glide>();
+  /** Values held still: no spring or act moves them (tests and items-check pin poses). */
+  locks = new Set<LockKey>();
+  private acts: Act[] = [];
   private particles: Particle[] = [];
+
+  /** Where the eyes look, ahead of the head (fractions of R). */
+  private eyeX: Spring = { v: 0, vel: 0 };
+  private eyeY: Spring = { v: 0, vel: 0 };
+  private glance = { x: 0, y: 0, next: 0 };
+  private glow = 1;
+
+  /** The two wisps' poses on springs: x, y in units of rx/ry; r radians. */
+  private wisp = [
+    { x: { v: -1.08, vel: 0 }, y: { v: 0.7, vel: 0 }, r: { v: 0, vel: 0 } },
+    { x: { v: 1.08, vel: 0 }, y: { v: 0.7, vel: 0 }, r: { v: 0, vel: 0 } },
+  ];
 
   lookX = 0;
   lookY = 0;
+  private lastLook = { x: 0, y: 0, still: 0 };
 
   lastTime = now();
   private t0 = now() - Math.random() * 5;
-  private nextBlink = now() + 1.5 + Math.random() * 2;
+  private nextBlink = now() + rand(1.5, 3.5);
+  private nextGesture = now() + rand(20, 40);
+  private nextAmbient = 0;
   waveUntil = 0;
   waveStart = 0;
-  private greetToken = 0;
-  private lastAmbient = 0;
   private slapTimes: number[] = [];
-  private miniLookTarget = { x: 0, y: 0 };
-  private miniLookNextTime = 0;
+  private heldBreath = 0;
+  private greetActs: Act[] = [];
+  private rollTotal = 0;
 
   /** Fired when three slaps land inside 1.7 s (→ dizzy + confused view). */
   onDizzy: (() => void) | null = null;
   /** Something started moving: whoever draws him should be running (island.ts). */
   onWake: (() => void) | null = null;
+
+  private static zero(): Offsets {
+    return { yaw: 0, pitch: 0, tilt: 0, sx: 0, sy: 0, oy: 0, ox: 0, es: 0, bow: 0, close: 0, over: 0, glow: 0, flare: 0, drop: 0, wave: 0, flickL: 0, flickR: 0, knit: 0 };
+  }
+
+  /** The look's element: leaf (Night), flame (Ember), water (Frost). */
+  private get element(): "leaf" | "flame" | "water" {
+    return this.isMini ? "leaf" : this.style.nature ?? "leaf";
+  }
+
+  // ── Building blocks ─────────────────────────────────────────────────────────
+
+  /** Plays a move: `fx(age, offsets)` for `dur` seconds, starting after `delay`. */
+  private act(dur: number, fx: Act["fx"], delay = 0, done?: () => void): Act {
+    const a = { t0: now() + delay, dur, fx, done };
+    this.acts.push(a);
+    this.onWake?.();
+    return a;
+  }
+
+  /** Eases one value to `to` over `ms` on the cubic ease-out. */
+  glide(prop: GlideKey, to: number, ms: number, done?: () => void) {
+    this.glides.set(prop, { from: this[prop], to, t0: now(), dur: Math.max(0.001, ms / 1000), done });
+    this.locks.add(prop);
+    this.onWake?.();
+  }
+
+  /** Chases `target` on a spring for an engine value (unless locked). */
+  private chase(prop: "yaw" | "pitch" | "tilt" | "sx" | "sy" | "oy" | "ox" | "es", target: number, hz: number, zeta: number, dt: number) {
+    if (this.locks.has(prop)) return;
+    const s = { v: this[prop], vel: this.vel[prop] ?? 0 };
+    stepSpring(s, target, hz, zeta, dt);
+    this[prop] = s.v;
+    this.vel[prop] = s.vel;
+  }
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -375,35 +426,37 @@ export class BotEngine {
     this.state = next;
     this.cfg = BOT_STATES[next];
     this.colT = this.cfg.color;
-    if (!this.locks.has("tint")) this.tint = this.cfg.tint;
-    if (!this.locks.has("tilt")) this.tgTilt = this.cfg.tilt;
+    if (!this.locks.has("tint")) this.glide("tint", this.cfg.tint, 320);
+    this.tgTilt = this.cfg.tilt;
     this.setBadge(this.cfg.badge);
 
     switch (next) {
       case "finished":
-        this.doRoll(950, 1);
-        setTimeout(() => this.emit("spark", 5), 500);
+        this.puff();
+        this.act(0.01, () => {}, 0.25, () => this.pop(5));
         break;
       case "error":
-        this.anim("ox", [
-          [0.08, 50, Ease.out], [-0.08, 70, Ease.inOut],
-          [0.05, 70, Ease.inOut], [0, 90, Ease.out],
-        ]);
+        this.twitch(3);
         break;
       case "approval":
-        this.anim("oy", [[-0.2, 150, Ease.out], [0, 300, Ease.back]]);
+        // A small dip, then he leans in.
+        this.act(0.5, (a, o) => { o.oy += 0.05 * envelope(a, 0.12, 0, 0.38); });
         break;
       case "dizzy":
-        this.doRoll(1300, 2);
+        this.doRoll(1400, 2);
         break;
       case "question":
+        this.act(0.6, (a, o) => { o.flickR += envelope(a, 0.15, 0.1, 0.35); });
         this.blink();
         break;
       case "ratelimit":
-        this.emit("sweat", 1);
+        this.emit("drop", 1);
+        break;
+      case "sleeping":
+        this.yawnMove(1.2);
         break;
       default:
-        if (prev !== "idle" || next !== "idle") this.blink();
+        if (prev !== next) this.blink();
     }
   }
 
@@ -411,36 +464,65 @@ export class BotEngine {
     const key = b ? `${b.kind}-${b.color.join(",")}` : "none";
     if (key === this.badgeKey) return;
     this.badgeKey = key;
-    const tok = ++this.badgeToken;
-    this.anim("badgeS", [[0, 90, Ease.inOut]]);
-    setTimeout(() => {
-      if (tok !== this.badgeToken) return;
+    // The old tag lifts away; the new one drops in and swings on its string.
+    this.glide("badgeS", 0, 110, () => {
       this.badge = b;
-      if (b) this.anim("badgeS", [[1, 280, Ease.back]]);
-    }, 100);
+      if (b) {
+        this.badgeSwing.vel += 3.2;
+        this.glide("badgeS", 1, 260);
+      }
+    });
   }
 
+  /** A blink in the look's own manner (CHARACTER_MOTION.md §2). */
   blink() {
     if (this.locks.has("open")) return;
-    this.anim("open", [[0.06, 70, Ease.inOut], [1, 130, Ease.out]]);
+    const look = this.isMini ? "night" : this.skin;
+    if (look === "ember") {
+      // The glow dips first, then the lid.
+      this.act(0.36, (a, o) => {
+        o.glow += envelope(a, 0.09, 0.06, 0.2);
+        o.close += envelope(a - 0.09, 0.07, 0, 0.12);
+      });
+    } else if (look === "frost") {
+      // Slow, with one ripple across the water line as it opens.
+      this.act(0.62, (a, o) => {
+        o.close += envelope(a, 0.16, 0, 0.22);
+        if (a > 0.3) o.es += 0.04 * Math.sin((a - 0.3) * 30) * Math.max(0, 1 - (a - 0.3) / 0.3);
+      });
+    } else {
+      // Night: a shutter, 70 ms down, 110 ms up with a little overshoot.
+      this.act(0.26, (a, o) => {
+        o.close += envelope(a, 0.07, 0, 0.11);
+        if (a > 0.15) o.over += 0.07 * Math.sin(((a - 0.15) / 0.11) * Math.PI);
+      });
+    }
   }
 
+  /** The pillow set piece for a squash: the sides bow in, then pop back full. */
   squash() {
-    this.physVy += 0.6;
-    this.anim("sy", [[0.78, 70, Ease.out], [1.1, 130, Ease.out], [1, 170, Ease.inOut]]);
-    this.anim("sx", [[1.16, 70, Ease.out], [0.95, 130, Ease.out], [1, 170, Ease.inOut]]);
+    this.softY.vel += 0.5;
+    this.act(0.5, (a, o) => {
+      const k = envelope(a, 0.07, 0, 0.3);
+      o.sy -= 0.12 * k;
+      o.sx += 0.09 * k;
+      o.bow += 0.06 * envelope(a, 0.05, 0.02, 0.2) - 0.04 * envelope(a - 0.12, 0.08, 0, 0.25);
+    });
   }
 
-  /** Mailbox swallow — opens the slot, chews, then closes. */
+  /** File drop: the slot opens, the sides bow in, he swallows and puffs back. */
   gulp() {
     this.slotHTarget = 0.42;
-    setTimeout(() => {
+    this.act(0.01, () => {}, 0.46, () => {
       this.slotHTarget = 0;
       this.isChewing = true;
-      setTimeout(() => { this.isChewing = false; }, 800);
-    }, 460);
-    this.anim("sy", [[0.78, 80, Ease.out], [1.18, 130, Ease.out], [1, 220, Ease.back]]);
-    this.anim("sx", [[1.28, 80, Ease.out], [0.92, 130, Ease.out], [1, 220, Ease.back]]);
+      this.act(0.01, () => {}, 0.8, () => { this.isChewing = false; });
+    });
+    this.act(0.7, (a, o) => {
+      o.bow += 0.09 * envelope(a, 0.1, 0.12, 0.2);
+      o.sy += 0.06 * envelope(a - 0.25, 0.1, 0, 0.3);
+      o.sx -= 0.05 * envelope(a, 0.1, 0.12, 0.2);
+    });
     this.blink();
   }
 
@@ -452,71 +534,57 @@ export class BotEngine {
     this.slapTimes.push(t);
     Sound.play("slap");
     this.squash();
-    this.physVy -= 1.2;
-    this.physVx += Math.random() < 0.5 ? 0.7 : -0.7;
+    this.softY.vel -= 1.1;
+    this.softX.vel += Math.random() < 0.5 ? 0.8 : -0.8;
+    this.vel.ox = (this.vel.ox ?? 0) + (Math.random() < 0.5 ? 1.6 : -1.6);
     if (this.slapTimes.length >= 3) {
       this.slapTimes = [];
       this.onDizzy?.();
     } else {
       this.eyeOverride = "line";
       this.eyeOverrideUntil = t + 0.8;
-      setTimeout(() => Sound.play("annoyed"), 60);
+      this.act(0.01, () => {}, 0.06, () => Sound.play("annoyed"));
     }
   }
 
+  /** A tumble: eased out, the wisps trail a quarter-turn behind (drawWisps). */
   doRoll(durationMs: number, turns: number) {
     this.roll = 0;
-    this.anim("roll", [[Math.PI * 2 * turns, durationMs, Ease.inOut]], () => { this.roll = 0; });
+    this.rollTotal = Math.PI * 2 * turns;
+    this.act(0.25, (a, o) => { o.sy -= 0.06 * envelope(a, 0.08, 0, 0.17); o.sx += 0.04 * envelope(a, 0.08, 0, 0.17); });
+    this.glide("roll", Math.PI * 2 * turns, durationMs, () => { this.roll = 0; });
   }
 
-  /** Peek wave — the "groovy". Timings from BotEngine.greet(). */
+  /** Hello: a puff, then a two-beat wisp wave. */
   greet() {
     const t = now();
-    const tok = ++this.greetToken;
-    this.waveStart = t + 0.45;
-    this.waveUntil = t + 1.55;
-    this.physVx += 0.2;
-
+    this.waveStart = t + 0.3;
+    this.waveUntil = t + 1.5;
     this.eyeOverride = "happy";
-    this.eyeOverrideUntil = t + 2.0;
-    this.anim("oy", [[-0.06, 220, Ease.out], [0.0, 220, Ease.back]]);
-
-    setTimeout(() => {
-      if (this.greetToken !== tok) return;
-      this.anim("hands", [[1, 280, Ease.out]]);
-      this.anim("sy", [[0.95, 100, Ease.out], [1.0, 260, Ease.back]]);
-      this.anim("sx", [[1.04, 100, Ease.out], [1.0, 260, Ease.back]]);
-      Sound.play("greet");
-    }, 250);
-
-    setTimeout(() => { if (this.greetToken === tok) this.blink(); }, 550);
-    setTimeout(() => { if (this.greetToken === tok) this.blink(); }, 1500);
-    setTimeout(() => {
-      if (this.greetToken !== tok) return;
-      this.waveUntil = 0;
-      this.anim("hands", [[0, 200, Ease.inOut]]);
-    }, 1550);
-    setTimeout(() => {
-      if (this.greetToken !== tok) return;
-      this.eyeOverride = "happy";
-      this.eyeOverrideUntil = now() + 0.3;
-    }, 1750);
+    this.eyeOverrideUntil = t + 1.9;
+    this.puff();
+    this.glide("hands", 1, 260);
+    this.greetActs = [
+      this.act(1.2, (a, o) => { o.wave += envelope(a, 0.18, 0.8, 0.22); }, 0.3),
+      this.act(0.01, () => {}, 0.25, () => Sound.play("greet")),
+      this.act(0.01, () => {}, 1.5, () => this.glide("hands", 0, 220)),
+    ];
   }
 
   interruptGreet() {
     if (this.hands <= 0.01 && now() >= this.waveUntil) return;
-    this.greetToken++;
     this.waveUntil = 0;
     this.waveStart = 0;
-    this.anim("hands", [[0, 150, Ease.inOut]]);
+    const gone = new Set(this.greetActs);
+    this.acts = this.acts.filter((a) => !gone.has(a));
+    this.greetActs = [];
+    this.glide("hands", 0, 150);
   }
 
   setPermanentEmote(emote: BotEmoteName | null) {
     this.permanentEmote = emote;
-    if (emote === "wink") {
-      this.miniNextBehavior = now() + 0.8 + Math.random() * 1.7;
-      return;
-    }
+    this.miniNextBehavior = now() + rand(0.8, 2.5);
+    if (emote === "wink") return;
     this.permanentEye = emote ? EMOTE_EYE[emote] : null;
     if (this.permanentEye) {
       this.eyeOverride = this.permanentEye;
@@ -525,83 +593,133 @@ export class BotEngine {
       this.eyeOverride = null;
       this.eyeOverrideUntil = 0;
     }
-    this.miniNextBehavior = now() + 0.8 + Math.random() * 1.7;
   }
 
   triggerEmote(emote: BotEmoteName, duration = 1.8) {
     const t = now();
-    this.gesture = emote;
-    this.gestureUntil = t + duration;
     this.eyeOverride = EMOTE_EYE[emote];
     this.eyeOverrideUntil = t + duration;
+    const d = Math.max(0.6, duration);
 
     switch (emote) {
+      case "happy":
+        this.puff();
+        this.act(0.01, () => {}, 0.12, () => this.pop(3));
+        this.glide("blush", 0.5, 200, () => this.glide("blush", 0, 600));
+        break;
       case "love":
-        this.anim("blush", [
-          [1, 300, Ease.out], [1, (duration - 0.6) * 1000, Ease.lin], [0, 300, Ease.inOut],
-        ]);
-        this.emit("heart", 4);
-        this.anim("oy", [[-0.1, 160, Ease.out], [0, 300, Ease.back]]);
+        this.glide("blush", 0.9, 300, () => this.act(0.01, () => {}, d - 0.6, () => this.glide("blush", 0, 300)));
+        this.emit(this.elementParticle, 5, true);
+        this.act(d, (a, o) => { o.tilt -= 0.06 * envelope(a, 0.3, d - 0.7, 0.4); o.oy -= 0.03 * envelope(a, 0.3, d - 0.7, 0.4); });
         break;
       case "surprised":
-        this.anim("oy", [[-0.3, 140, Ease.out], [0, 380, Ease.back]]);
-        this.anim("es", [[1.25, 120, Ease.out], [1, 500, Ease.inOut]]);
+        // Eyes snap open, the outline goes taut, wisps flare; each settles at its own speed.
+        this.act(0.9, (a, o) => {
+          o.es += 0.25 * envelope(a, 0.06, 0.12, 0.6);
+          o.bow -= 0.08 * envelope(a, 0.06, 0.05, 0.35);
+          o.flare += envelope(a, 0.07, 0.15, 0.7);
+          o.oy -= 0.08 * envelope(a, 0.05, 0.05, 0.3);
+        });
         break;
       case "proud":
-        this.emit("star", 5);
-        this.anim("tilt", [
-          [-0.14, 220, Ease.out], [-0.14, (duration - 0.5) * 1000, Ease.lin], [0, 280, Ease.inOut],
-        ]);
-        this.anim("blush", [
-          [0.7, 250, Ease.out], [0.7, (duration - 0.5) * 1000, Ease.lin], [0, 300, Ease.inOut],
-        ]);
+        // He rises on the in-breath, holds it, and one halo ring opens outward.
+        this.heldBreath = t + d;
+        this.act(d, (a, o) => {
+          const k = envelope(a, 0.45, Math.max(0.8, d - 0.9), 0.45);
+          o.oy -= 0.05 * k; o.sy += 0.035 * k; o.sx += 0.02 * k; o.pitch += 0.06 * k; o.flare += 0.4 * k;
+        });
+        this.emit("ring", 1);
+        this.glide("blush", 0.5, 250, () => this.act(0.01, () => {}, d - 0.5, () => this.glide("blush", 0, 300)));
         break;
-      case "wink":
-        this.anim("tilt", [
-          [0.12, 160, Ease.out], [0.12, (duration - 0.4) * 1000, Ease.lin], [0, 240, Ease.inOut],
-        ]);
+      case "wink": {
+        // One eye shutters; the wisp on the other side flicks.
+        this.act(d, (a, o) => {
+          o.tilt += 0.09 * envelope(a, 0.14, d - 0.4, 0.26);
+          o.flickL += envelope(a - 0.05, 0.08, 0.05, 0.3);
+        });
         break;
+      }
       case "yawn":
-        this.anim("sy", [[1.12, 500, Ease.inOut], [1, 500, Ease.inOut]]);
-        this.anim("sx", [[0.94, 500, Ease.inOut], [1, 500, Ease.inOut]]);
-        setTimeout(() => { this.eyeOverride = "closed"; this.emit("z", 2); }, 700);
-        break;
-      case "happy":
-        this.anim("blush", [[0.6, 200, Ease.out], [0, 600, Ease.inOut]]);
+        this.yawnMove(d);
         break;
       case "annoyed":
-        this.eyeOverride = "line";
-        this.eyeOverrideUntil = t + 0.8;
-        setTimeout(() => Sound.play("annoyed"), 60);
+        this.eyeOverrideUntil = t + Math.min(d, 0.9);
+        this.twitch(3);
+        this.act(0.01, () => {}, 0.06, () => Sound.play("annoyed"));
         break;
     }
   }
 
-  emit(type: Particle["type"], count: number) {
+  /** The element's own particle: leaf flecks, embers or bubbles. */
+  private get elementParticle(): ParticleKind {
+    const e = this.element;
+    return e === "flame" ? "ember" : e === "water" ? "bubble" : "fleck";
+  }
+
+  /** Happy puff: corners fill fast, he lifts 6 % and settles on the spring. */
+  private puff() {
+    this.act(0.7, (a, o) => {
+      o.bow -= 0.05 * envelope(a, 0.09, 0.08, 0.4);
+      o.oy -= 0.06 * envelope(a, 0.09, 0.05, 0.25);
+      o.sy += 0.04 * envelope(a, 0.09, 0, 0.3);
+      o.flare += 0.6 * envelope(a, 0.1, 0.05, 0.4);
+    });
+  }
+
+  /** The element pops: two leaves, a burst of sparks or three bubbles. */
+  private pop(count: number) {
+    const kind = this.elementParticle;
+    this.emit(kind, kind === "fleck" ? 2 : kind === "bubble" ? 3 : count);
+  }
+
+  /** Three short sideways twitches 40 ms apart; the wisps drop. */
+  private twitch(n: number) {
+    const step = 0.04 + 0.05;
+    this.act(n * step + 0.5, (a, o) => {
+      const i = Math.floor(a / step);
+      if (i < n && a - i * step < 0.05) o.ox += (i % 2 ? -1 : 1) * 0.05;
+      o.drop += envelope(a, 0.08, n * step, 0.4);
+    });
+  }
+
+  /** Yawn: the whole pillow sags, eyes squeeze, the element droops, then a slow refill. */
+  private yawnMove(d: number) {
+    const sag = Math.min(1.2, d * 0.66);
+    this.act(sag + 1.1, (a, o) => {
+      const k = envelope(a, 0.35, sag - 0.35, 1.1);
+      o.bow += 0.06 * k; o.sy -= 0.05 * k; o.sx += 0.035 * k; o.drop += k; o.pitch -= 0.05 * k;
+    });
+    this.act(0.01, () => {}, sag * 0.6, () => this.emit("z", this.lite ? 1 : 2));
+  }
+
+  /** Throws `count` particles of `kind` (at most 24 alive; half in lite). */
+  emit(kind: ParticleKind, count: number, spiral = false) {
     this.onWake?.();
-    for (let i = 0; i < count; i++) {
-      const isZ = type === "z";
+    const cap = this.lite ? 12 : 24;
+    const n = Math.min(count, this.lite ? Math.ceil(count / 2) : count, cap - this.particles.length);
+    for (let i = 0; i < n; i++) {
+      const rises = kind !== "drop";
       this.particles.push({
-        type,
-        x: (Math.random() - 0.5) * 0.9 + (isZ ? 0.55 : 0),
-        y: -0.7 - Math.random() * 0.2,
-        vx: (Math.random() - 0.5) * 0.35 + (isZ ? 0.18 : 0),
-        vy: -(0.45 + Math.random() * 0.35),
-        age: -i * 0.14,
-        life: 1.3 + Math.random() * 0.5,
-        rot: Math.random() * Math.PI * 2,
-        size: 0.15 + Math.random() * 0.08,
+        kind,
+        x: kind === "z" ? 0.55 : kind === "ring" ? 0 : rand(-0.45, 0.45),
+        y: kind === "ring" ? 0 : kind === "drop" ? -0.55 : -0.65 - Math.random() * 0.15,
+        vx: kind === "z" ? 0.16 : kind === "ring" ? 0 : rand(-0.2, 0.2),
+        vy: kind === "ring" ? 0 : rises ? -(kind === "ember" ? rand(0.6, 0.9) : kind === "bubble" ? rand(0.35, 0.5) : rand(0.25, 0.4)) : 0,
+        age: -i * 0.11,
+        life: kind === "ring" ? 0.9 : kind === "ember" ? rand(0.8, 1.1) : rand(1.3, 1.8),
+        seed: Math.random() * 10,
+        size: kind === "ember" ? rand(0.05, 0.08) : rand(0.1, 0.15),
+        spiral,
       });
     }
   }
 
   animateMorph(target: number, durationMs?: number) {
-    const dur = durationMs ?? (target > 0.5 ? 550 : 650);
-    this.anim("morph", [[target, dur, Ease.inOut]]);
+    this.glide("morph", target, durationMs ?? (target > 0.5 ? 520 : 600));
   }
 
   resetMorph() {
-    this.tweens.delete("morph");
+    this.glides.delete("morph");
     this.locks.delete("morph");
     this.morph = 0;
   }
@@ -613,29 +731,26 @@ export class BotEngine {
     if (animated) this.squash();
   }
 
-  /**
-   * Dresses Groovy. Animated: the old outfit leaves (180 ms), the new one drops
-   * in (350 ms) and Groovy does a little squash — BotEngine.setOutfit on macOS.
-   */
+  /** Dresses Groovy: the old outfit lifts off, the new one settles on with a squash. */
   setOutfit(next: Outfit, animated = true) {
     if (next === this.outfitTarget) return;
     this.outfitTarget = next;
-    this.tweens.delete("outfitPresence");
+    this.glides.delete("outfitPresence");
     this.locks.delete("outfitPresence");
     const enter = () => {
       this.outfit = next;
-      this.anim("outfitPresence", [[1, 350, Ease.inOut]], () => this.squash());
+      this.glide("outfitPresence", 1, 340, () => this.squash());
     };
     if (!animated) {
       this.outfit = next;
       this.outfitPresence = next !== "none" ? 1 : 0;
     } else if (next === "none") {
-      this.anim("outfitPresence", [[0, 180, Ease.inOut]], () => { this.outfit = "none"; });
+      this.glide("outfitPresence", 0, 170, () => { this.outfit = "none"; });
     } else if (this.outfit === "none") {
       this.outfitPresence = 0;
       enter();
     } else {
-      this.anim("outfitPresence", [[0, 180, Ease.inOut]], enter);
+      this.glide("outfitPresence", 0, 170, enter);
     }
   }
 
@@ -644,139 +759,142 @@ export class BotEngine {
     return !this.isMini && this.outfit !== "none" && this.outfitPresence > 0.05;
   }
 
-  /** True while anything is still moving — lets the island stop its RAF loop. */
+  /** True while anything is still moving — lets the island stop its frame loop. */
   get busy(): boolean {
     return this.ambient || this.moving;
   }
 
-  /** A looping state animation (breathing, bouncing at work, z's…): it never ends by itself. */
+  /** A looping state (the scan, the lean's halo beat, sleep, the rate-limit drops): it never ends by itself. */
   get ambient(): boolean {
-    return this.cfg.bounces || this.cfg.scans || this.cfg.breathes || this.cfg.zz || this.cfg.sweat || this.isMini;
+    return this.cfg.loops || this.isMini;
   }
 
-  /** Something on its way somewhere: a tween, particles, a turn, a squash… */
+  /** Something on its way somewhere: a glide, an act, particles, a spring not yet still… */
   get moving(): boolean {
+    const off = (p: "yaw" | "pitch" | "tilt" | "sx" | "sy" | "es", tg: number) => this[p] !== tg || (this.vel[p] ?? 0) !== 0;
     return (
-      this.tweens.size > 0 ||
-      this.particles.length > 0 ||
-      this.isDancing || this.dancingLevel > 0.001 ||
-      Math.abs(this.tgYaw - this.yaw) > 0.002 ||
-      Math.abs(this.tgPitch - this.pitch) > 0.002 ||
-      Math.abs(this.tgTilt - this.tilt) > 0.002 ||
-      Math.abs(this.tgSy - this.sy) > 0.002 ||
-      Math.abs(this.tgSx - this.sx) > 0.002 ||
-      Math.abs(this.tgEs - this.es) > 0.002 ||
-      this.slotH > 0.001 || Math.abs(this.slotHVel) > 0.001 ||
-      Math.abs(this.col[0] - this.colT[0]) > 0.003 ||
-      Math.abs(this.col[1] - this.colT[1]) > 0.003 ||
-      Math.abs(this.col[2] - this.colT[2]) > 0.003 ||
-      (this.outfit !== "none" && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01 || this.swing !== 0 || this.swingV !== 0))
+      this.glides.size > 0 || this.acts.length > 0 || this.particles.length > 0 ||
+      this.isDancing || this.dancingLevel > 0 ||
+      off("yaw", this.tgYaw) || off("pitch", this.tgPitch) || off("tilt", this.tgTilt) ||
+      off("sx", this.tgSx) || off("sy", this.tgSy) || off("es", this.tgEs) ||
+      this.oy !== 0 || this.ox !== 0 || this.bow !== PILLOW_BOW ||
+      this.slotH > 0 || this.slotV !== 0 ||
+      this.eyeX.vel !== 0 || this.eyeY.vel !== 0 || this.badgeSwing.v !== 0 ||
+      this.col !== this.colT ||
+      (this.outfit !== "none" && (this.softX.vel !== 0 || this.softY.vel !== 0 || this.physDx !== 0 || this.physDy !== 0 || this.swing !== 0 || this.swingS.vel !== 0))
     );
-  }
-
-  // ── Tweens ──────────────────────────────────────────────────────────────────
-
-  anim(prop: PropKey, keys: TweenKey[], onComplete?: () => void) {
-    this.tweens.set(prop, {
-      prop, keys, index: 0, from: this[prop], startMs: performance.now(), onComplete,
-    });
-    this.locks.add(prop);
-    this.onWake?.();
   }
 
   // ── Update ──────────────────────────────────────────────────────────────────
 
   update(dt: number) {
     const n = now();
-    const nowMs = performance.now();
+    dt = clamp(dt, 0, 0.1);
 
-    for (const tw of [...this.tweens.values()]) {
-      const k = tw.keys[tw.index];
-      const p = Math.min(1, Math.max(0, (nowMs - tw.startMs) / k[1]));
-      this[tw.prop] = tw.from + (k[0] - tw.from) * k[2](p);
-      if (p >= 1) {
-        tw.from = k[0];
-        tw.index += 1;
-        tw.startMs = nowMs;
-        if (tw.index >= tw.keys.length) {
-          this.tweens.delete(tw.prop);
-          this.locks.delete(tw.prop);
-          tw.onComplete?.();
-        }
+    for (const [prop, g] of [...this.glides]) {
+      const k = (n - g.t0) / g.dur;
+      this[prop] = g.from + (g.to - g.from) * easeOut(k);
+      if (k >= 1) {
+        this[prop] = g.to;
+        this.glides.delete(prop);
+        this.locks.delete(prop);
+        g.done?.();
       }
+    }
+
+    const o = BotEngine.zero();
+    if (this.acts.length) {
+      const live: Act[] = [];
+      const finished: Act[] = [];
+      for (const a of this.acts) {
+        const age = n - a.t0;
+        if (age < 0) live.push(a);
+        else if (age >= a.dur) finished.push(a);
+        else { a.fx(age, o); live.push(a); }
+      }
+      this.acts = live;
+      for (const a of finished) a.done?.();
     }
 
     const t = n - this.t0;
-    let ty = this.lookX * 0.62;
-    let tp = this.lookY * 0.5;
+    const shown: EyeShape = this.eyeOverride ?? this.cfg.eye;
 
-    if (this.cfg.look) {
-      ty = ty * 0.35 + this.cfg.look[0] * 0.55;
-      tp = tp * 0.3 + this.cfg.look[1] * 0.5;
-    }
-    if (this.cfg.scans) {
-      ty = Math.sin(t * 2.6) * 0.6;
-      tp = -0.06;
-    }
-    if (this.state === "sleeping") { ty = 0; tp = -0.14; }
-    if (this.state === "dizzy") { ty = Math.sin(t * 9) * 0.25; }
-
-    // Mini bots never follow the mouse — they wander.
-    if (this.isMini && !this.cfg.look && !this.cfg.scans && this.state !== "sleeping" && this.state !== "dizzy") {
-      if (n > this.miniLookNextTime) {
-        this.miniLookTarget = {
-          x: -0.88 + Math.random() * 1.76,
-          y: -0.55 + Math.random() * 1.0,
-        };
-        this.miniLookNextTime = n + 0.5 + Math.random() * 1.5;
-      }
-      ty = this.miniLookTarget.x * 0.62;
-      tp = this.miniLookTarget.y * 0.5;
-    }
-
-    this.tgYaw = ty;
-    this.tgPitch = tp;
-    this.tgTilt = this.cfg.tilt;
-
-    if (n > this.waveStart && n < this.waveUntil) {
-      const wt = n - this.waveStart;
-      this.tgTilt = -0.06 + Math.sin(2 * Math.PI * 1.2 * wt) * 0.07;
-    }
-
-    const bounce = this.cfg.bounces ? -Math.abs(Math.sin(t * 5.2)) * 0.07 : 0;
-    const kGen = 1 - Math.pow(0.0008, dt);
-    if (!this.locks.has("oy")) this.oy += (bounce - this.oy) * kGen;
-
-    if (this.cfg.breathes) {
-      const amp = this.isMini ? 0.07 : 0.035;
-      this.tgSy = 1 + Math.sin(t * 1.8) * amp;
-      this.tgSx = 1 - Math.sin(t * 1.8) * amp * 0.57;
+    // Where he looks: the pointer, or what the state is doing.
+    let gx = this.lookX;
+    let gy = this.lookY;
+    const moved = Math.abs(gx - this.lastLook.x) + Math.abs(gy - this.lastLook.y) > 0.004;
+    this.lastLook.x = gx; this.lastLook.y = gy;
+    this.lastLook.still = moved ? 0 : this.lastLook.still + dt;
+    if (this.state === "thinking") {
+      const ph = (t / 2.8) * Math.PI * 2;
+      gx = gx * 0.25 + Math.sin(ph) * 0.35;
+      gy = gy * 0.25 - 0.55 + Math.sin(ph * 2) * 0.12;
+    } else if (this.state === "searching") {
+      gx = Math.sin((t / 2.4) * Math.PI * 2) * 0.7;
+      gy = -0.08 + Math.cos((t / 2.4) * Math.PI * 4) * 0.05;
+    } else if (this.state === "sleeping") {
+      gx = 0; gy = -0.3;
+    } else if (this.state === "dizzy") {
+      gx = Math.sin(t * 7.5) * 0.3;
     } else if (this.isMini) {
-      this.tgSy = 1 + Math.sin(t * 2.2) * 0.04;
-      this.tgSx = 1 - Math.sin(t * 2.2) * 0.02;
-    } else {
-      this.tgSy = 1;
-      this.tgSx = 1;
+      if (n > this.glance.next) {
+        this.glance.x = rand(-0.85, 0.85);
+        this.glance.y = rand(-0.5, 0.45);
+        this.glance.next = n + rand(0.6, 2.2);
+      }
+      gx = this.glance.x; gy = this.glance.y;
     }
 
-    if (this.isMini && n > this.miniNextBehavior) this.doMiniBehaviorLoop();
+    // Eyes lead (fast and crisp), the head follows a beat later on a softer spring.
+    this.tgYaw = gx * 0.62 + o.yaw;
+    this.tgPitch = gy * 0.5 + this.cfg.lean + o.pitch;
+    this.tgTilt = this.cfg.tilt;
+    this.tgSx = 1;
+    this.tgSy = 1;
+    this.tgEs = 1;
+    this.chase("yaw", this.tgYaw, 1.9, 0.82, dt);
+    this.chase("pitch", this.tgPitch, 1.9, 0.82, dt);
+    stepSpring(this.eyeX, clamp((this.tgYaw - this.yaw) * 0.22, -0.1, 0.1), 9, 0.9, dt, 0.0004);
+    stepSpring(this.eyeY, clamp((this.tgPitch - this.pitch) * 0.18, -0.08, 0.08), 9, 0.9, dt, 0.0004);
 
-    const kLook = 1 - Math.pow(0.0025, dt);
-    if (!this.locks.has("yaw")) this.yaw += (this.tgYaw - this.yaw) * kLook;
-    if (!this.locks.has("pitch")) this.pitch += (this.tgPitch - this.pitch) * kLook;
-    if (!this.locks.has("tilt")) this.tilt += (this.tgTilt - this.tilt) * kGen;
-    if (!this.locks.has("sy")) this.sy += (this.tgSy - this.sy) * kGen;
-    if (!this.locks.has("sx")) this.sx += (this.tgSx - this.sx) * kGen;
-    if (!this.locks.has("es")) this.es += (this.tgEs - this.es) * kGen;
+    this.chase("tilt", this.tgTilt + o.tilt, 1.5, 0.5, dt);
+    this.chase("sx", 1 + o.sx, 4.2, 0.42, dt);
+    this.chase("sy", 1 + o.sy, 4.2, 0.42, dt);
+    this.chase("oy", o.oy, 3.4, 0.5, dt);
+    this.chase("ox", o.ox, 9, 0.45, dt);
+    this.chase("es", 1 + o.es, 5, 0.5, dt);
+    const bow = { v: this.bow, vel: this.vel.bow ?? 0 };
+    stepSpring(bow, PILLOW_BOW + o.bow, 3.2, 0.55, dt, 0.0003);
+    this.bow = bow.v; this.vel.bow = bow.vel;
+    if (!this.locks.has("open")) this.open = clamp(1 - o.close + o.over, 0.04, 1.08);
+    this.glow = 1 - 0.75 * clamp(o.glow, 0, 1);
 
-    this.col = mix3(this.col, this.colT, 1 - Math.pow(0.002, dt));
+    // The colour drifts to the state's.
+    if (this.col !== this.colT) {
+      const k = 1 - Math.exp(-dt * 3.2);
+      const c = mix3(this.col, this.colT, k);
+      this.col = Math.abs(c[0] - this.colT[0]) + Math.abs(c[1] - this.colT[1]) + Math.abs(c[2] - this.colT[2]) < 0.006 ? this.colT : c;
+    }
 
+    // Blinks every 3.5–9 s, never at the top of a breath; a double one time in eight.
     if (n > this.nextBlink) {
-      if (this.state !== "sleeping" && this.state !== "dizzy") {
+      const calm = shown === "pill" || shown === "wide" || shown === "tired";
+      if (calm && this.state !== "sleeping" && this.state !== "dizzy") {
         this.blink();
-        if (Math.random() < 0.22) setTimeout(() => this.blink(), 230);
+        if (Math.random() < 1 / 8) this.act(0.01, () => {}, 0.24, () => this.blink());
       }
-      this.nextBlink = n + 2.2 + Math.random() * 3.2;
+      this.nextBlink = n + rand(3.5, 9);
+      if (breath(this.nextBlink - this.t0) > 0.97) this.nextBlink += 0.4;
+    }
+
+    // At rest, the element makes one small gesture every 20–40 s.
+    if (!this.isMini && this.state === "idle" && n > this.nextGesture) {
+      this.nextGesture = n + rand(20, 40);
+      this.act(1.6, (a, o2) => { o2.flickR += envelope(a, 0.4, 0.5, 0.7); o2.drop -= 0.3 * envelope(a, 0.4, 0.5, 0.7); });
+    }
+    // Eyes glance: a small saccade when the pointer comes to rest.
+    if (!this.isMini && this.lastLook.still > 0.6 && this.lastLook.still - dt <= 0.6) {
+      this.eyeX.vel += (Math.random() - 0.5) * 0.6;
     }
 
     if (this.eyeOverride && n > this.eyeOverrideUntil) {
@@ -784,50 +902,59 @@ export class BotEngine {
       if (this.permanentEye) this.eyeOverrideUntil = Number.POSITIVE_INFINITY;
     }
 
-    if (n - this.lastAmbient > 1.3) {
-      this.lastAmbient = n;
-      if (this.cfg.zz) this.emit("z", 1);
-      if (!this.isMini && this.cfg.sweat && Math.random() < 0.5) this.emit("sweat", 1);
+    if (this.isMini && n > this.miniNextBehavior) this.miniCue();
+
+    if (n > this.nextAmbient) {
+      this.nextAmbient = n + 1.6;
+      if (this.state === "sleeping") this.emit("z", 1);
+      if (!this.isMini && this.state === "ratelimit" && Math.random() < 0.5) this.emit("drop", 1);
     }
 
-    for (const p of this.particles) p.age += dt;
-    this.particles = this.particles.filter((p) => p.age < p.life);
+    this.stepParticles(dt);
 
-    // Mouth slot spring — ω₀ = 2π/0.25, ζ = 0.6
-    const omega = (2 * Math.PI) / 0.25;
-    const zeta = 0.6;
-    const acc = omega * omega * (this.slotHTarget - this.slotH) - 2 * zeta * omega * this.slotHVel;
-    this.slotHVel += acc * dt;
-    this.slotH = Math.max(0, this.slotH + this.slotHVel * dt);
+    // The drop slot.
+    const slot = { v: this.slotH, vel: this.slotV };
+    stepSpring(slot, this.slotHTarget, 3.6, 0.6, dt, 0.0005);
+    this.slotH = Math.max(0, slot.v);
+    this.slotV = slot.vel;
 
     this.dancingLevel = stepDanceLevel(this.dancingLevel, this.isDancing, dt);
 
-    // Soft-part spring: lags behind head turns, hops and rolls (stiffness 60, damping 9).
+    // Wisps chase their pose on springs: they arrive late and overshoot.
+    const targets = this.wispTargets(t, o);
+    for (let i = 0; i < 2; i++) {
+      const w = this.wisp[i];
+      stepSpring(w.x, targets[i].x, 3.4, 0.55, dt, 0.0008);
+      stepSpring(w.y, targets[i].y, 3.4, 0.55, dt, 0.0008);
+      stepSpring(w.r, targets[i].r, 2.8, 0.5, dt, 0.001);
+    }
+
+    // Badge string: a pendulum driven by the soft-part lag.
+    stepSpring(this.badgeSwing, this.badge ? clamp(-this.physDx * 0.5 - this.tilt, -0.6, 0.6) : 0, 1.1, 0.25, dt, 0.0008);
+
+    // Worn soft parts lag behind turns, hops and rolls; the pendulum swings past rest.
     if (dt > 0) {
       const yawVel = (this.yaw - this.prevYaw) / dt;
       const oyVel = (this.oy - this.prevOy) / dt;
-      // A finished roll snaps from 2π·turns back to 0: that jump is not motion.
       const dRoll = this.roll - this.prevRoll;
       const rollVel = Math.abs(dRoll) > Math.PI ? 0 : dRoll / dt;
-      const centrifugal = this.rigidRoll ? rollVel * 0.18 : 0;
-      const tDx = Math.max(-1, Math.min(1, -yawVel * 0.35 - this.tilt * 2 + centrifugal));
-      const tDy = Math.max(-1, Math.min(1, oyVel * 0.5));
-      this.physVx += (60 * (tDx - this.physDx) - 9 * this.physVx) * dt;
-      this.physVy += (60 * (tDy - this.physDy) - 9 * this.physVy) * dt;
-      this.physDx += this.physVx * dt;
-      this.physDy += this.physVy * dt;
+      const spin = this.rigidRoll ? rollVel * 0.16 : 0;
+      const tDx = clamp(-yawVel * 0.32 - this.tilt * 1.8 + spin, -1, 1);
+      const tDy = clamp(oyVel * 0.45, -1, 1);
+      this.softX.v = this.physDx;
+      this.softY.v = this.physDy;
+      stepSpring(this.softX, tDx, 1.3, 0.55, dt, 0.0004);
+      stepSpring(this.softY, tDy, 1.3, 0.55, dt, 0.0004);
+      this.physDx = this.softX.v;
+      this.physDy = this.softY.v;
       if (this.outfit === "none" || this.lite) {
-        this.swing = this.swingV = 0;
+        this.swing = 0;
+        this.swingS.v = this.swingS.vel = 0;
       } else {
-        // A pendulum on the same lag: swings past rest and settles (ω ≈ 5.8, ζ ≈ 0.28), then stops exactly.
-        const drive = Math.max(-0.6, Math.min(0.6, -this.physDx * 0.9));
-        this.swingV += (34 * (drive - this.swing) - 3.2 * this.swingV) * dt;
-        this.swing += this.swingV * dt;
-        if (Math.abs(this.swing) < 0.0015 && Math.abs(this.swingV) < 0.02 && Math.abs(drive) < 0.0015) this.swing = this.swingV = 0;
+        this.swingS.v = this.swing;
+        stepSpring(this.swingS, clamp(-this.physDx * 0.9, -0.6, 0.6), 0.95, 0.27, dt, 0.0015);
+        this.swing = this.swingS.v;
       }
-      // At rest the soft-part spring stops exactly, so nothing keeps redrawing.
-      if (Math.abs(this.physDx) < 0.0004 && Math.abs(this.physVx) < 0.004 && Math.abs(tDx) < 0.0004) this.physDx = this.physVx = 0;
-      if (Math.abs(this.physDy) < 0.0004 && Math.abs(this.physVy) < 0.004 && Math.abs(tDy) < 0.0004) this.physDy = this.physVy = 0;
     }
     this.prevYaw = this.yaw;
     this.prevOy = this.oy;
@@ -836,52 +963,58 @@ export class BotEngine {
     this.lastTime = n;
   }
 
-  private doMiniBehaviorLoop() {
+  private stepParticles(dt: number) {
+    if (!this.particles.length) return;
+    for (const p of this.particles) {
+      p.age += dt;
+      if (p.age <= 0) continue;
+      if (p.kind === "drop") p.vy += 1.6 * dt;
+      else if (p.kind === "bubble") p.vx = Math.sin(p.age * 5 + p.seed) * 0.12;
+      else if (p.kind === "fleck") p.vx = Math.sin(p.age * 3.2 + p.seed) * 0.22;
+      else if (p.kind === "ember") p.vx = flicker(p.age * 0.6, p.seed) * 0.18;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    this.particles = this.particles.filter((p) => p.age < p.life);
+  }
+
+  /** Minis show their emote in small cues of their own. */
+  private miniCue() {
     const n = now();
     switch (this.permanentEmote) {
       case "happy":
-        if (this.locks.has("oy")) { this.miniNextBehavior = n + 0.4; return; }
-        this.anim("oy", [[-0.3, 120, Ease.out], [0.03, 200, Ease.inOut], [0, 160, Ease.back]]);
-        this.anim("sy", [[0.82, 80, Ease.out], [1.18, 130, Ease.out], [0.88, 160, Ease.inOut], [1, 200, Ease.back]]);
-        this.anim("sx", [[1.15, 80, Ease.out], [0.88, 130, Ease.out], [1.06, 160, Ease.inOut], [1, 200, Ease.back]]);
-        this.miniNextBehavior = n + 2.2 + Math.random() * 1.2;
+        this.puff();
+        this.miniNextBehavior = n + rand(2.2, 3.4);
         break;
       case "annoyed":
-        if (this.locks.has("yaw")) { this.miniNextBehavior = n + 0.5; return; }
-        this.anim("yaw", [
-          [-0.65, 50, Ease.out], [0.65, 90, Ease.inOut], [-0.5, 80, Ease.inOut],
-          [0.4, 75, Ease.inOut], [-0.2, 70, Ease.inOut], [0, 140, Ease.out],
-        ]);
-        this.miniNextBehavior = n + 3.0 + Math.random() * 2.5;
+        this.twitch(3);
+        this.miniNextBehavior = n + rand(3, 5.5);
         break;
       case "wink":
         this.eyeOverride = "wink";
         this.eyeOverrideUntil = n + 0.55;
-        this.anim("tilt", [[0.13, 100, Ease.out], [0.13, 320, Ease.lin], [0, 200, Ease.inOut]]);
-        this.miniNextBehavior = n + 2.2 + Math.random() * 2.0;
+        this.act(0.7, (a, o) => { o.tilt += 0.12 * envelope(a, 0.1, 0.3, 0.3); });
+        this.miniNextBehavior = n + rand(2.2, 4.2);
         break;
       case "love":
-        this.emit("heart", 2);
-        this.anim("tilt", [[-0.1, 180, Ease.out], [0.1, 340, Ease.inOut], [0, 220, Ease.inOut]]);
-        this.miniNextBehavior = n + 2.6 + Math.random() * 1.5;
+        this.emit("fleck", 2, true);
+        this.act(0.8, (a, o) => { o.tilt += 0.09 * Math.sin(a * Math.PI * 2.5) * (1 - a / 0.8); });
+        this.miniNextBehavior = n + rand(2.6, 4.1);
         break;
       default:
-        this.miniNextBehavior = n + 3.0 + Math.random() * 2.0;
+        this.miniNextBehavior = n + rand(3, 5);
     }
   }
 
   // ── Dancing ─────────────────────────────────────────────────────────────────
 
   setDancing(dancing: boolean) {
-    if (this.isDancing !== dancing) this.isDancing = dancing;
+    this.isDancing = dancing;
   }
 
-  /**
-   * Applies the dance bounce and sway around the bottom of the body. Call it on
-   * a saved context, before draw(), with the same size (BotEngine.applyDance).
-   */
+  /** Rocks him from the base of his body. Call on a saved context before draw(). */
   applyDance(x: CanvasRenderingContext2D, W: number, H: number) {
-    if (this.dancingLevel <= 0.001) return;
+    if (this.dancingLevel <= 0) return;
     const R = W * 0.3;
     const px = W / 2 + this.ox * R;
     const py = H / 2 + this.particleOverhang / 2 + this.oy * R + R * 0.06 + R * 0.88;
@@ -894,24 +1027,28 @@ export class BotEngine {
 
   // ── Draw ────────────────────────────────────────────────────────────────────
 
-  /**
-   * Draws hands, body, blush, eyes, mouth, badge and particles into a canvas of
-   * `w`×`h` CSS pixels (the caller has already applied the DPR transform).
-   */
   /** The head shape of the current look (minis use the same pillow shape). */
   private get shape() {
     return this.isMini ? SHAPE : this.style.shape;
   }
 
+  /**
+   * Draws wisps, body, eyes, mouth, tag and particles into a canvas of `W`×`H`
+   * CSS pixels (the caller has already applied the DPR transform).
+   */
   draw(x: CanvasRenderingContext2D, W: number, H: number) {
     const R = W * 0.3;
     const rx = R * 1.14 * this.shape.w;
     const ry = R * 0.88 * this.shape.h;
     const cx = W / 2 + this.ox * R;
     const cy = H / 2 + this.particleOverhang / 2 + this.oy * R + R * 0.06;
+    const n = now();
+    const t = n - this.t0;
+    // The pillow breath: the height changes under 1.5 %; he holds it while proud.
+    const held = n < this.heldBreath;
+    const b = this.lite ? 0 : held ? 1 : breath(t, this.state === "sleeping" ? 6.5 : 4.2);
+    const bAmp = this.isMini ? 2.5 : 1;
 
-    // With an outfit on, a roll turns the whole character — hat included — as
-    // one piece instead of rolling the eyes over the body (BotCanvasView, macOS).
     x.save();
     if (this.rigidRoll && Math.abs(this.roll) > 0.001) {
       x.translate(cx, cy);
@@ -919,12 +1056,13 @@ export class BotEngine {
       x.translate(-cx, -cy);
     }
 
-    this.drawHandsBehind(x, R, rx, ry, cx, cy);
+    if (!this.isMini) this.drawHalo(x, R, rx, ry, cx, cy, b, t);
+    this.drawWisps(x, R, rx, ry, cx, cy, t);
 
     x.save();
     x.translate(cx, cy);
     if (this.tilt !== 0) x.rotate(this.tilt);
-    x.scale(this.sx, this.sy);
+    x.scale(this.sx * (1 + 0.008 * b * bAmp), this.sy * (1 + 0.012 * b * bAmp));
 
     const dressed = !this.isMini && this.outfit !== "none";
     const head = dressed ? makeHead(R, this.yaw, this.pitch, this.physDx, this.physDy) : null;
@@ -933,18 +1071,12 @@ export class BotEngine {
     if (head) {
       head.rx = rx;
       head.ry = ry;
-      // Face items sit on his real eyes, wherever he looks (round 3E item 10).
       head.eyes = this.eyeCentres(rx, ry);
       head.swing = this.swing;
     }
-    // What grows on his head comes up through a hat (owner, 6 Nov), drawn over it, raised by the hat's height.
+    // What grows on his head comes up through a hat, raised by the hat's height.
     const lift = head && dressed ? growthLift([this.outfit, ...this.layers], head) * Math.min(1, this.outfitPresence) : 0;
-    const skinState: SkinState = {
-      hatless: 1,
-      shown: Math.max(0, 1 - this.morph * 2),
-      time: now(),
-      lite: this.lite,
-    };
+    const skinState: SkinState = { hatless: 1, shown: Math.max(0, 1 - this.morph * 2), time: n, lite: this.lite };
     if (head) {
       drawOutfitBehind(x, this.outfit, head, outfitState);
       for (const layer of this.layers) if (layer !== this.outfit) drawOutfitBehind(x, layer, head, outfitState);
@@ -954,23 +1086,10 @@ export class BotEngine {
     if (skinHead) drawSkinBehind(x, this.style, skinHead, skinState);
     this.drawBody(x, body, R, rx, ry);
     if (skinHead) drawSkinBody(x, this.style, body, skinHead, skinState);
-
-    const blushVal = Math.max(this.blush, this.tint * 0.5) * (1 - this.morph);
-    if (blushVal > 0.01) {
-      x.save();
-      x.clip(body);
-      const yOffset = Math.sin(this.yaw) * rx * 0.8;
-      x.fillStyle = `rgba(255,120,150,${0.5 * blushVal})`;
-      for (const sd of [-1, 1]) {
-        x.beginPath();
-        x.ellipse(sd * rx * 0.55 + yOffset, ry * 0.2, R * 0.17, R * 0.1, 0, 0, Math.PI * 2);
-        x.fill();
-      }
-      x.restore();
-    }
+    this.drawGlowCheeks(x, body, R, rx, ry);
 
     this.drawEyes(x, body, R, rx, ry);
-    if (this.morph > 0.05) this.drawMouth(x, body, R);
+    if (this.morph > 0.05) this.drawSlot(x, body, R);
 
     if (skinHead && skinState.shown > 0.05) this.drawSkinMouth(x, R, rx, ry);
     if (skinHead && lift < 0.5) drawSkinFront(x, this.style, skinHead, skinState);
@@ -988,24 +1107,28 @@ export class BotEngine {
     x.restore();
     x.restore();
 
-    if (this.badge && this.badgeS > 0.01 && this.morph < 0.25) {
-      this.drawBadge(x, this.badge, R, cx, cy);
-    }
+    if (this.badge && this.badgeS > 0.01 && this.morph < 0.25) this.drawTag(x, this.badge, R, rx, ry, cx, cy);
     this.drawParticles(x, R, cx, cy);
   }
 
+  /** The pillow outline at the current bow (the look's own outline when at rest). */
   private bodyPath(rx: number, ry: number, R: number): Path2D {
-    const n = 72;
-    const tw = R * 1.0;
-    const th = R * 0.94;
-    const tr = R * 0.42;
-    const p = new Path2D();
+    const steps = 72;
+    const exp = 2 / this.shape.exp;
+    const taper = this.shape.taper;
+    const bow = this.bow;
     const m = this.morph;
-    for (let i = 0; i <= n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      let [px, py] = pillowXY(a, rx, ry, this.shape.exp, this.shape.taper);
+    const p = new Path2D();
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const u = Math.sign(ca) * Math.pow(Math.abs(ca), exp);
+      const v = Math.sign(sa) * Math.pow(Math.abs(sa), exp);
+      let px = rx * u * (1 - bow * (1 - v * v)) * (1 + taper * Math.max(0, v));
+      let py = ry * v * (1 - bow * (1 - u * u));
       if (m >= 0.005) {
-        const rr = rrPoint(Math.cos(a), Math.sin(a), tw, th, tr);
+        const rr = rrPoint(ca, sa, R, R * 0.94, R * 0.42);
         px = lerp(px, rr.x, m);
         py = lerp(py, rr.y, m);
       }
@@ -1018,37 +1141,23 @@ export class BotEngine {
 
   private drawBody(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
     if (this.bodyColor) {
-      // Mini bots: flat solid fill — no gradient, no reflection, no highlight
+      // Minis: one flat colour.
       x.fillStyle = rgba(this.bodyColor, 1);
       x.fill(body);
       return;
-    } else {
-      if (!this.drawCachedBody(x, body, R, rx, ry)) this.fillBody(x, body, R, rx, ry);
     }
-    x.save();
-
-    const effectiveTint = this.tint * (1 - this.morph);
-    if (effectiveTint > 0.01) {
-      const tg = x.createLinearGradient(0, ry, 0, -ry);
-      tg.addColorStop(0, rgba(this.col, 0.72 * effectiveTint));
-      tg.addColorStop(1, rgba(this.col, 0));
-      x.fillStyle = tg;
+    if (!this.drawCachedBody(x, body, R, rx, ry)) this.fillBody(x, body, R, rx, ry);
+    const wash = this.tint * (1 - this.morph);
+    if (wash > 0.01) {
+      // The state's colour rises from below like light through the stuffing.
+      x.save();
+      const g = x.createRadialGradient(0, ry * 0.9, R * 0.1, 0, ry * 0.4, R * 1.4);
+      g.addColorStop(0, rgba(this.col, 0.62 * wash));
+      g.addColorStop(1, rgba(this.col, 0));
+      x.fillStyle = g;
       x.fill(body);
+      x.restore();
     }
-
-    const sh = x.createRadialGradient(0, 0, R * 0.15, 0, 0, R * 1.25);
-    sh.addColorStop(0, "rgba(0,0,0,0)");
-    sh.addColorStop(0.6, "rgba(0,0,0,0)");
-    sh.addColorStop(1, "rgba(0,0,0,0.2)");
-    x.fillStyle = sh;
-    x.fill(body);
-
-    const hl = x.createRadialGradient(rx * 0.34, -ry * 0.46, 0, rx * 0.34, -ry * 0.46, R * 0.42);
-    hl.addColorStop(0, "rgba(255,255,255,0.55)");
-    hl.addColorStop(1, "rgba(255,255,255,0)");
-    x.fillStyle = hl;
-    x.fill(body);
-    x.restore();
   }
 
   /** The body's gradient fill with its two glows (the costly part: two shadow blurs). */
@@ -1086,7 +1195,7 @@ export class BotEngine {
     // Bitmaps a quarter step apart: breathing doesn't re-cache every frame.
     const scale = Math.max(0.25, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
     const sk = this.style;
-    const key = `${rx.toFixed(2)}|${ry.toFixed(2)}|${R.toFixed(2)}|${this.morph.toFixed(3)}|${this.shape.exp}|${this.shape.taper}|${scale}|${String(sk.bodyTop)}|${String(sk.bodyBottom)}|${sk.rimGlow}`;
+    const key = `${rx.toFixed(2)}|${ry.toFixed(2)}|${R.toFixed(2)}|${this.morph.toFixed(3)}|${this.shape.exp}|${this.shape.taper}|${scale}|${String(sk.bodyTop)}|${String(sk.bodyBottom)}|${sk.rimGlow}|${this.bow.toFixed(4)}`;
     if (this.bodyCache?.key !== key) {
       if (this.bodyKey !== key) {
         this.bodyKey = key;
@@ -1125,12 +1234,29 @@ export class BotEngine {
     return (((p + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
   }
 
+  /** Soft cheeks in the state colour (or pink for love), under the eyes. */
+  private drawGlowCheeks(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
+    const k = Math.max(this.blush, this.tint * 0.35) * (1 - this.morph);
+    if (k <= 0.02) return;
+    x.save();
+    x.clip(body);
+    const shift = Math.sin(this.yaw) * rx * 0.8;
+    const c: RGB = this.blush > this.tint * 0.35 ? [1, 0.5, 0.62] : this.col;
+    for (const sd of [-1, 1]) {
+      const px = sd * rx * 0.52 + shift;
+      const py = ry * 0.22;
+      const g = x.createRadialGradient(px, py, 0, px, py, R * 0.2);
+      g.addColorStop(0, rgba(c, 0.45 * k));
+      g.addColorStop(1, rgba(c, 0));
+      x.fillStyle = g;
+      x.fillRect(px - R * 0.2, py - R * 0.2, R * 0.4, R * 0.4);
+    }
+    x.restore();
+  }
+
   private drawEyes(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
     let shape: EyeShape = this.eyeOverride ?? this.cfg.eye;
-    // Dancing: happy eyes in the calm states.
-    if (this.isDancing && this.dancingLevel > 0.15 && !this.isMini && (this.state === "idle" || this.state === "finished")) {
-      shape = "happy";
-    }
+    if (this.isDancing && this.dancingLevel > 0.15 && !this.isMini && (this.state === "idle" || this.state === "finished")) shape = "happy";
     if (this.morph > 0.5) {
       if (this.isChewing) shape = "happy";
       else if (this.slotHTarget > 0.05 || this.slotH > 0.1) shape = "cup";
@@ -1144,145 +1270,138 @@ export class BotEngine {
     x.strokeStyle = ink;
     if (sk?.eyeGlow) {
       x.shadowColor = sk.eyeGlow;
-      x.shadowBlur = R * 0.16;
+      x.shadowBlur = R * 0.16 * this.glow;
     }
 
     const face = sk?.face;
+    const [l, r] = this.eyeCentres(rx, ry);
+    const lead = [this.eyeX.v * R, this.eyeY.v * R];
     for (const sd of [-1, 1]) {
       const eyeYaw = sd * (face?.eyeSp ?? EYE_SP) + this.yaw;
-      const eyePitch = this.eyePitch(face);
-      const cp = Math.cos(eyePitch);
+      const cp = Math.cos(this.eyePitch(face));
       if (Math.cos(eyeYaw) * cp <= 0.04) continue;
-
-      const ex = Math.sin(eyeYaw) * cp * rx;
-      const ey = -Math.sin(eyePitch) * ry + (this.morph > 0 ? ry * 0.14 * this.morph : 0);
+      const [ex, ey] = sd < 0 ? l : r;
       const fx = lerp(Math.max(0.18, Math.cos(eyeYaw)), 1, this.morph * 0.7);
       const fy = lerp(Math.max(0.18, cp), 1, this.morph * 0.7);
-      const eyeMult = this.isMini ? 1.9 : 1.0;
-      // Almond eyes get the look's full size; the other eye shapes (happy arcs,
-      // hearts, spirals…) only grow a little so they stay inside the face.
-      const big = !!sk && (shape === "pill" || shape === "wide");
-      const ew = R * EYE_W * this.es * eyeMult * (big ? face!.eyeW : Math.min(face?.eyeW ?? 1, 1.15));
-      const eh = R * EYE_H * this.es * eyeMult * (big ? face!.eyeH : Math.min(face?.eyeH ?? 1, 1.15));
+      const size = this.isMini ? 1.9 : 1;
+      const calm = shape === "pill" || shape === "wide" || (shape === "wink" && sd < 0);
+      const fw = sk && calm ? face!.eyeW : Math.min(face?.eyeW ?? 1, 1.15);
+      const fh = sk && calm ? face!.eyeH : Math.min(face?.eyeH ?? 1, 1.15);
+      const ew = R * 0.25 * this.es * size * fw * (shape === "wide" ? 1.12 : 1);
+      const eh = R * 0.27 * this.es * size * fh * (shape === "wide" ? 1.1 : 1);
 
       x.save();
-      x.translate(ex, ey);
+      x.translate(ex + lead[0], ey + lead[1]);
       x.scale(fx, fy);
-      const calm = shape === "pill" || shape === "wide";
       if (face && calm && face.eyeTilt) x.rotate(sd * face.eyeTilt);
       if (sk && calm) drawAlmondEye(x, sk, sd, ew, eh, this.open);
-      else this.drawEyeShape(x, shape, ew, eh, sd, ink);
+      else {
+        // Mood glyphs are cut dark into the glowing body, so they read at any size.
+        if (sk) { x.fillStyle = INK; x.strokeStyle = INK; }
+        this.drawGlyph(x, shape, ew, eh, sd, sk ? INK : ink);
+        x.fillStyle = ink; x.strokeStyle = ink;
+      }
       x.restore();
     }
     x.restore();
   }
 
-  private drawEyeShape(
-    x: CanvasRenderingContext2D, shape: EyeShape,
-    w: number, h: number, sd: number, ink: string,
-  ) {
+  /** Eye shapes for moods (Groovy's own set): crescents, flat lids, sparks. */
+  private drawGlyph(x: CanvasRenderingContext2D, shape: EyeShape, w: number, h: number, sd: number, ink: string) {
     const t = now();
     switch (shape) {
+      case "pill":
       case "wide":
-        this.drawEyeShape(x, "pill", w * 1.16, h * 1.12, sd, ink);
-        break;
-      case "pill": {
-        const hh = Math.max(h * this.open, w * 0.3);
-        roundRectPath(x, -w / 2, -hh / 2, w, hh, Math.min(w / 2, hh / 2));
+        capsule(x, w, Math.max(h * this.open, w * 0.28));
         x.fill();
         break;
-      }
+      case "wink":
+        if (sd < 0) { capsule(x, w, Math.max(h * this.open, w * 0.28)); x.fill(); }
+        else this.crescent(x, w, h, true);
+        break;
       case "dot":
         x.beginPath();
-        x.arc(0, 0, w * 0.45, 0, Math.PI * 2);
+        x.ellipse(0, 0, w * 0.4, w * 0.46, 0, 0, Math.PI * 2);
         x.fill();
         break;
       case "line":
-        x.rotate(-sd * 0.2);
-        roundRectPath(x, -w * 0.78, -w * 0.21, w * 1.56, w * 0.42, w * 0.21);
-        x.fill();
-        break;
-      case "flat":
-        roundRectPath(x, -w * 0.72, -w * 0.2, w * 1.44, w * 0.4, w * 0.2);
-        x.fill();
-        break;
-      case "happy":
-        x.lineWidth = w * 0.5;
-        x.lineCap = "round";
+      case "flat": {
+        // Lids flatten to a straight top edge (sloped in when annoyed).
+        const slope = shape === "line" ? sd * h * 0.12 : 0;
         x.beginPath();
-        x.arc(0, h * 0.18, w * 0.82, Math.PI * 1.12, Math.PI * 1.88);
-        x.stroke();
+        x.moveTo(-w * 0.68, -h * 0.08 - slope);
+        x.lineTo(w * 0.68, -h * 0.08 + slope);
+        x.quadraticCurveTo(w * 0.5, h * 0.34, 0, h * 0.34);
+        x.quadraticCurveTo(-w * 0.5, h * 0.34, -w * 0.68, -h * 0.08 - slope);
+        x.fill();
+        break;
+      }
+      case "happy":
+        this.crescent(x, w, h, true);
         break;
       case "closed":
-        x.lineWidth = w * 0.36;
-        x.lineCap = "round";
+        this.crescent(x, w, h, false);
+        break;
+      case "tired":
+        // Half-lidded: the lower half of the eye under a straight lid.
         x.beginPath();
-        x.arc(0, -h * 0.08, w * 0.78, Math.PI * 0.15, Math.PI * 0.85);
-        x.stroke();
+        x.moveTo(-w * 0.55, 0);
+        x.lineTo(w * 0.55, 0);
+        x.quadraticCurveTo(w * 0.45, h * 0.42, 0, h * 0.42);
+        x.quadraticCurveTo(-w * 0.45, h * 0.42, -w * 0.55, 0);
+        x.fill();
         break;
       case "spiral": {
-        x.lineWidth = w * 0.22;
+        x.lineWidth = w * 0.18;
         x.lineCap = "round";
         x.beginPath();
-        for (let a = 0; a < 4.4 * Math.PI; a += 0.2) {
-          const r = w * 0.06 + a * w * 0.058;
-          const aa = a + t * 9 * sd;
-          const px = Math.cos(aa) * r;
-          const py = Math.sin(aa) * r;
-          if (a === 0) x.moveTo(px, py);
-          else x.lineTo(px, py);
+        for (let i = 0; i <= 40; i++) {
+          const a = (i / 40) * Math.PI * 5 + t * 7 * sd;
+          const r = (i / 40) * w * 0.55;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          if (i === 0) x.moveTo(px, py); else x.lineTo(px, py);
         }
         x.stroke();
         break;
       }
       case "heart":
-        x.fillStyle = "#FF4D6D";
-        heartPath(x, w * 1.2);
-        x.fill();
-        x.fillStyle = ink;
-        break;
-      case "star":
-        x.fillStyle = "#F7B32B";
-        x.rotate(t * 1.5 * sd);
-        starPath(x, w * 1.05, w * 0.46);
-        x.fill();
-        x.fillStyle = ink;
-        break;
-      case "tired":
-        roundRectPath(x, -w / 2, -h * 0.02, w, h * 0.38, w / 2);
-        x.fill();
-        roundRectPath(x, -w * 0.62, -h * 0.1, w * 1.24, w * 0.22, w * 0.11);
-        x.fill();
-        break;
-      case "wink":
-        if (sd < 0) {
-          const hh = Math.max(h * this.open, w * 0.3);
-          roundRectPath(x, -w / 2, -hh / 2, w, hh, Math.min(w / 2, hh / 2));
-          x.fill();
-        } else {
-          x.lineWidth = w * 0.5;
-          x.lineCap = "round";
-          x.beginPath();
-          x.arc(0, h * 0.18, w * 0.82, Math.PI * 1.12, Math.PI * 1.88);
-          x.stroke();
+      case "star": {
+        // A four-point glint that turns slowly; warm for "heart".
+        x.fillStyle = shape === "heart" ? "rgb(255,120,150)" : "rgb(255,214,102)";
+        x.rotate(t * 1.2 * sd);
+        const s = w * 0.9;
+        x.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (i * Math.PI) / 4;
+          const r = i % 2 ? s * 0.32 : s;
+          x.lineTo(Math.cos(a) * r, Math.sin(a) * r);
         }
+        x.closePath();
+        x.fill();
+        x.fillStyle = ink;
         break;
+      }
       case "cup": {
-        // Flat top, rounded bottom corners (U shape) — used while the box is open
         const hh = Math.max(h * this.open, w * 0.3);
-        const cr = Math.min(w / 2, hh / 2);
         x.beginPath();
         x.moveTo(-w / 2, -hh / 2);
         x.lineTo(w / 2, -hh / 2);
-        x.lineTo(w / 2, hh / 2 - cr);
-        x.quadraticCurveTo(w / 2, hh / 2, w / 2 - cr, hh / 2);
-        x.lineTo(-w / 2 + cr, hh / 2);
-        x.quadraticCurveTo(-w / 2, hh / 2, -w / 2, hh / 2 - cr);
-        x.closePath();
+        x.bezierCurveTo(w / 2, hh * 0.7, -w / 2, hh * 0.7, -w / 2, -hh / 2);
         x.fill();
         break;
       }
     }
+  }
+
+  /** A filled crescent: smiling (up) for happy, hanging (down) for asleep. */
+  private crescent(x: CanvasRenderingContext2D, w: number, h: number, up: boolean) {
+    const s = up ? 1 : -1;
+    x.beginPath();
+    x.moveTo(-w * 0.62, h * 0.1 * s);
+    x.quadraticCurveTo(0, -h * 0.62 * s, w * 0.62, h * 0.1 * s);
+    x.quadraticCurveTo(0, -h * 0.22 * s, -w * 0.62, h * 0.1 * s);
+    x.fill();
   }
 
   /** Groovy's mouth, below the eyes, following the head; its mood follows the eyes. */
@@ -1303,257 +1422,276 @@ export class BotEngine {
     drawSkinMouth(x, this.style, R, mx, my, Math.max(0.3, Math.cos(yawM)), mood);
   }
 
-  /** Mailbox slot: dark pill cut into the box face, with rim and lip highlights. */
-  private drawMouth(x: CanvasRenderingContext2D, body: Path2D, R: number) {
+  /** The drop slot cut into the morphed box: a dark opening with a lit lip. */
+  private drawSlot(x: CanvasRenderingContext2D, body: Path2D, R: number) {
     const m = this.morph;
-    const hW = R * 1.8 * m;
-    const hH = this.slotH * R * m;
-    const hX = -hW / 2;
-    const boxTop = -R * (0.88 + 0.06 * m);
-    const hY = boxTop + R * 0.08 * m;
-
+    const w = R * 1.7 * m;
+    const h = this.slotH * R * m;
+    const top = -R * 0.8 * m;
     x.save();
     x.clip(body);
-
-    x.strokeStyle = `rgba(255,255,255,${0.55 * m})`;
-    x.lineWidth = 1;
-    x.lineCap = "round";
-    x.beginPath();
-    x.moveTo(-R * 0.9 * m, boxTop + 1);
-    x.lineTo(R * 0.9 * m, boxTop + 1);
-    x.stroke();
-
-    if (hH > 0.8) {
-      const hR = Math.min(hW / 2, hH / 2);
-      const g = x.createLinearGradient(0, hY, 0, hY + hH);
-      g.addColorStop(0, "rgb(7,8,10)");
-      g.addColorStop(1, "rgb(16,19,26)");
-      roundRectPath(x, hX, hY, hW, hH, hR);
+    if (h > 0.8) {
+      const g = x.createLinearGradient(0, top, 0, top + h);
+      g.addColorStop(0, "rgb(4,8,6)");
+      g.addColorStop(1, "rgb(14,24,20)");
+      rrect(x, -w / 2, top, w, h, h / 2);
       x.fillStyle = g;
       x.fill();
-      if (hH > 4) {
-        const lipR = Math.min(hR, (hW - 2) / 2);
-        x.strokeStyle = `rgba(255,255,255,${0.28 * m})`;
-        x.beginPath();
-        x.moveTo(hX + lipR, hY + hH - 0.5);
-        x.lineTo(hX + hW - lipR, hY + hH - 0.5);
-        x.stroke();
-      }
+      x.strokeStyle = `rgba(200,255,220,${0.3 * m})`;
+      x.lineWidth = 1;
+      x.beginPath();
+      x.moveTo(-w / 2 + h / 2, top + h - 0.5);
+      x.lineTo(w / 2 - h / 2, top + h - 0.5);
+      x.stroke();
     }
     x.restore();
   }
 
-  /** Hands sit behind the body — drawn before it, in world coordinates. */
-  /** Where the hands want to be for the current state or emote: body-relative
-   *  positions (x in units of rx, y in units of ry, + is down) and a tilt. */
-  private handTargets(t: number): Array<{ x: number; y: number; r: number }> {
-    const rest = (sd: number) => ({ x: sd * 1.08, y: 0.7 + Math.sin(t * 1.6 + sd) * 0.03, r: 0 });
-    const g = t < this.gestureUntil ? this.gesture : null;
-    const up = (sd: number, bounce: number) => ({
-      x: sd * (1.12 + Math.sin(t * 9 + sd) * 0.04),
-      y: -0.35 + Math.sin(t * 10 + (sd > 0 ? 0 : 1.5)) * bounce,
-      r: -sd * 0.4,
-    });
-    if (g === "love") return [-1, 1].map((sd) => ({ x: sd * 0.98, y: 0.12, r: sd * 0.3 }));
-    if (g === "proud" || g === "happy") return [up(-1, 0.08), up(1, 0.08)];
-    if (g === "surprised") return [-1, 1].map((sd) => ({ x: sd * 1.25, y: -0.15, r: -sd * 0.6 }));
-    if (g === "annoyed") return [-1, 1].map((sd) => ({ x: sd * 1.02, y: 0.45, r: sd * 0.5 }));
-    if (g === "yawn") return [{ x: -1.08, y: 0.7, r: 0 }, { x: 1.0, y: 0.05, r: -0.3 }];
-    switch (this.state) {
-      case "finished":
-        return [up(-1, 0.1), up(1, 0.1)];
-      case "approval":
-      case "question":
-        // One hand up, like asking for attention.
-        return [rest(-1), { x: 1.15, y: -0.45 + Math.sin(t * 4) * 0.04, r: -0.35 + Math.sin(t * 8) * 0.12 }];
-      case "working":
-        // Typing: little alternating taps.
-        return [-1, 1].map((sd) => ({ x: sd * 1.0, y: 0.72 + Math.max(0, Math.sin(t * 14 + (sd > 0 ? Math.PI : 0))) * -0.12, r: 0 }));
-      case "thinking":
-      case "searching":
-        return [rest(-1), { x: 1.02, y: 0.4 + Math.sin(t * 5) * 0.03, r: -0.5 }];
-      case "error":
-        return [-1, 1].map((sd) => ({ x: sd * 1.12, y: -0.05 + Math.sin(t * 12 + sd) * 0.05, r: -sd * 0.5 }));
-      case "dizzy":
-        return [-1, 1].map((sd) => ({ x: sd * 1.1 + Math.cos(t * 7) * 0.08, y: 0.5 + Math.sin(t * 7) * 0.1, r: Math.sin(t * 7) * 0.4 }));
-      case "sleeping":
-        return [-1, 1].map((sd) => ({ x: sd * 1.0, y: 0.8, r: 0 }));
-      default:
-        return [rest(-1), rest(1)];
+  /** The halo: follows the breath, beats twice every 2 s in approval, and breaks into orbiting dots while thinking. */
+  private drawHalo(x: CanvasRenderingContext2D, R: number, rx: number, ry: number, cx: number, cy: number, b: number, t: number) {
+    if (this.morph > 0.3 || R <= 14) return;
+    const sk = this.style;
+    let k = 0.1 * b;
+    if (this.state === "approval") {
+      const ph = t % 2;
+      k += 0.35 * (envelope(ph, 0.08, 0, 0.25) + envelope(ph - 0.32, 0.08, 0, 0.3));
     }
+    k *= 1 - this.morph;
+    if (this.state === "thinking") {
+      const a0 = (t / 4.2) * Math.PI * 2;
+      x.save();
+      x.fillStyle = sk.rimGlow;
+      for (let i = 0; i < 3; i++) {
+        const a = a0 + (i * Math.PI * 2) / 3;
+        x.globalAlpha = 0.55 + 0.35 * Math.sin(a);
+        x.beginPath();
+        x.arc(cx + Math.cos(a) * rx * 0.75, cy - ry * 1.18 + Math.sin(a) * ry * 0.16, R * 0.05, 0, Math.PI * 2);
+        x.fill();
+      }
+      x.restore();
+    }
+    if (k <= 0.01) return;
+    x.save();
+    x.globalAlpha = Math.min(1, k);
+    const g = x.createRadialGradient(cx, cy, Math.min(rx, ry) * 0.8, cx, cy, Math.max(rx, ry) * 1.35);
+    g.addColorStop(0, sk.rimGlow);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g;
+    x.fillRect(cx - rx * 1.4, cy - ry * 1.4, rx * 2.8, ry * 2.8);
+    x.restore();
   }
 
-  private drawHandsBehind(
-    x: CanvasRenderingContext2D,
-    R: number, rx: number, ry: number, cx: number, cy: number,
-  ) {
-    if (this.isMini) return;
-    if (R <= 14) return; // meaningless at compact/peek sizes
-    // Groovy keeps his hands out all the time; the greeting still pops them bigger.
+  /** Where the wisps want to be (x in rx, y in ry, + is down; r radians). */
+  private wispTargets(t: number, o: Offsets): Array<{ x: number; y: number; r: number }> {
+    const flare = o.flare;
+    const drop = clamp(o.drop, -0.5, 1);
+    const pose = (sd: number) => ({ x: sd * (1.08 + 0.14 * flare), y: 0.7 - 0.35 * flare + 0.12 * drop, r: -sd * 0.5 * flare + sd * 0.35 * drop });
+    const w = [pose(-1), pose(1)];
+    switch (this.state) {
+      case "working": {
+        // Knitting: two small alternating circles, body still.
+        for (const [i, sd] of [[0, -1], [1, 1]] as const) {
+          const a = t * 7 + (sd > 0 ? Math.PI : 0);
+          w[i].x = sd * 0.98 + Math.cos(a) * 0.06;
+          w[i].y = 0.55 + Math.sin(a) * 0.06;
+          w[i].r = sd * 0.25;
+        }
+        break;
+      }
+      case "searching": {
+        // The element leans and scans in an arc; the eyes follow it.
+        const s = Math.sin((t / 2.4) * Math.PI * 2);
+        w[1].x = 1.15; w[1].y = 0.15 - Math.abs(s) * 0.15; w[1].r = -0.6 + s * 0.5;
+        break;
+      }
+      case "question":
+        // The wisp curls into a hook.
+        w[1].x = 1.12; w[1].y = -0.2; w[1].r = -1.1;
+        break;
+      case "approval":
+        w[0].x = -1.0; w[1].x = 1.0; w[0].y = w[1].y = 0.5;
+        break;
+      case "error":
+        w[0].y = w[1].y = 0.85; w[0].r = -0.3; w[1].r = 0.3;
+        break;
+      case "sleeping":
+        w[0].y = w[1].y = 0.82; w[0].r = -0.5; w[1].r = 0.5;
+        break;
+      case "finished":
+        w[0].y = w[1].y = 0.25; w[0].r = 0.5; w[1].r = -0.5;
+        break;
+    }
+    if (o.flickL) w[0].r += 0.7 * o.flickL;
+    if (o.flickR) w[1].r -= 0.7 * o.flickR;
+    if (o.wave) {
+      // Two beats: up and out, then a curl back.
+      w[1].x = lerp(w[1].x, 1.25, o.wave);
+      w[1].y = lerp(w[1].y, -0.35, o.wave);
+    }
+    return w;
+  }
+
+  /** The two element wisps, behind the body, each with its element's idle life. */
+  private drawWisps(x: CanvasRenderingContext2D, R: number, rx: number, ry: number, cx: number, cy: number, t: number) {
+    if (this.isMini || R <= 14) return;
     const shown = Math.max(this.hands, 0.85) * (1 - this.morph);
     if (shown <= 0.01) return;
-
+    const kind = this.element;
+    const size = 0.3 * ry * shown * 1.25 * WISP_SCALE;
     const n = now();
-    const dt = this.handT ? Math.min(0.1, n - this.handT) : 1;
-    this.handT = n;
-    const bodyH = 2 * ry;
-    const hew = 0.3 * ry * shown;
-    const heh = 0.26 * ry * shown;
-    const hwB = rx * this.sx;
-    const hhB = ry * this.sy;
-    const isWaving = n >= this.waveStart && this.waveStart > 0 && n < this.waveUntil;
-    const targets = this.handTargets(n);
-    const k = 1 - Math.exp(-dt * 14);
-    const sk = this.style;
-
-    [-1, 1].forEach((sd, i) => {
-      const hp = this.handPos[i];
-      hp.x += (targets[i].x - hp.x) * k;
-      hp.y += (targets[i].y - hp.y) * k;
-      hp.r += (targets[i].r - hp.r) * k;
-      let localX = hp.x * hwB;
-      let localY = hp.y * hhB;
-      let handRot = hp.r;
-
-      if (sd > 0 && isWaving) {
+    const waving = this.waveStart > 0 && n >= this.waveStart && n < this.waveUntil;
+    // While he tumbles, the wisps trail a quarter-turn behind.
+    const prog = this.rollTotal > 0 ? clamp(this.roll / this.rollTotal, 0, 1) : 0;
+    const trail = (this.rigidRoll ? 0 : this.roll) - (this.roll !== 0 ? (Math.PI / 2) * Math.sin(Math.PI * prog) : 0);
+    const beat = this.dancingLevel > 0 ? Math.abs(Math.sin((n * DANCE_BPM / 60) * Math.PI)) * this.dancingLevel : 0;
+    for (let i = 0; i < 2; i++) {
+      const sd = i ? 1 : -1;
+      const w = this.wisp[i];
+      let lx = w.x.v * rx * this.sx;
+      let ly = w.y.v * ry * this.sy - beat * ry * 0.12;
+      let rot = w.r.v + sd * 0.35;
+      // The element idles while the body rests.
+      let sy = 1;
+      if (kind === "leaf") rot += Math.sin((t / 5.5) * Math.PI * 2 + sd) * 0.105;
+      else if (kind === "flame") { sy = 1 + flicker(t / 0.9, sd) * 0.08; rot += flicker(t * 0.7, sd + 3) * 0.05; }
+      else ly += Math.sin((t / 2.4) * Math.PI * 2 + sd) * ry * 0.03;
+      if (waving && sd > 0) {
         const wt = n - this.waveStart;
-        const rise = Math.min(1, wt / 0.18);
-        const riseEased = 1 - Math.pow(1 - rise, 3);
-        const oscX = Math.cos(13 * wt) * 0.06 * bodyH;
-        const oscY = -Math.sin(13 * wt) * 0.14 * bodyH;
-        const waveX = hwB * 1.1 + oscX;
-        const waveY = -hhB * 0.15 + oscY;
-        localX += (waveX - localX) * riseEased;
-        localY += (waveY - localY) * riseEased;
-        handRot = (-0.5 + Math.sin(13 * wt) * 0.35) * riseEased;
+        rot += Math.sin(wt * Math.PI * 2 * 1.6) * 0.45 - 0.4;
       }
-
-      const cosT = Math.cos(this.tilt);
-      const sinT = Math.sin(this.tilt);
-      const worldX = cx + cosT * localX - sinT * localY;
-      const worldY = cy + sinT * localX + cosT * localY;
-
+      const a = this.tilt + trail;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const wx = cx + ca * lx - sa * ly;
+      const wy = cy + sa * lx + ca * ly;
       x.save();
-      x.translate(worldX, worldY);
-      if (handRot !== 0) x.rotate(handRot);
-      x.rotate(sd * 0.35 + Math.sin(n * 6 + sd) * 0.08);
-      drawWisp(x, sk.nature ?? "leaf", Math.max(hew, heh) * 1.25 * WISP_SCALE, R, this.bodyColor);
+      x.translate(wx, wy);
+      x.rotate(rot);
+      x.scale(1, sy);
+      drawWisp(x, kind, size, R, this.bodyColor);
       x.restore();
-    });
+    }
   }
 
-  private drawBadge(x: CanvasRenderingContext2D, badge: Badge, R: number, cx: number, cy: number) {
-    const bs = this.badgeS * (this.isMini ? 1.25 : 1);
-    const bx = cx - R * 0.72 * this.sx;
-    const by = cy - R * 0.72 * this.sy;
-    const t = now();
-
+  /** The state tag: hangs from his outline on a short string and swings. */
+  private drawTag(x: CanvasRenderingContext2D, badge: Badge, R: number, rx: number, ry: number, cx: number, cy: number) {
+    const s = this.badgeS;
+    const ax = cx + rx * 0.62 * this.sx;
+    const ay = cy - ry * 0.86 * this.sy;
+    const len = R * 0.3;
+    const a = this.badgeSwing.v + 0.35;
     x.save();
-    x.translate(bx, by);
-    x.scale(bs, bs);
-    const col = rgba(badge.color);
-
-    if (badge.kind === "dots") {
-      if (this.isMini) {
-        const phase = (t * 2.4) % 1;
-        const dotR = R * 0.22 * (1 + 0.25 * Math.sin(phase * Math.PI * 2));
-        x.fillStyle = "#000";
-        x.beginPath();
-        x.arc(0, 0, R * 0.2, 0, Math.PI * 2);
-        x.fill();
-        x.fillStyle = col;
-        x.beginPath();
-        x.arc(0, 0, dotR, 0, Math.PI * 2);
-        x.fill();
-      } else {
-        const pw = R * 0.72;
-        const ph = R * 0.36;
-        roundRectPath(x, -pw / 2, -ph / 2, pw, ph, ph / 2);
-        x.fillStyle = col;
-        x.fill();
-        for (let i = 0; i < 3; i++) {
-          const phase = (((t * 2.4 - i * 0.22) % 1) + 1) % 1;
-          const dotR = R * 0.055 * (1 + 0.4 * Math.max(0, Math.sin(phase * Math.PI * 2)));
-          x.fillStyle = "#fff";
+    x.translate(ax, ay);
+    x.rotate(-a);
+    x.strokeStyle = rgba(badge.color, 0.7 * s);
+    x.lineWidth = Math.max(1, R * 0.025);
+    x.beginPath();
+    x.moveTo(0, 0);
+    x.lineTo(0, -len * s);
+    x.stroke();
+    x.translate(0, -len * s);
+    x.rotate(a);
+    x.scale(s, s);
+    const w = R * 0.34, h = R * 0.3;
+    x.fillStyle = rgba(badge.color, 1);
+    rrect(x, -w / 2, -h, w, h, R * 0.09);
+    x.fill();
+    x.fillStyle = "rgba(255,255,255,0.95)";
+    const gy = -h / 2;
+    const tt = now();
+    switch (badge.kind) {
+      case "dots":
+        for (let i = -1; i <= 1; i++) {
+          const k = 0.5 + 0.5 * Math.sin(tt * 6 - i * 0.9);
+          x.globalAlpha = 0.45 + 0.55 * k;
           x.beginPath();
-          x.arc((i - 1) * R * 0.18, 0, dotR, 0, Math.PI * 2);
+          x.arc(i * w * 0.24, gy - k * h * 0.06, R * 0.03, 0, Math.PI * 2);
           x.fill();
         }
-      }
-    } else if (badge.kind === "bang" || badge.kind === "question") {
-      x.fillStyle = "#000";
-      x.beginPath();
-      x.arc(0, 0, R * 0.3, 0, Math.PI * 2);
-      x.fill();
-      x.fillStyle = col;
-      x.beginPath();
-      x.arc(0, 0, R * 0.23, 0, Math.PI * 2);
-      x.fill();
-      if (!this.isMini) {
-        x.fillStyle = "#fff";
-        x.font = `900 ${R * 0.32}px ${FONT}`;
+        x.globalAlpha = 1;
+        break;
+      case "bang":
+      case "question":
+        x.font = `800 ${h * 0.78}px ${FONT}`;
         x.textAlign = "center";
         x.textBaseline = "middle";
-        x.fillText(badge.kind === "bang" ? "!" : "?", 0, R * 0.02);
-      }
-    } else {
-      x.fillStyle = "#000";
-      x.beginPath();
-      x.arc(0, 0, R * 0.2, 0, Math.PI * 2);
-      x.fill();
-      x.fillStyle = col;
-      x.beginPath();
-      x.arc(0, 0, R * 0.135, 0, Math.PI * 2);
-      x.fill();
+        x.fillText(badge.kind === "bang" ? "!" : "?", 0, gy + h * 0.04);
+        break;
+      case "dot":
+        x.beginPath();
+        x.arc(0, gy, R * 0.055, 0, Math.PI * 2);
+        x.fill();
+        break;
     }
     x.restore();
   }
 
+  /** Particles drawn from the look's own elements: leaf flecks, embers, bubbles. */
   private drawParticles(x: CanvasRenderingContext2D, R: number, cx: number, cy: number) {
+    if (!this.particles.length) return;
+    const u = R * 1.3;
     for (const p of this.particles) {
       if (p.age <= 0) continue;
       const k = p.age / p.life;
-      const a = k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8;
-      const px = cx + (p.x + p.vx * p.age) * R * 1.3;
-      const py = cy + (p.y + p.vy * p.age) * R * 1.3;
-      const sz = R * p.size * (1 + k * 0.4);
-
+      const fade = k < 0.15 ? k / 0.15 : 1 - easeOut((k - 0.15) / 0.85);
+      let px = p.x;
+      if (p.spiral) px += Math.sin(p.age * 4 + p.seed) * 0.32 * (1 - k * 0.6);
+      const X = cx + px * u;
+      const Y = cy + p.y * u;
+      const sz = R * p.size;
       x.save();
-      x.translate(px, py);
-      x.globalAlpha = Math.min(1, Math.max(0, a));
-      switch (p.type) {
-        case "heart":
-          x.rotate(Math.sin(p.age * 6) * 0.3);
-          x.fillStyle = "#FF4D6D";
-          heartPath(x, sz);
-          x.fill();
+      x.translate(X, Y);
+      x.globalAlpha = clamp(fade, 0, 1);
+      switch (p.kind) {
+        case "fleck":
+          x.rotate(Math.sin(p.age * 3 + p.seed) * 0.9);
+          x.fillStyle = "rgb(110,220,140)";
+          x.fill(wispPath("leaf", sz));
           break;
-        case "star":
-          x.rotate(p.rot + p.age * 2);
-          x.fillStyle = "#F7B32B";
-          starPath(x, sz, sz * 0.45);
-          x.fill();
+        case "ember": {
+          const g = x.createRadialGradient(0, 0, 0, 0, 0, sz * 1.6);
+          g.addColorStop(0, "rgba(255,240,180,1)");
+          g.addColorStop(0.4, "rgba(255,150,50,0.9)");
+          g.addColorStop(1, "rgba(255,90,20,0)");
+          x.fillStyle = g;
+          x.fillRect(-sz * 1.6, -sz * 1.6, sz * 3.2, sz * 3.2);
           break;
-        case "spark":
-          x.rotate(p.rot);
-          x.fillStyle = "#fff";
-          starPath(x, sz * 0.8, sz * 0.18);
-          x.fill();
-          break;
-        case "sweat":
-          x.fillStyle = "#7CC7FF";
+        }
+        case "bubble":
+          x.strokeStyle = "rgba(170,225,255,0.95)";
+          x.lineWidth = Math.max(1, sz * 0.14);
           x.beginPath();
-          x.moveTo(0, -sz);
-          x.quadraticCurveTo(sz * 0.8, sz * 0.2, 0, sz * 0.6);
-          x.quadraticCurveTo(-sz * 0.8, sz * 0.2, 0, -sz);
+          x.arc(0, 0, sz * 0.6, 0, Math.PI * 2);
+          x.stroke();
+          x.fillStyle = "rgba(255,255,255,0.8)";
+          x.beginPath();
+          x.arc(-sz * 0.22, -sz * 0.22, sz * 0.14, 0, Math.PI * 2);
           x.fill();
+          break;
+        case "drop":
+          x.fillStyle = "rgb(140,205,255)";
+          x.fill(wispPath("water", sz * 0.8));
           break;
         case "z":
-          x.fillStyle = "rgb(209,219,235)";
-          x.font = `700 ${sz * 1.9}px ${FONT}`;
+          x.rotate(-0.2 + Math.sin(p.age * 2) * 0.15);
+          x.fillStyle = "rgb(200,225,215)";
+          x.font = `700 ${sz * (1.6 + k)}px ${FONT}`;
           x.textAlign = "center";
           x.textBaseline = "middle";
           x.fillText("z", 0, 0);
+          break;
+        case "ring": {
+          x.strokeStyle = this.isMini ? "rgba(255,255,255,0.8)" : this.style.rimGlow;
+          x.lineWidth = Math.max(1, R * 0.04 * (1 - k));
+          x.beginPath();
+          x.ellipse(0, 0, R * (1.05 + 0.6 * easeOut(k)), R * (0.95 + 0.5 * easeOut(k)), 0, 0, Math.PI * 2);
+          x.stroke();
+          break;
+        }
+        case "glint":
+          x.fillStyle = "#fff";
+          x.beginPath();
+          x.arc(0, 0, sz * 0.3, 0, Math.PI * 2);
+          x.fill();
           break;
       }
       x.restore();

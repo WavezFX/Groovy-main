@@ -11,7 +11,7 @@ import {
   IDLE_SPOTIFY, SPOTIFY_ID, Spotify, currentArtwork, desktopDances, formatTime, isAd, islandDances,
   musicPlaying, spotifyPosition, volumeLevel, withPlaying,
 } from "../src/core/spotify.ts";
-import { BotEngine, danceTransform, stepDanceLevel } from "../src/mochi/engine.ts";
+import { BotEngine, DANCE_BPM, danceTransform, stepDanceLevel } from "../src/mochi/engine.ts";
 import { registerSpotifyHandlers } from "../src/island/spotify.ts";
 import { buildSpotifyCard } from "../src/views/spotify.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
@@ -115,25 +115,22 @@ test("Groovy on the desktop dances by the compact island's rules", () => {
 
 // ── The dance itself (BotEngine.applyDance) ───────────────────────────────────
 
-test("the dance fades in over 0.3 s and out over 0.5 s", () => {
-  assert.equal(stepDanceLevel(0, true, 0.15), 0.5);
+test("the dance fades in over 0.25 s and out over 0.45 s", () => {
+  assert.equal(stepDanceLevel(0, true, 0.125), 0.5);
   assert.equal(stepDanceLevel(0.9, true, 0.15), 1);
-  assert.equal(stepDanceLevel(1, false, 0.25), 0.5);
+  assert.equal(stepDanceLevel(1, false, 0.225), 0.5);
   assert.equal(stepDanceLevel(0.1, false, 0.25), 0);
   assert.equal(stepDanceLevel(1, true, 0.05), 1);
 });
 
-test("112 BPM: still on the beat, highest half a beat later, nothing at level 0", () => {
+test("the sway: still at the beat, rocked over half a beat later, a puff just after each beat, nothing at level 0", () => {
   const R = 10;
   const onBeat = danceTransform(0, 1, R);
-  assert.equal(onBeat.dx, 0);
-  assert.equal(onBeat.dy, -0);
-  assert.equal(onBeat.rotate, 0);
-  assert.ok(Math.abs(onBeat.sx - 1.045) < 1e-9 && Math.abs(onBeat.sy - 0.94) < 1e-9, "squashed on landing");
-  const top = danceTransform(0.5 * 60 / 112, 1, R);
-  assert.ok(Math.abs(top.dy + 2) < 1e-9, "hops 0.2 R");
-  assert.ok(Math.abs(top.dx - 0.8) < 1e-9 && Math.abs(top.rotate - 0.1) < 1e-9);
-  assert.ok(Math.abs(top.sx - 1) < 1e-9 && Math.abs(top.sy - 1) < 1e-9);
+  assert.ok(Math.abs(onBeat.dx) < 1e-9 && Math.abs(onBeat.rotate) < 1e-9 && Math.abs(onBeat.dy) < 1e-9);
+  assert.ok(onBeat.sy > 1.029 && onBeat.sx > 1.019, "puffs on the beat");
+  const half = danceTransform(0.5 * 60 / DANCE_BPM, 1, R);
+  assert.ok(Math.abs(half.dx - 0.5) < 1e-9 && Math.abs(half.rotate - 0.07) < 1e-9, "rocked to the side");
+  assert.ok(half.dy < 0 && half.sy < onBeat.sy, "lifts from the base, puff fading");
   const off = danceTransform(0.3, 0, R);
   assert.deepEqual([off.dx, off.dy, off.rotate, off.sx, off.sy].map((v) => Math.abs(v)), [0, 0, 0, 1, 1]);
 });

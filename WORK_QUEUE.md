@@ -209,7 +209,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 7. Checks
 
 ### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
-- [ ] 1. Original motion for the character; growth art unchanged (Opus). **Steps 1 and 2 done** (`docs/plan/CHARACTER_MOTION.md`: three quarters of the engine is still the original's; Groovy's own motion designed). **The rewrite waits for the owner to approve that design.**
+- [ ] 1. Original motion for the character; growth art unchanged (Opus). Design approved by the owner 20 Nov 2026. **Engine rewritten** (`engine.ts`, new `motion.ts`; `docs/plan/CHARACTER_MOTION.md` §4 has no ported row; contact sheet in `docs/plan/motion-sheet/`). Left: `core/anim.ts` easing table, `minibots.ts`, flight in `desktop-logic.ts`; P1/P10 numbers from CI.
 - [ ] 2. Remove every mention of other projects and their characters (CI name check)
 - [ ] 3. The copied-code ledger (`docs/plan/REWRITE_LEDGER.md`)
 - [ ] 4. Asset inventory (`docs/ASSETS.md`)
