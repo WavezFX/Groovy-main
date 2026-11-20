@@ -138,6 +138,8 @@ export interface AssistantPrefs {
   switchOnLimit: boolean;
   /** Who does each job ("writing", "commands"); missing or "auto": the Auto order. */
   jobBrains: Record<string, string>;
+  /** The router plugin's program (docs/ROUTER_PLUGIN.md); not enabled yet, always "". */
+  routerPlugin: string;
 }
 
 export const DEFAULT_ASSISTANT: AssistantPrefs = {
@@ -163,6 +165,7 @@ export const DEFAULT_ASSISTANT: AssistantPrefs = {
   brainOrder: [],
   switchOnLimit: true,
   jobBrains: {},
+  routerPlugin: "",
 };
 
 export interface Settings {

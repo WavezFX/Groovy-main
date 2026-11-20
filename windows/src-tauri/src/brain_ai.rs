@@ -22,6 +22,9 @@ use tauri::{AppHandle, Manager};
 
 use crate::assistant::AssistantPrefs;
 use crate::settings::Settings;
+// The order and the switching live in brains/switch.rs (round 4D item 2).
+pub use crate::brains::switch::{Job, Who};
+use crate::brains::switch::{current_order, current_order_for};
 
 /// Claude's fast model for the background features, when Claude is chosen.
 pub const CLAUDE_FAST: &str = "claude-haiku-4-5";
@@ -41,145 +44,27 @@ fn settings(app: &AppHandle) -> Settings {
     app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().clone()).unwrap_or_default()
 }
 
-/// Someone who can answer the background features.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Who {
-    /// The local model (llama.cpp, Ollama, LM Studio, a custom server).
-    Local,
-    /// Claude with the user's key.
-    Claude,
-    /// An OpenAI-compatible cloud provider with the user's key: google, openai, openrouter.
-    Cloud(&'static str),
-    /// A subscription through its command-line tool: claude-code, codex.
-    Cli(&'static str),
-}
-
-const CLOUDS: [&str; 3] = ["google", "openai", "openrouter"];
-
-fn cloud_id(id: &str) -> Option<&'static str> {
-    CLOUDS.iter().copied().find(|c| *c == id)
-}
-
-fn cli_id(id: &str) -> Option<&'static str> {
-    ["claude-code", "codex"].into_iter().find(|c| *c == id)
-}
-
-/// Who answers first, and who stands in. Cloud and subscription first, local
-/// last and only when local AI was chosen (FIXES_ROUND1 item 2). Pure:
-/// `has_key(provider)` and `has_cli(tool)` say what this PC has.
-pub fn order(prefs: &AssistantPrefs, chat_provider: &str, has_key: impl Fn(&str) -> bool, has_cli: impl Fn(&str) -> bool) -> Vec<Who> {
-    let local_ok = prefs.local_allowed();
-    let with_local = |mut v: Vec<Who>| {
-        if local_ok && prefs.ai_mode == "hybrid" && !v.contains(&Who::Local) {
-            v.push(Who::Local);
-        }
-        v
-    };
-    if prefs.ai_mode == "local" {
-        return if local_ok { vec![Who::Local] } else { vec![] };
-    }
-    match prefs.brain.as_str() {
-        "local" => return if local_ok { vec![Who::Local] } else { vec![] },
-        "claude" => return with_local(vec![Who::Claude]),
-        b if cloud_id(b).is_some() => return with_local(vec![Who::Cloud(cloud_id(b).unwrap())]),
-        b if cli_id(b).is_some() => return with_local(vec![Who::Cli(cli_id(b).unwrap())]),
-        _ => {}
-    }
-    // "auto": the chat's own cloud provider, then every key, then a subscription, then local.
-    let mut v: Vec<Who> = Vec::new();
-    let mut push = |w: Who| {
-        if !v.contains(&w) {
-            v.push(w);
-        }
-    };
-    if chat_provider == "anthropic" && has_key("anthropic") {
-        push(Who::Claude);
-    } else if let Some(c) = cloud_id(chat_provider).filter(|c| has_key(c)) {
-        push(Who::Cloud(c));
-    }
-    if has_key("anthropic") {
-        push(Who::Claude);
-    }
-    for c in CLOUDS {
-        if has_key(c) {
-            push(Who::Cloud(c));
-        }
-    }
-    if prefs.ai_setup == "subscription" {
-        for c in ["claude-code", "codex"] {
-            if has_cli(c) {
-                push(Who::Cli(cli_id(c).unwrap()));
-            }
-        }
-    }
-    if local_ok && prefs.ai_mode != "online" {
-        push(Who::Local);
-    }
-    v
-}
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Clis {
     claude_code: bool,
     codex: bool,
+    gemini: bool,
 }
 
 /// Which subscription CLIs this PC has, for the AI setup.
 #[tauri::command]
 pub async fn ai_clis() -> Clis {
-    tauri::async_runtime::spawn_blocking(|| Clis { claude_code: crate::brains::cli::path("claude-code").is_some(), codex: crate::brains::cli::path("codex").is_some() })
+    tauri::async_runtime::spawn_blocking(|| Clis {
+        claude_code: crate::brains::cli::path("claude-code").is_some(),
+        codex: crate::brains::cli::path("codex").is_some(),
+        gemini: crate::brains::cli::path("gemini-cli").is_some(),
+    })
         .await
-        .unwrap_or(Clis { claude_code: false, codex: false })
+        .unwrap_or(Clis { claude_code: false, codex: false, gemini: false })
 }
 
-fn current_order(s: &Settings) -> Vec<Who> {
-    current_order_for(s, "")
-}
-
-/// The order for one job ("writing", "commands"): the job's own brain first
-/// when one was chosen, then the Auto order.
-fn current_order_for(s: &Settings, job: &str) -> Vec<Who> {
-    let prefs = s.assistant.clone().sanitised();
-    let ready = |id: &str| crate::brains::get(id).is_some_and(|b| b.auth().ready());
-    let mut v = order(&prefs, &s.chat_provider, ready, ready);
-    if !local_configured(s, &prefs) {
-        v.retain(|w| *w != Who::Local);
-    }
-    arrange(v, &prefs.brain_order, prefs.job_brains.get(job).map(String::as_str))
-}
-
-impl Who {
-    /// The id the Brains page uses for it.
-    pub fn id(&self) -> &'static str {
-        match self {
-            Who::Local => "local",
-            Who::Claude => "anthropic",
-            Who::Cloud(c) | Who::Cli(c) => c,
-        }
-    }
-}
-
-/// The user's Auto order (Brains), then the job's own brain first. Brains not
-/// in the order keep their place after those that are; this PC stays last.
-pub fn arrange(mut v: Vec<Who>, user_order: &[String], job_first: Option<&str>) -> Vec<Who> {
-    if !user_order.is_empty() {
-        let rank = |w: &Who| user_order.iter().position(|id| id == w.id()).unwrap_or(user_order.len());
-        v.sort_by_key(|w| (*w == Who::Local, rank(w)));
-    }
-    if let Some(id) = job_first.filter(|id| *id != "auto") {
-        if let Some(i) = v.iter().position(|w| w.id() == id) {
-            let w = v.remove(i);
-            v.insert(0, w);
-        }
-    }
-    v
-}
-
-/// After a failed brain: whether the next one may answer.
-fn may_switch(prefs: &AssistantPrefs, err: &str) -> bool {
-    prefs.switch_on_limit || !is_limit(err)
-}
 
 /// Who answers first right now, by name: "Gemini", "Claude", "Local"…
 pub fn active_name() -> Option<&'static str> {
@@ -191,6 +76,7 @@ pub fn active_name() -> Option<&'static str> {
         Who::Cloud("openai") => "OpenAI",
         Who::Cloud(_) => "OpenRouter",
         Who::Cli("codex") => "Codex",
+        Who::Cli("gemini-cli") => "Gemini",
         Who::Cli(_) => "Claude Code",
     })
 }
@@ -236,7 +122,7 @@ pub fn first_cloud_url(app: &AppHandle) -> Option<String> {
     })
 }
 
-fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
+pub(crate) fn local_configured(s: &Settings, prefs: &AssistantPrefs) -> bool {
     let built_in = || crate::models::server_exe().is_some() && !crate::models::discover(&crate::models::models_dir(), 2048).is_empty();
     match prefs.local_provider.as_str() {
         // Ollama or LM Studio seen answering, Ollama on the PC, or the built-in model ready.
@@ -346,120 +232,21 @@ pub(crate) async fn openai_turn(ctx: crate::brains::Ctx<'_>, cloud: Option<&str>
     }
 }
 
-/// The brain behind a place in the order. This PC's is whichever server
-/// answers (Ollama, LM Studio, the built-in model, a custom address).
-async fn brain_of(who: Who, s: &Settings, prefs: &AssistantPrefs) -> Option<&'static dyn crate::brains::Brain> {
-    match who {
-        Who::Local => crate::brains::get(&crate::local_chat::resolve(s, &prefs.local_provider).await),
-        other => crate::brains::get(other.id()),
-    }
-}
-
-/// Asks each brain in `order` until one answers; the next one is tried only
-/// when the failure is one switching may fix (`may_switch`).
-async fn ask(app: &AppHandle, s: &Settings, prefs: &AssistantPrefs, order: Vec<Who>, req: crate::brains::Request<'_>) -> Result<Value, String> {
-    let ctx = crate::brains::Ctx { app, settings: s, prefs };
-    let mut last = crate::i18n::t("No AI is set up yet: choose one in Groovy → Assistant → Groovy's AI.");
-    let mut tally = CloudTally::default();
-    for who in order {
-        let r = match brain_of(who, s, prefs).await {
-            Some(brain) => brain.turn(ctx, req).await,
-            None => Err(crate::brains::BrainError::of("No local model configured.")),
-        };
-        match r {
-            Ok(v) => {
-                tally.answered(app, who);
-                return Ok(v);
-            }
-            Err(e) => {
-                crate::log::line(format!("brain ({who:?}): {e}"));
-                tally.failed(who, e.fault);
-                let stop = !may_switch(prefs, &e.message);
-                last = e.message;
-                if stop {
-                    break;
-                }
-            }
-        }
-    }
-    tally.done(app);
-    Err(last)
-}
-
-/// Brains that can use tools first, in the order they were in (a request with tools).
-pub fn tools_first(order: Vec<Who>) -> Vec<Who> {
-    let can = |w: &Who| !matches!(w, Who::Local) && crate::brains::get(w.id()).is_some_and(|b| b.caps().tools) || matches!(w, Who::Local);
-    let (mut with, without): (Vec<Who>, Vec<Who>) = order.into_iter().partition(can);
-    with.extend(without);
-    with
-}
 
 /// One question, one answer, no history (Flow's clean-up, the notes' summary).
 pub async fn complete(system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
     let app = app()?;
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
     let messages = [json!({ "role": "user", "content": user })];
     let req = crate::brains::Request { system, messages: &messages, tools: &[], max_tokens, timeout };
-    ask(app, &s, &prefs, current_order_for(&s, "writing"), req).await.map(|reply| crate::brains::text_of(&reply))
+    crate::brains::switch::run(app, &settings(app), Job::WRITING, req).await.map(|(reply, _)| crate::brains::text_of(&reply))
 }
 
 /// One turn of a conversation with tools, in and out in Anthropic's Messages
 /// shape: `{ content: [blocks], stop_reason }`.
 pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
     let app = app()?;
-    let s = settings(app);
-    let prefs = s.assistant.clone().sanitised();
     let req = crate::brains::Request { system, messages, tools, max_tokens: 1024, timeout: Duration::from_secs(60) };
-    ask(app, &s, &prefs, tools_first(current_order_for(&s, "commands")), req).await
-}
-
-/// How the cloud brains fared on one request (round 3D item 10): all
-/// unreachable means the network is down, all out of their limit means the
-/// cloud is used up; either makes Groovy Offline until the cloud answers again.
-#[derive(Default)]
-struct CloudTally {
-    tried: u32,
-    network: u32,
-    limits: u32,
-}
-
-impl CloudTally {
-    fn failed(&mut self, who: Who, fault: crate::brains::Fault) {
-        if matches!(who, Who::Claude | Who::Cloud(_)) {
-            self.tried += 1;
-            match fault {
-                crate::brains::Fault::Network => self.network += 1,
-                crate::brains::Fault::Limit => self.limits += 1,
-                _ => {}
-            }
-        }
-    }
-
-    fn answered(&self, app: &AppHandle, who: Who) {
-        if matches!(who, Who::Claude | Who::Cloud(_)) && crate::resources::state::state() == crate::resources::state::RunState::Offline {
-            crate::resources::state::fire(app, crate::resources::state::Event::NetworkUp);
-        }
-    }
-
-    fn done(&self, app: &AppHandle) {
-        if let Some(e) = self.verdict() {
-            crate::resources::state::fire(app, e);
-        }
-    }
-
-    fn verdict(&self) -> Option<crate::resources::state::Event> {
-        use crate::resources::state::Event;
-        if self.tried == 0 {
-            None
-        } else if self.network == self.tried {
-            Some(Event::NetworkDown)
-        } else if self.limits == self.tried {
-            Some(Event::CloudExhausted)
-        } else {
-            None
-        }
-    }
+    crate::brains::switch::run(app, &settings(app), Job::COMMANDS, req).await.map(|(reply, _)| reply)
 }
 
 // ── Format conversion (pure) ──────────────────────────────────────────────────
@@ -570,45 +357,8 @@ pub fn from_openai(v: &Value) -> Value {
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_cloud_unreachable_or_used_up_means_offline() {
-        use crate::resources::state::Event;
-        let mut t = CloudTally::default();
-        t.failed(Who::Claude, crate::brains::BrainError::of("Network error: error sending request").fault);
-        t.failed(Who::Cloud("google"), crate::brains::BrainError::of("Network error: dns error").fault);
-        t.failed(Who::Local, crate::brains::BrainError::of("Couldn't start llama-server").fault);
-        assert_eq!(t.verdict(), Some(Event::NetworkDown), "every cloud brain unreachable");
-        let mut t = CloudTally::default();
-        t.failed(Who::Claude, crate::brains::BrainError::of("429 rate limit").fault);
-        t.failed(Who::Cloud("openai"), crate::brains::BrainError::of("quota exceeded").fault);
-        assert_eq!(t.verdict(), Some(Event::CloudExhausted));
-        let mut t = CloudTally::default();
-        t.failed(Who::Claude, crate::brains::BrainError::of("429 rate limit").fault);
-        t.failed(Who::Cloud("openai"), crate::brains::BrainError::of("Network error: timed out").fault);
-        assert_eq!(t.verdict(), None, "mixed: nothing to conclude");
-        assert_eq!(CloudTally::default().verdict(), None, "no cloud brain tried");
-    }
 
-    #[test]
-    fn the_users_order_and_a_jobs_brain_rearrange_but_this_pc_stays_last() {
-        let base = vec![Who::Claude, Who::Cloud("google"), Who::Cloud("openai"), Who::Local];
-        let order = vec!["openai".to_string(), "anthropic".into(), "local".into(), "google".into()];
-        assert_eq!(arrange(base.clone(), &order, None), vec![Who::Cloud("openai"), Who::Claude, Who::Cloud("google"), Who::Local]);
-        assert_eq!(arrange(base.clone(), &[], None), base, "no order: as built");
-        assert_eq!(arrange(base.clone(), &[], Some("google"))[0], Who::Cloud("google"), "the job's brain first");
-        assert_eq!(arrange(base.clone(), &[], Some("auto")), base);
-        assert_eq!(arrange(base.clone(), &[], Some("codex")), base, "a brain this PC hasn't is ignored");
-    }
 
-    #[test]
-    fn a_limit_stops_the_switching_only_when_asked() {
-        let mut p = AssistantPrefs::default();
-        assert!(p.switch_on_limit, "on by default");
-        assert!(may_switch(&p, "HTTP 429: quota"));
-        p.switch_on_limit = false;
-        assert!(!may_switch(&p, "HTTP 429: quota"));
-        assert!(may_switch(&p, "connection refused"), "other failures still fall through");
-    }
 
     #[test]
     fn a_limit_is_told_apart_from_other_failures() {
@@ -658,31 +408,6 @@ mod tests {
         assert_eq!(plain["stop_reason"], "end_turn");
     }
 
-    #[test]
-    fn cloud_first_local_last_and_only_when_chosen() {
-        let p = |mode: &str, brain: &str, setup: &str| AssistantPrefs { ai_mode: mode.into(), brain: brain.into(), ai_setup: setup.into(), ..Default::default() };
-        let keys = |list: &'static [&'static str]| move |k: &str| list.contains(&k);
-        let none = |_: &str| false;
-        // No keys, nothing chosen: nobody — not a silent local model.
-        assert!(order(&p("hybrid", "auto", ""), "ollama", none, none).is_empty());
-        // A Gemini key: Gemini.
-        assert_eq!(order(&p("hybrid", "auto", "cloud"), "ollama", keys(&["google"]), none), vec![Who::Cloud("google")]);
-        // The chat's provider first, then the other keys, then local when chosen.
-        assert_eq!(
-            order(&p("hybrid", "auto", "local"), "openai", keys(&["google", "openai"]), none),
-            vec![Who::Cloud("openai"), Who::Cloud("google"), Who::Local]
-        );
-        // A subscription only when chosen at setup, and only if its CLI is installed.
-        let cli = |t: &str| t == "codex";
-        assert_eq!(order(&p("hybrid", "auto", "subscription"), "ollama", none, cli), vec![Who::Cli("codex")]);
-        assert!(order(&p("hybrid", "auto", "cloud"), "ollama", none, cli).is_empty());
-        // Explicit choices.
-        assert_eq!(order(&p("online", "claude", ""), "x", none, none), vec![Who::Claude]);
-        assert_eq!(order(&p("hybrid", "claude", "local"), "x", none, none), vec![Who::Claude, Who::Local]);
-        assert_eq!(order(&p("hybrid", "local", ""), "x", none, none), vec![], "local brain needs local AI chosen");
-        assert_eq!(order(&p("local", "claude", ""), "x", keys(&["anthropic"]), none), vec![Who::Local], "local-only never reaches the cloud");
-        assert_eq!(order(&p("online", "auto", "local"), "x", none, none), vec![], "online-only never starts a local model");
-    }
 
     #[test]
     fn thinking_is_removed() {

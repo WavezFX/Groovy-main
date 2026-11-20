@@ -642,7 +642,11 @@ export const Bridge = {
   // ── Local models (models.rs) ──────────────────────────────────────────────
   modelsStatus: () => call<ModelsStatus>("models_status"),
   /** Which subscription CLIs are installed (brain_ai.rs). */
-  aiClis: () => call<{ claudeCode: boolean; codex: boolean }>("ai_clis"),
+  aiClis: () => call<{ claudeCode: boolean; codex: boolean; gemini: boolean }>("ai_clis"),
+  /** The subscriptions (round 4D item 3): installed, signed in, and the official install command. */
+  brainAccounts: () => call<{ id: string; installed: boolean; signedIn: boolean; install: string | null }[]>("brain_accounts"),
+  /** Opens the tool's own sign-in, which opens the browser itself. */
+  brainSignIn: (id: string) => call<void>("brain_sign_in", { id }),
   modelsInstallRuntime: (id: string) => callOrThrow<string>("models_install_runtime", { id }),
   modelsDownload: (id: string) => callOrThrow<string>("models_download", { id }),
   modelsCancelDownload: () => call<void>("models_cancel_download"),

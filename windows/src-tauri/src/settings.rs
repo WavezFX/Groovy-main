@@ -793,7 +793,8 @@ mod tests {
     "performanceProfile": "lightweight",
     "brainOrder": ["google", "anthropic"],
     "switchOnLimit": false,
-    "jobBrains": { "writing": "google" }
+    "jobBrains": { "writing": "google" },
+    "routerPlugin": ""
   },
   "wardrobe": {
     "appearance": { "body": "", "body2": "", "glow": "#ff00aa", "eyes": "", "layers": ["shades"] },

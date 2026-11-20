@@ -46,6 +46,16 @@ export const BRAIN_STRINGS = {
   claudeSubDetail: N_("Used through Claude Code"),
   chatgptSub: N_("ChatGPT subscription"),
   chatgptSubDetail: N_("Used through Codex"),
+  geminiSub: N_("Google account (Gemini)"),
+  geminiSubDetail: N_("Used through the Gemini command-line tool"),
+  signIn: N_("Sign in"),
+  signedIn: N_("Signed in"),
+  keySet: N_("Key set"),
+  signInDetail: N_("Opens the tool's own sign-in in your browser. No password goes through Groovy."),
+  useKeyInstead: N_("Use an API key instead"),
+  installWith: N_("Install it with this command, then sign in:"),
+  copy: N_("Copy"),
+  copied: N_("Copied"),
   notInstalled: N_("Not installed"),
   ollamaDetail: N_("Found on this PC · unloads after 5 min idle"),
   ollamaMissing: N_("Not on this PC yet"),
@@ -71,7 +81,22 @@ const CLOUDS: Brain[] = [
   { id: "openrouter", name: "OpenRouter", kind: BRAIN_STRINGS.cloud },
   { id: "claude-code", name: "Claude Code", kind: BRAIN_STRINGS.subscription },
   { id: "codex", name: "Codex", kind: BRAIN_STRINGS.subscription },
+  { id: "gemini-cli", name: "Gemini (sign-in)", kind: BRAIN_STRINGS.subscription },
 ];
+
+/** Each subscription, and the API key that is its "instead" (round 4D item 3). */
+const ACCOUNTS: { id: string; letter: string; tint: string; name: string; detail: string; key: string; keyName: string }[] = [
+  { id: "claude-code", letter: "C", tint: "#E8A27C", name: BRAIN_STRINGS.claudeSub, detail: BRAIN_STRINGS.claudeSubDetail, key: "anthropic", keyName: "Claude" },
+  { id: "codex", letter: "X", tint: "#C9D1CD", name: BRAIN_STRINGS.chatgptSub, detail: BRAIN_STRINGS.chatgptSubDetail, key: "openai", keyName: "OpenAI" },
+  { id: "gemini-cli", letter: "G", tint: "#8AB4F8", name: BRAIN_STRINGS.geminiSub, detail: BRAIN_STRINGS.geminiSubDetail, key: "google", keyName: "Gemini" },
+];
+
+/** The pill of a brain reachable by sign-in or key: sign-in first. */
+export function accountPill(signedIn: boolean, keySet: boolean): { status: Status; text: string } {
+  if (signedIn) return { status: "connected", text: BRAIN_STRINGS.signedIn };
+  if (keySet) return { status: "connected", text: BRAIN_STRINGS.keySet };
+  return { status: "unset", text: BRAIN_STRINGS.notSetUp };
+}
 
 const KEY_OF: Record<string, string> = {
   anthropic: "anthropic-api-key",
@@ -143,12 +168,51 @@ export async function brainsPage(settings: Settings, save: () => Promise<void> |
   async function redraw() {
     clear(list);
     if (tab === "subscriptions") {
-      const clis = (await Bridge.aiClis()) ?? { claudeCode: false, codex: false };
-      const more = () => document.querySelector(".hub-b-more")?.scrollIntoView({ behavior: "smooth" });
-      list.append(
-        brainRow("C", "#E8A27C", t(BRAIN_STRINGS.claudeSub), clis.claudeCode ? t(BRAIN_STRINGS.claudeSubDetail) : t(BRAIN_STRINGS.notInstalled), clis.claudeCode ? "connected" : "unset", clis.claudeCode ? t("Connected") : t(BRAIN_STRINGS.notSetUp), btn(clis.claudeCode ? t(BRAIN_STRINGS.manage) : t(BRAIN_STRINGS.setUp), more)),
-        brainRow("X", "#C9D1CD", t(BRAIN_STRINGS.chatgptSub), clis.codex ? t(BRAIN_STRINGS.chatgptSubDetail) : t(BRAIN_STRINGS.notInstalled), clis.codex ? "connected" : "unset", clis.codex ? t("Connected") : t(BRAIN_STRINGS.notSetUp), btn(clis.codex ? t(BRAIN_STRINGS.manage) : t(BRAIN_STRINGS.setUp), more)),
-      );
+      // Sign in first; the API key is the collapsed alternative (round 4D item 3).
+      const accounts = (await Bridge.brainAccounts()) ?? [];
+      for (const acc of ACCOUNTS) {
+        const found = accounts.find((x) => x.id === acc.id);
+        const installed = !!found?.installed;
+        const signedIn = !!found?.signedIn;
+        const hasKey = !!keys[KEY_OF[acc.key]];
+        const pill = installed ? accountPill(signedIn, hasKey) : hasKey ? accountPill(false, true) : { status: "unset" as Status, text: BRAIN_STRINGS.notInstalled };
+        const panel = h("div", { class: "hub-b-panel", hidden: true });
+        if (installed) {
+          panel.append(h("span", { class: "hub-b-detail", text: t(BRAIN_STRINGS.signInDetail) }));
+        } else if (found?.install) {
+          const command = found.install;
+          const copy = btn(t(BRAIN_STRINGS.copy), () => {
+            void navigator.clipboard.writeText(command).then(() => (copy.textContent = t(BRAIN_STRINGS.copied)));
+          });
+          panel.append(h("span", { class: "hub-b-detail", text: t(BRAIN_STRINGS.installWith) }), h("div", { class: "hub-b-row" }, h("code", { text: command }), copy));
+        }
+        const keyPanel = h("div", { class: "hub-b-key", hidden: true },
+          secretField({
+            label: acc.keyName,
+            present: hasKey,
+            placeholder: t("API key"),
+            save: async (value) => {
+              await Bridge.secretSet(KEY_OF[acc.key], value);
+              keys[KEY_OF[acc.key]] = true;
+              changed();
+              void redraw();
+            },
+          }),
+        );
+        const keyToggle = h("button", { class: "hub-link", type: "button", "aria-expanded": "false", text: t(BRAIN_STRINGS.useKeyInstead) });
+        keyToggle.addEventListener("click", () => {
+          keyPanel.hidden = !keyPanel.hidden;
+          keyToggle.setAttribute("aria-expanded", String(!keyPanel.hidden));
+        });
+        panel.append(keyToggle, keyPanel);
+        const action = installed && !signedIn
+          ? btn(t(BRAIN_STRINGS.signIn), () => {
+            panel.hidden = false;
+            void Bridge.brainSignIn(acc.id);
+          }, "primary")
+          : btn(installed ? t(BRAIN_STRINGS.manage) : t(BRAIN_STRINGS.setUp), () => (panel.hidden = !panel.hidden));
+        list.append(brainRow(acc.letter, acc.tint, t(acc.name), installed ? t(acc.detail) : t(BRAIN_STRINGS.notInstalled), pill.status, t(pill.text), action, panel));
+      }
     } else if (tab === "local") {
       const ollama = await Bridge.ollamaStatus();
       const more = () => document.querySelector(".hub-b-more")?.scrollIntoView({ behavior: "smooth" });
@@ -182,8 +246,8 @@ export async function brainsPage(settings: Settings, save: () => Promise<void> |
   // ── Right: the Auto order, switching, and who does each job ──
   const orderCard = h("div", { class: "hub-card hub-b-order" });
   // A subscription is in the order once its command-line tool is on this PC.
-  const clis = (await Bridge.aiClis()) ?? { claudeCode: false, codex: false };
-  const shown = (id: string) => (id === "claude-code" ? clis.claudeCode : id === "codex" ? clis.codex : true);
+  const clis = (await Bridge.aiClis()) ?? { claudeCode: false, codex: false, gemini: false };
+  const shown = (id: string) => (id === "claude-code" ? clis.claudeCode : id === "codex" ? clis.codex : id === "gemini-cli" ? clis.gemini : true);
   const drawOrder = () => {
     clear(orderCard);
     const order = autoOrder(a().brainOrder ?? []);

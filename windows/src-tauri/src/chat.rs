@@ -341,6 +341,20 @@ pub async fn send(
         && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
 
+    // The chat's own cloud brain isn't set up (no key): a signed-in
+    // subscription or another ready brain answers, in the switcher's order.
+    if needs_switcher(settings, &route.primary) {
+        let mut messages = chat.inner.lock().unwrap().plain.clone();
+        messages.push(json!({ "role": "user", "content": plain }));
+        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages).await {
+            let (text, used) = answer?;
+            let turn = chat.begin(used);
+            chat.commit(&turn, json!({ "role": "user", "content": plain }), json!({ "role": "assistant", "content": text }), &plain, &text);
+            save_turn(chat, &prefs, &plain, &text, used);
+            return Ok(ChatReply::text(text));
+        }
+    }
+
     let first = send_to(app, chat, settings, &prefs, &route.primary, query.clone(), context.clone()).await;
     let (mut reply, used, note) = match (first, route.fallback) {
         (Ok(r), _) => (r, route.primary.clone(), route.note.map(crate::i18n::t)),
@@ -401,6 +415,14 @@ pub async fn complete(
     let limit_reached = prefs.daily_online_limit > 0
         && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
+    if needs_switcher(settings, &route.primary) {
+        let messages = [json!({ "role": "user", "content": prompt })];
+        if let Some(answer) = by_switcher(app, settings, system, &messages).await {
+            let (text, _) = answer?;
+            on_delta(text.clone());
+            return Ok(text);
+        }
+    }
     let mut tried = vec![route.primary.clone()];
     if let Some(f) = route.fallback.clone() {
         tried.push(f);
@@ -463,6 +485,26 @@ async fn complete_with(
     };
     on_delta(reply.text.clone());
     Ok(reply.text)
+}
+
+/// The chat's own brain is an online one that isn't set up (no key), so the
+/// switcher answers instead (round 4D item 2): a signed-in subscription first.
+fn needs_switcher(settings: &Settings, primary: &str) -> bool {
+    primary != assistant::NONE
+        && !assistant::is_local(primary, &settings.custom_url)
+        && crate::brains::get(primary).is_some_and(|b| !b.caps().local && !b.auth().ready())
+}
+
+/// One chat turn through the switcher; None when no brain is ready at all, so
+/// the chat's own brain gives its usual "set me up" message.
+async fn by_switcher(app: &AppHandle, settings: &Settings, system: &str, messages: &[Value]) -> Option<Result<(String, &'static str), String>> {
+    use crate::brains::switch::{order_for, run, Job, Kind, Weight};
+    let job = Job { kind: Kind::Chat, weight: Weight::Heavy };
+    if order_for(settings, job, false).is_empty() {
+        return None;
+    }
+    let req = crate::brains::Request { system, messages, tools: &[], max_tokens: 2048, timeout: std::time::Duration::from_secs(120) };
+    Some(run(app, settings, job, req).await.map(|(reply, id)| (crate::brains::text_of(&reply), id)))
 }
 
 fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, provider: &str) {
