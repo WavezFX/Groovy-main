@@ -13,9 +13,15 @@
 #      against the island's idle just before (done when within 5 MB, one renderer).
 # It reports; it fails only if Groovy dies or Settings never opens.
 
+#
+# -ExtraArgs (round 4F item 4): runs the same with extra WebView2 arguments,
+# through WebView2's own environment switch, e.g. "--renderer-process-limit=1"
+# (the island and Settings share one renderer); the shipped exe is unchanged.
+
 param(
   [Parameter(Mandatory = $true)][string]$Exe,
-  [int]$BudgetMB = 150
+  [int]$BudgetMB = 150,
+  [string]$ExtraArgs = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -70,6 +76,10 @@ Remove-Item $log -Force -ErrorAction SilentlyContinue
 $metrics = [ordered]@{}
 $failed = $null
 $other = $null
+if ($ExtraArgs) {
+  $base = (Get-Content (Join-Path $PSScriptRoot "..\src-tauri\tauri.conf.json") -Raw | ConvertFrom-Json).app.windows[0].additionalBrowserArgs
+  $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "$base $ExtraArgs"
+}
 $env:GROOVY_SLEEP_TEST = "1"
 $env:GROOVY_HUB_IDLE_SECS = "45"
 try {
@@ -133,19 +143,20 @@ try {
     if ($proc.HasExited) { throw "Groovy exited during the Settings idle test (code $($proc.ExitCode))" }
   }
 } finally {
-  Remove-Item Env:GROOVY_SLEEP_TEST, Env:GROOVY_HUB_IDLE_SECS -ErrorAction SilentlyContinue
+  Remove-Item Env:GROOVY_SLEEP_TEST, Env:GROOVY_HUB_IDLE_SECS, Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue
   if ($other) { Stop-Process -Id $other.Id -Force -ErrorAction SilentlyContinue }
   Get-Process -Name notepad -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Stop-Groovy
 }
 
-Write-Host "`nSettings idle test:"
+$with = if ($ExtraArgs) { " with $ExtraArgs" } else { "" }
+Write-Host "`nSettings idle test${with}:"
 foreach ($k in $metrics.Keys) { Write-Host "  $k = $($metrics[$k])" }
 if (Test-Path $log) {
   Select-String -Path $log -Pattern "island:|control centre|settings closed|desktop Groovy closed" | ForEach-Object { Write-Host "  $($_.Line)" }
 }
 if ($env:GITHUB_STEP_SUMMARY) {
-  "### Idle with Settings open (round 4A item 3)" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+  "### Idle with Settings open (round 4A item 3)$with" | Out-File -Append $env:GITHUB_STEP_SUMMARY
   foreach ($k in $metrics.Keys) { "- ${k}: **$($metrics[$k])**" | Out-File -Append $env:GITHUB_STEP_SUMMARY }
   if ($failed) { "- ❌ $failed" | Out-File -Append $env:GITHUB_STEP_SUMMARY }
 }

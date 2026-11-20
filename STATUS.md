@@ -456,3 +456,9 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 - **Changed:** the wardrobe's cached pictures (`mochi/sprites.ts`, up to 64 canvases, pre-drawn at start for every look) are dropped when the island asks to sleep; they are drawn again when the wardrobe next opens.
 - **Not done (needs the numbers first):** art for looks not worn and stage 6 behind `import()`; panel, recap and GitHub views loaded on first open; tile icons as files instead of base64 `data:` URLs (`tile_icons.rs`, needs a CSP change); splitting `style.css` (84 KB). Each is worth doing only if the build's heap and file list show over 5 MB to gain.
 - **Status: built, not yet measured.**
+
+### Item 4: one renderer instead of several
+- **Step 1 (measure):** `settings-idle-test.ps1` already logs every process and the renderer count with Settings open; it now takes `-ExtraArgs`.
+- **Step 2 (cheapest first), measured not shipped:** a second Windows build step runs the Settings idle test with `--renderer-process-limit=1` through WebView2's environment switch, beside the plain one; the flag matrix (item 6) gives the island-only number and the frame p95 for the same flag. The flag goes into `BROWSER_ARGS` and `tauri.conf.json` only if Settings open drops and P10 holds with both on one main thread.
+- **Not done:** step 3 (Settings as a view in the island's own window) and the desktop Groovy measurement (no CI switch sends him out). Only if step 2 leaves Settings open over 150 MB.
+- **Status: built, not yet measured.**

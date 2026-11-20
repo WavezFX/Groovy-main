@@ -189,6 +189,13 @@ jobs:
         shell: pwsh
         run: ./scripts/settings-idle-test.ps1 -Exe release/test/groovy.exe
 
+      # Round 4F item 4, step 2: the same with one renderer for every window
+      # (--renderer-process-limit=1, through WebView2's environment switch).
+      - name: Idle with Settings open, one renderer for all windows (measured, not shipped)
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/settings-idle-test.ps1 -Exe release/test/groovy.exe -ExtraArgs "--renderer-process-limit=1"
+
       - name: Upload the sleep screenshots
         if: always()
         uses: actions/upload-artifact@v7
