@@ -135,6 +135,15 @@ pub struct Prefs {
     /// The one-time notice about `speech_mode` is still to be shown.
     #[serde(default)]
     pub speech_mode_notice: bool,
+    /// Where his voice is made (round 4B item 3): "local" (the light voice,
+    /// or Kokoro if downloaded and chosen, then Windows' own voice; the
+    /// default) or "cloud" (Fish Audio or ElevenLabs with the user's key, the
+    /// local voices after). Missing from an older file means "" until `settle_voice_mode`.
+    #[serde(default)]
+    pub voice_mode: String,
+    /// The one-time notice about `voice_mode` is still to be shown.
+    #[serde(default)]
+    pub voice_mode_notice: bool,
     /// Learn names and models from what is corrected within a minute of a dictation.
     pub learn_words: bool,
 }
@@ -158,6 +167,11 @@ impl Prefs {
 pub const SPEECH_LOCAL: &str = "local";
 /// A cloud speech service first when it has a key, this PC after.
 pub const SPEECH_CLOUD_FIRST: &str = "cloud-first";
+
+/// His voice is made on this PC only; no request goes to a voice service.
+pub const VOICE_LOCAL: &str = "local";
+/// Fish Audio or ElevenLabs with the user's key first, this PC after.
+pub const VOICE_CLOUD: &str = "cloud";
 
 impl Prefs {
     /// Once, for prefs from before round 4B item 2 (no `speech_mode` yet): an
@@ -183,6 +197,26 @@ impl Prefs {
             self.speech_mode = before.speech_mode.clone();
         }
         self.cloud_speech = self.speech_mode == SPEECH_CLOUD_FIRST;
+    }
+
+    /// Once, for prefs from before round 4B item 3 (no `voice_mode` yet): an
+    /// install with a cloud voice set up (Fish Audio picked with its key and a
+    /// voice, or ElevenLabs answering with its key) keeps "cloud"; everyone
+    /// else is "local". True when it changed.
+    pub fn settle_voice_mode(&mut self, has_fish_key: bool, has_eleven_key: bool) -> bool {
+        if self.voice_mode == VOICE_LOCAL || self.voice_mode == VOICE_CLOUD {
+            return false;
+        }
+        let fish = has_fish_key && !self.fish_voice.trim().is_empty() && self.voice_pick == "fish";
+        let eleven = has_eleven_key && self.voice_output == "elevenlabs";
+        self.voice_mode = if fish || eleven { VOICE_CLOUD } else { VOICE_LOCAL }.into();
+        self.voice_mode_notice = true;
+        true
+    }
+
+    /// A cloud voice (Fish Audio, ElevenLabs) may be asked at all; keys are checked by the caller.
+    pub fn cloud_voice(&self) -> bool {
+        self.voice_mode == VOICE_CLOUD
     }
 
     /// Cloud speech may be asked at all (keys are checked by the caller).
@@ -226,6 +260,8 @@ impl Default for Prefs {
             cloud_speech: false,
             speech_mode: SPEECH_LOCAL.into(),
             speech_mode_notice: false,
+            voice_mode: VOICE_LOCAL.into(),
+            voice_mode_notice: false,
             learn_words: true,
         }
     }
@@ -316,6 +352,11 @@ impl Store {
         }
         // A brand-new install gets "local" from Default; only an older file is settled here.
         if store.prefs.speech_mode.is_empty() && store.prefs.settle_speech_mode(!crate::speech::cloud::available().is_empty()) {
+            store.save_prefs();
+        }
+        if store.prefs.voice_mode.is_empty()
+            && store.prefs.settle_voice_mode(crate::secrets::present(crate::speech::tts::FISH_KEY), crate::secrets::present("elevenlabs-api-key"))
+        {
             store.save_prefs();
         }
         store
@@ -544,5 +585,27 @@ mod tests {
         after.cloud_speech = false;
         after.follow_speech_switch(&before);
         assert_eq!(after.speech_mode, SPEECH_LOCAL);
+    }
+
+    #[test]
+    fn his_voice_is_local_by_default_and_older_cloud_voices_stay() {
+        let fresh = Prefs::default();
+        assert_eq!(fresh.voice_mode, VOICE_LOCAL);
+        assert!(!fresh.cloud_voice());
+        let old = |json: &str| -> Prefs { serde_json::from_str(json).unwrap() };
+        let mut fish = old(r#"{"voicePick": "fish", "fishVoice": "abc"}"#);
+        assert_eq!(fish.voice_mode, "");
+        assert!(fish.settle_voice_mode(true, false));
+        assert!(fish.cloud_voice() && fish.voice_mode_notice);
+        assert!(!fish.settle_voice_mode(false, false), "only once");
+        let mut no_key = old(r#"{"voicePick": "fish", "fishVoice": "abc"}"#);
+        no_key.settle_voice_mode(false, false);
+        assert!(!no_key.cloud_voice());
+        let mut eleven = old(r#"{"voiceOutput": "elevenlabs"}"#);
+        eleven.settle_voice_mode(false, true);
+        assert!(eleven.cloud_voice());
+        let mut plain = old(r#"{"voicePick": "system"}"#);
+        plain.settle_voice_mode(true, true);
+        assert!(!plain.cloud_voice());
     }
 }

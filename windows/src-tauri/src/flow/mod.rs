@@ -135,21 +135,36 @@ pub fn setup(app: &AppHandle) {
 /// Round 4B item 2: once, after an older install was moved to a speech mode,
 /// the island says where speech now becomes text.
 fn speech_mode_notice(app: &AppHandle, flow: &Arc<Flow>) {
-    let cloud = {
+    let (speech, voice) = {
         let mut store = flow.store.lock().unwrap();
-        if !store.prefs.speech_mode_notice {
+        let p = &store.prefs;
+        let speech = p.speech_mode_notice.then(|| p.cloud_speech_first());
+        let voice = p.voice_mode_notice.then(|| p.cloud_voice());
+        if speech.is_none() && voice.is_none() {
             return;
         }
         store.prefs.speech_mode_notice = false;
+        store.prefs.voice_mode_notice = false;
         store.save_prefs();
-        store.prefs.cloud_speech_first()
+        (speech, voice)
     };
-    let text = if cloud {
-        t("Speech still goes to your cloud speech service first. You can keep it on this PC in Settings.")
-    } else {
-        t("Speech now turns into text on this PC. Cloud speech is an option in Settings.")
-    };
-    live::announce(app, "mic", "#3B9EFF", text, None, 10);
+    if let Some(cloud) = speech {
+        let text = if cloud {
+            t("Speech still goes to your cloud speech service first. You can keep it on this PC in Settings.")
+        } else {
+            t("Speech now turns into text on this PC. Cloud speech is an option in Settings.")
+        };
+        live::announce(app, "mic", "#3B9EFF", text, None, 10);
+    }
+    // Round 4B item 3: the same once for his voice.
+    if let Some(cloud) = voice {
+        let text = if cloud {
+            t("Groovy still speaks with your cloud voice. His voice on this PC is an option in Settings.")
+        } else {
+            t("Groovy now speaks with his light voice on this PC. Cloud voices are an option in Settings.")
+        };
+        live::announce(app, "mic", "#3B9EFF", text, None, 10);
+    }
 }
 
 /// Round 3D item 7: someone who had Parakeet on the PC (local speech set up)

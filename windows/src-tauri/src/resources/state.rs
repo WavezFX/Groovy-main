@@ -290,7 +290,8 @@ fn warm_targets(app: &AppHandle) -> Vec<reqwest::Url> {
     if let Some(u) = crate::brain_ai::first_cloud_url(app) {
         add(&u);
     }
-    if crate::secrets::present(crate::speech::tts::FISH_KEY) {
+    let cloud_voice = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_voice());
+    if cloud_voice && crate::secrets::present(crate::speech::tts::FISH_KEY) {
         add(crate::speech::tts::FISH_URL);
     }
     out

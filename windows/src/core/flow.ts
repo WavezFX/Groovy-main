@@ -63,6 +63,8 @@ export interface FlowPrefs {
   cloudSpeech: boolean;
   /** Where speech becomes text (round 4B item 2): this PC only (default), or a cloud service first. Kept in step with cloudSpeech by Rust. */
   speechMode?: "local" | "cloud-first";
+  /** Where his voice is made (round 4B item 3): this PC (default: light voice, Kokoro if chosen, then Windows' voice) or a cloud voice with the user's key. */
+  voiceMode?: "local" | "cloud";
   /** Learn names and models from corrections made within a minute. */
   learnWords: boolean;
 }

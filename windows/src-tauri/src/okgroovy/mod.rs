@@ -517,7 +517,9 @@ fn speak(app: &AppHandle, text: &str) {
     let (output, gender) = crate::flow::get(app)
         .map(|f| {
             let p = &f.store.lock().unwrap().prefs;
-            (p.voice_output.clone(), p.voice_gender.clone())
+            // Round 4B item 3: ElevenLabs only in the cloud voice mode; else Windows' own voice.
+            let output = if p.voice_output == "elevenlabs" && !p.cloud_voice() { "system".to_string() } else { p.voice_output.clone() };
+            (output, p.voice_gender.clone())
         })
         .unwrap_or_else(|| ("system".into(), "female".into()));
     if output == "off" {

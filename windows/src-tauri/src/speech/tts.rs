@@ -195,15 +195,23 @@ struct Prefs {
     speed: f32,
     /// The offline voice: "light", "kokoro" or "auto".
     offline: String,
+    /// A cloud voice may be asked (round 4B item 3); false: this PC only.
+    cloud: bool,
+}
+
+/// Fish Audio gets this sentence: only in the cloud voice mode, with its key
+/// and a voice, not resting, and not passed over for the offline voice.
+fn fish_turn(p: &Prefs, has_key: bool, resting: bool) -> bool {
+    p.cloud && has_key && !p.voice.is_empty() && !resting && p.pick != "kokoro" && p.pick != "system"
 }
 
 fn prefs(app: &AppHandle) -> Prefs {
     crate::flow::get(app)
         .map(|f| {
             let p = &f.store.lock().unwrap().prefs;
-            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone(), pick: p.voice_pick.clone(), speed: clamp_speed(p.voice_speed), offline: p.offline_voice.clone() }
+            Prefs { voice: p.fish_voice.trim().to_string(), model: p.fish_model.clone(), gender: p.voice_gender.clone(), pick: p.voice_pick.clone(), speed: clamp_speed(p.voice_speed), offline: p.offline_voice.clone(), cloud: p.cloud_voice() }
         })
-        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into(), pick: "fish".into(), speed: 1.0, offline: "auto".into() })
+        .unwrap_or(Prefs { voice: String::new(), model: FISH_DEFAULT_MODEL.into(), gender: "female".into(), pick: "fish".into(), speed: 1.0, offline: "auto".into(), cloud: false })
 }
 
 /// A speed the voices accept: 0.5–2.0, 1.0 for anything else.
@@ -245,8 +253,9 @@ pub fn synthesize(app: &AppHandle, text: &str) -> Option<Audio> {
         return None;
     }
     let resting = fish_state().lock().unwrap().rest_until.is_some_and(|t| Instant::now() < t);
-    let fish_first = p.pick != "kokoro";
-    if let (Some(key), false, false, true) = (crate::secrets::get(FISH_KEY), p.voice.is_empty(), resting, fish_first) {
+    // Round 4B item 3: in "local" no request goes to a voice service; the key isn't even read.
+    let key = if fish_turn(&p, true, resting) { crate::secrets::get(FISH_KEY) } else { None };
+    if let Some(key) = key {
         match fish(&key, &p.voice, &p.model, text, p.speed) {
             Ok(bytes) => {
                 record_usage(text.chars().count() as u64);
@@ -775,7 +784,7 @@ pub struct TtsStatus {
 pub fn tts_status(app: AppHandle) -> TtsStatus {
     let p = prefs(&app);
     let key = crate::secrets::get(FISH_KEY).is_some();
-    let fish_ready = key && !p.voice.is_empty();
+    let fish_ready = key && !p.voice.is_empty() && p.cloud;
     let resting = fish_state().lock().unwrap().rest_until.is_some_and(|t| Instant::now() < t);
     let kokoro = voice_state(Offline::Kokoro);
     let light = voice_state(Offline::Light);
@@ -803,6 +812,24 @@ pub fn tts_status(app: AppHandle) -> TtsStatus {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn in_local_mode_no_voice_request_is_built_even_with_a_key() {
+        let p = |cloud: bool, pick: &str| super::Prefs {
+            voice: "abc".into(),
+            model: super::FISH_DEFAULT_MODEL.into(),
+            gender: "female".into(),
+            pick: pick.into(),
+            speed: 1.0,
+            offline: "auto".into(),
+            cloud,
+        };
+        assert!(!super::fish_turn(&p(false, "fish"), true, false), "local: Fish Audio never asked");
+        assert!(super::fish_turn(&p(true, "fish"), true, false));
+        assert!(!super::fish_turn(&p(true, "fish"), true, true), "resting");
+        assert!(!super::fish_turn(&p(true, "kokoro"), true, false));
+        assert!(!super::fish_turn(&p(true, "fish"), false, false), "no key");
+    }
+
     use super::*;
 
     #[test]

@@ -248,20 +248,20 @@ export async function speakingPage(page: HTMLElement, ctx: HubContext) {
   type Card = { id: string; name: string; desc: string; seed: number; selected: boolean; pick: () => void; preview: () => void };
   const cards: Card[] = [
     { id: "fish", name: "Fish Audio", desc: fishReady ? t("Fish Audio · your pick") : t("Fish Audio · add your key below"), seed: 7,
-      selected: prefs.voicePick === "fish" || !prefs.voicePick,
-      pick: () => void ctx.setPrefs((p) => (p.voicePick = "fish")).then(() => ctx.navigate("speaking")),
+      selected: prefs.voiceMode === "cloud" && (prefs.voicePick === "fish" || !prefs.voicePick),
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "fish"; p.voiceMode = "cloud"; }).then(() => ctx.navigate("speaking")),
       preview: () => (fishReady ? void play(FlowBridge.fishTest()) : (fishBox.hidden = false)) },
     { id: "kokoro-female", name: herName, desc: offlineDesc, seed: 3,
-      selected: prefs.voicePick === "kokoro" && prefs.voiceGender !== "male",
-      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "female"; }).then(() => ctx.navigate("speaking")),
+      selected: (prefs.voicePick === "kokoro" || (prefs.voicePick !== "system" && prefs.voiceMode !== "cloud")) && prefs.voiceGender !== "male",
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "female"; p.voiceMode = "local"; }).then(() => ctx.navigate("speaking")),
       preview: () => void play(offlinePreview("female")) },
     { id: "kokoro-male", name: hisName, desc: offlineDesc, seed: 11,
-      selected: prefs.voicePick === "kokoro" && prefs.voiceGender === "male",
-      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "male"; }).then(() => ctx.navigate("speaking")),
+      selected: (prefs.voicePick === "kokoro" || (prefs.voicePick !== "system" && prefs.voiceMode !== "cloud")) && prefs.voiceGender === "male",
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "kokoro"; p.voiceGender = "male"; p.voiceMode = "local"; }).then(() => ctx.navigate("speaking")),
       preview: () => void play(offlinePreview("male")) },
     { id: "system", name: t("Windows"), desc: t("System voice · built in"), seed: 5,
       selected: prefs.voicePick === "system",
-      pick: () => void ctx.setPrefs((p) => (p.voicePick = "system")).then(() => ctx.navigate("speaking")),
+      pick: () => void ctx.setPrefs((p) => { p.voicePick = "system"; p.voiceMode = "local"; }).then(() => ctx.navigate("speaking")),
       preview: () => void speak(t("Hi, I'm Groovy. This is how I sound.")) },
   ];
   const grid = h("div", { class: "hub-v-cards" });
@@ -330,7 +330,12 @@ export async function speakingPage(page: HTMLElement, ctx: HubContext) {
   // ── How answers are spoken (kept from before) ──
   const outputs: [VoiceOutput, string][] = [["system", t("System voice")], ["elevenlabs", "ElevenLabs"], ["off", t("Text only")]];
   const answers = card(
-    row(t("Groovy answers out loud"), null, segmented(outputs, prefs.voiceOutput, (v) => void ctx.setPrefs((p) => (p.voiceOutput = v)).then(() => ctx.navigate("speaking")))),
+    // Round 4B item 3: his voice is made on this PC unless a cloud voice is chosen.
+    row(t("Where his voice is made"), t("On this PC needs no network. A cloud voice uses your own key, with this PC's voice as the backup."),
+      segmented<"local" | "cloud">([["local", t("On this PC")], ["cloud", t("Cloud voice")]], prefs.voiceMode === "cloud" ? "cloud" : "local",
+        (m) => void ctx.setPrefs((p) => (p.voiceMode = m)).then(() => ctx.navigate("speaking")))),
+    divider(),
+    row(t("Groovy answers out loud"), null, segmented(outputs, prefs.voiceOutput, (v) => void ctx.setPrefs((p) => { p.voiceOutput = v; if (v === "elevenlabs") p.voiceMode = "cloud"; }).then(() => ctx.navigate("speaking")))),
   );
   if (prefs.voiceOutput === "elevenlabs") {
     answers.append(
