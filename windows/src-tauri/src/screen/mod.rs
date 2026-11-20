@@ -10,6 +10,8 @@
 //! the brain answering, and is dropped from the history after the reply
 //! (`drop_images`). Nothing here runs or holds memory until the first look.
 
+#![cfg_attr(not(windows), allow(dead_code))]
+
 #[cfg(windows)]
 mod draw_win;
 pub mod gate;

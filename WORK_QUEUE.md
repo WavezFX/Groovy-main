@@ -206,7 +206,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 4. Live talk-back about the screen. **Partly built:** a call question about the screen takes one look (see STATUS.md); steps, real-time models, keep-watching and the peak test are left
 - [ ] 5. Pointing and drawing on the screen (Opus). **Partly built:** `draw_on_screen` and a native click-through overlay (see STATUS.md); the wisp pointing, Escape/click clearing, circle-and-ask and the CI screenshot test are left
 - [x] 6. Settings and privacy (Settings → General: look at the screen, keep watching in a call, the brains that can see, where a picture goes). Settings-open idle not re-measured
-- [ ] 7. Checks
+- [ ] 7. Checks. **Not done:** waits for this build's numbers (idle, peak with a look and drawing) and the owner's three tries in STATUS.md
 
 ### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
 - [ ] 1. Original motion for the character; growth art unchanged (Opus). **Steps 1 and 2 done** (`docs/plan/CHARACTER_MOTION.md`: three quarters of the engine is still the original's; Groovy's own motion designed). **The rewrite waits for the owner to approve that design.**
