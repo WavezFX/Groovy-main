@@ -23,6 +23,7 @@ import { SPOTIFY_ID, Spotify } from "./core/spotify";
 import { Recap } from "./recap/recap";
 import { loadLanguage, onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
 import { glassAlpha, glassStrength, type GlassLook } from "./core/glass";
+import { countCallbacks } from "./core/activity";
 import { frameStats, frameTour, frameVerdict, type TourStep } from "./core/frametest";
 
 /** Shows the language Settings asks for ("" = the system's, when Groovy has it). */
@@ -243,6 +244,7 @@ async function main() {
   void onEvent<number>("memory-pressure", () => dropSprites());
   island.launch();
   if (boot?.smokeView === "frames") void frameTest(island);
+  else if (boot?.smokeView === "quiet") void quietTest(island);
   else if (boot?.smokeView === "peak") peakHold(island);
   else if (boot?.smokeView) holdForSmokeTest(island, boot.smokeView);
 
@@ -301,6 +303,26 @@ async function frameTest(island: Island) {
   island.setPinned(false);
   island.collapse();
   await Bridge.frameReport(report);
+}
+
+/**
+ * CI's quiet test (round 4F item 7, scripts/quiet-test.ps1): the island is
+ * folded, left 8 s to settle, then every timer and frame callback the page
+ * runs over 30 s is counted, with where each was set. All of it falls inside
+ * the first minute, when the island never sleeps, so the page is awake.
+ */
+async function quietTest(island: Island) {
+  const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+  await wait(4000);
+  island.setPinned(false);
+  island.collapse();
+  await wait(8000);
+  // The test's own 30 s wait uses the page's timer from before the counter, so it isn't counted.
+  const plainTimeout = window.setTimeout.bind(window);
+  const stop = countCallbacks();
+  await new Promise((r) => plainTimeout(r, 30_000));
+  const count = stop();
+  await Bridge.frameReport({ quiet: { ...count, mode: State.mode, view: State.view, seconds: 30 } });
 }
 
 /**

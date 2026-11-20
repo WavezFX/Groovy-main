@@ -4,6 +4,7 @@
 
 import { State } from "../core/state";
 import { N_, t } from "../i18n/i18n";
+import { untilNext } from "../core/activity";
 
 export type BreakKind = "water" | "stretch" | "eyes";
 
@@ -69,24 +70,58 @@ export class BreakTimer {
   snooze(kind: BreakKind, now: number) {
     this.due[kind] = now + SNOOZE_MIN * 60_000;
   }
+
+  /** When the next break is due (ms since epoch), or null when all are off. */
+  next(): number | null {
+    let best: number | null = null;
+    for (const d of Object.values(this.due)) if (d != null && (best == null || d < best)) best = d;
+    return best;
+  }
 }
 
-/** The reminder loop in the island: checks twice a minute while Groovy isn't paused. */
+/**
+ * The reminder clock in the island. Round 4F item 7: no polling. One timer
+ * waits for the next break that is due and nothing else runs; a change to the
+ * break settings sets it again. Busy (paused, a card up, a call), it looks
+ * again a minute later.
+ */
 export class Breaks {
   private timer = new BreakTimer();
   private host: BreakHost;
+  private wake: number | null = null;
+  private settingsSeen = "";
 
   constructor(host: BreakHost) {
     this.host = host;
-    window.setInterval(() => this.tick(), 30_000);
+    State.subscribe(() => {
+      const now = `${State.settings.breakWater}/${State.settings.breakStretch}/${State.settings.breakEyes}`;
+      if (now === this.settingsSeen) return;
+      this.settingsSeen = now;
+      this.schedule();
+    });
+  }
+
+  /** Waits for the next break that is due; none is due, no timer. */
+  private schedule(busy = false) {
+    if (this.wake != null) window.clearTimeout(this.wake);
+    this.wake = null;
+    this.timer.check(Date.now()); // starts the clocks of breaks just switched on
+    const ms = busy ? 60_000 : untilNext([this.timer.next()], Date.now());
+    if (ms == null) return;
+    this.wake = window.setTimeout(() => {
+      this.wake = null;
+      this.tick();
+    }, ms);
   }
 
   private tick() {
-    if (State.paused || State.breakDue || State.reminderDue) return;
     // Never on top of something that needs you (an approval, a question) or a call.
-    if (State.pendingApproval || State.voiceCall || State.brainSetup) return;
+    if (State.paused || State.breakDue || State.reminderDue || State.pendingApproval || State.voiceCall || State.brainSetup) {
+      this.schedule(true);
+      return;
+    }
     const kind = this.timer.check(Date.now());
-    if (!kind) return;
+    if (!kind) return this.schedule();
     State.breakDue = kind;
     State.noteMessage = t(BREAKS[kind].title);
     this.host.show();
@@ -107,6 +142,7 @@ export class Breaks {
 
   private clear() {
     State.breakDue = null;
+    this.schedule();
     State.notify();
   }
 }

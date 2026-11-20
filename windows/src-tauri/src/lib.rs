@@ -113,6 +113,7 @@ fn smoke_view(value: Option<&str>) -> Option<&'static str> {
         "home" => Some("home"),
         "player" => Some("player"),
         "frames" => Some("frames"),
+        "quiet" => Some("quiet"),
         "peak" => Some("peak"),
         _ => None,
     }
@@ -131,14 +132,22 @@ fn smoke_view_from_env() -> Option<&'static str> {
 }
 
 /// CI's frame-time test (round 3B item 8b): the island's frame times, written
-/// to frame-test.json for the workflow. Only while that test runs.
+/// to frame-test.json for the workflow; and the quiet test (round 4F item 7):
+/// the timer and frame callbacks of a folded, idle island, to quiet-test.json.
+/// Only while one of those tests runs.
 #[tauri::command]
 fn frame_report(report: serde_json::Value) -> Result<(), String> {
-    if smoke_view_from_env() != Some("frames") {
-        return Err("not in the frame test".into());
+    let file = match smoke_view_from_env() {
+        Some("frames") => "frame-test.json",
+        Some("quiet") => "quiet-test.json",
+        _ => return Err("not in the frame test".into()),
+    };
+    if file == "quiet-test.json" {
+        log::line(format!("quiet test: {}", report["quiet"]));
+    } else {
+        log::line(format!("frame test: {}", report["stats"]));
     }
-    log::line(format!("frame test: {}", report["stats"]));
-    let path = platform::local_dir().join("frame-test.json");
+    let path = platform::local_dir().join(file);
     std::fs::write(&path, serde_json::to_vec_pretty(&report).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
 }
 
@@ -1873,6 +1882,7 @@ mod tests {
         assert_eq!(super::smoke_view(Some("home")), Some("home"));
         assert_eq!(super::smoke_view(Some("player")), Some("player"));
         assert_eq!(super::smoke_view(Some("frames")), Some("frames"));
+        assert_eq!(super::smoke_view(Some("quiet")), Some("quiet"));
         for other in [None, Some(""), Some("settings"), Some("HOME")] {
             assert_eq!(super::smoke_view(other), None);
         }

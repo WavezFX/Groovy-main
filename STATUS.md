@@ -406,3 +406,25 @@ Numbers are Task Manager's private working set over every Groovy process, from t
 - **4D item 4, tools on subscription brains.** A strict one-line JSON request, read in `brains/cli.rs`, run by Groovy under the same approval rules. Unit-tested only.
 - **4C item 1** `docs/plan/SCREEN_BUDDY_NOTES.md`. **4E item 1** steps 1 and 2: `docs/plan/CHARACTER_MOTION.md` (about three quarters of the engine's methods are still the original's; the rewrite waits for the owner's approval of the design).
 - **Not started:** 4C item 5 (needs the capture and the tool path first).
+
+## Round 4F items 3, 6, 7, 8, 9 (20 Nov, branch `elevate/4f-ram`)
+Numbers come only from the Windows build of the last commit (`[build]`); until then each item is **built, not yet measured**.
+
+### Item 7: nothing runs when nothing is happening
+**Inventory of the island page's loops** (timers and frames; 74 call sites in `island/`, `mochi/`, `views/`, `core/`, `main.ts`):
+| Loop | Owner | Period | What stops it |
+|---|---|---|---|
+| Frame loop (`island.ts` `frame`) | island | every frame / 1 in 10 while folded and working | stops when folded and resting (`pace = "stop"`), hidden and settled |
+| Break reminders (`island/breaks.ts`) | island | **was every 30 s, for ever** | **now one timer to the next break due**; none when all breaks are off; set again when the break settings change; 60 s re-look only while something blocks it |
+| Sleep request (`island/sleep.ts`) | island | one 20 s timer after the frame loop stops | the island sleeps (page suspended) or something stirs |
+| Spotify position (`views/spotify.ts`) | island | 500 ms | only while playing and on screen |
+| This PC stats (`views/expand.ts`) | island | `SYSTEM_EVERY_MS` | only while the tile is grown |
+| Plan countdowns (`views/views.ts`) | island | 30 s | only while a plan card is open |
+| Instant voice watch (`island/voice.ts`), LiveKit idle (`voice/livekit.ts`) | voice | 5 s / 1 s | only during a call |
+| Notice expiry, reminder and notice re-tries (`island.ts`) | island | one-shot | only while a notice or reminder is up |
+| Engine emote timers (`mochi/engine.ts`, 13) | engine | one-shot, under 2 s | only after an emote |
+| Audio close (`core/sound.ts`) | sound | one-shot | after the last sound |
+| Growth clock | Rust (`scheduler.rs`, since round 3P) | — | no page timer |
+- **Changed:** the only loop that ran folded and idle was the break reminders' 30 s poll (2 callbacks per 30 s, plus a wake of the page every 30 s). It now waits for the next due break with one timer. While the island is asleep the page is suspended, as before, so a break due then shows at the wake (unchanged from item 1).
+- **CI proof:** `GROOVY_SMOKE_VIEW=quiet` (ci build only): the page folds, settles 8 s, then `core/activity.ts` `countCallbacks` counts every timer and frame callback for 30 s with where each was set; `scripts/quiet-test.ps1` prints the counts, the top sources and Groovy's CPU over the same 30 s. Step "Nothing runs when nothing is happening" in `windows-build.yml`, report only (`continue-on-error`) until it reads 0. Timers set before the count began (the sleep request's 20 s timer) are not counted.
+- **Status: built, not yet measured.** Done when the step reads 0 frames, 0 timers and CPU at most 0.1 %.

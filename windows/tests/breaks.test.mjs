@@ -31,3 +31,13 @@ test("turned off, a break never comes; shortened, it comes sooner", () => {
   assert.equal(timer.check(39 * MIN), null);
   assert.equal(timer.check(40 * MIN), "stretch");
 });
+
+test("round 4F item 7: the next break's time is known, so one timer can wait for it", () => {
+  State.settings = { ...State.settings, breakWater: 45, breakStretch: 60, breakEyes: 0 };
+  const timer = new BreakTimer();
+  assert.equal(timer.next(), null);
+  timer.check(0);
+  assert.equal(timer.next(), 45 * MIN);
+  timer.done("water", 45 * MIN);
+  assert.equal(timer.next(), 60 * MIN);
+});

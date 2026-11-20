@@ -269,7 +269,7 @@ export interface BootInfo {
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
   /** CI's smoke test: hold the island open on Home (F) or the player (E). */
-  smokeView?: "home" | "player" | "frames" | "peak" | null;
+  smokeView?: "home" | "player" | "frames" | "quiet" | "peak" | null;
 }
 
 /** Ollama on this computer (ollama.rs). */

@@ -198,6 +198,13 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
+      # Round 4F item 7: folded and idle, the page runs no timers and no frames.
+      # Prints the count by source and the CPU; reports only until it reads 0.
+      - name: Nothing runs when nothing is happening (timers and frames in 30 s idle)
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/quiet-test.ps1 -Exe release/test/groovy.exe
+
       - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
         shell: pwsh
         run: ./scripts/frame-test.ps1 -Exe release/test/groovy.exe -Trace frame-trace.json
