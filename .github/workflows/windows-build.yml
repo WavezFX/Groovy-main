@@ -126,6 +126,8 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           Copy-Item target/release/groovy.exe release/groovy.exe
           Copy-Item target/release/groovy-hook.exe release/groovy-hook.exe
+          # Round 4E item 5: the notices go with every package (the Portable zip takes these copies).
+          Copy-Item ../LICENSE, ../NOTICE, THIRD_PARTY_NOTICES.md, docs/licenses/MODELS.md release/
           Get-ChildItem release | Format-Table Name, Length
 
       - name: Checksums
@@ -243,6 +245,22 @@ jobs:
           if (-not $lnk) { throw "no Start menu shortcut" }
           "Start menu: $($lnk.FullName -join ', ')"
           ./scripts/smoke-test.ps1 -Exe $installed -Offline -Label installed
+          # Round 4E item 5: the licences and notices are installed beside groovy.exe.
+          Get-ChildItem $dir | Format-Table Name, Length
+          foreach ($f in "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "MODELS.md") {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "$f is missing from the installed folder" }
+          }
+          # The MSI carries the same resources: list them from its file table.
+          $msi = (Resolve-Path "release/Groovy-AI-$v-Windows.msi").Path
+          $db = (New-Object -ComObject WindowsInstaller.Installer).GetType().InvokeMember("OpenDatabase", "InvokeMethod", $null, (New-Object -ComObject WindowsInstaller.Installer), @($msi, 0))
+          $view = $db.GetType().InvokeMember("OpenView", "InvokeMethod", $null, $db, @("SELECT FileName FROM File"))
+          $view.GetType().InvokeMember("Execute", "InvokeMethod", $null, $view, $null) | Out-Null
+          $names = @()
+          while ($rec = $view.GetType().InvokeMember("Fetch", "InvokeMethod", $null, $view, $null)) { $names += $rec.GetType().InvokeMember("StringData", "GetProperty", $null, $rec, 1) }
+          foreach ($f in "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "MODELS.md") {
+            if (-not ($names | Where-Object { $_ -like "*$f" })) { throw "$f is missing from the MSI" }
+          }
+          "MSI holds the notices"
 
       - name: Uninstall
         shell: pwsh
@@ -414,7 +432,7 @@ jobs:
           New-Item -ItemType Directory $stage | Out-Null
           Copy-Item "release/Groovy-AI-$v-Windows-Setup.exe" $stage
           Copy-Item "release/Groovy-AI-$v-Windows.msi" $stage
-          Compress-Archive -Path release/groovy.exe, release/groovy-hook.exe -DestinationPath "$stage/Groovy-AI-$v-Windows-Portable.zip"
+          Compress-Archive -Path release/groovy.exe, release/groovy-hook.exe, release/LICENSE, release/NOTICE, release/THIRD_PARTY_NOTICES.md, release/MODELS.md -DestinationPath "$stage/Groovy-AI-$v-Windows-Portable.zip"
           Get-ChildItem $stage -File | ForEach-Object {
             "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
           } | Set-Content "$stage/SHA256SUMS.txt"
