@@ -8,6 +8,9 @@
 #      the Low memory target, the island asleep, memory handed back);
 #   3. after Settings closed itself for sitting unused (the test shortens the
 #      ten minutes to 45 s with GROOVY_HUB_IDLE_SECS).
+#   4. (round 4F item 8) opened again, three pages visited, closed by the user
+#      (the window's close message): 10 s later, the total and the renderers
+#      against the island's idle just before (done when within 5 MB, one renderer).
 # It reports; it fails only if Groovy dies or Settings never opens.
 
 param(
@@ -97,6 +100,35 @@ try {
       $after = Get-Total $proc.Id
       $metrics["after it closed (MB)"] = "$($after.Total), $($after.Renderers) renderers ($($after.Parts))"
     }
+
+    # Round 4F item 8: opened, used, closed by the user; nothing of it may stay.
+    if ($other) { Stop-Process -Id $other.Id -Force -ErrorAction SilentlyContinue; $other = $null }
+    Start-Sleep -Seconds 5
+    $before = Get-Total $proc.Id
+    $metrics["4F item 8: idle before Settings (MB)"] = "$($before.Total), $($before.Renderers) renderers ($($before.Parts))"
+    foreach ($page in "home", "memory", "wardrobe", "dictation") {
+      Start-Process -FilePath $Exe -ArgumentList "--settings", $page | Out-Null
+      Start-Sleep -Seconds 4
+    }
+    Add-Type -Namespace Groovy -Name Win -MemberDefinition @'
+[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern System.IntPtr FindWindowW(string cls, string title);
+[DllImport("user32.dll")] public static extern bool PostMessageW(System.IntPtr h, uint msg, System.IntPtr w, System.IntPtr l);
+'@ -ErrorAction SilentlyContinue
+    $hwnd = [Groovy.Win]::FindWindowW($null, "Settings — Groovy")
+    if ($hwnd -eq [IntPtr]::Zero) {
+      $metrics["4F item 8: Settings closed by the user"] = "window not found"
+    } else {
+      [void][Groovy.Win]::PostMessageW($hwnd, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
+      Start-Sleep -Seconds 10
+      $after2 = Get-Total $proc.Id
+      $diff = [math]::Round($after2.Total - $before.Total, 1)
+      $metrics["4F item 8: 10 s after the user closed Settings (MB)"] = "$($after2.Total), $($after2.Renderers) renderers ($($after2.Parts)); $diff MB against before"
+      $metrics["4F item 8: back within 5 MB, one renderer"] = ($diff -le 5) -and ($after2.Renderers -le 1)
+      # The island may have been asleep before (this test lets it sleep): 30 s gives it time to sleep again.
+      Start-Sleep -Seconds 20
+      $after3 = Get-Total $proc.Id
+      $metrics["4F item 8: 30 s after the user closed Settings (MB)"] = "$($after3.Total), $($after3.Renderers) renderers ($($after3.Parts)); $([math]::Round($after3.Total - $before.Total, 1)) MB against before"
+    }
     $proc.Refresh()
     if ($proc.HasExited) { throw "Groovy exited during the Settings idle test (code $($proc.ExitCode))" }
   }
@@ -110,7 +142,7 @@ try {
 Write-Host "`nSettings idle test:"
 foreach ($k in $metrics.Keys) { Write-Host "  $k = $($metrics[$k])" }
 if (Test-Path $log) {
-  Select-String -Path $log -Pattern "island:|control centre" | ForEach-Object { Write-Host "  $($_.Line)" }
+  Select-String -Path $log -Pattern "island:|control centre|settings closed|desktop Groovy closed" | ForEach-Object { Write-Host "  $($_.Line)" }
 }
 if ($env:GITHUB_STEP_SUMMARY) {
   "### Idle with Settings open (round 4A item 3)" | Out-File -Append $env:GITHUB_STEP_SUMMARY

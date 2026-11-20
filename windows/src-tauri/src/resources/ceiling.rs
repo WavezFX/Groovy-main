@@ -174,6 +174,22 @@ pub fn give_back() {
     os::give_back();
 }
 
+/// Round 4F item 8: a window (Settings, the desktop Groovy) was destroyed.
+/// Once its renderer has had time to exit, groovy.exe compacts its heaps and
+/// hands back what the window used, and the log says what is left, so CI can
+/// check nothing of the window stayed alive.
+pub fn after_window_closed(what: &'static str) {
+    let _ = std::thread::Builder::new().name("groovy-closed-hand-back".into()).spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        give_back();
+        let parts = parts();
+        let webviews = parts.iter().filter(|p| p.kind == "webview2").count();
+        let total: f64 = parts.iter().map(|p| p.mb).sum();
+        let split: Vec<String> = by_kind(&parts).iter().map(|p| format!("{} {:.1}", p.kind, p.mb)).collect();
+        crate::log::line(format!("{what} closed: {total:.1} MB after the hand-back, {webviews} WebView2 processes ({})", split.join(", ")));
+    });
+}
+
 static APP: std::sync::OnceLock<AppHandle> = std::sync::OnceLock::new();
 
 /// When each panel window was last focused, to close the oldest first.

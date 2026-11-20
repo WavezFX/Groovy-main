@@ -1044,7 +1044,10 @@ fn create_hub_window(app: &AppHandle, page: Option<&str>) {
                 win.on_window_event(move |event| {
                     match event {
                         tauri::WindowEvent::Focused(focused) => hub_idle::focus_changed(&idle_app, &idle_win, *focused),
-                        tauri::WindowEvent::Destroyed => hub_idle::closed(),
+                        tauri::WindowEvent::Destroyed => {
+                            hub_idle::closed();
+                            resources::ceiling::after_window_closed("settings");
+                        }
                         _ => {}
                     }
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {

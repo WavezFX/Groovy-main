@@ -481,6 +481,7 @@ pub fn put_away(app: &AppHandle) {
     hide(app, &d);
     if let Some(win) = window(app) {
         let _ = win.destroy();
+        crate::resources::ceiling::after_window_closed("desktop Groovy");
     }
 }
 
@@ -515,12 +516,14 @@ fn hide(app: &AppHandle, d: &Desktop) {
         if let Some(win) = window(&app) {
             let _ = win.destroy();
             crate::log::line("desktop Groovy: window closed (he stayed in the island)");
+            crate::resources::ceiling::after_window_closed("desktop Groovy");
         }
     });
 }
 
 /// Home in the island this long, his desktop window is destroyed, not kept hidden.
-const CLOSE_HIDDEN_AFTER: Duration = Duration::from_secs(30);
+/// Round 4F item 8: 8 s (was 30), so 10 s after he comes home his window is gone.
+const CLOSE_HIDDEN_AFTER: Duration = Duration::from_secs(8);
 
 /// Re-derives the poll gate and what takes the mouse from the current state.
 fn refresh(app: &AppHandle, d: &Desktop) {
