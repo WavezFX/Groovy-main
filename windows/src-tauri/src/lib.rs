@@ -625,7 +625,10 @@ async fn chat_send(
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
     chat.set_spoken(spoken.unwrap_or(false));
-    chat::send(&app, &chat, &settings, query, context).await
+    let reply = chat::send(&app, &chat, &settings, query, context).await;
+    // Round 4C item 3: a picture of the screen goes with one message at most.
+    screen::forget_chat_look();
+    reply
 }
 
 /// "Test my voice setup", step 3: "say hello" to the brain the calls use.
@@ -1646,6 +1649,7 @@ pub fn run() {
             okgroovy::voice_done,
             screen::screen_look,
             screen::screen_look_answer,
+            screen::screen_look_forget,
             okgroovy::okgroovy_status,
             quick_status,
             fullscreen_busy,

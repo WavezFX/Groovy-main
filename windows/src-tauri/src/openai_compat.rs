@@ -164,7 +164,8 @@ pub async fn send(
         return Err(tf("Pick a {name} model above the chat box.", &[("name", p.name)]));
     }
     let turn = chat.begin(p.id);
-    let user = user_message(turn.first, context.as_ref(), &query);
+    let mut user = user_message(turn.first, context.as_ref(), &query);
+    crate::screen::attach_openai(&mut user);
     let body = request_body(p, model, &chat.system_prompt(false), &turn.history, &user);
 
     let endpoint = url(p, "chat/completions")?;

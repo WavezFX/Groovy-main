@@ -166,7 +166,7 @@ pub fn drop_images(messages: &mut [Value]) {
     fn strip(content: &mut Value) {
         if let Value::Array(blocks) = content {
             for b in blocks.iter_mut() {
-                if b["type"] == "image" {
+                if b["type"] == "image" || b["type"] == "image_url" {
                     *b = json!({ "type": "text", "text": "[a picture of the screen was here; it was dropped after the reply]" });
                 } else if b["type"] == "tool_result" {
                     strip(&mut b["content"]);
@@ -182,26 +182,79 @@ pub fn drop_images(messages: &mut [Value]) {
 /// Whether a history holds a picture (the switcher sends it only to a brain that can see).
 pub fn has_image(messages: &[Value]) -> bool {
     fn any(content: &Value) -> bool {
-        content.as_array().is_some_and(|blocks| blocks.iter().any(|b| b["type"] == "image" || (b["type"] == "tool_result" && any(&b["content"]))))
+        content.as_array().is_some_and(|blocks| blocks.iter().any(|b| b["type"] == "image" || b["type"] == "image_url" || (b["type"] == "tool_result" && any(&b["content"]))))
     }
     messages.iter().any(|m| any(&m["content"]))
+}
+
+// ── The chat's button ─────────────────────────────────────────────────────────
+
+/// The picture waiting for the chat's next message, in memory only.
+static FOR_CHAT: Mutex<Option<Shot>> = Mutex::new(None);
+
+/// Whether the brain answering the chat now can see a picture.
+fn chat_can_see(app: &AppHandle) -> bool {
+    let Some(settings) = app.try_state::<crate::Shared>().map(|s| s.settings.lock().unwrap().clone()) else { return false };
+    let (who, _) = crate::chat::target(&settings);
+    crate::brains::get(&who).is_some_and(|b| b.caps().vision)
+}
+
+/// The chat's message as Claude's content blocks: the picture goes in, once.
+pub fn attach_anthropic(user: &mut Value) {
+    let Some(shot) = FOR_CHAT.lock().unwrap().take() else { return };
+    if let Value::Array(blocks) = &mut user["content"] {
+        blocks.insert(0, json!({ "type": "text", "text": meta(&shot) }));
+        blocks.insert(1, json!({ "type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": base64::engine::general_purpose::STANDARD.encode(&shot.jpeg) } }));
+    }
+}
+
+/// The chat's message in the OpenAI shape: the picture goes in, once.
+pub fn attach_openai(user: &mut Value) {
+    let Some(shot) = FOR_CHAT.lock().unwrap().take() else { return };
+    let url = format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(&shot.jpeg));
+    let mut parts = match user["content"].take() {
+        Value::String(text) => vec![json!({ "type": "text", "text": text })],
+        Value::Array(parts) => parts,
+        _ => Vec::new(),
+    };
+    parts.insert(0, json!({ "type": "text", "text": meta(&shot) }));
+    parts.insert(1, json!({ "type": "image_url", "image_url": { "url": url } }));
+    user["content"] = Value::Array(parts);
+}
+
+/// After a chat turn, answered or not: a picture not used is dropped.
+pub fn forget_chat_look() {
+    FOR_CHAT.lock().unwrap().take();
+}
+
+/// The thumbnail's remove button.
+#[tauri::command]
+pub fn screen_look_forget() {
+    forget_chat_look();
 }
 
 /// The chat's "Look at my screen" button: one capture for the next message.
 /// The click is the user asking, so no Allow button; `off` and Game Mode still refuse.
 #[tauri::command]
 pub async fn screen_look(app: AppHandle, target: Option<String>) -> Result<Value, String> {
-    if seeing().is_empty() {
-        return Err("None of your brains that are set up can see pictures. Claude (with a key), Gemini or OpenAI can.".into());
+    if !chat_can_see(&app) {
+        let names = seeing();
+        return Err(if names.is_empty() {
+            "The brain answering the chat can't see pictures. Claude (with a key), Gemini or OpenAI can.".to_string()
+        } else {
+            format!("The brain answering the chat can't see pictures. Pick one that can: {}.", names.join(", "))
+        });
     }
     tauri::async_runtime::spawn_blocking(move || {
         let shot = look(&app, target.as_deref() == Some("window"), true)?;
-        Ok(json!({
-            "dataUrl": format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(&shot.jpeg)),
+        let thumb = format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(&shot.jpeg));
+        let reply = json!({
+            "dataUrl": thumb,
             "width": shot.width,
             "height": shot.height,
-            "about": meta(&shot),
-        }))
+        });
+        *FOR_CHAT.lock().unwrap() = Some(shot);
+        Ok(reply)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -220,7 +273,7 @@ mod tests {
                 { "type": "text", "text": "A picture" },
                 { "type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": "AAAA" } }
             ] }] }),
-            json!({ "role": "user", "content": [{ "type": "text", "text": "and this" }, { "type": "image", "source": { "data": "BBBB" } }] }),
+            json!({ "role": "user", "content": [{ "type": "text", "text": "and this" }, { "type": "image_url", "image_url": { "url": "data:BBBB" } }] }),
         ];
         assert!(has_image(&history));
         drop_images(&mut history);

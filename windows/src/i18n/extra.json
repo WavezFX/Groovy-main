@@ -20586,6 +20586,28 @@
    "pt-BR": "Olhar sua tela?",
    "ru": "Посмотреть на ваш экран?",
    "id": "Lihat layarmu?"
+  },
+  "Look at my screen": {
+   "zh-Hans": "看看我的屏幕",
+   "hi": "मेरी स्क्रीन देखो",
+   "es": "Mira mi pantalla",
+   "ar": "انظر إلى شاشتي",
+   "fr": "Regarde mon écran",
+   "bn": "আমার স্ক্রিন দেখো",
+   "pt-BR": "Olhe minha tela",
+   "ru": "Посмотри на мой экран",
+   "id": "Lihat layarku"
+  },
+  "Don't send the picture": {
+   "zh-Hans": "不发送这张图片",
+   "hi": "तस्वीर न भेजें",
+   "es": "No enviar la imagen",
+   "ar": "لا ترسل الصورة",
+   "fr": "Ne pas envoyer l'image",
+   "bn": "ছবিটি পাঠাবেন না",
+   "pt-BR": "Não enviar a imagem",
+   "ru": "Не отправлять снимок",
+   "id": "Jangan kirim gambarnya"
   }
  }
 }
