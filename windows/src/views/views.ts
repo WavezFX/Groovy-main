@@ -18,7 +18,7 @@ import {
 import { buildDiffCard } from "./diff";
 import { lastTextStep } from "../core/diff";
 import { Bridge } from "../core/bridge";
-import { buildRecap } from "./recap";
+import { once } from "../core/lazy";
 import { buildHatch } from "./hatch";
 import { buildWardrobe } from "./wardrobe";
 import { buildSpotifyCard } from "./spotify";
@@ -858,6 +858,35 @@ function buildPlaceholder(title: Msg, sub: string): ViewHost {
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 
+/**
+ * Round 4F item 9: a view whose code is its own chunk, loaded the first time
+ * the island shows it (not at start). Until then an empty view stands in; the
+ * island reads `el` at every sync, so the real one takes its place.
+ */
+export function lazyView(load: () => Promise<ViewHost>): ViewHost {
+  let real: ViewHost | null = null;
+  const standIn = h("div", { class: "view" });
+  const get = once(load);
+  return {
+    get el() {
+      return real?.el ?? standIn;
+    },
+    sync() {
+      if (real) return real.sync();
+      void get().then((view) => {
+        if (real) return;
+        real = view;
+        view.el.classList.toggle("on", standIn.classList.contains("on"));
+        standIn.replaceWith(view.el);
+        State.notify();
+      });
+    },
+    focus: () => real?.focus?.(),
+    tick: (nowMs: number) => real?.tick?.(nowMs),
+    command: (c: ViewCommand) => real?.command?.(c),
+  };
+}
+
 export function buildViews(
   actions: ViewActions,
   onChatHeightChange: () => void,
@@ -876,7 +905,8 @@ export function buildViews(
   map.set("upload", buildUpload());
   map.set("uploading", buildUploading());
   map.set("choose", buildChoose(actions));
-  map.set("recap", buildRecap(actions));
+  // The Monday recap is seen once a week: its code (and the share picture's) loads when it opens.
+  map.set("recap", lazyView(() => import("./recap").then((m) => m.buildRecap(actions))));
   map.set("wardrobe", buildWardrobe(actions));
   map.set("hatch", buildHatch(actions));
   map.set("home", buildHome(actions));
