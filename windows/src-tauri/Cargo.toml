@@ -84,6 +84,9 @@ tar = { version = "0.4", default-features = false }
 base64 = "0.22"
 # Round 3E item 2: tile icons from Windows saved as small PNGs (already in the tree through Tauri).
 png = "0.18"
+# Round 4C item 2: a screen picture made small as a JPEG in Rust, only when the user asks
+# (screen/shrink.rs). Pure Rust, no dependencies, MIT OR Apache-2.0.
+jpeg-encoder = "0.6"
 notify = { version = "8", default-features = false }
 
 [target.'cfg(windows)'.dependencies]

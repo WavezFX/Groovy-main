@@ -19,6 +19,11 @@ pub struct Settings {
     /// Hovering the island opens it all the way, and it folds again shortly
     /// after the pointer leaves (the Mac's "Open on hover"). Off by default.
     pub open_on_hover: bool,
+    /// Round 4C: looking at the screen when asked: "ask" (an Allow button each
+    /// time), "allowed" or "off". Never a capture unless the user asks.
+    pub screen_look: String,
+    /// Round 4C item 4: in a call, a new look at most every 5 s while the screen changes. Off by default.
+    pub screen_watch: bool,
     pub absence_interval: f64,
     pub active_integrations: Vec<String>,
     /// The always-on workspace pill (src/core/pills.ts checks it is one).
@@ -240,6 +245,8 @@ impl Default for Settings {
             sound_volume: 0.12,
             auto_close_interval: 0.0,
             open_on_hover: true,
+            screen_look: "ask".into(),
+            screen_watch: false,
             absence_interval: 180.0,
             active_integrations: vec![
                 "integration_resend".into(),

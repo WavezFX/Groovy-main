@@ -20564,6 +20564,28 @@
    "pt-BR": "Não consegui descobrir como fazer isso.",
    "ru": "Я не понял, как это сделать.",
    "id": "Saya tidak tahu cara melakukannya."
+  },
+  "Looking at your screen": {
+   "zh-Hans": "正在查看你的屏幕",
+   "hi": "आपकी स्क्रीन देख रहा है",
+   "es": "Mirando tu pantalla",
+   "ar": "ينظر إلى شاشتك",
+   "fr": "Je regarde ton écran",
+   "bn": "আপনার স্ক্রিন দেখছে",
+   "pt-BR": "Olhando sua tela",
+   "ru": "Смотрю на ваш экран",
+   "id": "Melihat layarmu"
+  },
+  "Look at your screen?": {
+   "zh-Hans": "查看你的屏幕？",
+   "hi": "आपकी स्क्रीन देखूँ?",
+   "es": "¿Miro tu pantalla?",
+   "ar": "هل أنظر إلى شاشتك؟",
+   "fr": "Je regarde ton écran ?",
+   "bn": "আপনার স্ক্রিন দেখব?",
+   "pt-BR": "Olhar sua tela?",
+   "ru": "Посмотреть на ваш экран?",
+   "id": "Lihat layarmu?"
   }
  }
 }

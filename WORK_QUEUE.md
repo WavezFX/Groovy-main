@@ -201,7 +201,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ### 4C. `FIXES_ROUND4C.md` (screen buddy). **Needs 4D items 1, 2 and 4.**
 - [x] 1. Behaviour notes from the two reference projects (Opus; no code): `docs/plan/SCREEN_BUDDY_NOTES.md`; items 2–5 updated to match
-- [ ] 2. Screen capture, on request only (at most 400 KB, within 500 ms)
+- [x] 2. Screen capture, on request only (at most 400 KB, within 500 ms). Built (`screen/`); not yet proven on Windows (see STATUS.md)
 - [ ] 3. "Look at my screen" in chat and by voice
 - [ ] 4. Live talk-back about the screen
 - [ ] 5. Pointing and drawing on the screen (Opus). Not started: needs items 2 and 3 first.

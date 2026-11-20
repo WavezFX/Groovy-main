@@ -411,7 +411,25 @@ pub async fn tool_turn(system: &str, messages: &[Value], tools: &[Value]) -> Res
     let s = settings(app);
     let prefs = s.assistant.clone().sanitised();
     let req = crate::brains::Request { system, messages, tools, max_tokens: 1024, timeout: Duration::from_secs(60) };
-    ask(app, &s, &prefs, tools_first(current_order_for(&s, "commands")), req).await
+    let mut order = tools_first(current_order_for(&s, "commands"));
+    // Round 4C item 3: a picture of the screen goes only to a brain that can see.
+    if crate::screen::has_image(messages) {
+        order.retain(|w| crate::brains::get(w.id()).is_some_and(|b| b.caps().vision));
+    }
+    ask(app, &s, &prefs, order, req).await
+}
+
+/// Round 4C item 3: the brains, in the commands order, that can see a picture.
+pub fn seeing_brains() -> Vec<&'static str> {
+    let Ok(app) = app() else { return Vec::new() };
+    current_order_for(&settings(app), "commands").into_iter().filter(|w| crate::brains::get(w.id()).is_some_and(|b| b.caps().vision)).map(|w| w.id()).collect()
+}
+
+/// An Anthropic image block as an OpenAI content part.
+fn image_part(b: &Value) -> Option<Value> {
+    let src = &b["source"];
+    let data = src["data"].as_str()?;
+    Some(json!({ "type": "image_url", "image_url": { "url": format!("data:{};base64,{data}", src["media_type"].as_str().unwrap_or("image/jpeg")) } }))
 }
 
 /// How the cloud brains fared on one request (round 3D item 10): all
@@ -506,9 +524,12 @@ pub fn to_openai_messages(system: &str, messages: &[Value]) -> Vec<Value> {
             Value::Array(blocks) => {
                 let mut text = String::new();
                 let mut calls = Vec::new();
+                // Round 4C: pictures (the user's, or a tool's) go after as one user message.
+                let mut images: Vec<Value> = Vec::new();
                 for b in blocks {
                     match b["type"].as_str() {
                         Some("text") => text.push_str(b["text"].as_str().unwrap_or("")),
+                        Some("image") => images.extend(image_part(b)),
                         Some("tool_use") => calls.push(json!({
                             "id": b["id"],
                             "type": "function",
@@ -517,7 +538,10 @@ pub fn to_openai_messages(system: &str, messages: &[Value]) -> Vec<Value> {
                         Some("tool_result") => {
                             let content = match &b["content"] {
                                 Value::String(s) => s.clone(),
-                                Value::Array(parts) => parts.iter().filter_map(|p| p["text"].as_str()).collect::<Vec<_>>().join("\n"),
+                                Value::Array(parts) => {
+                                    images.extend(parts.iter().filter(|p| p["type"] == "image").filter_map(image_part));
+                                    parts.iter().filter_map(|p| p["text"].as_str()).collect::<Vec<_>>().join("\n")
+                                }
                                 other => other.to_string(),
                             };
                             out.push(json!({ "role": "tool", "tool_call_id": b["tool_use_id"], "content": content }));
@@ -531,6 +555,11 @@ pub fn to_openai_messages(system: &str, messages: &[Value]) -> Vec<Value> {
                         msg["tool_calls"] = Value::Array(calls);
                     }
                     out.push(msg);
+                } else if !images.is_empty() {
+                    let mut parts = vec![json!({ "type": "text", "text": if text.is_empty() { "The picture:" } else { text.as_str() } })];
+                    parts.append(&mut images);
+                    out.push(json!({ "role": "user", "content": parts }));
+                    images.clear();
                 } else if !text.is_empty() {
                     out.push(json!({ "role": role, "content": text }));
                 }

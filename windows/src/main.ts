@@ -17,6 +17,7 @@ import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
 import { registerShortcutHandlers } from "./island/shortcuts";
 import { registerVoiceHandlers } from "./island/okgroovy";
+import { registerScreenLook } from "./island/screenlook";
 import { registerLiveHandlers } from "./island/live";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { SPOTIFY_ID, Spotify } from "./core/spotify";
@@ -200,6 +201,7 @@ async function main() {
   registerIntegrationHandlers(island);
   registerShortcutHandlers(island, () => setPaused(false));
   registerVoiceHandlers();
+  registerScreenLook();
   // Dictation, calls being recorded, « Hey Groovy » and Groovy's messages (flow/live.rs).
   void registerLiveHandlers(island);
   // "My island": a new mail from Windows' notifications pops up when the island has a Mail tile.

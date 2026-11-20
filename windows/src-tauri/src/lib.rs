@@ -49,6 +49,7 @@ mod pipe;
 mod redact;
 mod resources;
 mod scheduler;
+mod screen;
 mod platform;
 #[cfg(target_os = "linux")]
 mod portal;
@@ -1643,6 +1644,8 @@ pub fn run() {
             notes::notes_markdown,
             notes::notes_export,
             okgroovy::voice_done,
+            screen::screen_look,
+            screen::screen_look_answer,
             okgroovy::okgroovy_status,
             quick_status,
             fullscreen_busy,
