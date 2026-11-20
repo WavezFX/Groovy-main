@@ -4,138 +4,135 @@ Which source files still hold code from the MIT-licensed project Groovy's code s
 
 **Method.** The repository's first commit holds only `LICENSE` and `README.md`; the code arrived in `d7a8eca` (15 Oct 2026, "Import Groovy 0.5.1 source"), the start used here. For each file under `windows/src`, `windows/src-tauri/src` and `windows/hook`: **Groovy's own** = added after the start (or a character file shown in `docs/plan/CHARACTER_MOTION.md` §1 to hold no line of the original); **rewritten** = there at the start, now under 20 % of its substantive lines (20+ characters, comments skipped) the same; **inherited** = there at the start and still 20 % or more the same. The 0.5.1 import already held Groovy changes, so the percentage over-states the original's share, never under-states it.
 
-**Totals:** 125 inherited, 4 rewritten, 173 Groovy's own (302 files). Character (`windows/src/mochi/`): every file is rewritten or Groovy's own except the two listed first below.
+**Totals:** 122 inherited, 7 rewritten, 173 Groovy's own (302 files). Character (`windows/src/mochi/`, `core/anim.ts`): every file is rewritten or Groovy's own. Files rewritten with their interface kept show how many lines still match, so the reader can judge.
 
 ## Inherited files, most visible first, and the round that rewrites them
 Character first, plumbing last; plumbing is not rewritten in round 4E. Phone link files also carry their own author's MIT credit and wait on the Android source.
 
 | Rank | Area | File | Same as at the start | Round |
 |---|---|---|---|---|
-| 1 | character | `windows/src/core/anim.ts` | 94% | 4E (follow-up) |
-| 2 | character | `windows/src/mochi/desktop-logic.ts` | 99% | 4E (follow-up) |
-| 3 | character | `windows/src/mochi/minibots.ts` | 44% | 4E (follow-up) |
-| 4 | island and views | `windows/src/core/layout.ts` | 89% | 6 |
-| 5 | island and views | `windows/src/core/pills.ts` | 88% | 6 |
-| 6 | island and views | `windows/src/desktop/main.ts` | 93% | 6 |
-| 7 | island and views | `windows/src/island/agents.ts` | 100% | 6 |
-| 8 | island and views | `windows/src/island/brain.ts` | 100% | 6 |
-| 9 | island and views | `windows/src/island/breaks.ts` | 87% | 6 |
-| 10 | island and views | `windows/src/island/desktop.ts` | 91% | 6 |
-| 11 | island and views | `windows/src/island/fsm.ts` | 73% | 6 |
-| 12 | island and views | `windows/src/island/hooks.ts` | 100% | 6 |
-| 13 | island and views | `windows/src/island/integrations.ts` | 100% | 6 |
-| 14 | island and views | `windows/src/island/island.ts` | 69% | 6 |
-| 15 | island and views | `windows/src/island/phone-link.ts` | 98% | 6 |
-| 16 | island and views | `windows/src/island/phone-services.ts` | 100% | 6 |
-| 17 | island and views | `windows/src/island/shortcuts.ts` | 96% | 6 |
-| 18 | island and views | `windows/src/island/spotify.ts` | 100% | 6 |
-| 19 | island and views | `windows/src/island/voice.ts` | 47% | 6 |
-| 20 | island and views | `windows/src/style.css` | 69% | 6 |
-| 21 | island and views | `windows/src/views/chat.ts` | 71% | 6 |
-| 22 | island and views | `windows/src/views/diff.ts` | 100% | 6 |
-| 23 | island and views | `windows/src/views/dom.ts` | 99% | 6 |
-| 24 | island and views | `windows/src/views/github.ts` | 100% | 6 |
-| 25 | island and views | `windows/src/views/icons.ts` | 93% | 6 |
-| 26 | island and views | `windows/src/views/integrations.ts` | 91% | 6 |
-| 27 | island and views | `windows/src/views/markdown.ts` | 100% | 6 |
-| 28 | island and views | `windows/src/views/recap.ts` | 100% | 6 |
-| 29 | island and views | `windows/src/views/spotify.ts` | 94% | 6 |
-| 30 | island and views | `windows/src/views/ticker.ts` | 100% | 6 |
-| 31 | island and views | `windows/src/views/upload.ts` | 100% | 6 |
-| 32 | island and views | `windows/src/views/usage.ts` | 100% | 6 |
-| 33 | island and views | `windows/src/views/views.ts` | 76% | 6 |
-| 34 | Settings and panels | `windows/src/recap/recap.ts` | 100% | 7 |
-| 35 | Settings and panels | `windows/src/recap/share.ts` | 100% | 7 |
-| 36 | Settings and panels | `windows/src/recap/summary.ts` | 100% | 7 |
-| 37 | Settings and panels | `windows/src/settings/agents.ts` | 100% | 7 |
-| 38 | Settings and panels | `windows/src/settings/breaks.ts` | 100% | 7 |
-| 39 | Settings and panels | `windows/src/settings/colors.ts` | 100% | 7 |
-| 40 | Settings and panels | `windows/src/settings/main.ts` | 78% | 7 |
-| 41 | Settings and panels | `windows/src/settings/parts.ts` | 47% | 7 |
-| 42 | Settings and panels | `windows/src/settings/phone.ts` | 100% | 7 |
-| 43 | Settings and panels | `windows/src/settings/settings.css` | 47% | 7 |
-| 44 | Settings and panels | `windows/src/settings/voice.ts` | 54% | 7 |
-| 45 | voice and strings | `windows/src/i18n/extra.json` | 21% | 7 |
-| 46 | voice and strings | `windows/src/i18n/i18n.ts` | 84% | 7 |
-| 47 | voice and strings | `windows/src/i18n/strings.json` | 99% | 7 |
-| 48 | voice and strings | `windows/src/voice/controller.ts` | 86% | 7 |
-| 49 | voice and strings | `windows/src/voice/livekit.ts` | 100% | 7 |
-| 50 | voice and strings | `windows/src/voice/mic.ts` | 52% | 7 |
-| 51 | voice and strings | `windows/src/voice/speak.ts` | 59% | 7 |
-| 52 | voice and strings | `windows/src/voice/vad.ts` | 100% | 7 |
-| 53 | voice and strings | `windows/src/voice/wake.ts` | 92% | 7 |
-| 54 | plumbing | `windows/hook/Cargo.toml` | 100% | 8 (not this round) |
-| 55 | plumbing | `windows/hook/src/main.rs` | 100% | 8 (not this round) |
-| 56 | plumbing | `windows/hook/src/normalize.rs` | 100% | 8 (not this round) |
-| 57 | plumbing | `windows/hook/src/reply.rs` | 100% | 8 (not this round) |
-| 58 | plumbing | `windows/hook/src/statusline.rs` | 100% | 8 (not this round) |
-| 59 | plumbing | `windows/hook/src/unix.rs` | 100% | 8 (not this round) |
-| 60 | plumbing | `windows/hook/src/win.rs` | 100% | 8 (not this round) |
-| 61 | plumbing | `windows/src-tauri/src/agent_hooks.rs` | 100% | 8 (not this round) |
-| 62 | plumbing | `windows/src-tauri/src/agents.rs` | 97% | 8 (not this round) |
-| 63 | plumbing | `windows/src-tauri/src/chat.rs` | 50% | 8 (not this round) |
-| 64 | plumbing | `windows/src-tauri/src/claude.rs` | 93% | 8 (not this round) |
-| 65 | plumbing | `windows/src-tauri/src/codex_plan.rs` | 100% | 8 (not this round) |
-| 66 | plumbing | `windows/src-tauri/src/config_file.rs` | 100% | 8 (not this round) |
-| 67 | plumbing | `windows/src-tauri/src/desktop.rs` | 95% | 8 (not this round) |
-| 68 | plumbing | `windows/src-tauri/src/files.rs` | 100% | 8 (not this round) |
-| 69 | plumbing | `windows/src-tauri/src/github.rs` | 100% | 8 (not this round) |
-| 70 | plumbing | `windows/src-tauri/src/hooks.rs` | 100% | 8 (not this round) |
-| 71 | plumbing | `windows/src-tauri/src/i18n.rs` | 100% | 8 (not this round) |
-| 72 | plumbing | `windows/src-tauri/src/identity.rs` | 100% | 8 (not this round) |
-| 73 | plumbing | `windows/src-tauri/src/integrations.rs` | 87% | 8 (not this round) |
-| 74 | plumbing | `windows/src-tauri/src/island.rs` | 74% | 8 (not this round) |
-| 75 | plumbing | `windows/src-tauri/src/lib.rs` | 41% | 8 (not this round) |
-| 76 | plumbing | `windows/src-tauri/src/livekit.rs` | 100% | 8 (not this round) |
-| 77 | plumbing | `windows/src-tauri/src/local_chat.rs` | 73% | 8 (not this round) |
-| 78 | plumbing | `windows/src-tauri/src/log.rs` | 33% | 8 (not this round) |
-| 79 | plumbing | `windows/src-tauri/src/net.rs` | 81% | 8 (not this round) |
-| 80 | plumbing | `windows/src-tauri/src/ollama.rs` | 59% | 8 (not this round) |
-| 81 | plumbing | `windows/src-tauri/src/openai_compat.rs` | 99% | 8 (not this round) |
-| 82 | plumbing | `windows/src-tauri/src/pipe.rs` | 67% | 8 (not this round) |
-| 83 | plumbing | `windows/src-tauri/src/platform/linux.rs` | 98% | 8 (not this round) |
-| 84 | plumbing | `windows/src-tauri/src/platform/linux_focus.rs` | 100% | 8 (not this round) |
-| 85 | plumbing | `windows/src-tauri/src/platform/mod.rs` | 100% | 8 (not this round) |
-| 86 | plumbing | `windows/src-tauri/src/platform/windows.rs` | 72% | 8 (not this round) |
-| 87 | plumbing | `windows/src-tauri/src/portal.rs` | 99% | 8 (not this round) |
-| 88 | plumbing | `windows/src-tauri/src/recap.rs` | 99% | 8 (not this round) |
-| 89 | plumbing | `windows/src-tauri/src/secrets.rs` | 95% | 8 (not this round) |
-| 90 | plumbing | `windows/src-tauri/src/session_window.rs` | 100% | 8 (not this round) |
-| 91 | plumbing | `windows/src-tauri/src/settings.rs` | 64% | 8 (not this round) |
-| 92 | plumbing | `windows/src-tauri/src/shortcuts.rs` | 98% | 8 (not this round) |
-| 93 | plumbing | `windows/src-tauri/src/sounds.rs` | 100% | 8 (not this round) |
-| 94 | plumbing | `windows/src-tauri/src/spotify.rs` | 69% | 8 (not this round) |
-| 95 | plumbing | `windows/src-tauri/src/tray.rs` | 49% | 8 (not this round) |
-| 96 | plumbing | `windows/src-tauri/src/voice.rs` | 24% | 8 (not this round) |
-| 97 | plumbing | `windows/src-tauri/src/webview_drop.rs` | 100% | 8 (not this round) |
-| 98 | plumbing | `windows/src/core/bridge.ts` | 52% | 8 (not this round) |
-| 99 | plumbing | `windows/src/core/diff.ts` | 100% | 8 (not this round) |
-| 100 | plumbing | `windows/src/core/fonts.ts` | 100% | 8 (not this round) |
-| 101 | plumbing | `windows/src/core/github.ts` | 100% | 8 (not this round) |
-| 102 | plumbing | `windows/src/core/phone-chat.ts` | 100% | 8 (not this round) |
-| 103 | plumbing | `windows/src/core/pill-colors.ts` | 100% | 8 (not this round) |
-| 104 | plumbing | `windows/src/core/plan.ts` | 100% | 8 (not this round) |
-| 105 | plumbing | `windows/src/core/providers.ts` | 94% | 8 (not this round) |
-| 106 | plumbing | `windows/src/core/shortcuts.ts` | 96% | 8 (not this round) |
-| 107 | plumbing | `windows/src/core/sound.ts` | 66% | 8 (not this round) |
-| 108 | plumbing | `windows/src/core/spotify.ts` | 100% | 8 (not this round) |
-| 109 | plumbing | `windows/src/core/state.ts` | 76% | 8 (not this round) |
-| 110 | plumbing | `windows/src/main.ts` | 32% | 8 (not this round) |
-| 111 | plumbing | `windows/src/upload/canvas.ts` | 100% | 8 (not this round) |
-| 112 | plumbing | `windows/src/upload/sequence.ts` | 100% | 8 (not this round) |
-| 113 | phone link | `windows/src-tauri/src/phone_link/admission.rs` | 100% | after the Android source |
-| 114 | phone link | `windows/src-tauri/src/phone_link/chat.rs` | 100% | after the Android source |
-| 115 | phone link | `windows/src-tauri/src/phone_link/chat_backend.rs` | 100% | after the Android source |
-| 116 | phone link | `windows/src-tauri/src/phone_link/discovery.rs` | 100% | after the Android source |
-| 117 | phone link | `windows/src-tauri/src/phone_link/hub.rs` | 98% | after the Android source |
-| 118 | phone link | `windows/src-tauri/src/phone_link/interop.rs` | 100% | after the Android source |
-| 119 | phone link | `windows/src-tauri/src/phone_link/mod.rs` | 92% | after the Android source |
-| 120 | phone link | `windows/src-tauri/src/phone_link/pairing.rs` | 100% | after the Android source |
-| 121 | phone link | `windows/src-tauri/src/phone_link/relay-test-vectors.json` | 100% | after the Android source |
-| 122 | phone link | `windows/src-tauri/src/phone_link/relay_client.rs` | 100% | after the Android source |
-| 123 | phone link | `windows/src-tauri/src/phone_link/relay_crypto.rs` | 100% | after the Android source |
-| 124 | phone link | `windows/src-tauri/src/phone_link/server.rs` | 100% | after the Android source |
-| 125 | phone link | `windows/src-tauri/src/phone_link/tests.rs` | 99% | after the Android source |
+| 1 | island and views | `windows/src/core/layout.ts` | 89% | 6 |
+| 2 | island and views | `windows/src/core/pills.ts` | 88% | 6 |
+| 3 | island and views | `windows/src/desktop/main.ts` | 93% | 6 |
+| 4 | island and views | `windows/src/island/agents.ts` | 100% | 6 |
+| 5 | island and views | `windows/src/island/brain.ts` | 100% | 6 |
+| 6 | island and views | `windows/src/island/breaks.ts` | 87% | 6 |
+| 7 | island and views | `windows/src/island/desktop.ts` | 91% | 6 |
+| 8 | island and views | `windows/src/island/fsm.ts` | 73% | 6 |
+| 9 | island and views | `windows/src/island/hooks.ts` | 100% | 6 |
+| 10 | island and views | `windows/src/island/integrations.ts` | 100% | 6 |
+| 11 | island and views | `windows/src/island/island.ts` | 69% | 6 |
+| 12 | island and views | `windows/src/island/phone-link.ts` | 98% | 6 |
+| 13 | island and views | `windows/src/island/phone-services.ts` | 100% | 6 |
+| 14 | island and views | `windows/src/island/shortcuts.ts` | 96% | 6 |
+| 15 | island and views | `windows/src/island/spotify.ts` | 100% | 6 |
+| 16 | island and views | `windows/src/island/voice.ts` | 47% | 6 |
+| 17 | island and views | `windows/src/style.css` | 69% | 6 |
+| 18 | island and views | `windows/src/views/chat.ts` | 71% | 6 |
+| 19 | island and views | `windows/src/views/diff.ts` | 100% | 6 |
+| 20 | island and views | `windows/src/views/dom.ts` | 99% | 6 |
+| 21 | island and views | `windows/src/views/github.ts` | 100% | 6 |
+| 22 | island and views | `windows/src/views/icons.ts` | 93% | 6 |
+| 23 | island and views | `windows/src/views/integrations.ts` | 91% | 6 |
+| 24 | island and views | `windows/src/views/markdown.ts` | 100% | 6 |
+| 25 | island and views | `windows/src/views/recap.ts` | 100% | 6 |
+| 26 | island and views | `windows/src/views/spotify.ts` | 94% | 6 |
+| 27 | island and views | `windows/src/views/ticker.ts` | 100% | 6 |
+| 28 | island and views | `windows/src/views/upload.ts` | 100% | 6 |
+| 29 | island and views | `windows/src/views/usage.ts` | 100% | 6 |
+| 30 | island and views | `windows/src/views/views.ts` | 76% | 6 |
+| 31 | Settings and panels | `windows/src/recap/recap.ts` | 100% | 7 |
+| 32 | Settings and panels | `windows/src/recap/share.ts` | 100% | 7 |
+| 33 | Settings and panels | `windows/src/recap/summary.ts` | 100% | 7 |
+| 34 | Settings and panels | `windows/src/settings/agents.ts` | 100% | 7 |
+| 35 | Settings and panels | `windows/src/settings/breaks.ts` | 100% | 7 |
+| 36 | Settings and panels | `windows/src/settings/colors.ts` | 100% | 7 |
+| 37 | Settings and panels | `windows/src/settings/main.ts` | 78% | 7 |
+| 38 | Settings and panels | `windows/src/settings/parts.ts` | 47% | 7 |
+| 39 | Settings and panels | `windows/src/settings/phone.ts` | 100% | 7 |
+| 40 | Settings and panels | `windows/src/settings/settings.css` | 47% | 7 |
+| 41 | Settings and panels | `windows/src/settings/voice.ts` | 54% | 7 |
+| 42 | voice and strings | `windows/src/i18n/extra.json` | 21% | 7 |
+| 43 | voice and strings | `windows/src/i18n/i18n.ts` | 84% | 7 |
+| 44 | voice and strings | `windows/src/i18n/strings.json` | 99% | 7 |
+| 45 | voice and strings | `windows/src/voice/controller.ts` | 86% | 7 |
+| 46 | voice and strings | `windows/src/voice/livekit.ts` | 100% | 7 |
+| 47 | voice and strings | `windows/src/voice/mic.ts` | 52% | 7 |
+| 48 | voice and strings | `windows/src/voice/speak.ts` | 59% | 7 |
+| 49 | voice and strings | `windows/src/voice/vad.ts` | 100% | 7 |
+| 50 | voice and strings | `windows/src/voice/wake.ts` | 92% | 7 |
+| 51 | plumbing | `windows/hook/Cargo.toml` | 100% | 8 (not this round) |
+| 52 | plumbing | `windows/hook/src/main.rs` | 100% | 8 (not this round) |
+| 53 | plumbing | `windows/hook/src/normalize.rs` | 100% | 8 (not this round) |
+| 54 | plumbing | `windows/hook/src/reply.rs` | 100% | 8 (not this round) |
+| 55 | plumbing | `windows/hook/src/statusline.rs` | 100% | 8 (not this round) |
+| 56 | plumbing | `windows/hook/src/unix.rs` | 100% | 8 (not this round) |
+| 57 | plumbing | `windows/hook/src/win.rs` | 100% | 8 (not this round) |
+| 58 | plumbing | `windows/src-tauri/src/agent_hooks.rs` | 100% | 8 (not this round) |
+| 59 | plumbing | `windows/src-tauri/src/agents.rs` | 97% | 8 (not this round) |
+| 60 | plumbing | `windows/src-tauri/src/chat.rs` | 50% | 8 (not this round) |
+| 61 | plumbing | `windows/src-tauri/src/claude.rs` | 93% | 8 (not this round) |
+| 62 | plumbing | `windows/src-tauri/src/codex_plan.rs` | 100% | 8 (not this round) |
+| 63 | plumbing | `windows/src-tauri/src/config_file.rs` | 100% | 8 (not this round) |
+| 64 | plumbing | `windows/src-tauri/src/desktop.rs` | 93% | 8 (not this round) |
+| 65 | plumbing | `windows/src-tauri/src/files.rs` | 100% | 8 (not this round) |
+| 66 | plumbing | `windows/src-tauri/src/github.rs` | 100% | 8 (not this round) |
+| 67 | plumbing | `windows/src-tauri/src/hooks.rs` | 100% | 8 (not this round) |
+| 68 | plumbing | `windows/src-tauri/src/i18n.rs` | 100% | 8 (not this round) |
+| 69 | plumbing | `windows/src-tauri/src/identity.rs` | 100% | 8 (not this round) |
+| 70 | plumbing | `windows/src-tauri/src/integrations.rs` | 87% | 8 (not this round) |
+| 71 | plumbing | `windows/src-tauri/src/island.rs` | 74% | 8 (not this round) |
+| 72 | plumbing | `windows/src-tauri/src/lib.rs` | 41% | 8 (not this round) |
+| 73 | plumbing | `windows/src-tauri/src/livekit.rs` | 100% | 8 (not this round) |
+| 74 | plumbing | `windows/src-tauri/src/local_chat.rs` | 73% | 8 (not this round) |
+| 75 | plumbing | `windows/src-tauri/src/log.rs` | 33% | 8 (not this round) |
+| 76 | plumbing | `windows/src-tauri/src/net.rs` | 81% | 8 (not this round) |
+| 77 | plumbing | `windows/src-tauri/src/ollama.rs` | 59% | 8 (not this round) |
+| 78 | plumbing | `windows/src-tauri/src/openai_compat.rs` | 99% | 8 (not this round) |
+| 79 | plumbing | `windows/src-tauri/src/pipe.rs` | 67% | 8 (not this round) |
+| 80 | plumbing | `windows/src-tauri/src/platform/linux.rs` | 98% | 8 (not this round) |
+| 81 | plumbing | `windows/src-tauri/src/platform/linux_focus.rs` | 100% | 8 (not this round) |
+| 82 | plumbing | `windows/src-tauri/src/platform/mod.rs` | 100% | 8 (not this round) |
+| 83 | plumbing | `windows/src-tauri/src/platform/windows.rs` | 72% | 8 (not this round) |
+| 84 | plumbing | `windows/src-tauri/src/portal.rs` | 99% | 8 (not this round) |
+| 85 | plumbing | `windows/src-tauri/src/recap.rs` | 99% | 8 (not this round) |
+| 86 | plumbing | `windows/src-tauri/src/secrets.rs` | 95% | 8 (not this round) |
+| 87 | plumbing | `windows/src-tauri/src/session_window.rs` | 100% | 8 (not this round) |
+| 88 | plumbing | `windows/src-tauri/src/settings.rs` | 64% | 8 (not this round) |
+| 89 | plumbing | `windows/src-tauri/src/shortcuts.rs` | 98% | 8 (not this round) |
+| 90 | plumbing | `windows/src-tauri/src/sounds.rs` | 100% | 8 (not this round) |
+| 91 | plumbing | `windows/src-tauri/src/spotify.rs` | 69% | 8 (not this round) |
+| 92 | plumbing | `windows/src-tauri/src/tray.rs` | 49% | 8 (not this round) |
+| 93 | plumbing | `windows/src-tauri/src/voice.rs` | 24% | 8 (not this round) |
+| 94 | plumbing | `windows/src-tauri/src/webview_drop.rs` | 100% | 8 (not this round) |
+| 95 | plumbing | `windows/src/core/bridge.ts` | 52% | 8 (not this round) |
+| 96 | plumbing | `windows/src/core/diff.ts` | 100% | 8 (not this round) |
+| 97 | plumbing | `windows/src/core/fonts.ts` | 100% | 8 (not this round) |
+| 98 | plumbing | `windows/src/core/github.ts` | 100% | 8 (not this round) |
+| 99 | plumbing | `windows/src/core/phone-chat.ts` | 100% | 8 (not this round) |
+| 100 | plumbing | `windows/src/core/pill-colors.ts` | 100% | 8 (not this round) |
+| 101 | plumbing | `windows/src/core/plan.ts` | 100% | 8 (not this round) |
+| 102 | plumbing | `windows/src/core/providers.ts` | 94% | 8 (not this round) |
+| 103 | plumbing | `windows/src/core/shortcuts.ts` | 96% | 8 (not this round) |
+| 104 | plumbing | `windows/src/core/sound.ts` | 66% | 8 (not this round) |
+| 105 | plumbing | `windows/src/core/spotify.ts` | 100% | 8 (not this round) |
+| 106 | plumbing | `windows/src/core/state.ts` | 76% | 8 (not this round) |
+| 107 | plumbing | `windows/src/main.ts` | 32% | 8 (not this round) |
+| 108 | plumbing | `windows/src/upload/canvas.ts` | 100% | 8 (not this round) |
+| 109 | plumbing | `windows/src/upload/sequence.ts` | 100% | 8 (not this round) |
+| 110 | phone link | `windows/src-tauri/src/phone_link/admission.rs` | 100% | after the Android source |
+| 111 | phone link | `windows/src-tauri/src/phone_link/chat.rs` | 100% | after the Android source |
+| 112 | phone link | `windows/src-tauri/src/phone_link/chat_backend.rs` | 100% | after the Android source |
+| 113 | phone link | `windows/src-tauri/src/phone_link/discovery.rs` | 100% | after the Android source |
+| 114 | phone link | `windows/src-tauri/src/phone_link/hub.rs` | 98% | after the Android source |
+| 115 | phone link | `windows/src-tauri/src/phone_link/interop.rs` | 100% | after the Android source |
+| 116 | phone link | `windows/src-tauri/src/phone_link/mod.rs` | 92% | after the Android source |
+| 117 | phone link | `windows/src-tauri/src/phone_link/pairing.rs` | 100% | after the Android source |
+| 118 | phone link | `windows/src-tauri/src/phone_link/relay-test-vectors.json` | 100% | after the Android source |
+| 119 | phone link | `windows/src-tauri/src/phone_link/relay_client.rs` | 100% | after the Android source |
+| 120 | phone link | `windows/src-tauri/src/phone_link/relay_crypto.rs` | 100% | after the Android source |
+| 121 | phone link | `windows/src-tauri/src/phone_link/server.rs` | 100% | after the Android source |
+| 122 | phone link | `windows/src-tauri/src/phone_link/tests.rs` | 99% | after the Android source |
 
 ## Every file
 
@@ -174,7 +171,7 @@ Character first, plumbing last; plumbing is not rewritten in round 4E. Phone lin
 - `codex_plan.rs`: **inherited** (100% same as at the start)
 - `config_file.rs`: **inherited** (100% same as at the start)
 - `db.rs`: **Groovy's own** (added after the start)
-- `desktop.rs`: **inherited** (95% same as at the start)
+- `desktop.rs`: **inherited** (93% same as at the start)
 - `files.rs`: **inherited** (100% same as at the start)
 
 ### `windows/src-tauri/src/flow/`
@@ -339,7 +336,7 @@ Character first, plumbing last; plumbing is not rewritten in round 4E. Phone lin
 
 ### `windows/src/core/`
 
-- `anim.ts`: **inherited** (94% same as at the start)
+- `anim.ts`: **rewritten** (bodies replaced in round 4E item 1, 20 Nov 2026; 41% of lines still match: the public signatures, event names and tested constants its callers use)
 - `autoclose.ts`: **Groovy's own** (added after the start)
 - `bridge.ts`: **inherited** (52% same as at the start)
 - `diff.ts`: **inherited** (100% same as at the start)
@@ -455,11 +452,11 @@ Character first, plumbing last; plumbing is not rewritten in round 4E. Phone lin
 
 ### `windows/src/mochi/`
 
-- `desktop-logic.ts`: **inherited** (99% same as at the start)
+- `desktop-logic.ts`: **rewritten** (bodies replaced in round 4E item 1, 20 Nov 2026; 70% of lines still match: the public signatures, event names and tested constants its callers use)
 - `engine.ts`: **rewritten** (round 4E item 1, 20 Nov 2026; its kept blocks are Groovy's own)
 - `finish.ts`: **Groovy's own** (added after the start)
 - `growth.ts`: **Groovy's own** (added after the start)
-- `minibots.ts`: **inherited** (44% same as at the start)
+- `minibots.ts`: **rewritten** (bodies replaced in round 4E item 1, 20 Nov 2026; 44% of lines still match: the public signatures, event names and tested constants its callers use)
 - `motion.ts`: **Groovy's own** (added after the start)
 - `naming.ts`: **Groovy's own** (added after the start)
 - `outfits.ts`: **Groovy's own** (no line of the original, CHARACTER_MOTION.md §1)

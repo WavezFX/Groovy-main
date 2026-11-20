@@ -17,10 +17,10 @@ function springSettle(zeta: number, cycles: number): EaseFn {
   return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : raw(t) / end);
 }
 
-/** Groovy's curves: everything eases out; "settle" overshoots once, like a soft spring. */
+/** Groovy's curves: ease-out, a sine glide (as the breath), and a spring's settle that overshoots once. */
 export const Ease = {
   out: easeOut,
-  inOut: (t: number) => (t < 0.5 ? (1 - easeOut(1 - 2 * t)) / 2 : 0.5 + easeOut(2 * t - 1) / 2),
+  inOut: (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : 0.5 - 0.5 * Math.cos(Math.PI * t)),
   back: springSettle(0.55, 1.1),
   lin: (t: number) => t,
   easeIn: (t: number) => 1 - easeOut(1 - t),

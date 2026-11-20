@@ -2,7 +2,7 @@
 
 `docs/GROOVY_SPEC.md` section 2: the animation engine must be original motion; anything ported is rewritten. The growth art, the three looks and the pillow outline don't change.
 
-**State of this item (20 Nov 2026):** the design in section 2 was **approved by the owner on 20 Nov 2026**. The engine is rewritten from it (section 4). Also rewritten: `minibots.ts`. Still to do: `core/anim.ts`'s easing table and the flight in `desktop-logic.ts` (section 3, step 3), and the CI numbers (P1, P10).
+**State of this item (20 Nov 2026):** the design in section 2 was **approved by the owner on 20 Nov 2026**. The engine is rewritten from it (section 4). Also rewritten: `minibots.ts`, `core/anim.ts` (easing table from the ease-out, a sine glide and a spring settle; `Spring` and `Tracked` keep their interface) and the flight: `mochi/desktop-logic.ts` (life cycle and gaze; his surprise plays 0.52 s before he leaves) and the flight curves in `src-tauri/src/desktop.rs` (a pull back then a sine glide, 0.52 s; landing on a spring settle, 0.32 s). Still to do: the CI numbers (P1, P10, idle memory) and the line comparison against the original engine.
 
 ## 1. What is ported today
 `windows/src/mochi/engine.ts` (1597 lines) was compared, method by method, with the engine of the project Groovy's code started from (whitespace and comments ignored). Of that engine's 1376 lines, about 1230 are still in Groovy's file unchanged. By method (lines of code, share identical):

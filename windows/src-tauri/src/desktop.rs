@@ -33,10 +33,10 @@ pub const LABEL: &str = "mochi";
 pub const SIZE: f64 = 120.0;
 /// Kept between him and the edges of the work area (DesktopMochiLogic.clampMargin).
 const MARGIN: f64 = 24.0;
-/// To and from the island (DesktopMochi.swift: 0.45 s, ease in-out).
-const FLIGHT_MS: u64 = 450;
-/// Settling into his spot after a drop (0.25 s, with a little overshoot).
-const SNAP_MS: u64 = 250;
+/// To and from the island: Groovy's flight, a pull back then a glide (0.52 s).
+const FLIGHT_MS: u64 = 520;
+/// Settling into his spot after a drop, on a soft spring (0.32 s).
+const SNAP_MS: u64 = 320;
 const TICK_MS: u64 = 16;
 
 /// Windows never hides his window: it parks it off-screen. tao shows a hidden
@@ -169,19 +169,28 @@ pub mod logic {
         (island_center_x - size * scale / 2.0, island_top)
     }
 
+    /// Groovy's flight (round 4E item 1): a small pull back first (anticipation),
+    /// then a sine glide that eases into the destination. Exactly 0 at 0, 1 at 1.
     pub fn ease_in_out(t: f64) -> f64 {
-        if t < 0.5 {
-            4.0 * t * t * t
-        } else {
-            1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
-        }
+        let t = t.clamp(0.0, 1.0);
+        let pi = std::f64::consts::PI;
+        0.5 - 0.5 * (pi * t).cos() - 0.08 * (pi * t).sin() * (1.0 - t) * (1.0 - t)
     }
 
-    /// Ease-out with a small overshoot: the landing squash.
+    /// Landing: a soft spring settle (damping 0.55), normalised to end exactly on 1,
+    /// so he overshoots his spot once and sinks back into it.
     pub fn ease_out_back(t: f64) -> f64 {
-        let c1 = 1.3;
-        let c3 = c1 + 1.0;
-        1.0 + c3 * (t - 1.0).powi(3) + c1 * (t - 1.0).powi(2)
+        if t <= 0.0 {
+            return 0.0;
+        }
+        if t >= 1.0 {
+            return 1.0;
+        }
+        let zeta: f64 = 0.55;
+        let w = 2.0 * std::f64::consts::PI * 1.1;
+        let wd = w * (1.0 - zeta * zeta).sqrt();
+        let raw = |t: f64| 1.0 - (-zeta * w * t).exp() * ((wd * t).cos() + (zeta * w / wd) * (wd * t).sin());
+        raw(t) / raw(1.0)
     }
 
     pub fn lerp(a: (f64, f64), b: (f64, f64), t: f64) -> (f64, f64) {
@@ -1058,7 +1067,9 @@ mod tests {
             assert!(ease(0.0).abs() < 1e-9);
             assert!((ease(1.0) - 1.0).abs() < 1e-9);
         }
-        assert!(ease_out_back(0.7) > 1.0, "the landing overshoots a little");
+        assert!(ease_out_back(0.55) > 1.0, "the landing overshoots a little");
+        assert!(ease_in_out(0.05) < 0.0, "the flight pulls back first");
+        assert!(ease_in_out(0.5) > 0.4 && ease_in_out(0.9) > 0.95);
         assert_eq!(lerp((0.0, 10.0), (100.0, 20.0), 0.5), (50.0, 15.0));
     }
 }
