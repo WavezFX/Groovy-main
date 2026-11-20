@@ -660,9 +660,9 @@ pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
     let before = {
         let mut store = flow.store.lock().unwrap();
         let before = store.prefs.clone();
-        let mut prefs = prefs.clone();
-        prefs.follow_speech_switch(&before);
-        store.prefs = prefs;
+        let mut next = prefs.clone();
+        next.follow_speech_switch(&before);
+        store.prefs = next;
         store.save_prefs();
         if before.keep_days != prefs.keep_days {
             store.prune(store::now_ms());

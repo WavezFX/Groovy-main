@@ -283,8 +283,8 @@ fn warm_targets(app: &AppHandle) -> Vec<reqwest::Url> {
         }
     };
     // Only warmed when cloud speech is allowed: "local" builds no request (round 4B item 2).
-    let cloud_speech = crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech_first());
-    if let Some(s) = crate::speech::cloud::available().first().filter(|_| cloud_speech) {
+    let services = crate::flow::get(app).map(|f| f.store.lock().unwrap().prefs.clone()).map(|p| p.speech_services(crate::speech::cloud::available)).unwrap_or_default();
+    if let Some(s) = services.first() {
         add(s.host());
     }
     if let Some(u) = crate::brain_ai::first_cloud_url(app) {

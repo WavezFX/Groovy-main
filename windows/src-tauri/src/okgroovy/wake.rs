@@ -322,7 +322,8 @@ mod tests {
         let out = vad.feed(&silence);
         assert_eq!(out.len(), 1);
         // The tone, a pre-roll before it and the hangover after it.
-        assert!(out[0].len() > 16_000 && out[0].len() <= 16_000 + 25 * FRAME + PREROLL + 2 * FRAME);
+        // A 1 s stretch is short, so it waits `SHORT_EXTRA` frames more (round 4B item 6).
+        assert!(out[0].len() > 16_000 && out[0].len() <= 16_000 + (25 + SHORT_EXTRA) * FRAME + PREROLL + 2 * FRAME);
         assert!(!vad.in_speech());
     }
 
