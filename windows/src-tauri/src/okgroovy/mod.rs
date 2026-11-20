@@ -190,14 +190,15 @@ fn to_island(app: &AppHandle, text: Option<&str>, cancelled: bool) {
 
 /// Cloud speech answers first (Settings → Voice), when it has a key.
 fn cloud_first(app: &AppHandle) -> bool {
-    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech) && !speech::cloud::available().is_empty()
+    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech_first()) && !speech::cloud::available().is_empty()
 }
 
 /// The words of a command: the cloud engine first when it is set up, the
 /// PC's own (loaded now if it isn't) when there is none or it fails.
 fn hear(app: &AppHandle, samples: &[f32]) -> Option<String> {
     if cloud_first(app) {
-        if let Some((text, _)) = tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &[], None)) {
+        if let Some((text, service)) = tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &[], None)) {
+            speech::heard_by(service.name());
             return Some(text.trim().to_string());
         }
     }

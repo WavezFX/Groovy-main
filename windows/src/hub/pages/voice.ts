@@ -308,15 +308,18 @@ export async function speakingPage(page: HTMLElement, ctx: HubContext) {
   );
 
   // ── Listening ──
-  const chips = h("div", { class: "hub-v-chips" }, h("span", { class: "hub-v-chip", text: "Hey Groovy" }), h("span", { class: "hub-v-chip", text: "Hey Groovy" }));
+  const chips = h("div", { class: "hub-v-chips" }, ...["Groovy", "Hey Groovy", "Yo Groovy"].map((w) => h("span", { class: "hub-v-chip", text: w })));
   const mics: [string, string][] = [["", t("System default")], ...status.mics.map((m): [string, string] => [m.name, m.name])];
   if (prefs.mic && !mics.some(([id]) => id === prefs.mic)) mics.push([prefs.mic, prefs.mic]);
   const mic = select(mics, prefs.mic, (m) => void ctx.setPrefs((p) => (p.mic = m)));
   const recognition = prefs.cloudSpeech ? t("Cloud first · small offline model as backup") : t("On this PC only");
+  // Round 4B item 2: what turned the last sentence into text.
+  const lastHeard = status.heardBy ? t("Last sentence heard by {who}", { who: status.heardBy }) : t("Nothing heard yet");
   const listening = h("div", { class: "hub-card hub-b-list" },
     h("div", { class: "hub-v-wake" }, h("span", { class: "hub-b-name", text: t("Wake words") }), chips),
     homeRowV(t("Microphone"), h("span", { class: "hub-b-detail", text: t("The one Groovy listens to") }), mic),
     homeRowV(t("Speech recognition"), h("span", { class: "hub-b-detail", text: recognition }), button(t("Change"), () => ctx.navigate("dictation", "flowsettings"))),
+    h("div", { class: "hub-note", text: lastHeard }),
   );
   page.append(h("div", { class: "hub-home-two" },
     h("div", { class: "hub-home-col" }, h("span", { class: "hub-label", text: t("Delivery") }), delivery),

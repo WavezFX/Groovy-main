@@ -525,14 +525,35 @@ pub struct Transcript {
 /// quietest, near this length.
 const MAX_CHUNK_SECONDS: f64 = 28.0;
 
+/// What turned the last sentence into text, for Settings → Voice (round 4B item 2).
+static HEARD_BY: Mutex<String> = Mutex::new(String::new());
+
+/// Notes what heard the last sentence (a cloud service's name, or this PC's engine).
+pub fn heard_by(name: &str) {
+    *HEARD_BY.lock().unwrap() = name.to_string();
+}
+
+/// What heard the last sentence; "" before the first one.
+pub fn last_heard_by() -> String {
+    HEARD_BY.lock().unwrap().clone()
+}
+
 /// Transcribes 16 kHz mono audio: in the speech helper (round 3N item 2), or here if it can't start.
 pub fn transcribe(samples: &[f32]) -> Option<Transcript> {
+    let engine = if whisper().is_some() { "Whisper, on this PC" } else { "Parakeet, on this PC" };
     if whisper().is_none() && helper::enabled() {
         if let Some(r) = helper::parakeet(samples) {
+            if r.is_some() {
+                heard_by(engine);
+            }
             return r;
         }
     }
-    transcribe_here(samples)
+    let r = transcribe_here(samples);
+    if r.is_some() {
+        heard_by(engine);
+    }
+    r
 }
 
 /// Transcribes 16 kHz mono audio in this process.

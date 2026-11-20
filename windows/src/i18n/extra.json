@@ -20630,6 +20630,50 @@
    "pt-BR": "A voz leve não falou.",
    "ru": "Лёгкий голос не заговорил.",
    "id": "Suara ringan tidak berbicara."
+  },
+  "Speech still goes to your cloud speech service first. You can keep it on this PC in Settings.": {
+   "zh-Hans": "语音仍会先发送到你的云端语音服务。你可以在设置中改为只在这台电脑上处理。",
+   "hi": "बोली अब भी पहले आपकी क्लाउड स्पीच सेवा को जाती है। आप सेटिंग्स में इसे इसी PC पर रख सकते हैं।",
+   "es": "Tu voz sigue yendo primero a tu servicio de voz en la nube. Puedes mantenerla en este PC en Ajustes.",
+   "ar": "لا يزال الكلام يذهب أولاً إلى خدمة الكلام السحابية لديك. يمكنك إبقاؤه على هذا الكمبيوتر من الإعدادات.",
+   "fr": "La parole va toujours d'abord à votre service vocal en ligne. Vous pouvez la garder sur ce PC dans les Réglages.",
+   "bn": "কথা এখনও প্রথমে আপনার ক্লাউড স্পিচ পরিষেবায় যায়। সেটিংসে এটি এই PC-তেই রাখতে পারেন।",
+   "pt-BR": "A fala ainda vai primeiro ao seu serviço de voz na nuvem. Você pode mantê-la neste PC nas Configurações.",
+   "ru": "Речь по-прежнему сначала идёт в ваш облачный сервис распознавания. В настройках можно оставить её на этом ПК.",
+   "id": "Ucapan masih dikirim dulu ke layanan suara cloud Anda. Anda bisa menyimpannya di PC ini lewat Pengaturan."
+  },
+  "Speech now turns into text on this PC. Cloud speech is an option in Settings.": {
+   "zh-Hans": "语音现在在这台电脑上转为文字。云端语音可在设置中开启。",
+   "hi": "बोली अब इसी PC पर टेक्स्ट बनती है। क्लाउड स्पीच सेटिंग्स में एक विकल्प है।",
+   "es": "Ahora la voz se convierte en texto en este PC. La voz en la nube es una opción en Ajustes.",
+   "ar": "يتحول الكلام الآن إلى نص على هذا الكمبيوتر. الكلام السحابي خيار في الإعدادات.",
+   "fr": "La parole est maintenant transcrite sur ce PC. La transcription en ligne est une option dans les Réglages.",
+   "bn": "কথা এখন এই PC-তেই লেখায় রূপান্তরিত হয়। ক্লাউড স্পিচ সেটিংসে একটি বিকল্প।",
+   "pt-BR": "Agora a fala vira texto neste PC. A voz na nuvem é uma opção nas Configurações.",
+   "ru": "Теперь речь превращается в текст на этом ПК. Облачное распознавание можно включить в настройках.",
+   "id": "Ucapan kini diubah menjadi teks di PC ini. Suara cloud adalah opsi di Pengaturan."
+  },
+  "Last sentence heard by {who}": {
+   "zh-Hans": "上一句由 {who} 识别",
+   "hi": "पिछला वाक्य {who} ने सुना",
+   "es": "Última frase oída por {who}",
+   "ar": "آخر جملة سمعها {who}",
+   "fr": "Dernière phrase entendue par {who}",
+   "bn": "শেষ বাক্যটি শুনেছে {who}",
+   "pt-BR": "Última frase ouvida por {who}",
+   "ru": "Последнюю фразу распознал: {who}",
+   "id": "Kalimat terakhir didengar oleh {who}"
+  },
+  "Nothing heard yet": {
+   "zh-Hans": "还没有听到任何内容",
+   "hi": "अभी तक कुछ नहीं सुना",
+   "es": "Aún no se ha oído nada",
+   "ar": "لم يُسمع شيء بعد",
+   "fr": "Rien entendu pour l'instant",
+   "bn": "এখনও কিছু শোনা হয়নি",
+   "pt-BR": "Nada ouvido ainda",
+   "ru": "Пока ничего не услышано",
+   "id": "Belum ada yang terdengar"
   }
  }
 }

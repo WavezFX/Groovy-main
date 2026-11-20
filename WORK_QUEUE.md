@@ -192,7 +192,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ### 4B. `FIXES_ROUND4B.md` (voice)
 - [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus). **Built.** Not ticked: P5 is 9 of 10 on Linux but **7–8 of 10 on Windows** (0 of 20 false wakes on both), and waking to his given name is still there until the owner confirms removing it.
-- [ ] 2. Speech-to-text on this PC by default
+- [x] 2. Speech-to-text on this PC by default. `speechMode` local/cloud-first; no cloud request in local; older cloud users keep cloud-first with a one-time notice; Settings → Voice shows what heard the last sentence. Step 3 (download offered, never silent) was already there (`openSpeechSetup`).
 - [ ] 3. His voice on this PC by default (**needs 4A item 1**)
 - [ ] 4. CPU and response times (P2–P7)
 - [ ] 5. LiveKit as an option

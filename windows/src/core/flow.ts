@@ -61,6 +61,8 @@ export interface FlowPrefs {
   voiceSpeed: number;
   /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
   cloudSpeech: boolean;
+  /** Where speech becomes text (round 4B item 2): this PC only (default), or a cloud service first. Kept in step with cloudSpeech by Rust. */
+  speechMode?: "local" | "cloud-first";
   /** Learn names and models from corrections made within a minute. */
   learnWords: boolean;
 }
@@ -84,6 +86,8 @@ export interface FlowStatus {
   aiReady: boolean;
   /** Speech can be turned into text with the engine chosen. */
   engineReady: boolean;
+  /** What turned the last sentence into text ("Deepgram Nova-3", "Whisper, on this PC"), or "" (round 4B item 2). */
+  heardBy?: string;
   mics: { name: string; default: boolean }[];
   platform: "windows" | "linux";
   autostarted: boolean;
