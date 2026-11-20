@@ -13,7 +13,7 @@ Character first, plumbing last; plumbing is not rewritten in round 4E. Phone lin
 |---|---|---|---|---|
 | 1 | character | `windows/src/core/anim.ts` | 94% | 4E (follow-up) |
 | 2 | character | `windows/src/mochi/desktop-logic.ts` | 99% | 4E (follow-up) |
-| 3 | character | `windows/src/mochi/minibots.ts` | 100% | 4E (follow-up) |
+| 3 | character | `windows/src/mochi/minibots.ts` | 44% | 4E (follow-up) |
 | 4 | island and views | `windows/src/core/layout.ts` | 89% | 6 |
 | 5 | island and views | `windows/src/core/pills.ts` | 88% | 6 |
 | 6 | island and views | `windows/src/desktop/main.ts` | 93% | 6 |
@@ -459,7 +459,7 @@ Character first, plumbing last; plumbing is not rewritten in round 4E. Phone lin
 - `engine.ts`: **rewritten** (round 4E item 1, 20 Nov 2026; its kept blocks are Groovy's own)
 - `finish.ts`: **Groovy's own** (added after the start)
 - `growth.ts`: **Groovy's own** (added after the start)
-- `minibots.ts`: **inherited** (100% same as at the start)
+- `minibots.ts`: **inherited** (44% same as at the start)
 - `motion.ts`: **Groovy's own** (added after the start)
 - `naming.ts`: **Groovy's own** (added after the start)
 - `outfits.ts`: **Groovy's own** (no line of the original, CHARACTER_MOTION.md §1)

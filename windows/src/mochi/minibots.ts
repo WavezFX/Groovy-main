@@ -1,42 +1,37 @@
-// Mini Mochis (pills + compact grid) — port of MiniBotCanvasView.
-// Each canvas owns a BotEngine; the island's frame loop ticks every live one.
-
+// Small Groovys for task pills and the compact grid (round 4E: rewritten for
+// Groovy). Each one is a canvas with its own BotEngine in the flat "mini" style;
+// the island's frame loop calls tickMiniBots() while any of them is shown.
 import { BotEngine, hexToRGB } from "./engine";
 import type { AgentTask } from "../core/state";
 
-interface MiniBot {
-  canvas: HTMLCanvasElement;
+interface Mini {
   engine: BotEngine;
-  cssSize: number;
+  /** The canvas's CSS size: the body is drawn at 60 % of it. */
+  size: number;
   taskId: string;
-  /** Asked every frame: whether this one dances (the music pill's, MiniBotCanvasView). */
+  /** Read each frame: whether this one sways to the music. */
   dancing?: () => boolean;
 }
 
-const live = new Map<HTMLCanvasElement, MiniBot>();
+const minis = new Map<HTMLCanvasElement, Mini>();
+
+/** Device pixels per CSS pixel, capped at 2 so a mini never costs much to draw. */
+const ratio = () => Math.min(2, window.devicePixelRatio || 1);
 
 /**
- * Creates a mini Groovy whose **body** is `bodySize` CSS pixels across.
- *
- * The engine draws the body at 60 % of its canvas, so the canvas is
- * `bodySize / 0.6` and is centred in a `bodySize` slot, overflowing it — the
- * same thing SwiftUI does with a `.frame(width: 22/0.6)` inside a
- * `.frame(width: 22)`. Sizing the canvas itself to `bodySize` would shrink the
- * whole drawing to 60 %, which is what used to happen.
+ * A slot `bodySize` CSS pixels square holding a mini Groovy whose body fills
+ * it. The engine draws the body at 60 % of its canvas, so the canvas is
+ * `bodySize / 0.6` across, centred on the slot and overflowing it.
  */
 export function createMiniBot(task: AgentTask, bodySize: number, dancing?: () => boolean): HTMLElement {
   const slot = document.createElement("span");
   slot.className = "mini";
-  slot.style.width = `${bodySize}px`;
-  slot.style.height = `${bodySize}px`;
+  slot.style.width = slot.style.height = `${bodySize}px`;
 
+  const size = bodySize / 0.6;
   const canvas = document.createElement("canvas");
-  const engineSize = bodySize / 0.6;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.round(engineSize * dpr);
-  canvas.height = Math.round(engineSize * dpr);
-  canvas.style.width = `${engineSize}px`;
-  canvas.style.height = `${engineSize}px`;
+  canvas.width = canvas.height = Math.round(size * ratio());
+  canvas.style.width = canvas.style.height = `${size}px`;
   slot.append(canvas);
 
   const engine = new BotEngine();
@@ -45,43 +40,44 @@ export function createMiniBot(task: AgentTask, bodySize: number, dancing?: () =>
   engine.setState(task.state, true);
   if (task.emote) engine.setPermanentEmote(task.emote);
   if (task.miniEye) {
-    engine.permanentEye = task.miniEye;
-    engine.eyeOverride = task.miniEye;
+    // A fixed eye for this task, kept through every state change.
+    engine.permanentEye = engine.eyeOverride = task.miniEye;
     engine.eyeOverrideUntil = Number.POSITIVE_INFINITY;
   }
-
-  live.set(canvas, { canvas, engine, cssSize: engineSize, taskId: task.id, dancing });
+  minis.set(canvas, { engine, size, taskId: task.id, dancing });
   return slot;
 }
 
-/** Drops every canvas no longer in the document (views are rebuilt wholesale). */
+/** Forgets every mini whose canvas has left the page (views are rebuilt whole). */
 export function pruneMiniBots() {
-  for (const [canvas] of live) {
-    if (!canvas.isConnected) live.delete(canvas);
-  }
+  for (const canvas of [...minis.keys()]) if (!canvas.isConnected) minis.delete(canvas);
 }
 
+/** Follows each task's state and colour. */
 export function syncMiniBotStates(tasks: AgentTask[]) {
-  for (const mb of live.values()) {
-    const task = tasks.find((t) => t.id === mb.taskId);
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  for (const m of minis.values()) {
+    const task = byId.get(m.taskId);
     if (!task) continue;
-    mb.engine.setState(task.state);
-    mb.engine.bodyColor = hexToRGB(task.color);
+    m.engine.setState(task.state);
+    m.engine.bodyColor = hexToRGB(task.color);
   }
 }
 
+/** Steps and redraws every mini on the page. */
 export function tickMiniBots(dt: number) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  for (const mb of live.values()) {
-    const ctx = mb.canvas.getContext("2d");
-    if (!ctx) continue;
-    mb.engine.setDancing(mb.dancing?.() ?? false);
-    mb.engine.update(dt);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, mb.cssSize, mb.cssSize);
-    ctx.save();
-    mb.engine.applyDance(ctx, mb.cssSize, mb.cssSize);
-    mb.engine.draw(ctx, mb.cssSize, mb.cssSize);
-    ctx.restore();
+  const r = ratio();
+  for (const [canvas, m] of minis) {
+    if (!canvas.isConnected) continue; // not on the page (yet): pruneMiniBots() forgets it
+    const x = canvas.getContext("2d");
+    if (!x) continue;
+    m.engine.setDancing(m.dancing?.() ?? false);
+    m.engine.update(dt);
+    x.setTransform(r, 0, 0, r, 0, 0);
+    x.clearRect(0, 0, m.size, m.size);
+    x.save();
+    m.engine.applyDance(x, m.size, m.size);
+    m.engine.draw(x, m.size, m.size);
+    x.restore();
   }
 }
