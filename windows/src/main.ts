@@ -322,7 +322,16 @@ async function quietTest(island: Island) {
   const stop = countCallbacks();
   await new Promise((r) => plainTimeout(r, 30_000));
   const count = stop();
-  await Bridge.frameReport({ quiet: { ...count, mode: State.mode, view: State.view, seconds: 30 } });
+  // Round 4F item 9: what the island holds after it settled, its JS heap and the files it loaded.
+  const heap = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+  const files = (performance.getEntriesByType("resource") as PerformanceResourceTiming[])
+    .map((e) => ({ file: e.name.split("/").pop() ?? e.name, kb: Math.round((e.decodedBodySize || 0) / 1024) }))
+    .sort((a, b) => b.kb - a.kb);
+  const heapMb = (n?: number) => (n == null ? null : Math.round((n / 1048576) * 10) / 10);
+  await Bridge.frameReport({
+    quiet: { ...count, mode: State.mode, view: State.view, seconds: 30 },
+    island: { jsHeapMb: heapMb(heap?.usedJSHeapSize), jsHeapTotalMb: heapMb(heap?.totalJSHeapSize), domNodes: document.getElementsByTagName("*").length, files: files.slice(0, 15) },
+  });
 }
 
 /**

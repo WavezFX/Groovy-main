@@ -51,7 +51,13 @@ $cpu = [math]::Round(100.0 * ((CpuSeconds $proc.Id) - $cpu0) / ($wall * $cores),
 Get-Process -Name groovy -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 if (-not (Test-Path $report)) { throw "No quiet report after $TimeoutSeconds s" }
 
-$q = (Get-Content $report -Raw | ConvertFrom-Json).quiet
+$all = Get-Content $report -Raw | ConvertFrom-Json
+$q = $all.quiet
+$i = $all.island
+# Round 4F item 9: what the settled island holds.
+$files = (@($i.files | Select-Object -First 8) | ForEach-Object { "$($_.file) $($_.kb) KB" }) -join ", "
+$held = "island page: JS heap $($i.jsHeapMb) MB used of $($i.jsHeapTotalMb), $($i.domNodes) DOM nodes; largest files: $files"
+Write-Host "  $held"
 $line = "folded and idle, 30 s: frames $($q.frames), timeouts $($q.timeouts), intervals $($q.intervals); CPU $cpu% (island $($q.mode)/$($q.view))"
 Write-Host "  $line"
 foreach ($s in @($q.sources | Select-Object -First 10)) { Write-Host ("    {0}: {1} calls" -f $s.at, $s.calls) }
@@ -59,5 +65,6 @@ $quiet = ($q.frames + $q.timeouts + $q.intervals) -eq 0
 if ($env:GITHUB_STEP_SUMMARY) {
   "### Quiet island (4F item 7): $(if ($quiet) { '✅ nothing runs' } else { '⚠️ callbacks ran' })" | Out-File -Append $env:GITHUB_STEP_SUMMARY
   $line | Out-File -Append $env:GITHUB_STEP_SUMMARY
+  $held | Out-File -Append $env:GITHUB_STEP_SUMMARY
 }
 if (-not $quiet) { throw "The folded, idle island ran callbacks: $line" }

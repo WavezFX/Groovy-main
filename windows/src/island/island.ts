@@ -41,6 +41,7 @@ import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../vie
 import { h } from "../views/dom";
 import { IslandStateMachine } from "./fsm";
 import { IslandSleep, type Quiet } from "./sleep";
+import { dropSprites } from "../mochi/sprites";
 import { refreshHookPills } from "./integrations";
 import { DesktopLink } from "./desktop";
 import type { ViewCommand } from "./shortcuts";
@@ -119,7 +120,12 @@ export class Island {
 
   private running = false;
   /** Round 4F item 1: the resting island asks to sleep; Rust wakes it. */
-  private readonly sleep = new IslandSleep(() => this.quiet(), async () => (await Bridge.islandSleep()) === true);
+  // Round 4F item 9: the wardrobe's cached pictures (up to 64 canvases) go
+  // before he sleeps; they are drawn again when the wardrobe next opens.
+  private readonly sleep = new IslandSleep(() => this.quiet(), async () => {
+    dropSprites();
+    return (await Bridge.islandSleep()) === true;
+  });
 
   private quiet(): Quiet {
     const live = State.live.phase !== "idle";

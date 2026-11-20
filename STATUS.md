@@ -450,3 +450,9 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 - **Not done:** step 2 (a single wake command: the speech helper exits when the transcript is returned, the voice helper when the reply has played) and step 4 (no helper in a real-time or cloud call): both sit inside the voice engine, which round 4B's session owns; left for it. The peak test's per-stage process log is not added yet.
 - **Overlap with 4B:** `calls.rs` only (a new private function and a call at the end of `voice_call_active`); no speech engine file changed.
 - **Status: built, not yet measured.** Done when Groovy is back within 5 MB of its pre-call total 2 s after a call ends (the peak test's log line after hang-up).
+
+### Item 9: anything else in the island
+- **Measured from now on:** the quiet test (item 7) also reports the settled island's JS heap (used and total), its DOM node count and the 15 largest files it loaded (decoded size), in the step's log and the run summary.
+- **Changed:** the wardrobe's cached pictures (`mochi/sprites.ts`, up to 64 canvases, pre-drawn at start for every look) are dropped when the island asks to sleep; they are drawn again when the wardrobe next opens.
+- **Not done (needs the numbers first):** art for looks not worn and stage 6 behind `import()`; panel, recap and GitHub views loaded on first open; tile icons as files instead of base64 `data:` URLs (`tile_icons.rs`, needs a CSP change); splitting `style.css` (84 KB). Each is worth doing only if the build's heap and file list show over 5 MB to gain.
+- **Status: built, not yet measured.**
