@@ -205,6 +205,14 @@ jobs:
         shell: pwsh
         run: ./scripts/quiet-test.ps1 -Exe release/test/groovy.exe
 
+      # Round 4F item 6: each candidate WebView2 flag, measured (idle total,
+      # split, renderers, frame p95), through WebView2's own environment
+      # switch; the shipped exe is unchanged. Reports only.
+      - name: Lighter WebView2 flags, each measured
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/flag-matrix.ps1 -Exe release/test/groovy.exe
+
       - name: Smooth island (frame times F, E, detail, quick settings, wardrobe)
         shell: pwsh
         run: ./scripts/frame-test.ps1 -Exe release/test/groovy.exe -Trace frame-trace.json

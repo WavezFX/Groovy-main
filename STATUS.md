@@ -434,3 +434,13 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 - **New:** `resources::ceiling::after_window_closed`: 3 s after Settings or the desktop Groovy's window is destroyed, groovy.exe compacts its heaps and hands back its working set, and the log says what is left ("settings closed: N MB after the hand-back, K WebView2 processes (…)").
 - **CI:** `settings-idle-test.ps1` gains phase 4: Settings opened again, four pages visited (home, memory, wardrobe, dictation), closed by the user (WM_CLOSE to "Settings — Groovy"), then the total and renderers at 10 s and 30 s against the idle just before. The desktop Groovy's out-and-home cycle is not driven by CI (no switch sends him out); its window closing shows in the log line.
 - **Status: built, not yet measured.** Done when 10 s after a close there is one renderer (or none, asleep) and the total is within 5 MB of the idle before.
+
+### Item 6: lighter WebView2 flags
+- **CI matrix built:** `scripts/flag-matrix.ps1`, step "Lighter WebView2 flags, each measured" (report only). Each candidate runs the CI exe's frame test with WebView2's own switch `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` set to Groovy's arguments (read from `tauri.conf.json`) plus the candidate, so no test switch enters the shipped exe. Per candidate: idle total 10 s after the tour, split by process type, renderers, frame p95 and longest, and **"Applied"**: whether the browser process's command line really carries the flag (if WebView2 lets the app's own arguments win over the environment switch, this column says so, and the matrix needs a `ci`-feature override instead).
+- Candidates: `--renderer-process-limit=1`, `--in-process-gpu`, `--enable-low-end-device-mode`, `--disable-background-networking --disable-component-update --disable-sync --no-pings`, `--disable-features=AudioServiceOutOfProcess` (merged into the existing `--disable-features` list), `--js-flags=--max-old-space-size=96`.
+- **No flag is kept yet:** each is kept only on the measured table (at least 3 MB saved, the glass still blurs, calls still work, P10 holds), then added to both `BROWSER_ARGS` and `tauri.conf.json`.
+- **Status: built, not yet measured.** Results table: fill from the build's run summary.
+
+| Flag | Saves (MB) | p95 (ms) | Kept |
+|---|---|---|---|
+| (from the `[build]` run) | | | |
