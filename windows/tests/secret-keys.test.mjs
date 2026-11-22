@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const rs = readFileSync(new URL("../src-tauri/src/secrets.rs", import.meta.url), "utf8");
 const known = new Set([...rs.split("pub const KNOWN_KEYS")[1].split("];")[0].matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]));
@@ -18,7 +19,7 @@ function files(dir) {
 
 test("every key the pages save is one the store accepts", () => {
   const saved = new Set();
-  for (const f of files(new URL("../src", import.meta.url).pathname)) {
+  for (const f of files(fileURLToPath(new URL("../src", import.meta.url)))) {
     const s = readFileSync(f, "utf8");
     // keyBox("…"), secretField("…"), secretSet("…"), and constants passed to them.
     for (const m of s.matchAll(/(?:keyBox|secretField|secretSet|secretPresent)\(\s*"([a-z0-9-]+)"/g)) saved.add(m[1]);
