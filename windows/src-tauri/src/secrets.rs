@@ -27,6 +27,9 @@ pub const KNOWN_KEYS: &[&str] = &[
     "elevenlabs-api-key",
     // Dictation's cloud speech-to-text (speech/cloud.rs), first when present.
     "deepgram-api-key",
+    // Groovy's own voice (speech/tts.rs FISH_KEY). It was missing here, so Settings could never
+    // save it: "unknown key", the box turned red and nothing was kept (owner, 22 Nov).
+    "fish-audio-api-key",
 ];
 
 fn entry(key: &str) -> Option<Entry> {
@@ -126,6 +129,14 @@ mod tests {
         }
         // And the other way round: a key of the island is not an internal one.
         assert!(set_internal("github-token", "x").is_err());
+    }
+
+    /// Every key a Settings page saves must be one the store accepts.
+    #[test]
+    fn the_keys_settings_saves_are_known() {
+        for key in [crate::speech::tts::FISH_KEY, "elevenlabs-api-key", "deepgram-api-key", "livekit-api-key", "google-api-key"] {
+            assert!(KNOWN_KEYS.contains(&key), "{key} can't be saved");
+        }
     }
 
     /// Windows Credential Manager caps a secret's size. The phone link stores its certificate (about
