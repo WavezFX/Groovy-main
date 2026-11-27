@@ -81,6 +81,9 @@ pub const INTERNAL_KEYS: &[&str] = &[
     "phone-relay-access",
     // The owner's own Google app registration for Gmail (mail/oauth.rs).
     "mail-google-client-secret",
+    // Round 6: the owner's own Discord app's secret (optional) and Groovy's tokens for it.
+    "discord-client-secret",
+    "discord-tokens",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.
