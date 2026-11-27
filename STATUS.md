@@ -442,7 +442,7 @@ Numbers are Task Manager's private working set over every Groovy process, from t
 | Gemini sign-in (`gemini-cli`) | yes | no | yes (one-line JSON) | no | yes (plain text) | large |
 | Ollama, LM Studio, Groovy local model, custom | none needed | no | yes (one-line JSON) | no | yes (chat) | small |
 
-  Linux: 787 Rust app tests and 584 front-end tests pass; `tsc` clean. Nothing new loads at start (the switcher and router are plain functions; the router plugin never runs). Idle and peak not measured: needs the `[build]` run. Ten languages: the eight new Brains strings are in `extra.json`. No setting lost: `assistant.routerPlugin` added to the settings fixture and `state.ts`.
+  Streaming: `caps().streaming` is about `Brain::turn` (the background jobs), where only the subscriptions stream; "yes (chat)" means the chat's own turn (`Brain::chat`) streams (27 Nov). Linux (27 Nov, `groovy-ai-brains2`): 821 Rust app tests and 593 front-end tests pass; `tsc` clean. Nothing new loads at start (the switcher, router and stream reader are plain functions; the router plugin never runs; a subscription tool runs only for a turn and is gone after it). Idle and peak: from the `[build]` run of this branch, below. Ten languages: the eight new Brains strings are in `extra.json`. No setting lost: `assistant.routerPlugin` added to the settings fixture and `state.ts`.
 - **4C item 1** `docs/plan/SCREEN_BUDDY_NOTES.md`. **4E item 1** steps 1 and 2: `docs/plan/CHARACTER_MOTION.md` (about three quarters of the engine's methods are still the original's; the rewrite waits for the owner's approval of the design).
 - **Not started:** 4C item 5 (needs the capture and the tool path first).
 
