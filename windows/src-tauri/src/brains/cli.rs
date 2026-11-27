@@ -37,7 +37,7 @@ impl Brain for Cli {
         self.name
     }
     fn caps(&self) -> Caps {
-        Caps { tools: true, vision: false, streaming: true, web_search: false, local: false, tier: Tier::Large }
+        Caps { tools: true, vision: sees(self.id), streaming: true, web_search: false, local: false, tier: Tier::Large }
     }
     fn auth(&self) -> Auth {
         // Signed in: the tool is here and its own sign-in file is (round 4D
@@ -46,14 +46,27 @@ impl Brain for Cli {
     }
     fn turn<'a>(&'a self, _ctx: Ctx<'a>, req: Request<'a>) -> Turn<'a> {
         Box::pin(async move {
+            // A picture of the screen goes along only to a tool that takes one (`sees`).
+            let pictures = if sees(self.id) { pictures(req.messages) } else { Vec::new() };
             if req.tools.is_empty() {
                 let prompt = format!("{}\n\n{}", req.system, transcript(req.messages));
-                return complete_streaming(self.id, prompt, req.timeout, req.on_delta).await.map(text_reply).map_err(BrainError::of);
+                return ask(self.id, prompt, req.timeout, req.on_delta, &pictures).await.map(text_reply).map_err(BrainError::of);
             }
+            // An answer in words streams as it is written (round 4D item 3); a
+            // reply that starts like a tool request is never shown half-written.
+            let outer = req.on_delta;
+            let words_only = move |so_far: &str| {
+                if let Some(f) = outer {
+                    if shows_as_words(so_far) {
+                        f(so_far);
+                    }
+                }
+            };
+            let delta: Option<&super::Delta<'_>> = outer.map(|_| &words_only as &super::Delta<'_>);
             let names = tool_names(req.tools);
             let mut prompt = tool_prompt(req.system, req.messages, req.tools);
             for attempt in 0..2 {
-                let text = complete(self.id, prompt.clone(), WITH_TOOLS).await.map_err(BrainError::of)?;
+                let text = ask(self.id, prompt.clone(), WITH_TOOLS, delta, &pictures).await.map_err(BrainError::of)?;
                 match parse(&text, &names) {
                     Asked::Answer(answer) => return Ok(text_reply(answer)),
                     Asked::Tool { name, input } => return Ok(tool_reply(&name, input)),
@@ -68,6 +81,54 @@ impl Brain for Cli {
             Ok(text_reply(String::new()))
         })
     }
+}
+
+/// Whether the reply so far can only be an answer in words: a tool request
+/// is the whole reply, starting with `{` (`parse`).
+pub fn shows_as_words(so_far: &str) -> bool {
+    let t = so_far.trim_start();
+    !t.is_empty() && !t.starts_with('{') && !t.starts_with('`')
+}
+
+/// Which subscription tools take a picture in their one-answer mode (round
+/// 4D, vision without a key): Codex with `--image <file>` (`codex exec`), and
+/// Claude Code with an image block in its `--input-format stream-json` input.
+/// The Gemini tool's `@file` isn't documented for its one-answer mode, so it
+/// doesn't get one.
+pub fn sees(tool: &str) -> bool {
+    matches!(tool, "claude-code" | "codex")
+}
+
+/// A picture in the conversation: its media type and bytes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Picture {
+    pub media_type: String,
+    pub bytes: Vec<u8>,
+}
+
+/// The pictures in the last message (the chat's question or a
+/// `look_at_screen` result): earlier ones were already answered.
+pub fn pictures(messages: &[Value]) -> Vec<Picture> {
+    fn walk(content: &Value, out: &mut Vec<Picture>) {
+        let Value::Array(blocks) = content else { return };
+        for b in blocks {
+            match b["type"].as_str() {
+                Some("image") if b["source"]["type"] == "base64" => {
+                    use base64::Engine;
+                    if let Some(bytes) = b["source"]["data"].as_str().and_then(|d| base64::engine::general_purpose::STANDARD.decode(d).ok()) {
+                        out.push(Picture { media_type: b["source"]["media_type"].as_str().unwrap_or("image/jpeg").to_string(), bytes });
+                    }
+                }
+                Some("tool_result") => walk(&b["content"], out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    if let Some(last) = messages.last() {
+        walk(&last["content"], &mut out);
+    }
+    out
 }
 
 /// The conversation so far for a tool that takes one prompt: the last
@@ -280,28 +341,119 @@ pub async fn brain_sign_in(id: String) -> Result<(), String> {
 /// The subscriptions, by the ids the settings store.
 pub const SUBSCRIPTIONS: [&str; 3] = ["claude-code", "codex", "gemini-cli"];
 
-/// A subscription's CLI answers one prompt, text only. No shell: the prompt
-/// goes in on stdin; Claude Code gets one turn (no tools), Codex a read-only
-/// sandbox in an empty folder.
-pub(crate) async fn complete(tool: &'static str, prompt: String, timeout: Duration) -> Result<String, String> {
-    complete_streaming(tool, prompt, timeout, None).await
+/// A subscription's tool answers one prompt (round 4D items 3 and 4): no
+/// shell, the prompt on stdin, in an empty folder, its own actions off; the
+/// answer so far goes to `on_delta` as the tool writes it. Pictures go along
+/// to a tool that takes them (`sees`). Codex gets
+/// each as a file in a folder of its own, deleted when the turn ends; Claude
+/// Code gets them inside its input, so no file is written.
+pub(crate) async fn ask(tool: &'static str, prompt: String, timeout: Duration, on_delta: Option<&super::Delta<'_>>, pictures: &[Picture]) -> Result<String, String> {
+    let exe = path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
+    let dir = std::env::temp_dir().join("groovy-brain");
+    let _ = std::fs::create_dir_all(&dir);
+    let pictures = if sees(tool) { pictures } else { &[] };
+    if tool == "claude-code" && !pictures.is_empty() {
+        let line = claude_input(&prompt, pictures);
+        return run_tool(tool, exe, args_for(tool, &[]), dir, line, timeout, on_delta, Output::ClaudeEvents).await;
+    }
+    let files = Pictures::write(pictures)?;
+    run_tool(tool, exe, args_for(tool, &files.paths), dir, prompt, timeout, on_delta, Output::Text).await
 }
 
-/// The same, with the answer so far handed to `on_delta` as the tool writes
-/// it (round 4D item 3): whatever the tool prints, as soon as it prints it.
-pub(crate) async fn complete_streaming(tool: &'static str, prompt: String, timeout: Duration, on_delta: Option<&super::Delta<'_>>) -> Result<String, String> {
-    let exe = path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
-    let args: &'static [&'static str] = match tool {
-        "claude-code" => &["-p", "--output-format", "text", "--max-turns", "1"],
+/// The tool's arguments: one answer, no shell, its own actions off.
+pub fn args_for(tool: &str, pictures: &[std::path::PathBuf]) -> Vec<String> {
+    let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    match tool {
+        "claude-code" if pictures.is_empty() => v(&["-p", "--output-format", "text", "--max-turns", "1"]),
+        // A picture rides inside the input (one JSON line on stdin), and the
+        // answer comes back as events, the text streamed as it is written.
+        "claude-code" => v(&["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--max-turns", "1"]),
         // Not a terminal and the prompt on stdin: the Gemini tool answers
         // once and leaves; with no approval mode set, it runs none of its
         // own tools that change anything.
-        "gemini-cli" => &[],
-        _ => &["exec", "--skip-git-repo-check", "-s", "read-only", "-"],
-    };
-    let dir = std::env::temp_dir().join("groovy-brain");
-    let _ = std::fs::create_dir_all(&dir);
-    run_tool(tool, exe, args, dir, prompt, timeout, on_delta).await
+        "gemini-cli" => Vec::new(),
+        _ => {
+            // The prompt ("-": on stdin) before the pictures, so no picture
+            // list can take it for a file.
+            let mut a = v(&["exec", "--skip-git-repo-check", "-s", "read-only", "-"]);
+            a.extend(pictures.iter().map(|p| format!("--image={}", p.display())));
+            a
+        }
+    }
+}
+
+/// Claude Code's input with pictures: one user message, the prompt and the pictures as blocks.
+pub fn claude_input(prompt: &str, pictures: &[Picture]) -> String {
+    use base64::Engine;
+    let mut content = vec![json!({ "type": "text", "text": prompt })];
+    content.extend(pictures.iter().map(|p| json!({ "type": "image", "source": { "type": "base64", "media_type": p.media_type, "data": base64::engine::general_purpose::STANDARD.encode(&p.bytes) } })));
+    format!("{}\n", json!({ "type": "user", "message": { "role": "user", "content": content } }))
+}
+
+/// Pictures written for a tool that takes files, deleted with this.
+struct Pictures {
+    dir: Option<std::path::PathBuf>,
+    paths: Vec<std::path::PathBuf>,
+}
+
+impl Pictures {
+    fn write(pictures: &[Picture]) -> Result<Pictures, String> {
+        if pictures.is_empty() {
+            return Ok(Pictures { dir: None, paths: Vec::new() });
+        }
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("groovy-look-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let mut out = Pictures { dir: Some(dir.clone()), paths: Vec::new() };
+        for (i, p) in pictures.iter().enumerate() {
+            let ext = if p.media_type.ends_with("png") { "png" } else { "jpg" };
+            let path = dir.join(format!("screen-{i}.{ext}"));
+            std::fs::write(&path, &p.bytes).map_err(|e| e.to_string())?;
+            out.paths.push(path);
+        }
+        Ok(out)
+    }
+}
+
+impl Drop for Pictures {
+    fn drop(&mut self) {
+        if let Some(dir) = &self.dir {
+            let _ = std::fs::remove_dir_all(dir);
+        }
+    }
+}
+
+/// How a tool writes its answer.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Output {
+    /// Plain text, as it is written.
+    Text,
+    /// Claude Code's stream-json events: text deltas, then one `result`.
+    ClaudeEvents,
+}
+
+/// The text so far in Claude Code's events, and its final answer once the
+/// `result` event came (an error when the run failed).
+pub fn claude_events(out: &str) -> (String, Option<Result<String, String>>) {
+    let mut so_far = String::new();
+    let mut last = None;
+    for line in out.lines() {
+        let Ok(e) = serde_json::from_str::<Value>(line) else { continue };
+        match e["type"].as_str() {
+            Some("stream_event") if e["event"]["delta"]["type"] == "text_delta" => so_far.push_str(e["event"]["delta"]["text"].as_str().unwrap_or("")),
+            Some("result") => {
+                let text = e["result"].as_str().unwrap_or("").to_string();
+                last = Some(if e["is_error"].as_bool().unwrap_or(false) || e["subtype"].as_str().is_some_and(|s| s != "success") {
+                    Err(if text.is_empty() { e["subtype"].as_str().unwrap_or("error").to_string() } else { text })
+                } else {
+                    Ok(text)
+                });
+            }
+            _ => {}
+        }
+    }
+    (so_far, last)
 }
 
 /// Runs one tool for one answer: the prompt on stdin, stdout read as it
@@ -309,11 +461,12 @@ pub(crate) async fn complete_streaming(tool: &'static str, prompt: String, timeo
 pub(crate) async fn run_tool(
     tool: &'static str,
     exe: std::path::PathBuf,
-    args: &'static [&'static str],
+    args: Vec<String>,
     dir: std::path::PathBuf,
     prompt: String,
     timeout: Duration,
     on_delta: Option<&super::Delta<'_>>,
+    output: Output,
 ) -> Result<String, String> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
     let job = tauri::async_runtime::spawn_blocking(move || -> Result<(bool, String), String> {
@@ -362,7 +515,15 @@ pub(crate) async fn run_tool(
     let take = |chunk: Vec<u8>, bytes: &mut Vec<u8>| {
         bytes.extend_from_slice(&chunk);
         if let Some(f) = on_delta {
-            f(String::from_utf8_lossy(bytes).trim_start());
+            match output {
+                Output::Text => f(String::from_utf8_lossy(bytes).trim_start()),
+                Output::ClaudeEvents => {
+                    let (so_far, _) = claude_events(&String::from_utf8_lossy(bytes));
+                    if !so_far.trim().is_empty() {
+                        f(so_far.trim_start());
+                    }
+                }
+            }
         }
     };
     let done = loop {
@@ -375,7 +536,14 @@ pub(crate) async fn run_tool(
         take(chunk, &mut bytes);
     }
     let (ok, err) = done.map_err(|e| e.to_string())??;
-    let text = String::from_utf8_lossy(&bytes).trim().to_string();
+    let text = match output {
+        Output::Text => String::from_utf8_lossy(&bytes).trim().to_string(),
+        Output::ClaudeEvents => match claude_events(&String::from_utf8_lossy(&bytes)) {
+            (_, Some(Ok(answer))) => answer.trim().to_string(),
+            (_, Some(Err(why))) => return Err(format!("{tool}: {why}")),
+            (so_far, None) => so_far.trim().to_string(),
+        },
+    };
     if !ok || text.is_empty() {
         return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
     }
@@ -412,8 +580,8 @@ mod tests {
         tauri::async_runtime::block_on(async move {
             let log = seen.clone();
             let f = move |t: &str| log.lock().unwrap().push((std::time::Instant::now(), t.to_string()));
-            let args: &'static [&'static str] = Box::leak(Box::new(["-c", script]));
-            run_tool("fake-tool", "/bin/sh".into(), args, dir, "hello".into(), Duration::from_millis(timeout_ms), Some(&f)).await
+            let args = vec!["-c".to_string(), script.to_string()];
+            run_tool("fake-tool", "/bin/sh".into(), args, dir, "hello".into(), Duration::from_millis(timeout_ms), Some(&f), Output::Text).await
         })
     }
 
@@ -532,5 +700,69 @@ mod tests {
         assert!(r["content"][0]["id"].as_str().unwrap().starts_with("cli_"));
         let again = tool_reply("music", json!({}));
         assert_ne!(r["content"][0]["id"], again["content"][0]["id"], "each request has its own id");
+    }
+
+    #[test]
+    fn only_a_reply_that_cannot_be_a_tool_request_is_shown_while_written() {
+        assert!(shows_as_words("Sure, pausing"));
+        assert!(!shows_as_words("  {\"tool\": \"pa"));
+        assert!(!shows_as_words("```json"));
+        assert!(!shows_as_words("   "));
+    }
+
+    #[test]
+    fn claude_code_and_codex_see_and_the_gemini_tool_does_not() {
+        assert!(sees("claude-code") && sees("codex") && !sees("gemini-cli"));
+        let gemini = Cli { id: "gemini-cli", name: "Gemini" };
+        assert!(!gemini.caps().vision);
+        assert!(Cli { id: "codex", name: "Codex" }.caps().vision);
+    }
+
+    #[test]
+    fn the_picture_in_the_last_message_goes_along_and_earlier_ones_do_not() {
+        use base64::Engine;
+        let data = base64::engine::general_purpose::STANDARD.encode([1u8, 2, 3]);
+        let image = json!({ "type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": data } });
+        let old = json!({ "role": "user", "content": [image.clone(), { "type": "text", "text": "before" }] });
+        let look = json!({ "role": "user", "content": [{ "type": "tool_result", "tool_use_id": "t", "content": [{ "type": "text", "text": "meta" }, image] }] });
+        assert_eq!(pictures(&[old.clone(), json!({ "role": "user", "content": "now" })]), vec![]);
+        assert_eq!(pictures(&[old, look]), vec![Picture { media_type: "image/jpeg".into(), bytes: vec![1, 2, 3] }]);
+    }
+
+    #[test]
+    fn codex_gets_picture_files_after_its_prompt_and_claude_code_gets_them_inside_its_input() {
+        let a = args_for("codex", &[std::path::PathBuf::from("/t/screen-0.jpg")]);
+        assert_eq!(a, ["exec", "--skip-git-repo-check", "-s", "read-only", "-", "--image=/t/screen-0.jpg"]);
+        assert_eq!(args_for("codex", &[]), ["exec", "--skip-git-repo-check", "-s", "read-only", "-"]);
+        assert!(args_for("claude-code", &[std::path::PathBuf::new()]).iter().any(|a| a == "stream-json"));
+        let line = claude_input("what is this?", &[Picture { media_type: "image/png".into(), bytes: vec![9] }]);
+        let v: Value = serde_json::from_str(line.trim()).unwrap();
+        assert_eq!(v["type"], "user");
+        assert_eq!(v["message"]["content"][0]["text"], "what is this?");
+        assert_eq!(v["message"]["content"][1]["source"]["media_type"], "image/png");
+    }
+
+    #[test]
+    fn picture_files_are_gone_when_the_turn_ends() {
+        let files = Pictures::write(&[Picture { media_type: "image/jpeg".into(), bytes: vec![1] }]).unwrap();
+        let path = files.paths[0].clone();
+        assert!(path.exists());
+        drop(files);
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn claude_codes_events_stream_the_text_and_end_with_its_result() {
+        let out = [
+            r#"{"type":"system","subtype":"init"}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"A cat "}}}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"on a mat."}}}"#,
+        ]
+        .join("\n");
+        assert_eq!(claude_events(&out), ("A cat on a mat.".to_string(), None));
+        let done = format!("{out}\n{}", r#"{"type":"result","subtype":"success","is_error":false,"result":"A cat on a mat."}"#);
+        assert_eq!(claude_events(&done).1, Some(Ok("A cat on a mat.".to_string())));
+        let failed = r#"{"type":"result","subtype":"error_max_turns","is_error":true,"result":""}"#;
+        assert_eq!(claude_events(failed).1, Some(Err("error_max_turns".to_string())));
     }
 }

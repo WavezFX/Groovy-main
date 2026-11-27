@@ -361,7 +361,12 @@ pub async fn send(
     };
     if needs_switcher(settings, &route.primary) {
         let mut messages = chat.plain();
-        messages.push(json!({ "role": "user", "content": plain }));
+        // A picture of the screen waiting for this message goes along; the
+        // switcher then asks only a brain that can see (Claude Code and Codex
+        // sign-ins can, round 4D).
+        let mut user = json!({ "role": "user", "content": [{ "type": "text", "text": plain }] });
+        crate::screen::attach_anthropic(&mut user);
+        messages.push(user);
         if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, Some(&emit)).await {
             let (text, used) = answer?;
             let turn = chat.begin(used);

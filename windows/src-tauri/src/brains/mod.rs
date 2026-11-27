@@ -187,7 +187,12 @@ pub trait Brain: Sync {
             let first = t.chat.plain().is_empty();
             let plain = crate::chat::plain_question(first, t.context.as_ref(), &t.query);
             let mut messages = t.chat.plain();
-            messages.push(json!({ "role": "user", "content": plain }));
+            // A picture of the screen waiting for this message goes to a brain that can see it.
+            let mut user = json!({ "role": "user", "content": [{ "type": "text", "text": plain }] });
+            if self.caps().vision {
+                crate::screen::attach_anthropic(&mut user);
+            }
+            messages.push(user);
             let system = t.chat.system_prompt(false);
             let req = Request { system: &system, messages: &messages, tools: &[], max_tokens: 2048, timeout: Duration::from_secs(120), on_delta: Some(t.on_delta) };
             let text = text_of(&self.turn(ctx, req).await?);

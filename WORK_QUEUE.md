@@ -184,8 +184,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
 - [x] 1. The `Brain` trait and a registry (Opus): `brains/`; `brain_ai.rs` asks through it. `chat.rs` moves onto it in item 2.
 - [x] 2. One switcher for chat and background jobs. Background jobs, calls, voice, keyless chat and phone chat (4D first pass); keyed chat through `Brain::chat` and `brains::switch::chat` (27 Nov). `Who` kept as the background order's element (STATUS.md).
-- [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming. **Built, incl. streaming**; not proven on Windows with the real tools (STATUS.md).
-- [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol). Not ticked: never run against a signed-in Claude Code or Codex.
+- [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming. **Built, incl. streaming** everywhere: keyed chat (Claude with web search, the compatible services), calls, phone chat, and the subscriptions' answers with tools (27 Nov). Not ticked: not proven on Windows with the real tools (STATUS.md).
+- [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol); step 4, vision: Claude Code (image in its stream-json input) and Codex (`--image`) see, the Gemini tool doesn't (27 Nov). Not ticked: never run against a signed-in Claude Code or Codex.
 - [x] 5. The router slot (`docs/ROUTER_PLUGIN.md`)
 - [ ] 6. Checks. **Partial:** caps/auth table in STATUS.md; idle/peak wait for the Windows build.
 - [ ] 7. Everyday commands never need an AI (no sign-in, no key, works with local models); tools on every brain incl. local (owner, 13 Nov)
