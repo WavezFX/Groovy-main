@@ -19,7 +19,8 @@ import {
   KEY_PAGES, PILL_CATEGORIES, availablePills, chooseMainPill, isComingSoon, mainPillChoices,
   sanitizeDeclared, toggleDeclared, type PillDefinition,
 } from "../core/pills";
-import { currentTiles, withServices } from "../core/tiles";
+import { addTile, currentTiles, tile, withServices } from "../core/tiles";
+import { DEFAULT_INSTAGRAM, type InstagramPrefs } from "../instagram/store";
 import { migrateSettingsOutfit } from "../mochi/appearance";
 import { migrateGrownLook, migrateToPerLook } from "../mochi/growth";
 import { seasonalLaunch } from "../mochi/seasons";
@@ -1050,6 +1051,7 @@ function generalSection(): HTMLElement {
     h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « Hey Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
     ...recapRows(),
     ...screenRows(),
+    ...instagramRows(),
     languageRow(),
   );
 }
@@ -1086,6 +1088,46 @@ function screenRows(): HTMLElement[] {
     ),
     seeing,
     h("div", { class: "hint", text: t("Groovy looks only when you ask. The picture stays in memory, goes only to the brain answering, and is dropped after the reply; it is never saved.") }),
+  ];
+}
+
+/**
+ * Settings → General → Instagram (round 7): on or off, where it opens, typing
+ * for you, and what Groovy does and doesn't do. Turning it on adds the tile.
+ */
+function instagramRows(): HTMLElement[] {
+  const cur = (): InstagramPrefs => ({ ...DEFAULT_INSTAGRAM, ...(settings.instagram ?? {}) });
+  const set = (change: Partial<InstagramPrefs>) => {
+    settings.instagram = { ...cur(), ...change };
+    void save();
+  };
+  const where = h("select", {}) as HTMLSelectElement;
+  where.append(
+    h("option", { value: "auto", text: t("Automatic") }),
+    h("option", { value: "app", text: t("The Instagram app") }),
+    h("option", { value: "edge", text: "Microsoft Edge" }),
+    h("option", { value: "chrome", text: "Google Chrome" }),
+    h("option", { value: "browser", text: t("My default browser") }),
+  );
+  where.value = cur().openIn;
+  where.addEventListener("change", () => set({ openIn: where.value as InstagramPrefs["openIn"] }));
+  return [
+    h("div", { class: "row" },
+      h("label", { text: t("Instagram messages") }),
+      toggle(cur().on, (v) => {
+        if (v) {
+          const added = addTile(currentTiles(settings), tile("instagram"));
+          if (added) settings.islandTiles = added;
+        }
+        set({ on: v });
+      }),
+    ),
+    h("div", { class: "row" }, h("label", { text: t("Open Instagram in") }), where),
+    h("div", { class: "row" },
+      h("label", { text: t("Type the name and message for me") }),
+      toggle(cur().typeForMe, (v) => set({ typeForMe: v })),
+    ),
+    h("div", { class: "hint", text: t("Groovy reads only Instagram's notifications on this PC and keeps the last five in memory. He never signs in to Instagram or stores anything from it; he opens the chat and leaves your message ready. You press Send.") }),
   ];
 }
 

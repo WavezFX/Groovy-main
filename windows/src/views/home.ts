@@ -361,7 +361,7 @@ export function buildHome(actions: ViewActions): ViewHost {
   function draw() {
     const declared = sanitizeDeclared(State.settings, State.os);
     // The clipboard tile shows only while its switch is on (round 3N item 3).
-    const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles.filter((x) => x.kind !== "clipboard" || State.settings.clipboardHistory === true);
+    const cells = withServices(currentTiles(State.settings), declared.activeIntegrations, declared.mainPill).tiles.filter((x) => (x.kind !== "clipboard" || State.settings.clipboardHistory === true) && (x.kind !== "instagram" || State.settings.instagram?.on === true));
     let exp = State.mode === "expanded" ? State.homeExpanded : null;
     if (exp && !expand) {
       // Its code is on its way: the tiles stay as they are a moment longer.

@@ -226,7 +226,7 @@ fn read_notifications() -> Result<Vec<MailNote>, String> {
 
 /// Watches the notification feed and hands new ones to the island
 /// ("mail-notification"); the island keeps those from mail apps the user
-/// chose. A job on the scheduler: every 10 s (30 s while it's quiet), and
+/// chose. Also Instagram's DMs while Instagram is on with its tile (round 7). A job on the scheduler: every 10 s (30 s while it's quiet), and
 /// only while the island has a Mail tile (round 3F item 7); poked when the
 /// settings are saved.
 #[cfg(windows)]
@@ -238,13 +238,26 @@ pub const MAIL_WATCH: &str = "mail-notifications";
 
 #[cfg(windows)]
 fn mail_watch_pace(app: &AppHandle) -> crate::scheduler::Next {
-    use tauri::Manager;
-    let wanted = app.try_state::<crate::Shared>().is_some_and(|s| has_mail_tile(&s.settings.lock().unwrap().island_tiles));
-    if wanted {
+    let (mail, instagram) = watching(app);
+    if !instagram {
+        // Instagram turned off: what it kept goes (round 7).
+        crate::instagram::forget();
+    }
+    if mail || instagram {
         crate::scheduler::Next::Every(std::time::Duration::from_secs(10))
     } else {
         crate::scheduler::Next::Idle
     }
+}
+
+/// Who wants the feed: (a Mail tile, Instagram on with its tile).
+#[cfg(windows)]
+fn watching(app: &AppHandle) -> (bool, bool) {
+    use tauri::Manager;
+    app.try_state::<crate::Shared>().map_or((false, false), |s| {
+        let s = s.settings.lock().unwrap();
+        (has_mail_tile(&s.island_tiles), crate::instagram::wanted(&s))
+    })
 }
 
 /// The island's tiles (settings.json's islandTiles) include a Mail tile. With
@@ -265,13 +278,25 @@ fn read_new(app: &AppHandle) {
     if mail_watch_pace(app) == crate::scheduler::Next::Idle {
         return;
     }
+    let (mail, instagram) = watching(app);
     let Ok(list) = read_notifications() else { return };
     let mut guard = SEEN.lock().unwrap();
     let (seen, filled) = &mut *guard;
     let seen = seen.get_or_insert_with(Default::default);
     for n in list {
         if seen.insert(n.id) && *filled {
-            let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
+            // Instagram's (round 7): a DM goes to its tile, a like or a follow nowhere; never to Mail.
+            if instagram {
+                if let Some(dm) = crate::instagram::take(n.id, &n.app, &n.app_id, &n.title, &n.body) {
+                    if let Some(dm) = dm {
+                        let _ = app.emit_to(crate::island::WINDOW_LABEL, "instagram-message", &dm);
+                    }
+                    continue;
+                }
+            }
+            if mail {
+                let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
+            }
         }
     }
     *filled = true;

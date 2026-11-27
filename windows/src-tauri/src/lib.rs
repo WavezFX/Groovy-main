@@ -19,6 +19,9 @@ mod github;
 mod hooks;
 mod hub_idle;
 mod i18n;
+// Its notification side runs only on Windows (island_tiles.rs).
+#[cfg_attr(not(windows), allow(dead_code))]
+mod instagram;
 mod pc;
 mod browser;
 mod calls;
@@ -1626,6 +1629,7 @@ pub fn run() {
             island_tiles::island_pick_folder,
             island_tiles::mail_access,
             island_tiles::mail_open,
+            instagram::instagram_open,
             speech::check::speech_check_start,
             speech::check::speech_check_reset,
             speech::check::speech_check_cancel,

@@ -218,9 +218,9 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 7. Checks
 
 ## 7. Fixes round 7: `FIXES_ROUND7.md` (Instagram messages by voice). **Approved by the owner, 27 Nov 2026** (`docs/plans/MESSAGING.md`). Built on its own branch (`groovy-ai-instagram`), beside round 6 (Discord); the two share code only after both merge.
-- [ ] 1. New DMs on an Instagram tile (Windows' notifications, through the mail listener)
-- [ ] 2. "Message <name> on Instagram" and "reply", with no AI (open the conversation, draft on the clipboard or typed with permission; the owner presses Send)
-- [ ] 3. Settings, translations, privacy note
+- [x] 1. New DMs on an Instagram tile (Windows' notifications, through the mail listener)
+- [x] 2. "Message <name> on Instagram" and "reply", with no AI (open the conversation, draft on the clipboard or typed with permission; the owner presses Send)
+- [x] 3. Settings, translations, privacy note
 - [ ] 4. Lazy and light; checks
 
 ## Later (don't start yet)

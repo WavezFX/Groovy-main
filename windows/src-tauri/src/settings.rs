@@ -159,6 +159,8 @@ pub struct Settings {
     /// "My island": the preset, the tiles and the mail apps. The page owns its
     /// shape (src/core/tiles.ts) and validates it on every read.
     pub island_tiles: Value,
+    /// Round 7: Instagram messages (on/off, where it opens, typing). Off by default.
+    pub instagram: crate::instagram::Prefs,
     /// "Close when I leave" (the default since round 2) was offered once to a
     /// user who had another auto-close delay.
     pub close_on_leave_offered: bool,
@@ -308,6 +310,7 @@ impl Default for Settings {
             assistant: Default::default(),
             wardrobe: Value::Object(Map::new()),
             island_tiles: Value::Object(Map::new()),
+            instagram: Default::default(),
             close_on_leave_offered: false,
             island_style: "glass".into(),
             glass_strength: "balanced".into(),
@@ -811,6 +814,7 @@ mod tests {
     "favourites": ["goldChain"]
   },
   "islandTiles": { "preset": "custom", "tiles": [{ "id": "mail", "kind": "mail", "target": "", "label": "", "size": "expanded" }], "mailApps": ["Outlook"] },
+  "instagram": { "on": true, "openIn": "edge", "typeForMe": true },
   "closeOnLeaveOffered": true,
   "islandStyle": "solid",
   "glassStrength": "frosted",
@@ -1549,6 +1553,7 @@ mod tests {
                 "assistant",
                 "wardrobe",
                 "islandTiles",
+                "instagram",
                 "closeOnLeaveOffered",
                 "islandStyle",
                 "glassStrength",

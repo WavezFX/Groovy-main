@@ -35,7 +35,7 @@ Read `docs/GROOVY_SPEC.md` first (it wins), then `docs/plans/MESSAGING.md` (appr
 **Test:** `settings-keys.test.mjs` knows `instagram`; the i18n test passes; Rust settings load an old file without the key (defaults: off).
 
 ## Item 4: Lazy and light; checks
-1. Nothing loads unless Instagram is on: no listener work, no parsing, the page's Instagram code is a dynamic import loaded on the first DM or the first tile.
+1. Nothing runs unless Instagram is on: no listener work and no parsing in Rust (the mail watch stays idle without a Mail tile or Instagram on with its tile); the page's part is a 40-line store with no timers, so it is not split out.
 2. No new process, no new window, no WebView. RAM: no change at idle (measured in the build's smoke test, written in `STATUS.md`).
 3. `groovy-test all` green; one Windows build (`[build]`).
 **How the owner tries it:** Settings → General → Instagram: turn it on; add the Instagram tile; in Edge (or the Instagram app) allow Instagram's notifications; send yourself a DM from another account; it shows on the tile. Then "Hey Groovy, message <username> on Instagram saying hello" and press Ctrl+V and Send.

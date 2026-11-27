@@ -35,6 +35,7 @@ const REACH = {
   quietDuringGames: ["general", "src/settings/main.ts", "generalSection"],
   screenLook: ["general", "src/settings/main.ts", "screenRows"],
   screenWatch: ["general", "src/settings/main.ts", "screenRows"],
+  instagram: ["general", "src/settings/main.ts", "instagramRows"],
   clipboardHistory: ["general", "src/settings/main.ts", "generalSection"],
   islandX: ["general", "src/settings/main.ts", "generalSection", "Bridge\\.islandMove\\("],
   keepVisible: ["general", "src/settings/main.ts", "generalSection"],

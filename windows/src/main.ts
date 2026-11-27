@@ -6,6 +6,7 @@ import { dropSprites } from "./mochi/sprites";
 import { Sound } from "./core/sound";
 import { installErrorReporting } from "./views/toast";
 import { Mail, wantsMail, type MailNote } from "./views/tiles";
+import { Instagram, type InstagramDm } from "./instagram/store";
 import { currentTiles, isMailNotification } from "./core/tiles";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
@@ -188,6 +189,8 @@ async function main() {
     const previousMain = State.mainPillId;
     const growths = mergeGrowths(State.settings.growths, s.growths);
     State.settings = { ...State.settings, ...s, growths };
+    // Instagram turned off: the DMs it kept go (round 7).
+    if (State.settings.instagram?.on !== true) Instagram.clear();
     applyLanguage();
     island.applySettings();
     paintGlass();
@@ -210,6 +213,13 @@ async function main() {
     if (!wantsMail() || !isMailNotification(n.app, currentTiles(State.settings).mailApps)) return;
     Mail.push(n);
     island.alert("notify");
+  });
+  // Round 7: a new Instagram DM (Rust sends one only while Instagram is on with its tile).
+  await onEvent<InstagramDm>("instagram-message", (d) => {
+    if (State.settings.instagram?.on !== true) return;
+    Instagram.push(d);
+    State.notify();
+    if (!State.settings.doNotDisturb) island.alert("home");
   });
   // Connected mail accounts (mail/): the tile's unread count and the Mail panel.
   // Standby, Conversation or Offline (round 3D item 10): shown on the island's rim.
