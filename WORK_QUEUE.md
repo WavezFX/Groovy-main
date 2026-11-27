@@ -160,8 +160,8 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - Limits in every "done when": idle under 150 MB (Settings open included), peak under 300 MB (voice call and Settings open included).
 
 ### 4A. `FIXES_ROUND4A.md` (RAM and performance; finishes 3N item 2 and 3D item 11)
-- [ ] 1. Light offline voice is the default (helper at most 80 MB); Kokoro an optional download
-- [ ] 2. A call adds at most 25 MB to the island (about 70 now)
+- [x] 1. Light offline voice is the default (helper at most 80 MB); Kokoro an optional download. Windows build 251: **light voice 80 MB** while speaking (Kokoro 189), 0.2 s a sentence (Kokoro 5.8–9.3 s); **peak test 248 MB** (was 320–331), so the peak gate is now 300.
+- [ ] 2. A call adds at most 25 MB to the island (about 70 now). **Built** (replies play in Rust, `tts_say` / `tts_stop`). Not ticked: CI's peak test runs its call in Rust, so the island's part is not measured; a page-driven call step is needed.
 - [x] 3. Idle under 150 MB with Settings open (Opus). Windows builds 241–245: **146–149 MB** with Settings in front, 27–134 MB left behind another window, closes itself after sitting unused. The margin in front is 1–4 MB: 4F item 4 widens it. A call with Settings open under 300 MB waits for item 1 (the light voice).
 - [ ] 5. The work test gates at 300 MB (446 now)
 - [ ] 6. Start-up and idle CPU numbers in CI (P1, P8, P9)
@@ -192,11 +192,11 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ### 4B. `FIXES_ROUND4B.md` (voice)
 - [ ] 1. One listener in Rust; only "Groovy", "Hey Groovy", "Yo Groovy"; the "OK / Okay" set and the page's listener removed (Opus). **Built.** Not ticked: P5 is 9 of 10 on Linux but **7–8 of 10 on Windows** (0 of 20 false wakes on both), and waking to his given name is still there until the owner confirms removing it.
-- [ ] 2. Speech-to-text on this PC by default
-- [ ] 3. His voice on this PC by default (**needs 4A item 1**)
+- [x] 2. Speech-to-text on this PC by default. `speechMode` local/cloud-first; no cloud request in local; older cloud users keep cloud-first with a one-time notice; Settings → Voice shows what heard the last sentence. Step 3 (download offered, never silent) was already there (`openSpeechSetup`).
+- [x] 3. His voice on this PC by default (**needs 4A item 1**, brought over from fable-plan). `voiceMode` local/cloud; no voice request in local; older cloud-voice installs keep cloud with a one-time notice.
 - [ ] 4. CPU and response times (P2–P7)
-- [ ] 5. LiveKit as an option
-- [ ] 6. Better end of speech (closes 3J item 2)
+- [x] 5. LiveKit as an option. Opt-in and lazy (own chunk); "okay bye" leaves the room; Test connection; only *.livekit.cloud. Not proven against a real room (owner's LiveKit project needed).
+- [x] 6. Better end of speech (closes 3J item 2). Benchmark table in `STATUS.md`: Silero not adopted (no fewer cut-offs at the same silence, 0.6 % CPU); a short stretch waits 360 ms longer instead (early cut-offs 12–13 → 6 of 20, end time unchanged). P2/P3 to be read on Windows CI.
 - [ ] 7. Checks
 
 ### 4C. `FIXES_ROUND4C.md` (screen buddy). **Needs 4D items 1, 2 and 4.**

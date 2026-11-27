@@ -20564,6 +20564,204 @@
    "pt-BR": "Não consegui descobrir como fazer isso.",
    "ru": "Я не понял, как это сделать.",
    "id": "Saya tidak tahu cara melakukannya."
+  },
+  "Light voice · offline": {
+   "zh-Hans": "轻量语音 · 离线",
+   "hi": "हल्की आवाज़ · ऑफ़लाइन",
+   "es": "Voz ligera · sin conexión",
+   "ar": "صوت خفيف · دون اتصال",
+   "fr": "Voix légère · hors ligne",
+   "bn": "হালকা কণ্ঠ · অফলাইন",
+   "pt-BR": "Voz leve · offline",
+   "ru": "Лёгкий голос · офлайн",
+   "id": "Suara ringan · offline"
+  },
+  "Light voice (smaller, faster)": {
+   "zh-Hans": "轻量语音（更小、更快）",
+   "hi": "हल्की आवाज़ (छोटी, तेज़)",
+   "es": "Voz ligera (más pequeña y rápida)",
+   "ar": "صوت خفيف (أصغر وأسرع)",
+   "fr": "Voix légère (plus petite, plus rapide)",
+   "bn": "হালকা কণ্ঠ (ছোট, দ্রুত)",
+   "pt-BR": "Voz leve (menor, mais rápida)",
+   "ru": "Лёгкий голос (меньше, быстрее)",
+   "id": "Suara ringan (lebih kecil, lebih cepat)"
+  },
+  "Kokoro (richer, uses more memory)": {
+   "zh-Hans": "Kokoro（更丰富，占用更多内存）",
+   "hi": "Kokoro (ज़्यादा भरपूर, ज़्यादा मेमोरी लेती है)",
+   "es": "Kokoro (más rica, usa más memoria)",
+   "ar": "Kokoro (أغنى، يستهلك ذاكرة أكثر)",
+   "fr": "Kokoro (plus riche, utilise plus de mémoire)",
+   "bn": "Kokoro (আরও সমৃদ্ধ, বেশি মেমরি নেয়)",
+   "pt-BR": "Kokoro (mais rica, usa mais memória)",
+   "ru": "Kokoro (богаче, занимает больше памяти)",
+   "id": "Kokoro (lebih kaya, memakai lebih banyak memori)"
+  },
+  "The light voice isn't downloaded yet": {
+   "zh-Hans": "轻量语音尚未下载",
+   "hi": "हल्की आवाज़ अभी डाउनलोड नहीं हुई है",
+   "es": "La voz ligera aún no está descargada",
+   "ar": "لم يتم تنزيل الصوت الخفيف بعد",
+   "fr": "La voix légère n'est pas encore téléchargée",
+   "bn": "হালকা কণ্ঠ এখনও ডাউনলোড হয়নি",
+   "pt-BR": "A voz leve ainda não foi baixada",
+   "ru": "Лёгкий голос ещё не загружен",
+   "id": "Suara ringan belum diunduh"
+  },
+  "Download the light voice first.": {
+   "zh-Hans": "请先下载轻量语音。",
+   "hi": "पहले हल्की आवाज़ डाउनलोड करें।",
+   "es": "Descarga primero la voz ligera.",
+   "ar": "نزّل الصوت الخفيف أولاً.",
+   "fr": "Téléchargez d'abord la voix légère.",
+   "bn": "আগে হালকা কণ্ঠ ডাউনলোড করুন।",
+   "pt-BR": "Baixe a voz leve primeiro.",
+   "ru": "Сначала загрузите лёгкий голос.",
+   "id": "Unduh suara ringan terlebih dahulu."
+  },
+  "The light voice didn't speak.": {
+   "zh-Hans": "轻量语音没有出声。",
+   "hi": "हल्की आवाज़ नहीं बोली।",
+   "es": "La voz ligera no habló.",
+   "ar": "لم يتحدث الصوت الخفيف.",
+   "fr": "La voix légère n'a pas parlé.",
+   "bn": "হালকা কণ্ঠ কথা বলেনি।",
+   "pt-BR": "A voz leve não falou.",
+   "ru": "Лёгкий голос не заговорил.",
+   "id": "Suara ringan tidak berbicara."
+  },
+  "Speech still goes to your cloud speech service first. You can keep it on this PC in Settings.": {
+   "zh-Hans": "语音仍会先发送到你的云端语音服务。你可以在设置中改为只在这台电脑上处理。",
+   "hi": "बोली अब भी पहले आपकी क्लाउड स्पीच सेवा को जाती है। आप सेटिंग्स में इसे इसी PC पर रख सकते हैं।",
+   "es": "Tu voz sigue yendo primero a tu servicio de voz en la nube. Puedes mantenerla en este PC en Ajustes.",
+   "ar": "لا يزال الكلام يذهب أولاً إلى خدمة الكلام السحابية لديك. يمكنك إبقاؤه على هذا الكمبيوتر من الإعدادات.",
+   "fr": "La parole va toujours d'abord à votre service vocal en ligne. Vous pouvez la garder sur ce PC dans les Réglages.",
+   "bn": "কথা এখনও প্রথমে আপনার ক্লাউড স্পিচ পরিষেবায় যায়। সেটিংসে এটি এই PC-তেই রাখতে পারেন।",
+   "pt-BR": "A fala ainda vai primeiro ao seu serviço de voz na nuvem. Você pode mantê-la neste PC nas Configurações.",
+   "ru": "Речь по-прежнему сначала идёт в ваш облачный сервис распознавания. В настройках можно оставить её на этом ПК.",
+   "id": "Ucapan masih dikirim dulu ke layanan suara cloud Anda. Anda bisa menyimpannya di PC ini lewat Pengaturan."
+  },
+  "Speech now turns into text on this PC. Cloud speech is an option in Settings.": {
+   "zh-Hans": "语音现在在这台电脑上转为文字。云端语音可在设置中开启。",
+   "hi": "बोली अब इसी PC पर टेक्स्ट बनती है। क्लाउड स्पीच सेटिंग्स में एक विकल्प है।",
+   "es": "Ahora la voz se convierte en texto en este PC. La voz en la nube es una opción en Ajustes.",
+   "ar": "يتحول الكلام الآن إلى نص على هذا الكمبيوتر. الكلام السحابي خيار في الإعدادات.",
+   "fr": "La parole est maintenant transcrite sur ce PC. La transcription en ligne est une option dans les Réglages.",
+   "bn": "কথা এখন এই PC-তেই লেখায় রূপান্তরিত হয়। ক্লাউড স্পিচ সেটিংসে একটি বিকল্প।",
+   "pt-BR": "Agora a fala vira texto neste PC. A voz na nuvem é uma opção nas Configurações.",
+   "ru": "Теперь речь превращается в текст на этом ПК. Облачное распознавание можно включить в настройках.",
+   "id": "Ucapan kini diubah menjadi teks di PC ini. Suara cloud adalah opsi di Pengaturan."
+  },
+  "Last sentence heard by {who}": {
+   "zh-Hans": "上一句由 {who} 识别",
+   "hi": "पिछला वाक्य {who} ने सुना",
+   "es": "Última frase oída por {who}",
+   "ar": "آخر جملة سمعها {who}",
+   "fr": "Dernière phrase entendue par {who}",
+   "bn": "শেষ বাক্যটি শুনেছে {who}",
+   "pt-BR": "Última frase ouvida por {who}",
+   "ru": "Последнюю фразу распознал: {who}",
+   "id": "Kalimat terakhir didengar oleh {who}"
+  },
+  "Nothing heard yet": {
+   "zh-Hans": "还没有听到任何内容",
+   "hi": "अभी तक कुछ नहीं सुना",
+   "es": "Aún no se ha oído nada",
+   "ar": "لم يُسمع شيء بعد",
+   "fr": "Rien entendu pour l'instant",
+   "bn": "এখনও কিছু শোনা হয়নি",
+   "pt-BR": "Nada ouvido ainda",
+   "ru": "Пока ничего не услышано",
+   "id": "Belum ada yang terdengar"
+  },
+  "Groovy still speaks with your cloud voice. His voice on this PC is an option in Settings.": {
+   "zh-Hans": "Groovy 仍使用你的云端语音说话。可在设置中改用这台电脑上的语音。",
+   "hi": "Groovy अब भी आपकी क्लाउड आवाज़ में बोलता है। इस PC पर उसकी आवाज़ सेटिंग्स में एक विकल्प है।",
+   "es": "Groovy sigue hablando con tu voz en la nube. Su voz en este PC es una opción en Ajustes.",
+   "ar": "لا يزال Groovy يتحدث بصوتك السحابي. صوته على هذا الكمبيوتر خيار في الإعدادات.",
+   "fr": "Groovy parle toujours avec votre voix en ligne. Sa voix sur ce PC est une option dans les Réglages.",
+   "bn": "Groovy এখনও আপনার ক্লাউড কণ্ঠে কথা বলে। এই PC-তে তার কণ্ঠ সেটিংসে একটি বিকল্প।",
+   "pt-BR": "Groovy ainda fala com sua voz na nuvem. A voz dele neste PC é uma opção nas Configurações.",
+   "ru": "Groovy по-прежнему говорит облачным голосом. Голос на этом ПК можно выбрать в настройках.",
+   "id": "Groovy masih berbicara dengan suara cloud Anda. Suaranya di PC ini adalah opsi di Pengaturan."
+  },
+  "Groovy now speaks with his light voice on this PC. Cloud voices are an option in Settings.": {
+   "zh-Hans": "Groovy 现在使用这台电脑上的轻量语音说话。云端语音可在设置中开启。",
+   "hi": "Groovy अब इस PC पर अपनी हल्की आवाज़ में बोलता है। क्लाउड आवाज़ें सेटिंग्स में एक विकल्प हैं।",
+   "es": "Groovy ahora habla con su voz ligera en este PC. Las voces en la nube son una opción en Ajustes.",
+   "ar": "يتحدث Groovy الآن بصوته الخفيف على هذا الكمبيوتر. الأصوات السحابية خيار في الإعدادات.",
+   "fr": "Groovy parle maintenant avec sa voix légère sur ce PC. Les voix en ligne sont une option dans les Réglages.",
+   "bn": "Groovy এখন এই PC-তে তার হালকা কণ্ঠে কথা বলে। ক্লাউড কণ্ঠ সেটিংসে একটি বিকল্প।",
+   "pt-BR": "Groovy agora fala com sua voz leve neste PC. Vozes na nuvem são uma opção nas Configurações.",
+   "ru": "Теперь Groovy говорит лёгким голосом на этом ПК. Облачные голоса можно включить в настройках.",
+   "id": "Groovy kini berbicara dengan suara ringannya di PC ini. Suara cloud adalah opsi di Pengaturan."
+  },
+  "Where his voice is made": {
+   "zh-Hans": "他的语音在哪里生成",
+   "hi": "उसकी आवाज़ कहाँ बनती है",
+   "es": "Dónde se crea su voz",
+   "ar": "أين يُصنع صوته",
+   "fr": "Où sa voix est créée",
+   "bn": "তার কণ্ঠ কোথায় তৈরি হয়",
+   "pt-BR": "Onde a voz dele é criada",
+   "ru": "Где создаётся его голос",
+   "id": "Di mana suaranya dibuat"
+  },
+  "On this PC needs no network. A cloud voice uses your own key, with this PC's voice as the backup.": {
+   "zh-Hans": "在这台电脑上无需网络。云端语音使用你自己的密钥，并以这台电脑的语音作为备用。",
+   "hi": "इस PC पर नेटवर्क की ज़रूरत नहीं। क्लाउड आवाज़ आपकी अपनी कुंजी इस्तेमाल करती है, और इस PC की आवाज़ बैकअप रहती है।",
+   "es": "En este PC no necesita red. Una voz en la nube usa tu propia clave, con la voz de este PC como respaldo.",
+   "ar": "على هذا الكمبيوتر لا حاجة إلى شبكة. يستخدم الصوت السحابي مفتاحك الخاص، مع صوت هذا الكمبيوتر احتياطياً.",
+   "fr": "Sur ce PC, aucun réseau n'est nécessaire. Une voix en ligne utilise votre propre clé, avec la voix de ce PC en secours.",
+   "bn": "এই PC-তে নেটওয়ার্ক লাগে না। ক্লাউড কণ্ঠ আপনার নিজের কী ব্যবহার করে, এই PC-র কণ্ঠ ব্যাকআপ হিসেবে থাকে।",
+   "pt-BR": "Neste PC não precisa de rede. Uma voz na nuvem usa sua própria chave, com a voz deste PC como reserva.",
+   "ru": "На этом ПК сеть не нужна. Облачный голос использует ваш ключ, а голос этого ПК остаётся запасным.",
+   "id": "Di PC ini tidak perlu jaringan. Suara cloud memakai kunci Anda sendiri, dengan suara PC ini sebagai cadangan."
+  },
+  "Cloud voice": {
+   "zh-Hans": "云端语音",
+   "hi": "क्लाउड आवाज़",
+   "es": "Voz en la nube",
+   "ar": "صوت سحابي",
+   "fr": "Voix en ligne",
+   "bn": "ক্লাউড কণ্ঠ",
+   "pt-BR": "Voz na nuvem",
+   "ru": "Облачный голос",
+   "id": "Suara cloud"
+  },
+  "Test connection": {
+   "zh-Hans": "测试连接",
+   "hi": "कनेक्शन जाँचें",
+   "es": "Probar conexión",
+   "ar": "اختبار الاتصال",
+   "fr": "Tester la connexion",
+   "bn": "সংযোগ পরীক্ষা করুন",
+   "pt-BR": "Testar conexão",
+   "ru": "Проверить подключение",
+   "id": "Uji koneksi"
+  },
+  "Groovy can only reach LiveKit Cloud (wss://….livekit.cloud).": {
+   "zh-Hans": "Groovy 只能连接 LiveKit Cloud（wss://….livekit.cloud）。",
+   "hi": "Groovy केवल LiveKit Cloud (wss://….livekit.cloud) तक पहुँच सकता है।",
+   "es": "Groovy solo puede conectar con LiveKit Cloud (wss://….livekit.cloud).",
+   "ar": "يمكن لـ Groovy الوصول إلى LiveKit Cloud فقط (wss://….livekit.cloud).",
+   "fr": "Groovy ne peut joindre que LiveKit Cloud (wss://….livekit.cloud).",
+   "bn": "Groovy কেবল LiveKit Cloud (wss://….livekit.cloud)-এ পৌঁছাতে পারে।",
+   "pt-BR": "Groovy só consegue acessar o LiveKit Cloud (wss://….livekit.cloud).",
+   "ru": "Groovy может подключаться только к LiveKit Cloud (wss://….livekit.cloud).",
+   "id": "Groovy hanya bisa menjangkau LiveKit Cloud (wss://….livekit.cloud)."
+  },
+  "Connected to LiveKit.": {
+   "zh-Hans": "已连接到 LiveKit。",
+   "hi": "LiveKit से जुड़ गया।",
+   "es": "Conectado a LiveKit.",
+   "ar": "تم الاتصال بـ LiveKit.",
+   "fr": "Connecté à LiveKit.",
+   "bn": "LiveKit-এ সংযুক্ত হয়েছে।",
+   "pt-BR": "Conectado ao LiveKit.",
+   "ru": "Подключено к LiveKit.",
+   "id": "Terhubung ke LiveKit."
   }
  }
 }

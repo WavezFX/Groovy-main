@@ -9,6 +9,7 @@ import { h, clear } from "../views/dom";
 import { statusDot } from "./parts";
 import { t } from "../i18n/i18n";
 import { speak, voices } from "../voice/speak";
+import { livekitHostAllowed, testLiveKit } from "../voice/livekit";
 import { PARAKEET_LABEL, PARAKEET_OVER_LIMIT } from "./speechlabels";
 
 /** Round 3D item 7: Parakeet is the accurate choice, not the default. */
@@ -122,6 +123,22 @@ export function voiceSection(
     room.value = settings.livekitRoom;
     save();
   });
+  // Round 4B item 5: mint a token and join for 3 s. livekit-client loads only here or in a LiveKit call.
+  const testNote = h("span", { class: "hint" });
+  const testBtn = h("button", { text: t("Test connection") }) as HTMLButtonElement;
+  testBtn.addEventListener("click", () => {
+    if (settings.livekitUrl && !livekitHostAllowed(settings.livekitUrl)) {
+      testNote.textContent = t("Groovy can only reach LiveKit Cloud (wss://….livekit.cloud).");
+      return;
+    }
+    testBtn.disabled = true;
+    testNote.textContent = t("Connecting…");
+    void testLiveKit().then((error) => {
+      testBtn.disabled = false;
+      testNote.textContent = error ?? t("Connected to LiveKit.");
+    });
+  });
+  const testRow = h("div", { class: "row" }, testBtn, testNote);
   const keyField = secretField("livekit-api-key", "API…");
   const secretFieldEl = secretField("livekit-api-secret", "••••");
   const livekitRows = h(
@@ -131,6 +148,7 @@ export function voiceSection(
     h("div", { class: "row" }, h("label", { text: t("Room") }), room),
     h("div", { class: "row" }, h("label", { text: t("API key") }), ...keyField.parts),
     h("div", { class: "row" }, h("label", { text: t("API secret") }), ...secretFieldEl.parts),
+    testRow,
     h("div", {
       class: "hint",
       text: t("Groovy joins this room after the wake word and talks with the voice agent you run there (LiveKit Agents). The key and secret stay in the {store}; Groovy only uses them to sign its own short-lived token.", { store: keyStore }),

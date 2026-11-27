@@ -76,12 +76,12 @@ export async function speak(text: string, voiceName = "", rate = 1, queue = fals
   if (!s) return t("This computer has no text-to-speech.");
   if (!words) return null;
   if (!queue) stopSpeaking();
-  // Groovy's own voice first (round 3B item 8c): Fish Audio, then Kokoro.
-  // Anything else, or a failure, falls to the voices built into Windows.
+  // Groovy's own voice first (round 3B item 8c): Fish Audio, then the offline
+  // voice, played by Rust (round 4A item 2: no audio is decoded in this page).
+  // None of them, or a failure, falls to the voices built into Windows.
   const generation = ++speakGeneration;
-  const audio = await FlowBridge.ttsAudio(words).catch(() => null);
-  if (generation !== speakGeneration) return null;
-  if (audio && (await playAudio(audio.mime, audio.data))) return null;
+  const said = await FlowBridge.ttsSay(words).catch(() => null);
+  if (generation !== speakGeneration || said) return null;
   const voice = pickVoice(await voices(), voiceName);
   if (!voice) return t("No voice is installed for reading answers aloud (Windows Settings → Time & language → Speech).");
   return await new Promise<string | null>((resolve) => {
@@ -103,34 +103,12 @@ export async function speak(text: string, voiceName = "", rate = 1, queue = fals
 
 /** Bumped by every speak() and stopSpeaking(): a sentence still being made is dropped. */
 let speakGeneration = 0;
-let currentAudio: HTMLAudioElement | null = null;
-
-/** Plays Groovy's voice; true once it played to the end or was stopped (barge-in). */
-async function playAudio(mime: string, base64: string): Promise<boolean> {
-  if (typeof Audio === "undefined") return false;
-  const audio = new Audio(`data:${mime};base64,${base64}`);
-  currentAudio = audio;
-  try {
-    await audio.play();
-  } catch {
-    if (currentAudio === audio) currentAudio = null;
-    return false;
-  }
-  await new Promise<void>((resolve) => {
-    audio.onended = () => resolve();
-    audio.onerror = () => resolve();
-    audio.onpause = () => resolve();
-  });
-  if (currentAudio === audio) currentAudio = null;
-  return true;
-}
 
 export function stopSpeaking() {
   speakGeneration++;
   const s = synth();
   if (s && (s.speaking || s.pending || current)) s.cancel();
   current = null;
-  // Barge-in: the user spoke, Groovy's voice stops at once.
-  currentAudio?.pause();
-  currentAudio = null;
+  // Barge-in: the user spoke, Groovy's voice stops at once (it plays in Rust).
+  void FlowBridge.ttsStop().catch(() => undefined);
 }

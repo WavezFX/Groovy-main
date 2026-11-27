@@ -6,7 +6,7 @@ import { showError } from "../views/toast";
 
 const QUIET = new Set([
   "flow_status", "flow_history", "flow_stats", "flow_words", "flow_snippets", "flow_styles", "flow_running_apps",
-  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_audio", "tts_status",
+  "live_state", "live_notices", "notes_state", "notes_markdown", "okgroovy_status", "tts_say", "tts_status",
 ]);
 
 const IS_TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -53,12 +53,18 @@ export interface FlowPrefs {
   /** Fish Audio's voice id (its `reference_id`) and model; the key is in the OS store. */
   fishVoice: string;
   fishModel: string;
-  /** Who speaks first (Settings → Speaking): Fish Audio, Kokoro on this PC, or Windows' voice. */
+  /** Who speaks first (Settings → Speaking): Fish Audio, the offline voice on this PC ("kokoro", kept for old settings), or Windows' voice. */
   voicePick: "fish" | "kokoro" | "system";
+  /** The offline voice (round 4A item 1): the light one, Kokoro, or "auto" (Kokoro if it was downloaded before, else the light one). */
+  offlineVoice: "auto" | "light" | "kokoro";
   /** How fast Fish Audio and Kokoro speak, 0.5–2.0. */
   voiceSpeed: number;
   /** Cloud speech-to-text first when a key is set; off: only this computer (round 3B item 6). */
   cloudSpeech: boolean;
+  /** Where speech becomes text (round 4B item 2): this PC only (default), or a cloud service first. Kept in step with cloudSpeech by Rust. */
+  speechMode?: "local" | "cloud-first";
+  /** Where his voice is made (round 4B item 3): this PC (default: light voice, Kokoro if chosen, then Windows' voice) or a cloud voice with the user's key. */
+  voiceMode?: "local" | "cloud";
   /** Learn names and models from corrections made within a minute. */
   learnWords: boolean;
 }
@@ -82,6 +88,8 @@ export interface FlowStatus {
   aiReady: boolean;
   /** Speech can be turned into text with the engine chosen. */
   engineReady: boolean;
+  /** What turned the last sentence into text ("Deepgram Nova-3", "Whisper, on this PC"), or "" (round 4B item 2). */
+  heardBy?: string;
   mics: { name: string; default: boolean }[];
   platform: "windows" | "linux";
   autostarted: boolean;
@@ -213,7 +221,7 @@ export interface TtsAudio {
   mime: string;
   /** Base64. */
   data: string;
-  provider: "fish" | "kokoro";
+  provider: "fish" | "light" | "kokoro";
 }
 
 export type DownloadState =
@@ -231,8 +239,13 @@ export interface TtsStatus {
   monthGbp: number;
   kokoro: DownloadState;
   kokoroMb: number;
+  /** The light offline voice (round 4A item 1). */
+  light: DownloadState;
+  lightMb: number;
+  /** The offline voice that speaks now, or null when none is downloaded. */
+  offlineVoice: "light" | "kokoro" | null;
   /** Who speaks now. */
-  speaking: "fish" | "kokoro" | "system";
+  speaking: "fish" | "light" | "kokoro" | "system";
 }
 
 export interface OkStatus {
@@ -295,7 +308,10 @@ export const FlowBridge = {
   liveAction: (action: string, id?: number) => call<void>("live_action", { action, id: id ?? null }),
   /** The island has said what « Hey Groovy » answered. */
   /** Groovy's voice for one sentence (Fish Audio, then Kokoro); null: the page's own voice says it. */
-  ttsAudio: (text: string) => call<TtsAudio>("tts_audio", { text }),
+  /** Says a sentence with Groovy's own voice, played by Rust (round 4A item 2): who said it, or null (none could). */
+  ttsSay: (text: string) => call<"fish" | "light" | "kokoro">("tts_say", { text }),
+  /** Stops what Groovy is saying at once (barge-in, hang-up). */
+  ttsStop: () => call<void>("tts_stop"),
   ttsStatus: () => call<TtsStatus>("tts_status"),
   /** Fish Audio alone, so its own error shows; throws why it couldn't. */
   fishTest: () => callOrThrow<TtsAudio>("fish_test"),
@@ -303,6 +319,8 @@ export const FlowBridge = {
   /** Kokoro's voice for a Speaking card. */
   kokoroPreview: (gender: "female" | "male") => callOrThrow<TtsAudio>("kokoro_preview", { gender }),
   kokoroRemove: () => call<void>("kokoro_remove"),
+  lightDownload: () => call<void>("light_download"),
+  lightPreview: (gender: "female" | "male") => callOrThrow<TtsAudio>("light_preview", { gender }),
   /** « Hey Groovy »: on, listening, and ✓/✗ for the microphone, the speech model and the AI. */
   okStatus: () => call<OkStatus>("okgroovy_status"),
   /** Quick settings (round 4 item 2): the AI, « Hey Groovy » and the voice. */

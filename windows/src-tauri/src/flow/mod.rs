@@ -129,6 +129,42 @@ pub fn setup(app: &AppHandle) {
     }
     sync_engine(app);
     small_speech_for_parakeet_users(app, &prefs);
+    speech_mode_notice(app, &flow);
+}
+
+/// Round 4B item 2: once, after an older install was moved to a speech mode,
+/// the island says where speech now becomes text.
+fn speech_mode_notice(app: &AppHandle, flow: &Arc<Flow>) {
+    let (speech, voice) = {
+        let mut store = flow.store.lock().unwrap();
+        let p = &store.prefs;
+        let speech = p.speech_mode_notice.then(|| p.cloud_speech_first());
+        let voice = p.voice_mode_notice.then(|| p.cloud_voice());
+        if speech.is_none() && voice.is_none() {
+            return;
+        }
+        store.prefs.speech_mode_notice = false;
+        store.prefs.voice_mode_notice = false;
+        store.save_prefs();
+        (speech, voice)
+    };
+    if let Some(cloud) = speech {
+        let text = if cloud {
+            t("Speech still goes to your cloud speech service first. You can keep it on this PC in Settings.")
+        } else {
+            t("Speech now turns into text on this PC. Cloud speech is an option in Settings.")
+        };
+        live::announce(app, "mic", "#3B9EFF", text, None, 10);
+    }
+    // Round 4B item 3: the same once for his voice.
+    if let Some(cloud) = voice {
+        let text = if cloud {
+            t("Groovy still speaks with your cloud voice. His voice on this PC is an option in Settings.")
+        } else {
+            t("Groovy now speaks with his light voice on this PC. Cloud voices are an option in Settings.")
+        };
+        live::announce(app, "mic", "#3B9EFF", text, None, 10);
+    }
 }
 
 /// Round 3D item 7: someone who had Parakeet on the PC (local speech set up)
@@ -358,7 +394,7 @@ fn begin(app: &AppHandle, flow: &Arc<Flow>) -> Option<Listening> {
             live::update(app, |s| s.phase = "listening".into());
             crate::resources::state::fire(app, crate::resources::state::Event::Wake);
             // The PC's engine is loaded now, while you speak, unless the cloud one answers first.
-            let cloud_first = flow.store.lock().unwrap().prefs.cloud_speech && !speech::cloud::available().is_empty();
+            let cloud_first = flow.store.lock().unwrap().prefs.cloud_speech_first() && !speech::cloud::available().is_empty();
             if !cloud_first {
                 speech::get_ready(app);
             }
@@ -459,12 +495,16 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
     let started = Instant::now();
     let (vocabulary, cloud_first, learn_words) = {
         let store = flow.store.lock().unwrap();
-        (store.words.words.clone(), store.prefs.cloud_speech, store.prefs.learn_words)
+        (store.words.words.clone(), store.prefs.cloud_speech_first(), store.prefs.learn_words)
     };
     // Cloud speech-to-text first when there is a key (round 3B item 6), the
     // PC's engine when there is none, no network or no answer in time.
+    // In "local" (round 4B item 2) no cloud request is built at all.
     let heard = if cloud_first {
-        tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &vocabulary, None)).map(|(text, _)| text)
+        tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &vocabulary, None)).map(|(text, service)| {
+            speech::heard_by(service.name());
+            text
+        })
     } else {
         None
     };
@@ -554,6 +594,8 @@ fn paste_last(app: &AppHandle) {
 pub struct FlowStatus {
     prefs: Prefs,
     models: speech::ModelsStatus,
+    /// What turned the last sentence into text ("Deepgram Nova-3", "Whisper, on this PC"), or "".
+    heard_by: String,
     /// "ok", or why the key can't be watched here ("wayland", "no-display").
     keys: String,
     ai_ready: bool,
@@ -596,6 +638,7 @@ pub fn flow_status(flow: State<Arc<Flow>>) -> FlowStatus {
     FlowStatus {
         prefs: flow.store.lock().unwrap().prefs.clone(),
         models: speech::status(),
+        heard_by: speech::last_heard_by(),
         keys: match os::keys_supported() {
             Ok(()) => "ok".into(),
             Err(why) => why.into(),
@@ -617,7 +660,9 @@ pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
     let before = {
         let mut store = flow.store.lock().unwrap();
         let before = store.prefs.clone();
-        store.prefs = prefs.clone();
+        let mut next = prefs.clone();
+        next.follow_speech_switch(&before);
+        store.prefs = next;
         store.save_prefs();
         if before.keep_days != prefs.keep_days {
             store.prune(store::now_ms());

@@ -91,7 +91,11 @@ export class EnergyVAD {
     if (power < this.noisePower * FALL) {
       this.silentCount++;
       this.noisePower = this.noisePower * (1 - this.kSilent) + power * this.kSilent;
-      if (this.silentCount >= this.silenceLimit) {
+      // Round 4B item 6: a short start ("Hey Groovy… play music") gets 0.36 s more
+      // before it counts as ended: fewer early cut-offs on the benchmark, same end time after.
+      const shortStart = this.activeCount < Math.round(SHORT_START_S * this.fps);
+      const limit = this.silenceLimit + (shortStart ? Math.round(SHORT_EXTRA_S * this.fps) : 0);
+      if (this.silentCount >= limit) {
         this.isActive = false;
         this.silentCount = 0;
         this.activeCount = 0;
@@ -103,6 +107,10 @@ export class EnergyVAD {
     return "none";
   }
 }
+
+/** A stretch younger than this many seconds gets `SHORT_EXTRA_S` more silence before it ends. */
+export const SHORT_START_S = 1.8;
+export const SHORT_EXTRA_S = 0.36;
 
 /** Mean-square power of a frame. */
 export function power(frame: Float32Array): number {

@@ -6,6 +6,7 @@
 // The conversation ends after a stretch of silence, or when the island asks.
 
 import { Bridge } from "../core/bridge";
+import { isEndPhrase } from "./wake";
 import type { Participant, RemoteTrack, TranscriptionSegment } from "livekit-client";
 
 /** No one speaking for this long ends the conversation. */
@@ -24,15 +25,19 @@ export interface LiveKitSession {
   hangUp(): void;
 }
 
-export async function startLiveKit(cb: LiveKitCallbacks): Promise<LiveKitSession> {
+export async function startLiveKit(
+  cb: LiveKitCallbacks,
+  load: () => Promise<typeof import("livekit-client")> = () => import("livekit-client"),
+  mint: () => Promise<{ url: string; token: string }> = () => Bridge.livekitToken(),
+): Promise<LiveKitSession> {
   let lk: typeof import("livekit-client");
   try {
-    lk = await import("livekit-client");
+    lk = await load();
   } catch {
     cb.onEnd("LiveKit isn't part of this build.");
     return { hangUp() {} };
   }
-  const access = await Bridge.livekitToken().catch((e: unknown) => {
+  const access = await mint().catch((e: unknown) => {
     cb.onEnd(String(e).replace(/^Error:\s*/, ""));
     return null;
   });
@@ -69,6 +74,8 @@ export async function startLiveKit(cb: LiveKitCallbacks): Promise<LiveKitSession
     lastVoice = performance.now();
     const you = participant?.identity === room.localParticipant.identity;
     cb.onCaption?.(you ? "you" : "groovy", text);
+    // Round 4B item 5: "okay bye" leaves the room first, like the hang-up button.
+    if (you && segments.every((s) => s.final !== false) && isEndPhrase(text)) end();
   });
   room.on(lk.RoomEvent.Disconnected, () => end());
 
@@ -85,4 +92,48 @@ export async function startLiveKit(cb: LiveKitCallbacks): Promise<LiveKitSession
   }, 1000);
 
   return { hangUp: () => end() };
+}
+
+/** The hosts the island's CSP lets LiveKit reach, fixed at build time (round 4B item 5). */
+export function livekitHostAllowed(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === "wss:" && (u.hostname === "livekit.cloud" || u.hostname.endsWith(".livekit.cloud"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Settings → "Test connection": mints a token, joins the room for `holdMs`
+ * and leaves. Resolves to null when it worked, else what went wrong.
+ * `load` is the lazy import, replaceable in tests.
+ */
+export async function testLiveKit(
+  holdMs = 3000,
+  load: () => Promise<typeof import("livekit-client")> = () => import("livekit-client"),
+  mint: () => Promise<{ url: string; token: string }> = () => Bridge.livekitToken(),
+): Promise<string | null> {
+  let access: { url: string; token: string };
+  try {
+    access = await mint();
+  } catch (e) {
+    return String(e).replace(/^Error:\s*/, "");
+  }
+  let lk: typeof import("livekit-client");
+  try {
+    lk = await load();
+  } catch {
+    return "LiveKit isn't part of this build.";
+  }
+  const room = new lk.Room();
+  try {
+    await room.connect(access.url, access.token);
+    await new Promise((r) => setTimeout(r, holdMs));
+    return null;
+  } catch (e) {
+    return `Couldn't join LiveKit: ${String(e).replace(/^Error:\s*/, "")}`;
+  } finally {
+    await room.disconnect();
+  }
 }

@@ -190,14 +190,15 @@ fn to_island(app: &AppHandle, text: Option<&str>, cancelled: bool) {
 
 /// Cloud speech answers first (Settings → Voice), when it has a key.
 fn cloud_first(app: &AppHandle) -> bool {
-    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech) && !speech::cloud::available().is_empty()
+    crate::flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech_first()) && !speech::cloud::available().is_empty()
 }
 
 /// The words of a command: the cloud engine first when it is set up, the
 /// PC's own (loaded now if it isn't) when there is none or it fails.
 fn hear(app: &AppHandle, samples: &[f32]) -> Option<String> {
     if cloud_first(app) {
-        if let Some((text, _)) = tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &[], None)) {
+        if let Some((text, service)) = tauri::async_runtime::block_on(speech::cloud::transcribe(samples, &[], None)) {
+            speech::heard_by(service.name());
             return Some(text.trim().to_string());
         }
     }
@@ -279,6 +280,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             Mode::Command { until, .. } | Mode::FollowUp { until } if now > *until => {
                 mode = Mode::Wake;
                 vad.hangover = 25;
+                vad.short_extra = wake::SHORT_EXTRA;
                 show(&app, None);
                 if std::mem::take(&mut chat_waits) {
                     to_island(&app, None, true);
@@ -347,12 +349,14 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
                             chat_waits = true;
                             mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
                             vad.hangover = 40;
+                            vad.short_extra = 0;
                             None
                         } else {
                             show(&app, Some(VoiceView { phase: "listening".into(), heard: rest.clone(), answer: String::new() }));
                             mode = Mode::Command { text: rest, until: now + Duration::from_secs(7) };
                             // A question may come with pauses in it.
                             vad.hangover = 40;
+                            vad.short_extra = 0;
                             None
                         }
                     }
@@ -367,6 +371,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             let Some(question) = question else { continue };
             mode = Mode::Wake;
             vad.hangover = 25;
+            vad.short_extra = wake::SHORT_EXTRA;
             if route == Route::Chat {
                 // Asked in the island's chat like a typed question, and read out there.
                 chat_waits = false;
@@ -429,6 +434,7 @@ fn run(app: AppHandle, stop: Arc<AtomicBool>) {
             if answer.trim_end().ends_with('?') {
                 mode = Mode::FollowUp { until: Instant::now() + Duration::from_secs(8) };
                 vad.hangover = 40;
+                vad.short_extra = 0;
                 show(&app, Some(VoiceView { phase: "listening".into(), heard: String::new(), answer }));
             } else {
                 hide_at = Some(Instant::now() + Duration::from_secs(6));
@@ -516,7 +522,9 @@ fn speak(app: &AppHandle, text: &str) {
     let (output, gender) = crate::flow::get(app)
         .map(|f| {
             let p = &f.store.lock().unwrap().prefs;
-            (p.voice_output.clone(), p.voice_gender.clone())
+            // Round 4B item 3: ElevenLabs only in the cloud voice mode; else Windows' own voice.
+            let output = if p.voice_output == "elevenlabs" && !p.cloud_voice() { "system".to_string() } else { p.voice_output.clone() };
+            (output, p.voice_gender.clone())
         })
         .unwrap_or_else(|| ("system".into(), "female".into()));
     if output == "off" {
