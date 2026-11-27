@@ -162,11 +162,11 @@ jobs:
         working-directory: windows
         run: cargo deny check licenses bans
 
-      - name: "npm licences (shipped packages, no GPL or AGPL)"
+      - name: "npm licences (shipped packages: only MIT, BSD, ISC, Apache-2.0 and the listed exceptions)"
         working-directory: windows
         run: |
           npm ci --ignore-scripts
-          npx --yes license-checker-rseidelsohn@4.4.2 --production --excludePrivatePackages --failOn "GPL;AGPL;LGPL"
+          node scripts/npm-licences.mjs
 
       - name: THIRD_PARTY_NOTICES is up to date
         working-directory: windows

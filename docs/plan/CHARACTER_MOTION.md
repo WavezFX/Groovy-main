@@ -2,7 +2,7 @@
 
 `docs/GROOVY_SPEC.md` section 2: the animation engine must be original motion; anything ported is rewritten. The growth art, the three looks and the pillow outline don't change.
 
-**State of this item:** steps 1 and 2 are done here (the table, and the design on paper). **Step 3, the rewrite, waits for the owner to approve the design** (section 2), as the round file asks. No engine code was changed.
+**State of this item (20 Nov 2026):** the design in section 2 was **approved by the owner on 20 Nov 2026**. The engine is rewritten from it (section 4). Also rewritten: `minibots.ts`, `core/anim.ts` (easing table from the ease-out, a sine glide and a spring settle; `Spring` and `Tracked` keep their interface) and the flight: `mochi/desktop-logic.ts` (life cycle and gaze; his surprise plays 0.52 s before he leaves) and the flight curves in `src-tauri/src/desktop.rs` (a pull back then a sine glide, 0.52 s; landing on a spring settle, 0.32 s). Still to do: the CI numbers (P1, P10, idle memory) and the line comparison against the original engine.
 
 ## 1. What is ported today
 `windows/src/mochi/engine.ts` (1597 lines) was compared, method by method, with the engine of the project Groovy's code started from (whitespace and comments ignored). Of that engine's 1376 lines, about 1230 are still in Groovy's file unchanged. By method (lines of code, share identical):
@@ -62,3 +62,29 @@ Rules that stay: every loop stops at rest (idle CPU at most 0.3 %, P1), springs 
 3. Replace `core/anim.ts`'s easing table with the three tools above; then `minibots.ts` and the flight in `desktop-logic.ts` on the same spring.
 4. Re-run the comparison in section 1: **no method may be more than 20 % the same**, and write the new table here.
 5. `body-sheet.mjs`, `items-check.mjs`, wardrobe and growth tests, frame test.
+
+## 4. The rewrite (done 20 Nov 2026, round 4E item 1)
+`windows/src/mochi/engine.ts` was rewritten from section 2, not from the old file. The motion tools are in a new file, `windows/src/mochi/motion.ts`: `stepSpring` (frequency and damping, snaps to exactly its target), `breath` (4.2 s, in 1.6 / hold 0.3 / out 2.3), `envelope` and `easeOut` (cubic). A move is an **act**: a short function of its age that adds offsets; the springs chase base + offsets, which gives the anticipation, overshoot and follow-through. There are no keyframe tables and no `setTimeout` chains (timed steps are acts too, so they stop with the frame loop).
+
+| Method or part | Verdict now | What it does now |
+|---|---|---|
+| `update` | **Groovy's own** | glides, acts, eyes-lead/head-follows springs, per-look blink timing (3.5–9 s, never at the top of a breath, double 1 in 8), idle element gesture every 20–40 s, glance on pointer rest, soft-part and pendulum springs |
+| `draw` | **Groovy's own** | adds the breath (height under 1.5 %, held while proud), halo pulse and approval double beat, thinking dots orbiting once per breath; same draw order for the growth art and wardrobe |
+| `setState` | **Groovy's own** | finished: puff + element pop; error: three 40 ms twitches; approval: dip then lean (+0.08 pitch); question: 7° tilt on a soft spring, wisp hook; sleeping: yawn sag |
+| `triggerEmote` | **Groovy's own** | happy puff, love spiral of look particles (no hearts), surprised taut outline + flare, proud held breath + halo ring, wink + opposite wisp flick, yawn sag, annoyed twitches |
+| `blink` | **Groovy's own** | Night shutter 70/110 ms with overshoot; Ember glow dip then lid; Frost 160/220 ms with a ripple |
+| `squash`, `gulp`, `slap`, `doRoll`, `greet`, `interruptGreet` | **Groovy's own** | pillow set pieces: sides bow in and pop; tumble with wisps a quarter-turn behind; hello = puff + two-beat wisp wave |
+| `stepDanceLevel`, `danceTransform`, `applyDance` | **Groovy's own** | a sway from the base at 104 BPM, a puff after each beat, wisps keep the beat |
+| `emit`, particles | **Groovy's own** | per look: leaf flecks, embers, bubbles; plus drops, z, halo ring; at most 24 alive (12 lite) |
+| `drawEyes`, eye glyphs | **Groovy's own** | almond eyes (skins.ts) with the eye lead; mood glyphs redrawn (crescents, flat lids, glints) |
+| `drawBadge` → `drawTag` | **Groovy's own** | a tag hanging from his outline on a pendulum |
+| `drawMouth` → `drawSlot` | **Groovy's own** | only the drop slot; moods use `drawSkinMouth` |
+| `doMiniBehaviorLoop` → `miniCue` | **Groovy's own** | minis puff, twitch, wink or spiral flecks |
+| `glide` (was `anim`) | **Groovy's own** | one eased value, cubic ease-out |
+| `bodyPath` | **Groovy's own** | the pillow outline with a live bow (taut 0.02 … sagging 0.16); exactly `pillow.ts` at rest |
+| `wispPath`, `drawWisp`, `fillBody`, `drawCachedBody`, `eyeCentres`, `eyePitch`, `drawSkinMouth`, `style`, `setStage`, `setSkin` | **Groovy's own** (kept) | unchanged; the body cache key now includes the bow |
+| `rrPoint` | geometry helper, kept | ray to rounded-rect, for the drop-box morph |
+
+No row is **ported**. Public names are unchanged (states, emotes, `setState`, `triggerEmote`, `greet`, `gulp`, `slap`, `setOutfit`, `setSkin`, `setStage`, `animateMorph`, `busy`/`ambient`/`moving`, `locks`), so the island, wardrobe, growth and minis need no change. `ambient` is true only for searching, approval, rate limit, sleeping and minis, as before, so idle CPU rules hold: at rest every spring is exactly still and the island stops its frames.
+
+**Contact sheet:** `docs/plan/motion-sheet/motion-{night,ember,frost}.jpg` (`windows/scripts/motion-sheet.mjs`: 18 rows of states and emotes, eight frames over 1.6 s, fixed clock). **Not re-run here:** the line comparison with the original engine (its source isn't in this worktree; re-run it on the reference checkout, target under 20 % per method) and the Windows numbers (P1, P10), which only CI measures.
