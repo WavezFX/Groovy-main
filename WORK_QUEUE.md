@@ -220,7 +220,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 ## 6. Round 6: `FIXES_ROUND6.md` (Discord by voice and on the island). **Approved by the owner, 27 Nov 2026.**
 - [x] 1. The Discord connection over the local RPC pipe, lazily (fake-pipe tests)
 - [x] 2. The Discord tile: muted, deafened, channel, who's speaking, Mute, Deafen, Leave call
-- [ ] 3. Voice and chat commands with no AI: mute, deafen, undeafen, who's in the call, leave the call
+- [x] 3. Voice and chat commands with no AI: mute, deafen, undeafen, who's in the call, leave the call
 - [ ] 4. Messages from Discord's Windows notifications; Reply and "message <name>" open Discord, and the user presses Enter
 - [ ] 5. Settings, translations, privacy note, checks
 

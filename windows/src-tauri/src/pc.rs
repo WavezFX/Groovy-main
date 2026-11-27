@@ -60,6 +60,13 @@ pub enum Discord {
     Deafen,
     /// A discord:// link to a server, channel or DM.
     Link(String),
+    // Round 6: exact states over Discord's local RPC (discord.rs), the shortcut toggle without it.
+    SetMute(bool),
+    SetDeaf(bool),
+    /// "Who's in the call?"
+    Who,
+    /// "Leave the call."
+    Leave,
 }
 
 impl Action {
@@ -163,6 +170,29 @@ pub fn parse(t: &str, cased: &str) -> Option<Action> {
     }
     if one(&["deafen me on discord", "deafen on discord", "discord deafen", "deafen me", "undeafen me", "undeafen me on discord"]) {
         return Some(Action::Discord(Discord::Deafen));
+    }
+    // Round 6: everyday Discord voice commands, no AI.
+    if one(&["mute discord", "mute on discord", "mute my discord", "mute me in discord", "mute my mic in discord", "discord mute me"]) {
+        return Some(Action::Discord(Discord::SetMute(true)));
+    }
+    if one(&["unmute discord", "unmute on discord", "unmute my discord", "unmute me in discord", "unmute my mic in discord", "discord unmute me"]) {
+        return Some(Action::Discord(Discord::SetMute(false)));
+    }
+    if one(&["deafen", "deafen discord", "deafen me in discord", "discord deafen me"]) {
+        return Some(Action::Discord(Discord::SetDeaf(true)));
+    }
+    if one(&["undeafen", "undeafen discord", "undeafen me in discord", "discord undeafen", "discord undeafen me", "undeafen on discord"]) {
+        return Some(Action::Discord(Discord::SetDeaf(false)));
+    }
+    if one(&["who's in the call", "whos in the call", "who is in the call", "who's in the discord call", "who is in the discord call", "who's on the call", "who is on the call",
+        "who's in my call", "who's talking", "who is talking", "who's speaking", "who is speaking", "who's in discord", "who's in voice", "who's in the voice channel"])
+    {
+        return Some(Action::Discord(Discord::Who));
+    }
+    if one(&["leave the call", "leave call", "leave the discord call", "leave discord call", "leave the voice channel", "leave voice", "hang up discord", "disconnect from discord",
+        "disconnect from the call", "leave the discord voice channel", "hang up the discord call"])
+    {
+        return Some(Action::Discord(Discord::Leave));
     }
     if one(&["open discord", "launch discord", "start discord"]) {
         return Some(Action::Discord(Discord::Open));
@@ -398,16 +428,53 @@ fn discord(d: &Discord) -> Result<String, String> {
             crate::platform::open_url(link);
             Ok(t("Opening it in Discord."))
         }
-        // Discord's own shortcuts, while its window is in front.
-        Discord::Mute | Discord::Deafen => {
+        // Round 6: the local RPC first (exact, and Discord needn't be in front);
+        // without it set up, Discord's own shortcuts below.
+        Discord::Who | Discord::Leave | Discord::Mute | Discord::Deafen | Discord::SetMute(_) | Discord::SetDeaf(_) => {
+            let v = rpc_first(d).expect("voice action");
+            let run = std::thread::spawn(move || tauri::async_runtime::block_on(crate::discord::act(v))).join().map_err(|_| t("Discord didn't answer."))?;
+            let keys = !matches!(d, Discord::Who | Discord::Leave);
+            match run {
+                Ok(said) => Ok(said),
+                Err(crate::discord::Fail::NotRunning) => Err(not_open("Discord")),
+                Err(f @ (crate::discord::Fail::NotSetUp | crate::discord::Fail::NeedsAuth | crate::discord::Fail::Refused(_))) if keys => {
+                    crate::log::line(format!("discord: no RPC ({}), using the shortcut", f.status()));
+                    shortcut(d)
+                }
+                Err(f) => Err(f.say()),
+            }
+        }
+    }
+}
+
+/// The RPC request a Discord action is, if any.
+fn rpc_first(d: &Discord) -> Option<crate::discord::Voice> {
+    use crate::discord::Voice;
+    Some(match d {
+        Discord::Mute => Voice::Mute(None),
+        Discord::Deafen => Voice::Deaf(None),
+        Discord::SetMute(b) => Voice::Mute(Some(*b)),
+        Discord::SetDeaf(b) => Voice::Deaf(Some(*b)),
+        Discord::Who => Voice::Who,
+        Discord::Leave => Voice::Leave,
+        Discord::Open | Discord::Link(_) => return None,
+    })
+}
+
+/// Discord's own shortcuts (round 4 item 5), while its window is in front: they toggle.
+fn shortcut(d: &Discord) -> Result<String, String> {
+    match d {
+        Discord::Mute | Discord::Deafen | Discord::SetMute(_) | Discord::SetDeaf(_) => {
             if !os::switch_to("discord") {
                 return Err(not_open("Discord"));
             }
             std::thread::sleep(std::time::Duration::from_millis(250));
-            let key = if *d == Discord::Mute { 0x4D } else { 0x44 };
+            let mic = matches!(d, Discord::Mute | Discord::SetMute(_));
+            let key = if mic { 0x4D } else { 0x44 };
             crate::flow::os::send_chord(&[0x11, 0x10], key)?;
-            Ok(if *d == Discord::Mute { t("Discord: microphone muted or back on.") } else { t("Discord: deafened or back on.") })
+            Ok(if mic { t("Discord: microphone muted or back on.") } else { t("Discord: deafened or back on.") })
         }
+        _ => Err(t("Set up Discord in Settings → Discord first.")),
     }
 }
 
@@ -750,6 +817,26 @@ mod tests {
         assert_eq!(p("mute me on Discord"), Some(Action::Discord(Discord::Mute)));
         assert_eq!(p("deafen me"), Some(Action::Discord(Discord::Deafen)));
         assert_eq!(p("Open Discord"), Some(Action::Discord(Discord::Open)));
+        // Round 6: the owner's phrasings, exact over RPC.
+        for (said, want) in [
+            ("mute Discord", Discord::SetMute(true)),
+            ("mute my discord", Discord::SetMute(true)),
+            ("unmute Discord", Discord::SetMute(false)),
+            ("deafen", Discord::SetDeaf(true)),
+            ("Deafen Discord", Discord::SetDeaf(true)),
+            ("undeafen", Discord::SetDeaf(false)),
+            ("undeafen me in Discord", Discord::SetDeaf(false)),
+            ("who's in the call", Discord::Who),
+            ("who is in the discord call", Discord::Who),
+            ("who's talking", Discord::Who),
+            ("leave the call", Discord::Leave),
+            ("leave the Discord call", Discord::Leave),
+            ("hang up Discord", Discord::Leave),
+        ] {
+            assert_eq!(p(said), Some(Action::Discord(want)), "{said}");
+        }
+        // Discord's sound still has its volume.
+        assert_eq!(p("turn Discord up"), Some(Action::AppVolume { app: "Discord".into(), change: Change::Up }));
         assert_eq!(p("play Daft Punk on Spotify"), Some(Action::SpotifyPlay("Daft Punk".into())));
         assert_eq!(p("play the latest Taylor Swift album"), Some(Action::SpotifyPlay("the latest Taylor Swift album".into())));
         assert_eq!(p("change the sound output"), Some(Action::OutputDevice));
