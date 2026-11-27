@@ -21,6 +21,7 @@
 //   Ctrl+Alt+T       open the terminal       Ctrl+Alt+G      wardrobe
 //   Ctrl+Alt+D       Groovy to the desktop, or home again (the Mac's ⌃⌥D)
 //   Ctrl+Alt+N       open / close the island (off by default, as on the Mac)
+//   Ctrl+Alt+K       circle something on the screen and ask about it (round 4C)
 //
 // ⌃⌥[ and ⌃⌥] became the arrows (brackets are AltGr characters almost
 // everywhere) and ⌃⌥M became S (AltGr+M is µ in German). Layouts outside that
@@ -73,6 +74,8 @@ pub const ACTIONS: &[ActionDef] = &[
     action("openSettings", "Ctrl+Alt+Comma", true, true),
     // Round 3: what the bottom pill offered, now from anywhere.
     action("pasteDictation", "Ctrl+Alt+V", true, true),
+    // Round 4C item 5: draw round something on the screen, then ask about it.
+    action("circleAsk", "Ctrl+Alt+K", true, true),
 ];
 
 pub fn find(id: &str) -> Option<&'static ActionDef> {
@@ -98,6 +101,7 @@ pub fn description(id: &str) -> &'static str {
         "wardrobeToggle" => n_("Open the wardrobe"),
         "openSettings" => n_("Open the Control Centre"),
         "pasteDictation" => n_("Paste the last dictation again"),
+        "circleAsk" => n_("Circle something on the screen and ask about it"),
         _ => "Groovy",
     }
 }
@@ -710,9 +714,9 @@ mod tests {
     #[test]
     fn every_mac_action_has_a_default_and_keeps_its_id() {
         let ids: Vec<_> = ACTIONS.iter().map(|a| a.id).collect();
-        // The Mac's ten, then Groovy's own: the Control Centre, paste again.
+        // The Mac's ten, then Groovy's own: the Control Centre, paste again, circle and ask.
         assert_eq!(&ids[..MAC_IDS.len()], MAC_IDS);
-        assert_eq!(&ids[MAC_IDS.len()..], ["openSettings", "pasteDictation"]);
+        assert_eq!(&ids[MAC_IDS.len()..], ["openSettings", "pasteDictation", "circleAsk"]);
         assert!(parse(find("openSettings").unwrap().default_keys).is_some(), "Ctrl+Alt+Comma parses");
     }
 

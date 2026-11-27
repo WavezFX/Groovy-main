@@ -31,6 +31,7 @@ export const SHORTCUT_TEXT = {
   wardrobeToggle: N_("Open the wardrobe"),
   openSettings: N_("Open the Control Centre"),
   pasteDictation: N_("Paste the last dictation again"),
+  circleAsk: N_("Circle something on the screen and ask about it"),
   island: {
     nextPrev: N_("Next or previous pill"),
     byNumber: N_("Go to pill 1 to 9"),
@@ -60,7 +61,8 @@ export type ShortcutId =
   | "desktopToggle"
   | "wardrobeToggle"
   | "openSettings"
-  | "pasteDictation";
+  | "pasteDictation"
+  | "circleAsk";
 
 export interface ShortcutDef {
   id: ShortcutId;
@@ -87,6 +89,8 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   def("wardrobeToggle", "Ctrl+Alt+G", true, true),
   def("openSettings", "Ctrl+Alt+Comma", true, true),
   def("pasteDictation", "Ctrl+Alt+V", true, true),
+  // Round 4C item 5: circle and ask.
+  def("circleAsk", "Ctrl+Alt+K", true, true),
 ];
 
 export interface Binding {

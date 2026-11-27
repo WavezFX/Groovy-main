@@ -103,6 +103,15 @@ class DesktopMochi {
       this.canvas.style.transition = "";
       this.canvas.style.opacity = "1";
     });
+    // Round 4C item 5: he points at a mark on the screen with his wisp (null: done).
+    await onEvent<{ x: number; y: number } | null>(DESKTOP_EVENTS.point, (p) => {
+      this.engine.pointAt = p;
+      if (p) {
+        this.wake();
+        this.engine.triggerEmote("happy", 0.6);
+      }
+      this.schedule();
+    });
     await emitToWindow(ISLAND, DESKTOP_EVENTS.ready);
   }
 

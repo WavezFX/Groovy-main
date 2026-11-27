@@ -13,6 +13,7 @@ import type { BotEmoteName, IslandViewName } from "../core/layout";
 import { cyclePill, islandKeyAction, navigate, pillByNumber, type IslandKeyAction } from "../core/shortcuts";
 import { Sound } from "../core/sound";
 import { State } from "../core/state";
+import { circled } from "../views/chatlook";
 
 const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
 
@@ -139,6 +140,17 @@ export function runGlobalShortcut(host: ShortcutHost, action: string, resume: ()
       break;
     case "openSettings":
       void Bridge.openSettingsWindow();
+      break;
+
+    // Round 4C item 5: circle and ask. The user draws round something; the
+    // picture with their circle waits for the next question (in a call: the
+    // next thing said; otherwise the chat opens with its thumbnail).
+    case "circleAsk":
+      void circled().then((ok) => {
+        if (!ok || State.voiceCall) return;
+        resume();
+        host.alert("prompt");
+      });
       break;
 
     // wardrobeToggle never comes this way (Rust sends `open-wardrobe`), and

@@ -28,6 +28,8 @@ pub fn active() -> bool {
 #[tauri::command]
 pub fn voice_call_active(app: tauri::AppHandle, on: bool) {
     ACTIVE.store(on, Ordering::Relaxed);
+    // Round 4C item 4: "Keep watching during a call".
+    crate::screen::call_changed(&app, on);
     // A live call is a conversation until it ends (round 3D item 10).
     crate::resources::state::fire(&app, if on { crate::resources::state::Event::CallStarted } else { crate::resources::state::Event::CallEnded });
     if !on {
@@ -76,6 +78,10 @@ fn until_freed(tries: u32, busy: impl Fn() -> bool, free: impl Fn() -> bool) -> 
 /// Music, volume, the time, timers, opening things: answered at once, with no AI.
 #[tauri::command]
 pub fn voice_basic(app: AppHandle, text: String) -> Option<String> {
+    // Round 4C item 4: "next" and "clear that" about the marks on the screen.
+    if let Some(words) = crate::screen::spoken(&app, &text) {
+        return Some(words);
+    }
     let basic = crate::okgroovy::basic::parse(&text)?;
     Some(crate::okgroovy::basic::run(&app, &basic))
 }

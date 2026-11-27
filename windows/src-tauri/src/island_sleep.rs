@@ -70,6 +70,9 @@ pub const ISLAND_EVENTS: &[&str] = &[
     // Round 4C: the Allow / Not now question and the eye badge.
     "screen-look-ask",
     "screen-looking",
+    // Round 4C items 4 and 5: keep watching in a call; Groovy out pointing at a mark.
+    "screen-watching",
+    "desktop-mochi-pointing",
 ];
 
 /// What an event does to a sleeping island.

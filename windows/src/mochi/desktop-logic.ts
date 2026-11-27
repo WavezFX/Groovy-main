@@ -48,6 +48,10 @@ export const DESKTOP_EVENTS = {
   cursor: "desktop-cursor",
   visible: "desktop-visible",
   flight: "desktop-flight",
+  /** Rust → desktop window: pointing at a mark, `{ x, y }` (a unit vector) or null (round 4C item 5). */
+  point: "desktop-point",
+  /** Rust → island: he left the island to point at a mark (true) and came back (false). */
+  pointing: "desktop-mochi-pointing",
 } as const;
 
 // ── Sizes and timings ─────────────────────────────────────────────────────────

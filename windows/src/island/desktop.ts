@@ -75,6 +75,11 @@ export class DesktopLink {
       this.onDropped(e.from, e.home),
     );
     await onEvent<null>(DESKTOP_EVENTS.home, () => void this.controller.flyHome());
+    // Round 4C item 5: Rust flew him out of the island to point at a mark, then back.
+    await onEvent<boolean>(DESKTOP_EVENTS.pointing, (on) => {
+      State.mochiOnDesktop = on;
+      State.notify();
+    });
     await onEvent<null>(DESKTOP_EVENTS.wardrobe, () => this.host.wardrobeFromDesktop());
     await onEvent<null>(DESKTOP_EVENTS.dizzy, () => this.host.dizzyFromDesktop());
     // The window's page (re)loaded: it knows nothing yet.

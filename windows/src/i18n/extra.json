@@ -7926,6 +7926,17 @@
    "ru": "Нажмите дважды, говорите сколько угодно, нажмите один раз, чтобы вставить.",
    "id": "Ketuk dua kali, bicara sepuasnya, ketuk sekali untuk menempel."
   },
+  "Circle something on the screen and ask about it": {
+   "zh-Hans": "在屏幕上圈出某样东西并提问",
+   "hi": "स्क्रीन पर किसी चीज़ पर घेरा बनाएँ और उसके बारे में पूछें",
+   "es": "Rodea algo en la pantalla y pregunta por ello",
+   "ar": "ارسم دائرة حول شيء على الشاشة واسأل عنه",
+   "fr": "Entourer quelque chose à l’écran et poser une question",
+   "bn": "স্ক্রিনে কিছু ঘিরে দিন এবং সে সম্পর্কে জিজ্ঞেস করুন",
+   "pt-BR": "Circule algo na tela e pergunte sobre isso",
+   "ru": "Обвести что-то на экране и спросить об этом",
+   "id": "Lingkari sesuatu di layar dan tanyakan tentangnya"
+  },
   "Paste the last dictation again": {
    "zh-Hans": "再次粘贴上一次听写",
    "hi": "पिछला डिक्टेशन फिर से चिपकाएँ",
