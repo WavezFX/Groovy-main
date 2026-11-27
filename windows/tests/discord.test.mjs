@@ -45,3 +45,10 @@ test("the Discord tile is one of a kind, kept by parseTiles, and grows", () => {
   assert.deepEqual(t.tiles.map((x) => x.id), ["discord"]);
   assert.equal(expandsTo(tile("discord")), "discord");
 });
+
+test("Discord's notifications aren't mail, and notes are capped at five", async () => {
+  const { isMailNotification } = await import("../src/core/tiles.ts");
+  assert.equal(isMailNotification("Discord", []), false);
+  const notes = Array.from({ length: 9 }, (_, i) => ({ id: i, title: "Sam", body: "hi" }));
+  assert.equal(parseDiscord({ notes }).notes.length, 5);
+});

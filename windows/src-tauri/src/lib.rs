@@ -1634,6 +1634,7 @@ pub fn run() {
             discord::discord_authorise,
             discord::discord_forget,
             discord::discord_voice,
+            discord::discord_reply,
             speech::check::speech_check_start,
             speech::check::speech_check_reset,
             speech::check::speech_check_cancel,

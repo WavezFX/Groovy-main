@@ -526,6 +526,8 @@ export function discordGrown(back: () => void): Grown {
   const leave = h("button", { class: "grow-btn grow-dleave", type: "button" }, svg(ICONS.phone, 13), h("span", { text: t("Leave call") })) as HTMLButtonElement;
   const people = h("div", { class: "grow-dpeople" });
   const note = h("div", { class: "grow-note" });
+  // Discord's Windows notifications (round 6 item 4): Reply opens the conversation in Discord.
+  const messages = h("div", { class: "grow-dnotes" });
   const act = (a: "mute" | "unmute" | "deafen" | "undeafen" | "leave") => (e: Event) => {
     e.stopPropagation();
     void Bridge.discordVoice(a).then(() => Bridge.discordWatch()).then((s) => {
@@ -541,6 +543,7 @@ export function discordGrown(back: () => void): Grown {
     head,
     h("div", { class: "grow-dbuttons" }, mute, deafen),
     people,
+    messages,
     note,
     h("div", { class: "grow-actions" }, leave),
   );
@@ -553,7 +556,7 @@ export function discordGrown(back: () => void): Grown {
     },
     sync() {
       const s = Discord.state;
-      const key = JSON.stringify([s.status, s.mute, s.deaf, s.channel, s.members, s.message]);
+      const key = JSON.stringify([s.status, s.mute, s.deaf, s.channel, s.members, s.message, s.notes]);
       if (key === drawn) return;
       drawn = key;
       const ready = s.status === "ready";
@@ -574,7 +577,21 @@ export function discordGrown(back: () => void): Grown {
           title: m.name,
         }, h("i", { text: (m.name.trim()[0] ?? "?").toUpperCase() }), h("span", { text: m.me ? t("You") : m.name })));
       }
-      note.textContent = ready ? "" : discordFace(s).sub;
+      clear(messages);
+      for (const n of s.notes.slice(0, 3)) {
+        const reply = h("button", { class: "grow-btn", type: "button", text: t("Reply") });
+        reply.addEventListener("click", (e) => {
+          e.stopPropagation();
+          void Bridge.discordReply(n.id).then((said) => {
+            note.textContent = said;
+          }, showError);
+        });
+        messages.append(h("div", { class: "grow-dnote" },
+          h("span", {}, h("b", { text: n.title }), document.createTextNode(` ${n.body}`)),
+          reply,
+        ));
+      }
+      note.textContent = ready || s.notes.length ? "" : discordFace(s).sub;
     },
   };
 }

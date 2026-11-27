@@ -21290,6 +21290,61 @@
    "pt-BR": "{n} na chamada",
    "ru": "В звонке: {n}",
    "id": "{n} dalam panggilan"
+  },
+  "That Discord message is gone.": {
+   "zh-Hans": "那条 Discord 消息已经不在了。",
+   "hi": "वह Discord संदेश अब नहीं है।",
+   "es": "Ese mensaje de Discord ya no está.",
+   "ar": "رسالة Discord تلك لم تعد موجودة.",
+   "fr": "Ce message Discord n'est plus là.",
+   "bn": "সেই Discord বার্তাটি আর নেই।",
+   "pt-BR": "Essa mensagem do Discord não está mais aqui.",
+   "ru": "Этого сообщения Discord уже нет.",
+   "id": "Pesan Discord itu sudah tidak ada."
+  },
+  "There's no Discord message to reply to.": {
+   "zh-Hans": "没有可回复的 Discord 消息。",
+   "hi": "जवाब देने के लिए कोई Discord संदेश नहीं है।",
+   "es": "No hay ningún mensaje de Discord al que responder.",
+   "ar": "لا توجد رسالة Discord للرد عليها.",
+   "fr": "Aucun message Discord auquel répondre.",
+   "bn": "উত্তর দেওয়ার মতো কোনো Discord বার্তা নেই।",
+   "pt-BR": "Não há mensagem do Discord para responder.",
+   "ru": "Нет сообщения Discord, на которое можно ответить.",
+   "id": "Tidak ada pesan Discord untuk dibalas."
+  },
+  "Discord is open on {name}: type your message and press Enter.": {
+   "zh-Hans": "Discord 已打开到 {name}：输入消息后按 Enter。",
+   "hi": "Discord में {name} खुला है: अपना संदेश लिखें और Enter दबाएँ।",
+   "es": "Discord está abierto en {name}: escribe tu mensaje y pulsa Intro.",
+   "ar": "Discord مفتوح على {name}: اكتب رسالتك واضغط Enter.",
+   "fr": "Discord est ouvert sur {name} : tapez votre message et appuyez sur Entrée.",
+   "bn": "Discord-এ {name} খোলা আছে: বার্তা লিখে Enter চাপুন।",
+   "pt-BR": "O Discord está aberto em {name}: digite sua mensagem e pressione Enter.",
+   "ru": "Discord открыт на {name}: напишите сообщение и нажмите Enter.",
+   "id": "Discord terbuka di {name}: ketik pesan Anda lalu tekan Enter."
+  },
+  "Your message to {name} is typed in Discord: press Enter to send it.": {
+   "zh-Hans": "给 {name} 的消息已在 Discord 中输入好：按 Enter 发送。",
+   "hi": "{name} के लिए आपका संदेश Discord में लिख दिया है: भेजने के लिए Enter दबाएँ।",
+   "es": "Tu mensaje para {name} está escrito en Discord: pulsa Intro para enviarlo.",
+   "ar": "رسالتك إلى {name} مكتوبة في Discord: اضغط Enter لإرسالها.",
+   "fr": "Votre message à {name} est tapé dans Discord : appuyez sur Entrée pour l'envoyer.",
+   "bn": "{name}-কে আপনার বার্তা Discord-এ লেখা হয়েছে: পাঠাতে Enter চাপুন।",
+   "pt-BR": "Sua mensagem para {name} está digitada no Discord: pressione Enter para enviar.",
+   "ru": "Сообщение для {name} набрано в Discord: нажмите Enter, чтобы отправить.",
+   "id": "Pesan Anda untuk {name} sudah diketik di Discord: tekan Enter untuk mengirim."
+  },
+  "Discord is open on {name} and your message is on the clipboard: press Ctrl+V, then Enter.": {
+   "zh-Hans": "Discord 已打开到 {name}，消息已复制到剪贴板：按 Ctrl+V，再按 Enter。",
+   "hi": "Discord में {name} खुला है और आपका संदेश क्लिपबोर्ड पर है: Ctrl+V दबाएँ, फिर Enter।",
+   "es": "Discord está abierto en {name} y tu mensaje está en el portapapeles: pulsa Ctrl+V y luego Intro.",
+   "ar": "Discord مفتوح على {name} ورسالتك في الحافظة: اضغط Ctrl+V ثم Enter.",
+   "fr": "Discord est ouvert sur {name} et votre message est dans le presse-papiers : Ctrl+V, puis Entrée.",
+   "bn": "Discord-এ {name} খোলা আছে এবং বার্তাটি ক্লিপবোর্ডে: Ctrl+V চাপুন, তারপর Enter।",
+   "pt-BR": "O Discord está aberto em {name} e sua mensagem está na área de transferência: pressione Ctrl+V e depois Enter.",
+   "ru": "Discord открыт на {name}, сообщение в буфере обмена: нажмите Ctrl+V, затем Enter.",
+   "id": "Discord terbuka di {name} dan pesan Anda ada di papan klip: tekan Ctrl+V, lalu Enter."
   }
  }
 }

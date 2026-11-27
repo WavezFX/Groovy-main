@@ -239,7 +239,10 @@ pub const MAIL_WATCH: &str = "mail-notifications";
 #[cfg(windows)]
 fn mail_watch_pace(app: &AppHandle) -> crate::scheduler::Next {
     use tauri::Manager;
-    let wanted = app.try_state::<crate::Shared>().is_some_and(|s| has_mail_tile(&s.settings.lock().unwrap().island_tiles));
+    let wanted = app.try_state::<crate::Shared>().is_some_and(|s| {
+        let tiles = &s.settings.lock().unwrap().island_tiles;
+        has_mail_tile(tiles) || has_discord_tile(tiles)
+    });
     if wanted {
         crate::scheduler::Next::Every(std::time::Duration::from_secs(10))
     } else {
@@ -252,6 +255,18 @@ fn mail_watch_pace(app: &AppHandle) -> crate::scheduler::Next {
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn has_mail_tile(tiles: &serde_json::Value) -> bool {
     tiles["tiles"].as_array().is_some_and(|list| list.iter().any(|t| t["kind"] == "mail"))
+}
+
+/// The island has a Discord tile (round 6): Discord's notifications are its messages.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn has_discord_tile(tiles: &serde_json::Value) -> bool {
+    tiles["tiles"].as_array().is_some_and(|list| list.iter().any(|t| t["kind"] == "discord"))
+}
+
+/// A notification shown by the Discord app (its display name, or its AppUserModelID).
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn is_discord(app: &str, app_id: &str) -> bool {
+    app.eq_ignore_ascii_case("discord") || app.to_ascii_lowercase().starts_with("discord ") || app_id.to_ascii_lowercase().contains("discord")
 }
 
 /// The ids already seen, and whether the first reading (which only fills it) is done.
@@ -271,7 +286,12 @@ fn read_new(app: &AppHandle) {
     let seen = seen.get_or_insert_with(Default::default);
     for n in list {
         if seen.insert(n.id) && *filled {
-            let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
+            if is_discord(&n.app, &n.app_id) {
+                // Round 6: on the Discord tile, not as mail; kept in memory only.
+                crate::discord::note(n.id, &n.title, &n.body);
+            } else {
+                let _ = app.emit_to(crate::island::WINDOW_LABEL, "mail-notification", &n);
+            }
         }
     }
     *filled = true;
@@ -306,6 +326,12 @@ mod tests {
         assert!(!has_mail_tile(&serde_json::json!({})), "nothing stored: the developer island, no Mail");
         assert!(!has_mail_tile(&serde_json::json!({ "tiles": [{ "kind": "music" }] })));
         assert!(has_mail_tile(&serde_json::json!({ "tiles": [{ "kind": "music" }, { "kind": "mail" }] })));
+        // Round 6: a Discord tile wants the feed too, and Discord's notes aren't mail.
+        assert!(has_discord_tile(&serde_json::json!({ "tiles": [{ "kind": "discord" }] })));
+        assert!(!has_discord_tile(&serde_json::json!({ "tiles": [{ "kind": "mail" }] })));
+        assert!(is_discord("Discord", ""));
+        assert!(is_discord("", "com.squirrel.Discord.Discord"));
+        assert!(!is_discord("Outlook", "Microsoft.Office.OUTLOOK.EXE.15"));
     }
 
     #[test]

@@ -760,6 +760,47 @@ async fn authorise() -> Result<(), String> {
     save_tokens(&tk)
 }
 
+// ── Messages: Discord's Windows notifications (round 6 item 4) ───────────────
+
+/// A new Discord notification (island_tiles.rs's watch): the newest five, in memory only.
+pub fn note(id: u32, title: &str, body: &str) {
+    let n = Note { id, title: title.chars().take(120).collect(), body: body.chars().take(400).collect() };
+    with_state(|s| {
+        s.notes.retain(|x| x.id != id);
+        s.notes.insert(0, n);
+        s.notes.truncate(5);
+    });
+    publish();
+}
+
+/// What to type in Discord's quick switcher (Ctrl+K) to reach a notification's
+/// conversation: "Sam" for a DM, "#general" for "Sam (#general, Server)", the
+/// group's name for "Sam (Weekend plans)".
+pub fn switcher_query(title: &str) -> String {
+    let title = title.trim();
+    if let Some(open) = title.rfind(" (") {
+        if let Some(inner) = title[open + 2..].strip_suffix(')') {
+            let first = inner.split(", ").next().unwrap_or(inner).trim();
+            if !first.is_empty() {
+                return first.to_string();
+            }
+        }
+    }
+    title.to_string()
+}
+
+/// The latest notification's conversation, for "reply" and "message this person".
+pub fn latest_query(id: Option<u32>) -> Option<String> {
+    with_state(|s| s.notes.iter().find(|n| id.is_none_or(|i| n.id == i)).map(|n| switcher_query(&n.title))).filter(|q| !q.is_empty())
+}
+
+/// The tile's Reply: opens the conversation in Discord (the user types and presses Enter).
+#[tauri::command]
+pub async fn discord_reply(id: u32) -> Result<String, String> {
+    let to = latest_query(Some(id)).ok_or_else(|| t("That Discord message is gone."))?;
+    tauri::async_runtime::spawn_blocking(move || crate::pc::discord_message(Some(to), String::new())).await.map_err(|e| e.to_string())?
+}
+
 // ── Commands for the island and Settings ──────────────────────────────────────
 
 fn with_setup(mut s: State) -> State {
@@ -978,6 +1019,15 @@ mod tests {
         assert!(!apply_event(&mut s, "VOICE_CHANNEL_SELECT", &json!({ "channel_id": null }), "1"));
         assert!(s.channel.is_none() && s.members.is_empty());
         assert_eq!(who_sentence(&s), t("You're not in a Discord call."));
+    }
+
+    #[test]
+    fn the_quick_switcher_finds_the_conversation() {
+        assert_eq!(switcher_query("Sam"), "Sam");
+        assert_eq!(switcher_query("Sam (#general, Groovy fans)"), "#general");
+        assert_eq!(switcher_query("Alex (Weekend plans)"), "Weekend plans");
+        assert_eq!(switcher_query("  Jo  "), "Jo");
+        assert_eq!(switcher_query("Odd ()"), "Odd ()");
     }
 
     #[test]

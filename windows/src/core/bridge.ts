@@ -790,6 +790,8 @@ export const Bridge = {
   discordHasSecret: () => call<boolean>("discord_has_secret"),
   discordAuthorise: () => callOrThrow<unknown>("discord_authorise"),
   discordForget: () => callOrThrow<void>("discord_forget"),
+  /** Opens that message's conversation in Discord; the user types and presses Enter. */
+  discordReply: (id: number) => callOrThrow<string>("discord_reply", { id }),
   fullscreenBusy: () => call<boolean>("fullscreen_busy"),
   // Settings → Browser (round 4 item 4, browser.rs).
   browsers: () =>
