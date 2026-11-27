@@ -187,7 +187,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming. **Built, incl. streaming** everywhere: keyed chat (Claude with web search, the compatible services), calls, phone chat, and the subscriptions' answers with tools (27 Nov). Not ticked: not proven on Windows with the real tools (STATUS.md).
 - [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol); step 4, vision: Claude Code (image in its stream-json input) and Codex (`--image`) see, the Gemini tool doesn't (27 Nov). Not ticked: never run against a signed-in Claude Code or Codex.
 - [x] 5. The router slot (`docs/ROUTER_PLUGIN.md`)
-- [ ] 6. Checks. **Partial:** caps/auth table in STATUS.md; idle/peak wait for the Windows build.
+- [x] 6. Checks: caps/auth table in STATUS.md; idle 104.2 MB, peak 258.1 MB on Windows build #45979654106 (27 Nov); no new text, no setting changed.
 - [ ] 7. Everyday commands never need an AI (no sign-in, no key, works with local models); tools on every brain incl. local (owner, 13 Nov)
 
 ### 4B. `FIXES_ROUND4B.md` (voice)
