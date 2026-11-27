@@ -221,7 +221,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. New DMs on an Instagram tile (Windows' notifications, through the mail listener)
 - [x] 2. "Message <name> on Instagram" and "reply", with no AI (open the conversation, draft on the clipboard or typed with permission; the owner presses Send)
 - [x] 3. Settings, translations, privacy note
-- [ ] 4. Lazy and light; checks
+- [x] 4. Lazy and light; checks (tests green; the build's idle/peak numbers to be read into STATUS.md, see "Round 7" there)
 
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.
