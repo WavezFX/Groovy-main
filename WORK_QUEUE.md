@@ -217,8 +217,14 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Close `docs/LICENSING.md`
 - [ ] 7. Checks
 
+## 7. Fixes round 7: `FIXES_ROUND7.md` (Instagram messages by voice). **Approved by the owner, 27 Nov 2026** (`docs/plans/MESSAGING.md`). Built on its own branch (`groovy-ai-instagram`), beside round 6 (Discord); the two share code only after both merge.
+- [ ] 1. New DMs on an Instagram tile (Windows' notifications, through the mail listener)
+- [ ] 2. "Message <name> on Instagram" and "reply", with no AI (open the conversation, draft on the clipboard or typed with permission; the owner presses Send)
+- [ ] 3. Settings, translations, privacy note
+- [ ] 4. Lazy and light; checks
+
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.
-- **Discord and Instagram messaging:** plans in `docs/plans/DISCORD.md` and `docs/plans/MESSAGING.md` (owner to approve first): Round 6 Discord, Round 7 Instagram.
+- **Discord and Instagram messaging:** plans in `docs/plans/DISCORD.md` and `docs/plans/MESSAGING.md` (approved 27 Nov 2026): Round 6 Discord, Round 7 Instagram (section 7 above).
 - **Linux edition:** the owner wants Linux kept and expanded later. Don't remove or break the Linux code (`portal.rs`, `flow/os_linux.rs`, `platform/linux*.rs`, `linux/arch`); a Linux round comes after the Windows rounds.
 - The phone edition (Android smoothness, iOS and Mac): waiting on the owner for the Android app's source.

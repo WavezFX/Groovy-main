@@ -1,4 +1,4 @@
-# Discord and Instagram on Groovy: how it would work (not started; owner to approve)
+# Discord and Instagram on Groovy: how it would work (**APPROVED by the owner, 27 Nov 2026**)
 
 Builds on `docs/plans/DISCORD.md`. The aim: tell Groovy "message Sam I'll be 10 minutes late" and he does it, without the owner doing it by hand.
 
@@ -28,4 +28,4 @@ Builds on `docs/plans/DISCORD.md`. The aim: tell Groovy "message Sam I'll be 10 
 Lazy (round 3D item 9): nothing connects or listens until a Discord/Instagram tile is on the island or a command is used; notification listening reuses the listener Groovy already has for mail.
 
 ## Rounds
-"Round 6: Discord" (voice controls, notifications, the confirm-and-send flow), then "Round 7: Instagram" (notification tile, open-conversation, confirm-and-send). Both come after the current queue and need the owner's approval first.
+"Round 6: Discord" (voice controls, notifications, the confirm-and-send flow), then "Round 7: Instagram" (notification tile, open-conversation, confirm-and-send). Both approved by the owner on 27 Nov 2026. Round 7 is `FIXES_ROUND7.md`.
