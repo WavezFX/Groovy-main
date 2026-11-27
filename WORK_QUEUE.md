@@ -203,7 +203,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Behaviour notes from the two reference projects (Opus; no code): `docs/plan/SCREEN_BUDDY_NOTES.md`; items 2–5 updated to match
 - [x] 2. Screen capture, on request only (at most 400 KB, within 500 ms). Built (`screen/`); not yet proven on Windows (see STATUS.md)
 - [x] 3. "Look at my screen" in chat and by voice. Built; not yet proven on Windows (see STATUS.md)
-- [ ] 4. Live talk-back about the screen. **Partly built:** a call question about the screen takes one look (see STATUS.md); steps, real-time models, keep-watching and the peak test are left
+- [x] 4. Live talk-back about the screen. Built: one look per screen question in a call, step-by-step answers with marks ("next", "clear that"), keep watching during a call (5 s, only on change), two looks in the peak test. Left, noted in STATUS.md: the real-time voice models' own look; not yet proven on Windows
 - [x] 5. Pointing and drawing on the screen (Opus). Built: `draw_on_screen`, a native click-through overlay, Groovy flying to the mark and pointing with his wisp, Escape/click clearing, circle and ask (Ctrl+Alt+K), the CI screenshot test (`marks-test.ps1`). Not yet proven on Windows (see STATUS.md)
 - [x] 6. Settings and privacy (Settings → General: look at the screen, keep watching in a call, the brains that can see, where a picture goes). Settings-open idle not re-measured
 - [ ] 7. Checks. **Not done:** waits for this build's numbers (idle, peak with a look and drawing) and the owner's three tries in STATUS.md

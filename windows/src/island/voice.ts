@@ -19,7 +19,7 @@ import { power } from "../voice/vad";
 import { openMic, type Mic } from "../voice/mic";
 import { startLiveKit, type LiveKitSession } from "../voice/livekit";
 import { speak, stopSpeaking } from "../voice/speak";
-import { SentenceSpeaker } from "../voice/sentences";
+import { SentenceSpeaker, speakable } from "../voice/sentences";
 import { brainName, type CallFix } from "../voice/stages";
 import { startInstant, type InstantSession } from "../voice/instant";
 import { t } from "../i18n/i18n";
@@ -109,7 +109,7 @@ export class VoiceHost {
     CallControl.dictate = () => void this.dictate();
     // The answer streams in: each finished sentence is read out at once.
     void onEvent<string>("chat-delta", (text) => {
-      if (this.awaiting != null && this.speaker && text) this.speaker.feed(text);
+      if (this.awaiting != null && this.speaker && text) this.speaker.feed(speakable(text));
     });
   }
 
@@ -532,7 +532,7 @@ export class VoiceHost {
     const speaker = this.speaker;
     if (speaker) {
       // Kept until it's done, so interrupting stops what's still queued.
-      await speaker.finish(text);
+      await speaker.finish(speakable(text));
       if (this.speaker === speaker) this.speaker = null;
       if (speaker.failure) {
         if (State.voiceCall) this.failCall(speaker.failure, "voice");

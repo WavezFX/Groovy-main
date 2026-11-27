@@ -149,8 +149,12 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             let call_app = app.clone();
             let call_dir = dir.clone();
             let call = std::thread::spawn(move || live_call(&call_app, &call_dir));
+            // Round 4C item 4: the call with two looks at the screen (and marks drawn).
+            let look_app = app.clone();
+            let looks = std::thread::spawn(move || crate::screen::peak_looks(&look_app));
             step(&format!("dictation {round}"), t, dictation(&app, &dir));
             step(&format!("live voice call {round}"), t, call.join().unwrap_or_else(|_| Err("the call thread stopped".into())));
+            step(&format!("two looks at the screen in call {round}"), t, looks.join().unwrap_or_else(|_| Err("the look thread stopped".into())));
             let t = Instant::now();
             step(&format!("Hey Groovy command {round}"), t, command(&app, &dir));
         }
