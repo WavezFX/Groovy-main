@@ -270,8 +270,35 @@ pub fn island_sleep(app: AppHandle) -> bool {
     if PHASE.compare_exchange(AWAKE, FALLING, Ordering::SeqCst, Ordering::SeqCst).is_err() {
         return false;
     }
+    // The native island (prototype): the web island goes altogether, the pill stands in.
+    #[cfg(windows)]
+    if crate::native_island::active() {
+        crate::native_island::close_web(&app);
+        fell_asleep(&app);
+        return true;
+    }
     os::fall_asleep(&app);
     true
+}
+
+/// The native island started instead of the web one: the island counts as
+/// asleep from the start, so its events open the web island (wake_up).
+pub fn start_asleep() {
+    PHASE.store(ASLEEP, Ordering::SeqCst);
+}
+
+/// The native island's web island has drawn its page: deliver what was kept.
+#[cfg(windows)]
+pub fn woke_native(app: &AppHandle, since: Instant) {
+    if PHASE.load(Ordering::SeqCst) == WAKING {
+        woke(app, since);
+    }
+}
+
+/// The web island could not be built: back to asleep, the pill stays.
+#[cfg(windows)]
+pub fn woke_without_page(_app: &AppHandle) {
+    let _ = PHASE.compare_exchange(WAKING, ASLEEP, Ordering::SeqCst, Ordering::SeqCst);
 }
 
 /// Asleep for good: called by the OS side once the webview is suspended.
@@ -299,6 +326,10 @@ pub fn wake_up(app: &AppHandle, why: &str) {
         return;
     }
     crate::log::line(format!("island: waking for {why}"));
+    #[cfg(windows)]
+    if crate::native_island::active() {
+        return crate::native_island::open_web(app, Instant::now());
+    }
     os::wake(app, Instant::now());
 }
 

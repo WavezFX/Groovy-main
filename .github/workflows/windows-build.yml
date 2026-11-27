@@ -143,6 +143,26 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-test.ps1 -Exe release/groovy.exe -Label portable
 
+      # Native island prototype (docs/plan/NATIVE_ISLAND.md): the shipped exe
+      # with --native-island (the pill drawn without WebView2), its idle total
+      # at 30 s beside the normal web island, both measured the same way
+      # (measure-app.ps1, private working set of every Groovy process).
+      # Reports only, never a gate.
+      - name: "Native island prototype: total memory idle at 30 s (report only)"
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD "native-island.md"
+          Remove-Item $out -ErrorAction SilentlyContinue
+          ./scripts/measure-app.ps1 -Exe release/groovy.exe -Label "Groovy, web island" -IdleSeconds 30 -CpuSeconds 15 -Out $out
+          $log = Join-Path $env:LOCALAPPDATA "Groovy\groovy.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
+          ./scripts/measure-app.ps1 -Exe release/groovy.exe -Label "Groovy, native island" -ExtraArgs "--native-island" -IdleSeconds 30 -CpuSeconds 15 -Out $out
+          "| Label | MB idle at 30 s | processes | renderers | CPU % | split |"
+          "|---|---|---|---|---|---|"
+          Get-Content $out
+          if (Test-Path $log) { Select-String -Path $log -Pattern "native island" | ForEach-Object { "log: " + $_.Line } }
+
       # Rounds 3F item 2 and 3G item 6: everything CI steers by environment
       # variable (GROOVY_SMOKE_VIEW, GROOVY_WORK_TEST, GROOVY_PEAK_TEST) is a
       # cargo feature, `ci`, that is off in everything shipped. It is built into

@@ -19,6 +19,7 @@
     "windows": [
       {
         "label": "island",
+        "create": false,
         "title": "Groovy",
         "url": "index.html",
         "width": 240,
