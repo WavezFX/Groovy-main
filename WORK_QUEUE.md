@@ -222,7 +222,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 2. The Discord tile: muted, deafened, channel, who's speaking, Mute, Deafen, Leave call
 - [x] 3. Voice and chat commands with no AI: mute, deafen, undeafen, who's in the call, leave the call
 - [x] 4. Messages from Discord's Windows notifications; Reply and "message <name>" open Discord, and the user presses Enter
-- [ ] 5. Settings, translations, privacy note, checks
+- [x] 5. Settings, translations, privacy note, checks (Windows build: see STATUS after CI)
 
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.

@@ -295,6 +295,26 @@ minute while a CI is running, and as soon as you open the card on data older
 than a minute; contributions every 30 minutes. Nothing is fetched while the pill
 is off or Groovy is paused.
 
+## Discord
+
+Groovy talks to the **Discord app on this PC** over its local connection (round 6). Say "Hey Groovy, mute Discord", "unmute Discord", "deafen", "undeafen", "who's in the call?" or "leave the call", or use the Discord tile on the island. None of these needs an AI.
+
+**Set it up once:**
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and make a **New Application** (any name).
+2. Under **OAuth2**, copy the **Client ID**, and add the redirect `http://127.0.0.1`.
+3. In **Settings → Accounts → Discord**, paste the Client ID and press **Connect**, then approve Groovy in Discord. Paste the **Client secret** only if Discord refuses without it.
+4. Put the **Discord** tile on the island (Settings → My island).
+
+Discord lets an app that it hasn't approved use voice control only for the app's owner and up to 50 testers. That's why Groovy uses your own app and doesn't ship one. If Discord refuses, add yourself under **App Testers** in the portal. Until it's set up, mute and deafen fall back to Discord's own shortcuts (Ctrl+Shift+M and Ctrl+Shift+D).
+
+**Messages:** Discord's Windows notifications appear on the tile. "Reply", "message this person" or "message Sam on Discord saying …" opens that conversation in Discord, using its quick switcher. Groovy then types your text if **Type for you** is allowed, or otherwise puts it on the clipboard. **You press Enter**: Groovy never sends a message for you.
+
+**Privacy:**
+- **What is read:** your voice state, the call and who's speaking, read from the Discord app over a local pipe, and only while the tile is shown or you ask. The pipe closes 20 seconds later. Groovy also reads the text Windows shows in Discord's notifications. It keeps the last five in memory only.
+- **What is stored:** the Client ID, in Groovy's database. The optional secret and Groovy's Discord sign-in, in Windows Credential Manager. Disconnect deletes both.
+- **What is sent:** one sign-in exchange with discord.com when you connect, and a refresh about once a week.
+- **What is never done:** Groovy never uses your account's token and never calls Discord's API for messages. Either would be against Discord's terms.
+
 ## Build it yourself
 
 You need [Rust](https://rustup.rs), [Node 20+](https://nodejs.org), and the

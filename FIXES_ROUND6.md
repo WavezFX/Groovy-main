@@ -34,7 +34,7 @@ If RPC isn't set up, the **round 4 item 5 shortcuts stay** (Ctrl+Shift+M and Ctr
   - It closes about 20 s after the last use. Nothing runs, and no pipe is open, while Discord isn't used.
   - Nothing is added to startup.
 - The client ID lives in the database, like the mail client IDs. The optional client secret and the tokens live in Credential Manager (internal keys, never reachable from a webview).
-- Commands: `discord_state`, `discord_watch`, `discord_authorise`, `discord_configure`, `discord_voice`, `discord_leave`, `discord_reply`, regenerated with `node scripts/command-access.mjs`.
+- Commands: `discord_state`, `discord_watch`, `discord_configure`, `discord_has_secret`, `discord_authorise`, `discord_forget`, `discord_voice` (mute, unmute, deafen, undeafen, leave) and `discord_reply`, with capabilities regenerated with `node scripts/command-access.mjs`.
 - **Tests:** a fake IPC pipe (`tokio::io::duplex`) plays Discord's side. It covers the frame round trip; the handshake, then AUTHENTICATE, then SET_VOICE_SETTINGS; an error frame becoming a readable message; events changing the state; the speaking set; and the PKCE challenge.
 
 ## Item 2: The Discord tile
@@ -79,11 +79,11 @@ If RPC isn't set up, the **round 4 item 5 shortcuts stay** (Ctrl+Shift+M and Ctr
   - Discord notes being kept apart from mail (front end).
 
 ## Item 5: Settings, translations, privacy, checks
-- **Settings → Discord:**
+- **Settings → Accounts → Discord** (`settings/discord.ts`, loaded with the page; searchable as "Discord"):
   - client ID, optional client secret, Connect (approve in Discord), status, Disconnect (forget tokens);
   - three numbered steps to set up the Discord app.
 - Every new string in all ten languages (`i18n/extra.json`).
-- **Privacy note** (`docs/PRIVACY.md`, or the privacy section where it lives):
+- **Privacy note:** the "Discord" section of `windows/README.md` (there is no separate privacy file), plus a short version in the Settings section. It covers:
   - what is read: the voice state over the local pipe, and Discord's notifications as Windows shows them;
   - what is stored: the client ID; the tokens in Credential Manager;
   - what is sent: only the OAuth exchange to discord.com;
@@ -93,5 +93,10 @@ If RPC isn't set up, the **round 4 item 5 shortcuts stay** (Ctrl+Shift+M and Ctr
 ## How the owner sets it up
 1. Go to https://discord.com/developers/applications → New Application (any name, e.g. "Groovy").
 2. OAuth2 → copy the **Client ID**. Add the redirect `http://127.0.0.1` (Discord asks for one). Copy the **Client secret** too, in case PKCE is refused.
-3. In Groovy: Settings → Discord, paste them, then **Connect**. Discord shows "Authorise Groovy?"; approve it.
+3. In Groovy: Settings → Accounts → Discord, paste them, then **Connect**. Discord shows "Authorise Groovy?"; approve it.
 4. Put the Discord tile on the island (Settings → My island). Join a voice channel, then say "Hey Groovy, mute Discord" or "who's in the call?".
+
+## Not verified here (needs the owner's PC)
+- Whether Discord accepts PKCE in RPC AUTHORIZE, or needs the client secret. Both paths are built.
+- The exact title format of Discord's Windows notifications for server messages (assumed "Name (#channel, Server)"; falls back to the whole title).
+- The quick-switcher timing (Ctrl+K, 350 ms, the name, 700 ms, Enter). Tune it in `pc.rs` `discord_message` if Discord is slow.

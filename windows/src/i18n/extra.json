@@ -21345,6 +21345,160 @@
    "pt-BR": "O Discord está aberto em {name} e sua mensagem está na área de transferência: pressione Ctrl+V e depois Enter.",
    "ru": "Discord открыт на {name}, сообщение в буфере обмена: нажмите Ctrl+V, затем Enter.",
    "id": "Discord terbuka di {name} dan pesan Anda ada di papan klip: tekan Ctrl+V, lalu Enter."
+  },
+  "Client secret (only if Discord asks)": {
+   "zh-Hans": "客户端密钥（仅在 Discord 要求时）",
+   "hi": "क्लाइंट सीक्रेट (सिर्फ़ अगर Discord माँगे)",
+   "es": "Secreto de cliente (solo si Discord lo pide)",
+   "ar": "سر العميل (فقط إذا طلبه Discord)",
+   "fr": "Secret client (seulement si Discord le demande)",
+   "bn": "ক্লায়েন্ট সিক্রেট (শুধু Discord চাইলে)",
+   "pt-BR": "Segredo do cliente (só se o Discord pedir)",
+   "ru": "Секрет клиента (только если Discord попросит)",
+   "id": "Rahasia klien (hanya jika Discord meminta)"
+  },
+  "Client secret saved": {
+   "zh-Hans": "客户端密钥已保存",
+   "hi": "क्लाइंट सीक्रेट सहेजा गया",
+   "es": "Secreto de cliente guardado",
+   "ar": "تم حفظ سر العميل",
+   "fr": "Secret client enregistré",
+   "bn": "ক্লায়েন্ট সিক্রেট সংরক্ষিত",
+   "pt-BR": "Segredo do cliente salvo",
+   "ru": "Секрет клиента сохранён",
+   "id": "Rahasia klien tersimpan"
+  },
+  "Not set up yet.": {
+   "zh-Hans": "尚未设置。",
+   "hi": "अभी सेट नहीं है।",
+   "es": "Aún no está configurado.",
+   "ar": "لم يُضبط بعد.",
+   "fr": "Pas encore configuré.",
+   "bn": "এখনও সেট আপ হয়নি।",
+   "pt-BR": "Ainda não configurado.",
+   "ru": "Ещё не настроено.",
+   "id": "Belum disiapkan."
+  },
+  "Connected: Groovy is approved in Discord.": {
+   "zh-Hans": "已连接：Groovy 已在 Discord 中获批。",
+   "hi": "कनेक्ट: Discord में Groovy को मंज़ूरी मिली है।",
+   "es": "Conectado: Groovy está aprobado en Discord.",
+   "ar": "متصل: Groovy معتمد في Discord.",
+   "fr": "Connecté : Groovy est autorisé dans Discord.",
+   "bn": "সংযুক্ত: Discord-এ Groovy অনুমোদিত।",
+   "pt-BR": "Conectado: o Groovy está aprovado no Discord.",
+   "ru": "Подключено: Groovy разрешён в Discord.",
+   "id": "Terhubung: Groovy disetujui di Discord."
+  },
+  "Saved. Press Connect and approve Groovy in Discord.": {
+   "zh-Hans": "已保存。按“连接”，并在 Discord 中批准 Groovy。",
+   "hi": "सहेजा गया। कनेक्ट दबाएँ और Discord में Groovy को मंज़ूरी दें।",
+   "es": "Guardado. Pulsa Conectar y aprueba a Groovy en Discord.",
+   "ar": "تم الحفظ. اضغط اتصال ووافق على Groovy في Discord.",
+   "fr": "Enregistré. Appuyez sur Connecter et autorisez Groovy dans Discord.",
+   "bn": "সংরক্ষিত। সংযোগ চাপুন এবং Discord-এ Groovy অনুমোদন করুন।",
+   "pt-BR": "Salvo. Pressione Conectar e aprove o Groovy no Discord.",
+   "ru": "Сохранено. Нажмите «Подключить» и разрешите Groovy в Discord.",
+   "id": "Tersimpan. Tekan Hubungkan dan setujui Groovy di Discord."
+  },
+  "Saved.": {
+   "zh-Hans": "已保存。",
+   "hi": "सहेजा गया।",
+   "es": "Guardado.",
+   "ar": "تم الحفظ.",
+   "fr": "Enregistré.",
+   "bn": "সংরক্ষিত।",
+   "pt-BR": "Salvo.",
+   "ru": "Сохранено.",
+   "id": "Tersimpan."
+  },
+  "Discord is asking you to approve Groovy: look at the Discord window.": {
+   "zh-Hans": "Discord 正在请你批准 Groovy：请查看 Discord 窗口。",
+   "hi": "Discord आपसे Groovy को मंज़ूरी देने को कह रहा है: Discord विंडो देखें।",
+   "es": "Discord te pide aprobar a Groovy: mira la ventana de Discord.",
+   "ar": "يطلب منك Discord الموافقة على Groovy: انظر إلى نافذة Discord.",
+   "fr": "Discord vous demande d'autoriser Groovy : regardez la fenêtre de Discord.",
+   "bn": "Discord আপনাকে Groovy অনুমোদন করতে বলছে: Discord উইন্ডো দেখুন।",
+   "pt-BR": "O Discord está pedindo para você aprovar o Groovy: veja a janela do Discord.",
+   "ru": "Discord просит разрешить Groovy: посмотрите в окно Discord.",
+   "id": "Discord meminta Anda menyetujui Groovy: lihat jendela Discord."
+  },
+  "Connected. Put the Discord tile on the island and say “mute Discord”.": {
+   "zh-Hans": "已连接。把 Discord 磁贴放到岛上，然后说“mute Discord”。",
+   "hi": "कनेक्ट हो गया। Discord टाइल आइलैंड पर रखें और “mute Discord” कहें।",
+   "es": "Conectado. Pon el mosaico de Discord en la isla y di «mute Discord».",
+   "ar": "تم الاتصال. ضع بلاطة Discord على الجزيرة وقل «mute Discord».",
+   "fr": "Connecté. Mettez la tuile Discord sur l'île et dites « mute Discord ».",
+   "bn": "সংযুক্ত। Discord টাইল আইল্যান্ডে রাখুন এবং “mute Discord” বলুন।",
+   "pt-BR": "Conectado. Coloque o bloco do Discord na ilha e diga “mute Discord”.",
+   "ru": "Подключено. Добавьте плитку Discord на остров и скажите «mute Discord».",
+   "id": "Terhubung. Taruh ubin Discord di pulau lalu ucapkan “mute Discord”."
+  },
+  "Disconnected. Groovy's Discord sign-in and the saved secret are deleted.": {
+   "zh-Hans": "已断开。Groovy 的 Discord 登录和保存的密钥已删除。",
+   "hi": "डिस्कनेक्ट हुआ। Groovy का Discord साइन-इन और सहेजा सीक्रेट मिटा दिए गए।",
+   "es": "Desconectado. Se borraron el inicio de sesión de Discord de Groovy y el secreto guardado.",
+   "ar": "تم قطع الاتصال. حُذف تسجيل دخول Groovy إلى Discord والسر المحفوظ.",
+   "fr": "Déconnecté. La connexion Discord de Groovy et le secret enregistré sont supprimés.",
+   "bn": "সংযোগ বিচ্ছিন্ন। Groovy-র Discord সাইন-ইন ও সংরক্ষিত সিক্রেট মুছে ফেলা হয়েছে।",
+   "pt-BR": "Desconectado. O login do Groovy no Discord e o segredo salvo foram apagados.",
+   "ru": "Отключено. Вход Groovy в Discord и сохранённый секрет удалены.",
+   "id": "Terputus. Masuk Discord milik Groovy dan rahasia yang tersimpan sudah dihapus."
+  },
+  "Open the Discord Developer Portal": {
+   "zh-Hans": "打开 Discord 开发者门户",
+   "hi": "Discord Developer Portal खोलें",
+   "es": "Abre el Discord Developer Portal",
+   "ar": "افتح Discord Developer Portal",
+   "fr": "Ouvrez le Discord Developer Portal",
+   "bn": "Discord Developer Portal খুলুন",
+   "pt-BR": "Abra o Discord Developer Portal",
+   "ru": "Откройте Discord Developer Portal",
+   "id": "Buka Discord Developer Portal"
+  },
+  "and make a New Application (any name, for example Groovy).": {
+   "zh-Hans": "并创建一个 New Application（任意名称，例如 Groovy）。",
+   "hi": "और एक New Application बनाएँ (कोई भी नाम, जैसे Groovy)।",
+   "es": "y crea una New Application (cualquier nombre, por ejemplo Groovy).",
+   "ar": "وأنشئ New Application (أي اسم، مثل Groovy).",
+   "fr": "et créez une New Application (n'importe quel nom, par exemple Groovy).",
+   "bn": "এবং একটি New Application বানান (যেকোনো নাম, যেমন Groovy)।",
+   "pt-BR": "e crie uma New Application (qualquer nome, por exemplo Groovy).",
+   "ru": "и создайте New Application (любое имя, например Groovy).",
+   "id": "lalu buat New Application (nama apa saja, misalnya Groovy)."
+  },
+  "Under OAuth2, copy the Client ID, and add the redirect http://127.0.0.1.": {
+   "zh-Hans": "在 OAuth2 下复制 Client ID，并添加重定向 http://127.0.0.1。",
+   "hi": "OAuth2 में Client ID कॉपी करें, और रीडायरेक्ट http://127.0.0.1 जोड़ें।",
+   "es": "En OAuth2, copia el Client ID y añade la redirección http://127.0.0.1.",
+   "ar": "في OAuth2، انسخ Client ID وأضف إعادة التوجيه http://127.0.0.1.",
+   "fr": "Dans OAuth2, copiez le Client ID et ajoutez la redirection http://127.0.0.1.",
+   "bn": "OAuth2-এ Client ID কপি করুন এবং রিডাইরেক্ট http://127.0.0.1 যোগ করুন।",
+   "pt-BR": "Em OAuth2, copie o Client ID e adicione o redirecionamento http://127.0.0.1.",
+   "ru": "В разделе OAuth2 скопируйте Client ID и добавьте перенаправление http://127.0.0.1.",
+   "id": "Di OAuth2, salin Client ID, lalu tambahkan redirect http://127.0.0.1."
+  },
+  "Paste it here, press Connect, and approve Groovy in Discord. Only if Discord refuses, paste the Client secret too.": {
+   "zh-Hans": "粘贴到这里，按“连接”，并在 Discord 中批准 Groovy。只有 Discord 拒绝时，才需要再粘贴 Client secret。",
+   "hi": "इसे यहाँ चिपकाएँ, कनेक्ट दबाएँ, और Discord में Groovy को मंज़ूरी दें। Discord मना करे तभी Client secret भी चिपकाएँ।",
+   "es": "Pégalo aquí, pulsa Conectar y aprueba a Groovy en Discord. Solo si Discord lo rechaza, pega también el Client secret.",
+   "ar": "الصقه هنا، واضغط اتصال، ووافق على Groovy في Discord. الصق Client secret أيضًا فقط إذا رفض Discord.",
+   "fr": "Collez-le ici, appuyez sur Connecter et autorisez Groovy dans Discord. Seulement si Discord refuse, collez aussi le Client secret.",
+   "bn": "এখানে পেস্ট করুন, সংযোগ চাপুন এবং Discord-এ Groovy অনুমোদন করুন। Discord প্রত্যাখ্যান করলেই শুধু Client secret-ও পেস্ট করুন।",
+   "pt-BR": "Cole aqui, pressione Conectar e aprove o Groovy no Discord. Só se o Discord recusar, cole também o Client secret.",
+   "ru": "Вставьте его сюда, нажмите «Подключить» и разрешите Groovy в Discord. Только если Discord откажет, вставьте и Client secret.",
+   "id": "Tempel di sini, tekan Hubungkan, lalu setujui Groovy di Discord. Hanya jika Discord menolak, tempel juga Client secret."
+  },
+  "Mute, deafen, the call and who's speaking come from the Discord app on this PC, only while the Discord tile is shown or you ask. Messages come from Discord's Windows notifications and stay in memory. Groovy opens the conversation and drafts your reply; you press Enter. It never uses your Discord account's token.": {
+   "zh-Hans": "静音、闭听、通话和谁在说话都来自这台电脑上的 Discord 应用，且仅在显示 Discord 磁贴或你提出请求时读取。消息来自 Discord 的 Windows 通知，只保存在内存中。Groovy 会打开对话并起草回复；由你按 Enter。它从不使用你的 Discord 账号令牌。",
+   "hi": "म्यूट, डीफ़न, कॉल और कौन बोल रहा है, यह इस PC के Discord ऐप से आता है, सिर्फ़ तब जब Discord टाइल दिख रही हो या आप पूछें। संदेश Discord की Windows सूचनाओं से आते हैं और मेमोरी में ही रहते हैं। Groovy बातचीत खोलता है और जवाब का ड्राफ़्ट बनाता है; Enter आप दबाते हैं। यह कभी आपके Discord खाते का टोकन इस्तेमाल नहीं करता।",
+   "es": "Silenciar, ensordecer, la llamada y quién habla vienen de la app de Discord de este PC, solo mientras se ve el mosaico de Discord o cuando lo pides. Los mensajes vienen de las notificaciones de Windows de Discord y se quedan en memoria. Groovy abre la conversación y redacta tu respuesta; tú pulsas Intro. Nunca usa el token de tu cuenta de Discord.",
+   "ar": "الكتم وكتم السماعة والمكالمة ومن يتحدث تأتي من تطبيق Discord على هذا الكمبيوتر، فقط أثناء ظهور بلاطة Discord أو عندما تطلب. تأتي الرسائل من إشعارات Windows الخاصة بـ Discord وتبقى في الذاكرة. يفتح Groovy المحادثة ويصيغ ردك؛ وأنت تضغط Enter. لا يستخدم أبدًا رمز حسابك في Discord.",
+   "fr": "Micro coupé, son coupé, l'appel et qui parle viennent de l'app Discord de ce PC, seulement quand la tuile Discord est affichée ou que vous le demandez. Les messages viennent des notifications Windows de Discord et restent en mémoire. Groovy ouvre la conversation et rédige votre réponse ; vous appuyez sur Entrée. Il n'utilise jamais le jeton de votre compte Discord.",
+   "bn": "মিউট, শোনা বন্ধ, কল এবং কে কথা বলছে, এসব এই PC-র Discord অ্যাপ থেকে আসে, শুধু Discord টাইল দেখানো থাকলে বা আপনি চাইলে। বার্তা আসে Discord-এর Windows বিজ্ঞপ্তি থেকে এবং মেমরিতেই থাকে। Groovy কথোপকথন খোলে ও উত্তরের খসড়া করে; Enter আপনি চাপেন। এটি কখনো আপনার Discord অ্যাকাউন্টের টোকেন ব্যবহার করে না।",
+   "pt-BR": "Mudo, ensurdecer, a chamada e quem está falando vêm do app do Discord neste PC, só enquanto o bloco do Discord aparece ou quando você pede. As mensagens vêm das notificações do Windows do Discord e ficam na memória. O Groovy abre a conversa e escreve um rascunho da resposta; você pressiona Enter. Ele nunca usa o token da sua conta do Discord.",
+   "ru": "Выключение микрофона и звука, звонок и кто говорит берутся из приложения Discord на этом ПК, только пока видна плитка Discord или вы просите. Сообщения берутся из уведомлений Windows от Discord и хранятся только в памяти. Groovy открывает беседу и пишет черновик ответа; Enter нажимаете вы. Токен вашей учётной записи Discord никогда не используется.",
+   "id": "Bisu, tuli, panggilan, dan siapa yang berbicara diambil dari aplikasi Discord di PC ini, hanya saat ubin Discord tampil atau saat Anda meminta. Pesan berasal dari notifikasi Windows Discord dan hanya disimpan di memori. Groovy membuka percakapan dan menyusun draf balasan; Anda yang menekan Enter. Groovy tidak pernah memakai token akun Discord Anda."
   }
  }
 }
