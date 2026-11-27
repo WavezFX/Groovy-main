@@ -49,6 +49,7 @@ mod pipe;
 mod redact;
 mod resources;
 mod scheduler;
+mod screen;
 mod platform;
 #[cfg(target_os = "linux")]
 mod portal;
@@ -633,7 +634,15 @@ async fn chat_send(
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
     chat.set_spoken(spoken.unwrap_or(false));
-    chat::send(&app, &chat, &settings, query, context).await
+    // Round 4C item 4: a question about the screen (typed or in a call) takes one look for it.
+    let query = match screen::look_for_question(&app, &query).await {
+        Some(note) => format!("{query}\n\n{note}"),
+        None => query,
+    };
+    let reply = chat::send(&app, &chat, &settings, query, context).await;
+    // Round 4C item 3: a picture of the screen goes with one message at most.
+    screen::forget_chat_look();
+    reply
 }
 
 /// "Test my voice setup", step 3: "say hello" to the brain the calls use.
@@ -1657,6 +1666,9 @@ pub fn run() {
             notes::notes_markdown,
             notes::notes_export,
             okgroovy::voice_done,
+            screen::screen_look,
+            screen::screen_look_answer,
+            screen::screen_look_forget,
             okgroovy::okgroovy_status,
             quick_status,
             fullscreen_busy,

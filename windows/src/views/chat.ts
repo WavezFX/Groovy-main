@@ -10,6 +10,7 @@ import { FIX_LABELS, FIX_PAGES, stageText } from "../voice/stages";
 import { h, svg, clear } from "./dom";
 import { ICONS } from "./icons";
 import { renderMarkdown } from "./markdown";
+import { lookButton, lookSent } from "./chatlook";
 import { Bridge, onEvent, type ChatContext, type ModelInfo } from "../core/bridge";
 import {
   activeModel, pickModel, providerDef, visibleProviders, withModel, type ProviderDef,
@@ -257,7 +258,10 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
   callBtn.addEventListener("click", () => CallControl.toggle());
   const dictateBtn = h("button", { class: "call-btn", title: tl(STRINGS.dictate) }, svg(ICONS.mic, 12));
   dictateBtn.addEventListener("click", () => CallControl.dictate());
-  const bar = h("div", { class: "chat-bar" }, input, dictateBtn, callBtn, send);
+  // Round 4C item 3: one picture of the screen for the next message.
+  const lookRow = h("div", { class: "look-row" });
+  const lookBtn = lookButton(lookRow, onHeightChange);
+  const bar = h("div", { class: "chat-bar" }, input, lookBtn, dictateBtn, callBtn, send);
 
   // ── The call bar: what the call is doing, the level, mute / interrupt / end ──
   const viz = h("div", { class: "call-viz", "aria-hidden": "true" }, h("i"), h("i"), h("i"), h("i"), h("i"));
@@ -298,7 +302,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     body.classList.toggle("picking", picker.isOpen);
     drawModelButton();
   });
-  body.append(chipRow, log, picker.el, modelRow, callBar, bar);
+  body.append(chipRow, log, picker.el, modelRow, callBar, lookRow, bar);
 
   const el = h("div", { class: "view" }, h("div", { class: "card wash chat-card" }, body));
   (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "rgba(99,102,241,0.5)");
@@ -360,6 +364,8 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     const context: ChatContext | null =
       State.chatHistory.length === 1 && file ? { kind: "file", name: file.name, path: file.path } : null;
 
+    // The picture (if any) goes with this message only; Rust takes it now.
+    lookSent(lookRow);
     try {
       const reply = await Bridge.chatSend(query, context, spoken);
       State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text, action: reply.action });

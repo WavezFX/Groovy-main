@@ -67,6 +67,9 @@ pub const ISLAND_EVENTS: &[&str] = &[
     "voice-call-start",
     "voice-say",
     "voice-wake",
+    // Round 4C: the Allow / Not now question and the eye badge.
+    "screen-look-ask",
+    "screen-looking",
 ];
 
 /// What an event does to a sleeping island.

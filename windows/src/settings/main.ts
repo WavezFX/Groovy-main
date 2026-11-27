@@ -6,6 +6,7 @@
 import { installErrorReporting, showError } from "../views/toast";
 import "./settings.css";
 import "../views/toast.css";
+import { invoke } from "@tauri-apps/api/core";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {
@@ -1048,8 +1049,44 @@ function generalSection(): HTMLElement {
     clipList,
     h("div", { class: "hint", text: t("While a full-screen game or presentation runs, Groovy stops listening for « Hey Groovy », pauses background checks and ignores shortcuts except Mute and the island.") }),
     ...recapRows(),
+    ...screenRows(),
     languageRow(),
   );
+}
+
+/**
+ * Settings → General → Screen (round 4C item 6): whether Groovy may look at the
+ * screen when asked, keep watching in a call, which brains can see, and where a
+ * picture goes. He never looks unless asked.
+ */
+function screenRows(): HTMLElement[] {
+  const look = h("select", {}) as HTMLSelectElement;
+  look.append(
+    h("option", { value: "ask", text: t("Ask each time") }),
+    h("option", { value: "allowed", text: t("When I ask him") }),
+    h("option", { value: "off", text: t("Never") }),
+  );
+  look.value = settings.screenLook === "allowed" || settings.screenLook === "off" ? settings.screenLook : "ask";
+  look.addEventListener("change", () => {
+    settings.screenLook = look.value as typeof settings.screenLook;
+    void save();
+  });
+  const seeing = h("div", { class: "hint" });
+  void invoke<{ name: string; caps: { vision: boolean } }[]>("brains")
+    .then((rows) => {
+      const names = [...new Set(rows.filter((r) => r.caps.vision).map((r) => r.name))];
+      seeing.textContent = t("Brains that can see the screen: {names}", { names: names.join(", ") || "—" });
+    })
+    .catch(() => {});
+  return [
+    h("div", { class: "row" }, h("label", { text: t("Look at the screen") }), look),
+    h("div", { class: "row" },
+      h("label", { text: t("Keep watching during a call") }),
+      toggle(settings.screenWatch === true, (v) => { settings.screenWatch = v; void save(); }),
+    ),
+    seeing,
+    h("div", { class: "hint", text: t("Groovy looks only when you ask. The picture stays in memory, goes only to the brain answering, and is dropped after the reply; it is never saved.") }),
+  ];
 }
 
 /**

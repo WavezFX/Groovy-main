@@ -166,6 +166,9 @@ impl Chat {
         if c.epoch != turn.epoch || c.owner.as_deref() != Some(turn.provider.as_str()) {
             return;
         }
+        // Round 4C item 3: a picture of the screen is dropped after the reply; the words stay.
+        let mut user = user;
+        crate::screen::drop_images(std::slice::from_mut(&mut user));
         c.native.push(user);
         c.native.push(assistant);
         c.plain.push(json!({ "role": "user", "content": user_text }));

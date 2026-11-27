@@ -147,7 +147,8 @@ pub async fn send(
     let endpoint = endpoint()?;
 
     let turn = chat.begin(chat::ANTHROPIC);
-    let user = json!({ "role": "user", "content": user_content(turn.first, context.as_ref(), &query) });
+    let mut user = json!({ "role": "user", "content": user_content(turn.first, context.as_ref(), &query) });
+    crate::screen::attach_anthropic(&mut user);
     let body = request_body(model, &chat.system_prompt(true), &turn.history, &user);
 
     let response = call(&endpoint, &key, &body).await?;

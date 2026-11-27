@@ -184,6 +184,10 @@ export interface Settings {
   autostart: boolean;
   /** Stop listening and ticking during full-screen games and presentations. */
   quietDuringGames: boolean;
+  /** Round 4C: look at the screen when asked: "ask" (Allow each time), "allowed" or "off". */
+  screenLook: "ask" | "allowed" | "off";
+  /** Round 4C item 4: in a call, a new look at most every 5 s while the screen changes. */
+  screenWatch: boolean;
   /** Keep the last 20 copied texts in memory (off by default). */
   clipboardHistory: boolean;
   hooksInstalled: boolean;
@@ -324,6 +328,8 @@ export const DEFAULT_SETTINGS: Settings = {
   screen: "primary",
   autostart: false,
   quietDuringGames: true,
+  screenLook: "ask",
+  screenWatch: false,
   clipboardHistory: false,
   hooksInstalled: false,
   model: "claude-opus-5",

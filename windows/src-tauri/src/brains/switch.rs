@@ -249,7 +249,11 @@ pub fn order_for(s: &Settings, job: Job, with_tools: bool) -> Vec<Who> {
 /// Messages shape and the id of the brain that gave it.
 pub async fn run(app: &AppHandle, s: &Settings, job: Job, req: Request<'_>) -> Result<(Value, &'static str), String> {
     let prefs = s.assistant.clone().sanitised();
-    let order = ranked(&prefs, job, !req.tools.is_empty(), order_for(s, job, !req.tools.is_empty()));
+    let mut order = ranked(&prefs, job, !req.tools.is_empty(), order_for(s, job, !req.tools.is_empty()));
+    // Round 4C item 3: a picture of the screen goes only to a brain that can see.
+    if crate::screen::has_image(req.messages) {
+        order.retain(|w| crate::brains::get(w.id()).is_some_and(|b| b.caps().vision));
+    }
     ask(app, s, &prefs, order, req).await
 }
 
