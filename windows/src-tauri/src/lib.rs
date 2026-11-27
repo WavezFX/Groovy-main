@@ -5,6 +5,7 @@ mod agents;
 mod assistant;
 mod brain_ai;
 mod brains;
+mod callmic;
 mod chat;
 mod claude;
 mod codex_plan;
@@ -1499,6 +1500,8 @@ pub fn run() {
             island_move,
             island_track,
             voice_transcribe,
+            callmic::call_mic_start,
+            callmic::call_mic_stop,
             voice_status,
             voice_download_model,
             voice_delete_model,

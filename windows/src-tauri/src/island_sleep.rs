@@ -32,6 +32,7 @@ use crate::island::WINDOW_LABEL;
 /// Every event the island's page listens to (tests/sleep.test.mjs keeps this
 /// list and the page's `onEvent` calls the same).
 pub const ISLAND_EVENTS: &[&str] = &[
+    "call-mic-frame",
     "chat-delta",
     "click-outside",
     "cursor",
@@ -85,7 +86,7 @@ pub enum Held {
 
 pub fn held(event: &str) -> Held {
     match event {
-        "cursor" | "pointer-inside" | "live-bands" | "click-outside" => Held::Drop,
+        "cursor" | "pointer-inside" | "live-bands" | "click-outside" | "call-mic-frame" => Held::Drop,
         "growth-changed" | "memory-pressure" | "runtime-state" | "runtime-release" | "island-glass" | "island-glass-boost"
         | "sounds-changed" | "mail-inboxes" | "integration" | "spotify-artwork" => Held::Keep,
         _ => Held::Wake,

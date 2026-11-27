@@ -795,6 +795,9 @@ export const Bridge = {
   /** `partial`: the words so far while you speak (skipped in cloud mode: no request, no model). */
   voiceTranscribe: (samples: number[], wake: boolean, partial = false) =>
     callOrThrow<string>("voice_transcribe", { samples, wake, partial }),
+  /** The island's microphone captured in Rust (round 4A item 2); frames come as "call-mic-frame". */
+  callMicStart: (frame: number) => callOrThrow<void>("call_mic_start", { frame }),
+  callMicStop: () => call<void>("call_mic_stop"),
   voiceStatus: () => call<VoiceStatus>("voice_status"),
   /** Downloads a Whisper model; progress arrives as "voice-model-progress" events. */
   voiceDownloadModel: (model: string) => callOrThrow<void>("voice_download_model", { model }),
