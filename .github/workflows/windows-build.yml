@@ -400,6 +400,9 @@ jobs:
             cargo test -p groovy speech_models_measured -- --ignored --nocapture
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
+          # Round 4B item 4: P2-P7 (listener CPU, wake response, local reply times; stub brain 500 ms).
+          cargo test -p groovy listening_cpu_and_reply_times -- --ignored --nocapture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           # And each voice in its own process (the run above measured both in one).
           foreach ($v in @("light", "kokoro")) {
             $env:GROOVY_VOICE = $v
