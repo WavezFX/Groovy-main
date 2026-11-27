@@ -393,7 +393,20 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           # Round 3F item 5: dictation on sherpa-onnx's Whisper hears CI's clips.
           cargo test -p groovy whisper_base_hears -- --ignored --nocapture
-          exit $LASTEXITCODE
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # Round 4F item 2: Whisper base and Moonshine tiny, memory and speed, one per process.
+          foreach ($m in @("base", "moonshine-tiny.en")) {
+            $env:GROOVY_STT = $m
+            cargo test -p groovy speech_models_measured -- --ignored --nocapture
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          # And each voice in its own process (the run above measured both in one).
+          foreach ($v in @("light", "kokoro")) {
+            $env:GROOVY_VOICE = $v
+            cargo test -p groovy voices_measured -- --ignored --nocapture
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          exit 0
 
       # The Skills Manager against the real `skills` CLI 1.7.2 (npx, --copy):
       # add a local skill, list it, remove it with a backup.

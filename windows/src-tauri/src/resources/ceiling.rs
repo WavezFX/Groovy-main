@@ -27,6 +27,9 @@ pub const PRESSURE_MB: f64 = 285.0;
 /// runs in its helper process (round 3N item 2, CI's peak test, 8 Nov).
 /// Whisper's helper while it transcribes.
 pub const WHISPER_MB: f64 = 150.0;
+/// Moonshine tiny's helper while it transcribes (round 4F item 2): about 200 MB less
+/// working memory than Whisper base on Linux; an estimate until Windows measures it.
+pub const MOONSHINE_MB: f64 = 80.0;
 /// Kokoro's helper while it speaks (about 165 MB), plus what a call adds to the
 /// island and Groovy meanwhile (about 70 MB: 105 MB before the call, 342 at its end).
 pub const KOKORO_MB: f64 = 235.0;
