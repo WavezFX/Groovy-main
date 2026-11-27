@@ -301,7 +301,7 @@ export function buildHome(actions: ViewActions): ViewHost {
   const grown = (k: Expanded | "strip"): Grown => {
     let g = grownTiles.get(k);
     if (!g) {
-      const { clipboardGrown, mailGrown, musicGrown, musicStrip, remindersGrown, systemGrown } = expand!;
+      const { clipboardGrown, discordGrown, mailGrown, musicGrown, musicStrip, remindersGrown, systemGrown } = expand!;
       g = k === "music" ? musicGrown(fold)
         : k === "mail" ? mailGrown(fold, () => {
           State.mailFull = !State.mailFull;
@@ -310,6 +310,7 @@ export function buildHome(actions: ViewActions): ViewHost {
         : k === "system" ? systemGrown(fold)
         : k === "reminders" ? remindersGrown(fold)
         : k === "clipboard" ? clipboardGrown(fold)
+        : k === "discord" ? discordGrown(fold)
         : musicStrip();
       grownTiles.set(k, g);
     }

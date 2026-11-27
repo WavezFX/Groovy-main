@@ -4059,3 +4059,47 @@ button.panel-row:hover, .panel-text:hover { background: rgba(255, 255, 255, 0.05
   content-visibility: auto;
   contain-intrinsic-size: auto 72px;
 }
+
+/* Round 6: the Discord tile grown (expand.ts discordGrown), in the island's own glass. */
+.grow-discord { background: rgba(88, 101, 242, 0.16); border-color: rgba(88, 101, 242, 0.38); }
+.grow-dbuttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grow-dbig {
+  height: 52px;
+  border-radius: 14px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.grow-dbig svg { fill: currentColor; }
+.grow-dbig:hover { filter: brightness(1.15); }
+.grow-dbig:active { transform: scale(0.97); }
+.grow-dbig.on { background: #ed4245; }
+.grow-dbig:disabled { opacity: 0.45; cursor: default; }
+.grow-dpeople { display: flex; gap: 8px; flex-wrap: wrap; min-height: 0; overflow: hidden; }
+.grow-dperson { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; max-width: 120px; color: rgba(255, 255, 255, 0.86); }
+.grow-dperson > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grow-dperson i {
+  width: 22px; height: 22px; border-radius: 999px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-style: normal; font-weight: 800; font-size: 11px;
+  background: #5865f2; color: #fff;
+  box-shadow: 0 0 0 0 rgba(35, 165, 90, 0);
+  transition: box-shadow 0.15s ease;
+}
+.grow-dperson.speaking i { box-shadow: 0 0 0 2px #23a55a; }
+.grow-dperson.quiet { opacity: 0.6; }
+.grow-dleave { display: inline-flex; align-items: center; gap: 5px; background: rgba(237, 66, 69, 0.85); }
+.grow-dleave svg { fill: currentColor; }
+.grow-dleave:disabled { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .grow-dbig, .grow-dperson i { transition: none; }
+}

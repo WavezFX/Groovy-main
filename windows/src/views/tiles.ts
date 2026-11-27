@@ -7,6 +7,7 @@ import { Bridge, type MailInbox, type MailMessage } from "../core/bridge";
 import type { IslandViewName } from "../core/layout";
 import { isAgentTask, pillDefinition } from "../core/pills";
 import { Spotify } from "../core/spotify";
+import { Discord, DISCORD_COLOR, WATCH_EVERY_MS, discordFace } from "../core/discord";
 import { State } from "../core/state";
 import { currentTiles, shortAppName, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
@@ -88,6 +89,19 @@ export function forgetSlowData() {
   remindersAt = 0;
   systemAt = 0;
   clipAt = 0;
+}
+
+let discordAt = 0;
+/** The Discord tile is on screen: renew discord.rs's lease (round 6 item 1), at most every 10 s. */
+export function watchDiscord(now_ = false) {
+  const now = Date.now();
+  if (!now_ && now - discordAt < WATCH_EVERY_MS) return;
+  discordAt = now;
+  void Bridge.discordWatch().then((s) => {
+    if (!s) return;
+    Discord.set(s);
+    State.notify();
+  });
 }
 
 /** Grows a tile in place on the island's tiles (round 3D item 8). */
@@ -206,6 +220,11 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         sub: latestClip ?? t("Nothing copied yet."),
         open: () => openPanel("clipboard", setView),
       };
+    case "discord": {
+      watchDiscord();
+      const f = discordFace(Discord.state);
+      return { icon: "🎧", color: DISCORD_COLOR, title: f.title, sub: f.sub, open: () => openPanel("discord", setView) };
+    }
     case "system":
       return {
         icon: "▤",

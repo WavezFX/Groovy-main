@@ -14,7 +14,8 @@ import { clear, h, svg } from "./dom";
 import { ICONS } from "./icons";
 import { SYSTEM_EVERY_MS, bytes, connectAccount, mailTime, remindersBody, speed } from "./panel";
 import { playOrOpen, seek, setFlag } from "./spotify";
-import { Mail } from "./tiles";
+import { Mail, watchDiscord } from "./tiles";
+import { Discord, discordFace } from "../core/discord";
 import { errorText, showError } from "./toast";
 
 /** Groovy's own limit, shown against what he uses (round 3D item 7). */
@@ -506,6 +507,74 @@ export function clipboardGrown(back: () => void): Grown {
     el: h("div", { class: "grow-panel grow-clipboard" }, head, list),
     shown(on) {
       if (on) void draw();
+    },
+  };
+}
+
+// ── Discord (round 6) ─────────────────────────────────────────────────────────
+
+/**
+ * The call through the Discord app's local RPC (discord.rs): the channel, who's
+ * in it with a ring on whoever speaks, big Mute and Deafen buttons, Leave call.
+ */
+export function discordGrown(back: () => void): Grown {
+  const title = h("b", { class: "grow-title" });
+  const status = h("span", { class: "grow-status" });
+  const big = (path: string) => h("button", { class: "grow-dbig", type: "button" }, svg(path, 22), h("span", {})) as HTMLButtonElement;
+  const mute = big(ICONS.micOff);
+  const deafen = big(ICONS.speakerOff);
+  const leave = h("button", { class: "grow-btn grow-dleave", type: "button" }, svg(ICONS.phone, 13), h("span", { text: t("Leave call") })) as HTMLButtonElement;
+  const people = h("div", { class: "grow-dpeople" });
+  const note = h("div", { class: "grow-note" });
+  const act = (a: "mute" | "unmute" | "deafen" | "undeafen" | "leave") => (e: Event) => {
+    e.stopPropagation();
+    void Bridge.discordVoice(a).then(() => Bridge.discordWatch()).then((s) => {
+      if (s) Discord.set(s);
+      State.notify();
+    }, showError);
+  };
+  mute.addEventListener("click", (e) => act(Discord.state.mute ? "unmute" : "mute")(e));
+  deafen.addEventListener("click", (e) => act(Discord.state.deaf ? "undeafen" : "deafen")(e));
+  leave.addEventListener("click", act("leave"));
+  const head = h("div", { class: "grow-head" }, backButton(t("Back"), back), title, status);
+  const el = h("div", { class: "grow-panel grow-discord" },
+    head,
+    h("div", { class: "grow-dbuttons" }, mute, deafen),
+    people,
+    note,
+    h("div", { class: "grow-actions" }, leave),
+  );
+  let drawn = "";
+  return {
+    el,
+    shown(on) {
+      drawn = "";
+      if (on) watchDiscord(true);
+    },
+    sync() {
+      const s = Discord.state;
+      const key = JSON.stringify([s.status, s.mute, s.deaf, s.channel, s.members, s.message]);
+      if (key === drawn) return;
+      drawn = key;
+      const ready = s.status === "ready";
+      title.textContent = s.channel?.name ? `🔊 ${s.channel.name}` : "Discord";
+      status.textContent = ready ? (s.channel ? t("{n} in the call", { n: s.members.length }) : t("Not in a call")) : "";
+      mute.classList.toggle("on", s.mute);
+      mute.querySelector("span")!.textContent = s.mute ? t("Unmute") : t("Mute");
+      mute.setAttribute("aria-pressed", String(s.mute));
+      deafen.classList.toggle("on", s.deaf);
+      deafen.querySelector("span")!.textContent = s.deaf ? t("Undeafen") : t("Deafen");
+      deafen.setAttribute("aria-pressed", String(s.deaf));
+      mute.disabled = deafen.disabled = !ready;
+      leave.disabled = !ready || !s.channel;
+      clear(people);
+      for (const m of s.members.slice(0, 8)) {
+        people.append(h("span", {
+          class: `grow-dperson${m.speaking ? " speaking" : ""}${m.muted || m.deafened ? " quiet" : ""}`,
+          title: m.name,
+        }, h("i", { text: (m.name.trim()[0] ?? "?").toUpperCase() }), h("span", { text: m.me ? t("You") : m.name })));
+      }
+      note.textContent = ready ? "" : discordFace(s).sub;
     },
   };
 }

@@ -35,6 +35,7 @@ pub const ISLAND_EVENTS: &[&str] = &[
     "chat-delta",
     "click-outside",
     "cursor",
+    "discord-state",
     "github-alerts",
     "growth-changed",
     "hook",

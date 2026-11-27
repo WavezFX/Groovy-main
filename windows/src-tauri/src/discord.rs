@@ -283,12 +283,11 @@ pub fn apply_event(s: &mut State, evt: &str, data: &Value, me: &str) -> bool {
 /// "Sam, Alex and you are in #general." for "who's in the call?".
 pub fn who_sentence(s: &State) -> String {
     let Some(ch) = &s.channel else { return t("You're not in a Discord call.") };
-    let names: Vec<String> = s.members.iter().map(|m| if m.me { t("you") } else { m.name.clone() }).collect();
-    let list = match names.len() {
-        0 => return tf("Nobody else is in {channel}.", &[("channel", &ch.name)]),
-        1 => names[0].clone(),
-        n => format!("{} {} {}", names[..n - 1].join(", "), t("and"), names[n - 1]),
-    };
+    let names: Vec<String> = s.members.iter().map(|m| if m.me { t("You") } else { m.name.clone() }).collect();
+    if names.is_empty() {
+        return tf("Nobody else is in {channel}.", &[("channel", &ch.name)]);
+    }
+    let list = names.join(", ");
     let speaking: Vec<&str> = s.members.iter().filter(|m| m.speaking && !m.me).map(|m| m.name.as_str()).collect();
     let mut out = tf("In {channel}: {names}.", &[("channel", &ch.name), ("names", &list)]);
     if !speaking.is_empty() {
