@@ -154,6 +154,12 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             let t = Instant::now();
             step(&format!("Hey Groovy command {round}"), t, command(&app, &dir));
         }
+        // Round 4F item 5: a cloud call (stub cloud speech, brain and voice with fixed
+        // delays, two turns) after the local models are let go, as a hang-up lets them go.
+        let t = Instant::now();
+        let cloud = cloud_call(&dir);
+        let cloud_mb = cloud.as_ref().map(|(mb, _)| *mb).unwrap_or(0.0);
+        step("cloud call", t, cloud.map(|(_, d)| d));
         // A last look with everything still open.
         std::thread::sleep(Duration::from_secs(3));
         running.store(false, std::sync::atomic::Ordering::Relaxed);
@@ -168,6 +174,7 @@ fn start_peak(app: &AppHandle, dir: PathBuf) {
             "samples": samples,
             "everyMs": PEAK_EVERY.as_millis() as u64,
             "peakParts": parts,
+            "cloudCallMb": (cloud_mb * 10.0).round() / 10.0,
             "steps": steps,
         });
         let path = crate::platform::local_dir().join("peak-test.json");
@@ -189,6 +196,50 @@ fn open_settings(app: &AppHandle) -> Result<String, String> {
         std::thread::sleep(Duration::from_millis(200));
     }
     Err("Settings never opened".into())
+}
+
+/// Groovy's total now, and what it is made of.
+fn total_now() -> (f64, Vec<crate::resources::ceiling::Part>) {
+    let parts = crate::resources::ceiling::parts();
+    (parts.iter().map(|p| p.mb).sum(), parts)
+}
+
+/// Waits `d`, reading the total every 250 ms; the highest is kept in `peak`.
+fn watch(d: Duration, peak: &mut f64, helpers: &mut bool) {
+    let until = Instant::now() + d;
+    while Instant::now() < until {
+        let (mb, parts) = total_now();
+        *peak = peak.max(mb);
+        *helpers |= parts.iter().any(|p| p.kind.ends_with("helper"));
+        std::thread::sleep(PEAK_EVERY);
+    }
+}
+
+/// A cloud call: what the microphone heard goes out as a cloud speech request would
+/// (300 ms), the brain answers (500 ms), the cloud voice's clause comes back and is
+/// played or held for its length (3 s of 24 kHz speech). No model on this PC may load.
+fn cloud_call(dir: &Path) -> Result<(f64, String), String> {
+    speech::unload_idle_now();
+    speech::tts::free();
+    speech::helper::stop(speech::helper::Kind::Tts);
+    crate::resources::ceiling::give_back();
+    std::thread::sleep(Duration::from_secs(2));
+    let (before, _) = total_now();
+    let (mut peak, mut helpers) = (before, false);
+    for _turn in 1..=2 {
+        let request = speech::cloud::wav(&wav(dir, "hey-groovy-time.wav")?);
+        watch(Duration::from_millis(300), &mut peak, &mut helpers);
+        drop(request);
+        watch(Duration::from_millis(500), &mut peak, &mut helpers);
+        let clause = speech::cloud::wav_at(&vec![0.0f32; 24_000 * 3], 24_000);
+        let played = std::thread::spawn(move || speech::tts::play_for_test(clause));
+        watch(Duration::from_secs(3), &mut peak, &mut helpers);
+        let _ = played.join();
+    }
+    if helpers || speech::is_loaded() || crate::voice::is_loaded() {
+        return Err(format!("a local model or helper was loaded during the cloud call ({peak:.0} MB at most)"));
+    }
+    Ok((peak, format!("{before:.0} MB before, {peak:.0} MB at most, no local model or helper")))
 }
 
 /// One turn of a live call on this PC: what was said is heard, and the answer

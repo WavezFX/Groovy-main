@@ -680,6 +680,14 @@ fn play(audio: &Audio, generation: u64) -> bool {
     true
 }
 
+/// The peak test's cloud call (round 4F item 5): a cloud voice's clause played the
+/// way `tts_say` plays it. False: no audio device (CI), the clause is only held.
+#[cfg(feature = "worktest")]
+pub fn play_for_test(bytes: Vec<u8>) -> bool {
+    let generation = SAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst);
+    play(&Audio { mime: "audio/wav", bytes, provider: "stub" }, generation)
+}
+
 /// Says one sentence with Groovy's own voice (Fish Audio, then the offline
 /// voice), played here. Resolves when it has been said or stopped, with who
 /// said it; null: none of Groovy's voices could, the page uses Windows' voice.

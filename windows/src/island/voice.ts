@@ -69,7 +69,7 @@ export class VoiceHost {
     this.controller = new VoiceController(
       async (pcm, purpose) => {
         // The words so far while you speak (round 4 item 3): best effort, never an error.
-        if (purpose === "partial") return (await Bridge.voiceTranscribe(toInt16(pcm), false).catch(() => "")) ?? "";
+        if (purpose === "partial") return (await Bridge.voiceTranscribe(toInt16(pcm), false, true).catch(() => "")) ?? "";
         try {
           const text = await Bridge.voiceTranscribe(toInt16(pcm), purpose === "wake");
           if (purpose === "command") this.transcribeError = null;

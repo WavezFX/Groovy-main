@@ -792,8 +792,9 @@ export const Bridge = {
   instantVoiceOptions: () => call<("openai" | "gemini")[]>("instant_voice_options"),
   instantOpenaiAnswer: (offer: string) => callOrThrow<string>("instant_openai_answer", { offer }),
   instantGeminiToken: () => callOrThrow<{ token: string; setup: unknown }>("instant_gemini_token"),
-  voiceTranscribe: (samples: number[], wake: boolean) =>
-    callOrThrow<string>("voice_transcribe", { samples, wake }),
+  /** `partial`: the words so far while you speak (skipped in cloud mode: no request, no model). */
+  voiceTranscribe: (samples: number[], wake: boolean, partial = false) =>
+    callOrThrow<string>("voice_transcribe", { samples, wake, partial }),
   voiceStatus: () => call<VoiceStatus>("voice_status"),
   /** Downloads a Whisper model; progress arrives as "voice-model-progress" events. */
   voiceDownloadModel: (model: string) => callOrThrow<void>("voice_download_model", { model }),
