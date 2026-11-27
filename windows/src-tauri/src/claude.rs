@@ -142,6 +142,7 @@ pub async fn send(
     model: &str,
     query: String,
     context: Option<ChatContext>,
+    on_delta: impl FnMut(String) + Send,
 ) -> Result<ChatReply, String> {
     let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
     let endpoint = endpoint()?;
@@ -149,9 +150,12 @@ pub async fn send(
     let turn = chat.begin(chat::ANTHROPIC);
     let mut user = json!({ "role": "user", "content": user_content(turn.first, context.as_ref(), &query) });
     crate::screen::attach_anthropic(&mut user);
-    let body = request_body(model, &chat.system_prompt(true), &turn.history, &user);
+    let mut body = request_body(model, &chat.system_prompt(true), &turn.history, &user);
+    // Round 4D item 3: the answer streams in; the whole message (web search
+    // blocks and citations included) is rebuilt from the events for the history.
+    body["stream"] = json!(true);
 
-    let response = call(&endpoint, &key, &body).await?;
+    let response = call_streamed(&endpoint, &key, &body, on_delta).await?;
     let (blocks, text) = interpret(&response)?;
 
     // Store the whole content — tool_use / tool_result blocks included — so the
@@ -197,8 +201,130 @@ pub async fn voice_turn(model: &str, system: &str, messages: &[Value], tools: &[
     call_with_timeout(&endpoint, &key, &body, Duration::from_secs(45)).await
 }
 
-async fn call(endpoint: &Url, key: &str, body: &Value) -> Result<Value, String> {
-    call_with_timeout(endpoint, key, body, Duration::from_secs(90)).await
+/// One streamed request: the text so far goes to `on_delta` as it arrives,
+/// and the whole message comes back as the API would have sent it at once.
+async fn call_streamed(endpoint: &Url, key: &str, body: &Value, mut on_delta: impl FnMut(String) + Send) -> Result<Value, String> {
+    let response = net::client(endpoint, Duration::from_secs(300))?
+        .post(endpoint.clone())
+        .header("x-api-key", key)
+        .header("anthropic-version", ANTHROPIC_VERSION)
+        .header("anthropic-beta", FALLBACK_BETA)
+        .header("content-type", "application/json")
+        .json(body)
+        .send()
+        .await
+        .map_err(|e| tf("Network error: {error}", &[("error", &e.to_string())]))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = net::read_capped(response, net::MAX_ERROR_BODY).await.unwrap_or_default();
+        return Err(format!("Claude API {status}: {}", net::error_detail(&body)));
+    }
+    let mut message = json!({ "content": [] });
+    let mut partial: Vec<String> = Vec::new();
+    let mut throttle = crate::brains::stream::Throttle::new();
+    let mut shown = String::new();
+    crate::brains::stream::data_lines(
+        response,
+        |data| {
+            let Ok(event) = serde_json::from_str::<Value>(data) else { return Ok(()) };
+            let text_changed = apply_event(&mut message, &mut partial, &event)?;
+            if text_changed && throttle.due() {
+                shown = message["content"].as_array().and_then(|c| response_text(c)).unwrap_or_default();
+                on_delta(shown.clone());
+            }
+            Ok(())
+        },
+        |e| tf("Network error: {error}", &[("error", &e)]),
+    )
+    .await?;
+    let last = message["content"].as_array().and_then(|c| response_text(c)).unwrap_or_default();
+    if last != shown {
+        on_delta(last);
+    }
+    Ok(message)
+}
+
+/// One event of a streamed Messages answer, applied to the message being
+/// rebuilt. Returns whether the visible text changed.
+fn apply_event(message: &mut Value, partial: &mut Vec<String>, event: &Value) -> Result<bool, String> {
+    match event["type"].as_str().unwrap_or("") {
+        "message_start" => {
+            if let Some(m) = event.get("message") {
+                let content = std::mem::take(&mut message["content"]);
+                *message = m.clone();
+                if message["content"].as_array().map_or(true, |c| c.is_empty()) {
+                    message["content"] = content;
+                }
+            }
+        }
+        "content_block_start" => {
+            let i = event["index"].as_u64().unwrap_or(0) as usize;
+            let Some(blocks) = message["content"].as_array_mut() else { return Ok(false) };
+            while blocks.len() <= i {
+                blocks.push(Value::Null);
+            }
+            blocks[i] = event["content_block"].clone();
+            while partial.len() <= i {
+                partial.push(String::new());
+            }
+            partial[i].clear();
+            return Ok(blocks[i]["type"] == "text" && blocks[i]["text"].as_str().is_some_and(|t| !t.is_empty()));
+        }
+        "content_block_delta" => {
+            let i = event["index"].as_u64().unwrap_or(0) as usize;
+            let Some(block) = message["content"].as_array_mut().and_then(|b| b.get_mut(i)) else { return Ok(false) };
+            let delta = &event["delta"];
+            match delta["type"].as_str().unwrap_or("") {
+                "text_delta" => {
+                    let text = format!("{}{}", block["text"].as_str().unwrap_or(""), delta["text"].as_str().unwrap_or(""));
+                    block["text"] = json!(text);
+                    return Ok(true);
+                }
+                "input_json_delta" => {
+                    while partial.len() <= i {
+                        partial.push(String::new());
+                    }
+                    partial[i].push_str(delta["partial_json"].as_str().unwrap_or(""));
+                }
+                "citations_delta" => {
+                    if !block["citations"].is_array() {
+                        block["citations"] = json!([]);
+                    }
+                    if let Some(c) = block["citations"].as_array_mut() {
+                        c.push(delta["citation"].clone());
+                    }
+                }
+                "thinking_delta" => {
+                    let text = format!("{}{}", block["thinking"].as_str().unwrap_or(""), delta["thinking"].as_str().unwrap_or(""));
+                    block["thinking"] = json!(text);
+                }
+                "signature_delta" => block["signature"] = delta["signature"].clone(),
+                _ => {}
+            }
+        }
+        "content_block_stop" => {
+            let i = event["index"].as_u64().unwrap_or(0) as usize;
+            if let (Some(json_text), Some(block)) = (partial.get(i).filter(|p| !p.is_empty()), message["content"].as_array_mut().and_then(|b| b.get_mut(i))) {
+                block["input"] = serde_json::from_str(json_text).unwrap_or_else(|_| json!({}));
+            }
+        }
+        "message_delta" => {
+            if let Some(delta) = event["delta"].as_object() {
+                for (k, v) in delta {
+                    message[k.as_str()] = v.clone();
+                }
+            }
+        }
+        "error" => {
+            let why = event.pointer("/error/message").and_then(Value::as_str).unwrap_or("stream error");
+            let kind = event.pointer("/error/type").and_then(Value::as_str).unwrap_or("");
+            // An overloaded API mid-answer reads like its HTTP status, so the fallback rules still see it.
+            let code = if kind == "overloaded_error" { "529 " } else { "" };
+            return Err(format!("Claude API {code}{why}"));
+        }
+        _ => {}
+    }
+    Ok(false)
 }
 
 async fn call_with_timeout(endpoint: &Url, key: &str, body: &Value, timeout: Duration) -> Result<Value, String> {
@@ -412,5 +538,44 @@ mod tests {
                 ModelInfo { id: "claude-x".into(), label: "claude-x".into() },
             ]
         );
+    }
+
+    #[test]
+    fn a_streamed_answer_is_rebuilt_whole_web_search_and_citations_included() {
+        let events = [
+            json!({"type":"message_start","message":{"id":"m","role":"assistant","content":[],"stop_reason":null}}),
+            json!({"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"s1","name":"web_search","input":{}}}),
+            json!({"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"query\":"}}),
+            json!({"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\"rain\"}"}}),
+            json!({"type":"content_block_stop","index":0}),
+            json!({"type":"content_block_start","index":1,"content_block":{"type":"web_search_tool_result","tool_use_id":"s1","content":[{"type":"web_search_result","url":"https://x"}]}}),
+            json!({"type":"content_block_stop","index":1}),
+            json!({"type":"content_block_start","index":2,"content_block":{"type":"text","text":""}}),
+            json!({"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"It will "}}),
+            json!({"type":"content_block_delta","index":2,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://x"}}}),
+            json!({"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"rain."}}),
+            json!({"type":"content_block_stop","index":2}),
+            json!({"type":"message_delta","delta":{"stop_reason":"end_turn"}}),
+        ];
+        let mut m = json!({ "content": [] });
+        let mut partial = Vec::new();
+        let changed: Vec<bool> = events.iter().map(|e| apply_event(&mut m, &mut partial, e).unwrap()).collect();
+        assert_eq!(changed.iter().filter(|c| **c).count(), 2);
+        let (blocks, text) = interpret(&m).unwrap();
+        assert_eq!(text, "It will rain.");
+        assert_eq!(blocks[0]["input"], json!({"query":"rain"}));
+        assert_eq!(blocks[1]["type"], "web_search_tool_result");
+        assert_eq!(blocks[2]["citations"][0]["url"], "https://x");
+        assert_eq!(m["stop_reason"], "end_turn");
+    }
+
+    #[test]
+    fn a_refusal_or_an_error_in_the_stream_is_kept() {
+        let mut m = json!({ "content": [] });
+        let mut partial = Vec::new();
+        apply_event(&mut m, &mut partial, &json!({"type":"message_delta","delta":{"stop_reason":"refusal"}})).unwrap();
+        assert!(interpret(&m).is_err());
+        let e = apply_event(&mut m, &mut partial, &json!({"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}})).unwrap_err();
+        assert!(crate::assistant::worth_falling_back(&e), "{e}");
     }
 }

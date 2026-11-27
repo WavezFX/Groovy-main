@@ -14,6 +14,7 @@
 
 pub mod cli;
 pub mod router;
+pub mod stream;
 pub mod switch;
 
 use std::future::Future;
@@ -148,6 +149,25 @@ pub struct Ctx<'a> {
 
 pub type Turn<'a> = Pin<Box<dyn Future<Output = Result<Value, BrainError>> + Send + 'a>>;
 
+/// One turn of the chat's own conversation (round 4D item 2). The chat keeps
+/// the history in the format of the brain that answered last (Claude's
+/// carries its web search blocks); the brain reads it from `chat`, answers,
+/// streams the text so far to `on_delta`, and records the finished turn.
+pub struct ChatTurn<'a> {
+    /// None on the phone's path when the app isn't up yet.
+    pub app: Option<&'a AppHandle>,
+    pub settings: &'a Settings,
+    pub prefs: &'a AssistantPrefs,
+    pub chat: &'a crate::chat::Chat,
+    /// Empty: the brain's own default (a local server's first model).
+    pub model: String,
+    pub query: String,
+    pub context: Option<crate::chat::ChatContext>,
+    pub on_delta: &'a Delta<'a>,
+}
+
+pub type ChatAnswer<'a> = Pin<Box<dyn Future<Output = Result<crate::chat::ChatReply, BrainError>> + Send + 'a>>;
+
 pub trait Brain: Sync {
     /// The id stored in settings and used by the Brains page.
     fn id(&self) -> &'static str;
@@ -157,6 +177,25 @@ pub trait Brain: Sync {
     fn auth(&self) -> Auth;
     /// One turn: `{ content: [blocks], stop_reason }`.
     fn turn<'a>(&'a self, ctx: Ctx<'a>, req: Request<'a>) -> Turn<'a>;
+    /// One turn of the chat. By default the conversation goes as plain text
+    /// through `turn` (the subscriptions); the keyed and local brains keep
+    /// their own wire format.
+    fn chat<'a>(&'a self, t: ChatTurn<'a>) -> ChatAnswer<'a> {
+        Box::pin(async move {
+            let app = t.app.ok_or_else(|| BrainError::of(format!("Unknown chat provider: {}", self.id())))?;
+            let ctx = Ctx { app, settings: t.settings, prefs: t.prefs };
+            let first = t.chat.plain().is_empty();
+            let plain = crate::chat::plain_question(first, t.context.as_ref(), &t.query);
+            let mut messages = t.chat.plain();
+            messages.push(json!({ "role": "user", "content": plain }));
+            let system = t.chat.system_prompt(false);
+            let req = Request { system: &system, messages: &messages, tools: &[], max_tokens: 2048, timeout: Duration::from_secs(120), on_delta: Some(t.on_delta) };
+            let text = text_of(&self.turn(ctx, req).await?);
+            let turn = t.chat.begin(self.id());
+            t.chat.commit(&turn, json!({ "role": "user", "content": plain }), json!({ "role": "assistant", "content": text }), &plain, &text);
+            Ok(crate::chat::ChatReply::text(text))
+        })
+    }
 }
 
 /// A plain answer as a turn's reply.
@@ -210,6 +249,10 @@ impl Brain for Anthropic {
             }
         })
     }
+    fn chat<'a>(&'a self, t: ChatTurn<'a>) -> ChatAnswer<'a> {
+        let on = t.on_delta;
+        Box::pin(async move { crate::claude::send(t.chat, &t.model, t.query, t.context, |s| on(&s)).await.map_err(BrainError::of) })
+    }
 }
 
 // ── OpenAI-compatible services, with the user's key ───────────────────────────
@@ -235,6 +278,13 @@ impl Brain for Compat {
     fn turn<'a>(&'a self, ctx: Ctx<'a>, req: Request<'a>) -> Turn<'a> {
         Box::pin(async move { crate::brain_ai::openai_turn(ctx, Some(self.id), None, req).await.map_err(BrainError::of) })
     }
+    fn chat<'a>(&'a self, t: ChatTurn<'a>) -> ChatAnswer<'a> {
+        let on = t.on_delta;
+        Box::pin(async move {
+            let p = crate::openai_compat::provider(self.id).ok_or_else(|| BrainError::of(format!("Unknown chat provider: {}", self.id)))?;
+            crate::openai_compat::send(t.chat, p, &t.model, t.query, t.context, |s| on(&s)).await.map_err(BrainError::of)
+        })
+    }
 }
 
 // ── The model servers on this PC ──────────────────────────────────────────────
@@ -259,6 +309,31 @@ impl Brain for Local {
     }
     fn turn<'a>(&'a self, ctx: Ctx<'a>, req: Request<'a>) -> Turn<'a> {
         Box::pin(async move { crate::brain_ai::openai_turn(ctx, None, Some(self.id), req).await.map_err(BrainError::of) })
+    }
+    fn chat<'a>(&'a self, t: ChatTurn<'a>) -> ChatAnswer<'a> {
+        use crate::local_chat;
+        let on = t.on_delta;
+        Box::pin(async move {
+            if self.id == crate::chat::LLAMACPP {
+                // A model picked above the chat box wins over the one in Settings.
+                let mut prefs = t.prefs.clone();
+                if !t.model.is_empty() {
+                    prefs.local_model = t.model.clone();
+                }
+                let url = crate::models::ensure_running(&prefs, t.app).await.map_err(BrainError::of)?;
+                let server = local_chat::Server { id: crate::chat::LLAMACPP, name: "Groovy local model", url, key: None };
+                let model = crate::models::running_model().unwrap_or_else(|| "local".into());
+                let result = local_chat::send_with(t.chat, &server, &model, t.query, t.context, |s| on(&s)).await;
+                crate::models::touch();
+                return result.map_err(BrainError::of);
+            }
+            let server = local_chat::server(t.settings, self.id).ok_or_else(|| BrainError::of(format!("Unknown chat provider: {}", self.id)))?;
+            // No model picked yet: the first one the server has.
+            let model = if t.model.is_empty() { local_chat::first_model(&server).await.map_err(BrainError::of)? } else { t.model };
+            local_chat::send_with(t.chat, &server, &model, t.query, t.context, |s| on(&s))
+                .await
+                .map_err(|e| BrainError::of(if server.id == "ollama" && e.starts_with("Cannot reach") { local_chat::ollama_help() } else { e }))
+        })
     }
 }
 

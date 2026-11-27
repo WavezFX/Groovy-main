@@ -183,7 +183,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 
 ### 4D. `FIXES_ROUND4D.md` (brains). **Before 4C.**
 - [x] 1. The `Brain` trait and a registry (Opus): `brains/`; `brain_ai.rs` asks through it. `chat.rs` moves onto it in item 2.
-- [ ] 2. One switcher for chat and background jobs. **Partial** (`brains/switch.rs`: background jobs, calls, voice, keyless chat and phone chat go through it; provider kinds decided only in `brains/`; keyed chat turns still use `chat.rs`'s own calls; STATUS.md).
+- [x] 2. One switcher for chat and background jobs. Background jobs, calls, voice, keyless chat and phone chat (4D first pass); keyed chat through `Brain::chat` and `brains::switch::chat` (27 Nov). `Who` kept as the background order's element (STATUS.md).
 - [ ] 3. Sign in first, Gemini sign-in added, keys optional, streaming. **Built, incl. streaming**; not proven on Windows with the real tools (STATUS.md).
 - [ ] 4. Tools on subscription brains (Opus). **Built** (`brains/cli.rs`, strict one-line JSON request, tested on the protocol). Not ticked: never run against a signed-in Claude Code or Codex.
 - [x] 5. The router slot (`docs/ROUTER_PLUGIN.md`)

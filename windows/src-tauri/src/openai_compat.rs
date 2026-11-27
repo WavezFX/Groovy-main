@@ -117,22 +117,13 @@ fn request_body(p: &Provider, model: &str, system: &str, history: &[Value], user
     body
 }
 
-/// The answer's text, or the error the provider put in a 200 reply
-/// (OpenRouter does when the upstream model fails).
-fn reply_text(p: &Provider, response: &Value) -> Result<String, String> {
-    let text = response
-        .pointer("/choices/0/message/content")
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    if !text.is_empty() {
-        return Ok(text);
-    }
-    if let Some(msg) = response.pointer("/error/message").and_then(Value::as_str) {
+/// The text one streamed chunk adds, or the error the provider put in the
+/// stream (OpenRouter does when the upstream model fails).
+fn stream_delta(p: &Provider, chunk: &Value) -> Result<Option<String>, String> {
+    if let Some(msg) = chunk.pointer("/error/message").and_then(Value::as_str) {
         return Err(format!("{}: {msg}", p.name));
     }
-    Err(t("No response text."))
+    Ok(chunk.pointer("/choices/0/delta/content").and_then(Value::as_str).map(str::to_string))
 }
 
 fn status_error(p: &Provider, status: u16, detail: &str) -> String {
@@ -158,6 +149,7 @@ pub async fn send(
     model: &str,
     query: String,
     context: Option<ChatContext>,
+    mut on_delta: impl FnMut(String) + Send,
 ) -> Result<ChatReply, String> {
     let key = secrets::get(p.key).ok_or_else(|| tf("{name} API key missing. Add it in Settings.", &[("name", p.name)]))?;
     if model.is_empty() {
@@ -166,10 +158,12 @@ pub async fn send(
     let turn = chat.begin(p.id);
     let mut user = user_message(turn.first, context.as_ref(), &query);
     crate::screen::attach_openai(&mut user);
-    let body = request_body(p, model, &chat.system_prompt(false), &turn.history, &user);
+    let mut body = request_body(p, model, &chat.system_prompt(false), &turn.history, &user);
+    // Round 4D item 3: the answer streams in.
+    body["stream"] = json!(true);
 
     let endpoint = url(p, "chat/completions")?;
-    let response = net::client(&endpoint, Duration::from_secs(90))?
+    let response = net::client(&endpoint, Duration::from_secs(300))?
         .post(endpoint)
         .bearer_auth(&key)
         .json(&body)
@@ -181,9 +175,33 @@ pub async fn send(
         let body = net::read_capped(response, net::MAX_ERROR_BODY).await.unwrap_or_default();
         return Err(status_error(p, status.as_u16(), &net::error_detail(&body)));
     }
-    let bytes = net::read_capped(response, net::MAX_BODY).await?;
-    let json: Value = serde_json::from_slice(&bytes).map_err(|e| tf("Bad API response: {error}", &[("error", &e.to_string())]))?;
-    let text = reply_text(p, &json)?;
+    let mut so_far = String::new();
+    let mut throttle = crate::brains::stream::Throttle::new();
+    let mut shown = 0;
+    crate::brains::stream::data_lines(
+        response,
+        |data| {
+            let Ok(json) = serde_json::from_str::<Value>(data) else { return Ok(()) };
+            match stream_delta(p, &json)? {
+                Some(delta) => so_far.push_str(&delta),
+                None => return Ok(()),
+            }
+            if throttle.due() {
+                shown = so_far.len();
+                on_delta(so_far.trim().to_string());
+            }
+            Ok(())
+        },
+        |e| tf("Network error: {error}", &[("error", &e)]),
+    )
+    .await?;
+    let text = so_far.trim().to_string();
+    if text.is_empty() {
+        return Err(t("No response text."));
+    }
+    if shown != so_far.len() {
+        on_delta(text.clone());
+    }
 
     let plain = chat::plain_question(turn.first, context.as_ref(), &query);
     chat.commit(&turn, user, json!({ "role": "assistant", "content": text }), &plain, &text);
@@ -367,12 +385,12 @@ mod tests {
     }
 
     #[test]
-    fn the_reply_text_or_the_error_inside_a_200_is_read() {
-        let ok = json!({"choices":[{"message":{"role":"assistant","content":"  Hi!  "}}]});
-        assert_eq!(reply_text(p("openai"), &ok).unwrap(), "Hi!");
+    fn each_streamed_chunk_adds_its_text_or_stops_on_the_error_inside() {
+        let ok = json!({"choices":[{"delta":{"content":"Hi"}}]});
+        assert_eq!(stream_delta(p("openai"), &ok).unwrap().as_deref(), Some("Hi"));
         let failed = json!({"error":{"message":"upstream down"}});
-        assert_eq!(reply_text(p("openrouter"), &failed).unwrap_err(), "OpenRouter: upstream down");
-        assert_eq!(reply_text(p("google"), &json!({"choices":[]})).unwrap_err(), "No response text.");
+        assert_eq!(stream_delta(p("openrouter"), &failed).unwrap_err(), "OpenRouter: upstream down");
+        assert_eq!(stream_delta(p("google"), &json!({"choices":[{"delta":{"role":"assistant"}}]})).unwrap(), None);
     }
 
     #[test]

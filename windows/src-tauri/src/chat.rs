@@ -1,7 +1,9 @@
 // The chat, whoever answers it: the conversation, the system prompt, and which
-// provider a turn goes to. Each provider's own wire format lives in its module:
-// claude.rs (Anthropic), openai_compat.rs (OpenAI, Google AI, OpenRouter) and
-// local_chat.rs (Ollama, LM Studio, any OpenAI-compatible server).
+// provider a turn goes to. Every turn goes through the brains' one interface
+// and switcher (`brains::switch::chat`, round 4D item 2); each provider's own
+// wire format lives in its module: claude.rs (Anthropic), openai_compat.rs
+// (OpenAI, Google AI, OpenRouter) and local_chat.rs (Ollama, LM Studio, any
+// OpenAI-compatible server). The answer streams in from all of them.
 //
 // API keys never leave the credential store and file bytes never cross the IPC
 // boundary: the island sends the question and gets the answer's text back.
@@ -156,6 +158,11 @@ impl Chat {
             first: c.plain.is_empty(),
             history: c.native.clone(),
         }
+    }
+
+    /// The conversation so far as plain `{role, content}` turns, the same whoever answered.
+    pub fn plain(&self) -> Vec<Value> {
+        self.inner.lock().unwrap().plain.clone()
     }
 
     /// Records a finished turn: the user message and the answer in the
@@ -347,10 +354,15 @@ pub async fn send(
 
     // The chat's own cloud brain isn't set up (no key): a signed-in
     // subscription or another ready brain answers, in the switcher's order.
+    // The text so far goes to the island (and a call's voice) as it is written.
+    let emit = |t: &str| {
+        use tauri::Emitter;
+        let _ = app.emit_to(crate::island::WINDOW_LABEL, "chat-delta", t);
+    };
     if needs_switcher(settings, &route.primary) {
-        let mut messages = chat.inner.lock().unwrap().plain.clone();
+        let mut messages = chat.plain();
         messages.push(json!({ "role": "user", "content": plain }));
-        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
+        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, Some(&emit)).await {
             let (text, used) = answer?;
             let turn = chat.begin(used);
             chat.commit(&turn, json!({ "role": "user", "content": plain }), json!({ "role": "assistant", "content": text }), &plain, &text);
@@ -359,17 +371,12 @@ pub async fn send(
         }
     }
 
-    let first = send_to(app, chat, settings, &prefs, &route.primary, query.clone(), context.clone()).await;
-    let (mut reply, used, note) = match (first, route.fallback) {
-        (Ok(r), _) => (r, route.primary.clone(), route.note.map(crate::i18n::t)),
-        (Err(e), Some(fallback)) if assistant::worth_falling_back(&e) => {
-            crate::log::line(format!("chat: {} unavailable, answering with {fallback}", route.primary));
-            match send_to(app, chat, settings, &prefs, &fallback, query, context).await {
-                Ok(r) => (r, fallback, Some(crate::i18n::t("The online provider couldn't be reached, so the model on this computer answered."))),
-                Err(e2) => return Err(format!("{e}\n\n{}: {e2}", crate::i18n::t("The local fallback failed too"))),
-            }
-        }
-        (Err(e), _) => return Err(e),
+    // The chat's own brain, then its stand-in, through the switcher (round 4D item 2).
+    let order: Vec<String> = std::iter::once(route.primary.clone()).chain(route.fallback.clone()).collect();
+    let (mut reply, used, note) = match crate::brains::switch::chat(Some(app), settings, &prefs, chat, &order, None, query, context, &emit).await {
+        Ok((r, 0)) => (r, order[0].clone(), route.note.map(crate::i18n::t)),
+        Ok((r, i)) => (r, order[i].clone(), Some(crate::i18n::t("The online provider couldn't be reached, so the model on this computer answered."))),
+        Err(errors) => return Err(fallback_error(errors)),
     };
     if !assistant::is_local(&used, &settings.custom_url) {
         if let Ok(c) = crate::db::conn() {
@@ -433,68 +440,35 @@ pub async fn complete(
             return Ok(text);
         }
     }
-    let mut tried = vec![route.primary.clone()];
-    if let Some(f) = route.fallback.clone() {
-        tried.push(f);
-    }
-    let mut last_err = String::new();
-    for (i, provider) in tried.iter().enumerate() {
-        let chat = Chat::with_system(system);
-        let result = complete_with(app, &chat, settings, &prefs, provider, prompt.clone(), &mut on_delta).await;
-        match result {
-            Ok(text) => {
-                if !assistant::is_local(provider, &settings.custom_url) {
-                    if let Ok(c) = crate::db::conn() {
-                        let _ = crate::db::usage_bump(&c, &today(), provider);
-                    }
+    let order: Vec<String> = std::iter::once(route.primary.clone()).chain(route.fallback.clone()).collect();
+    let chat = Chat::with_system(system);
+    let answer = {
+        let streamed = std::sync::Mutex::new(&mut on_delta);
+        let delta = |t: &str| (*streamed.lock().unwrap())(t.to_string());
+        crate::brains::switch::chat(Some(app), settings, &prefs, &chat, &order, None, prompt, None, &delta).await
+    };
+    match answer {
+        Ok((reply, i)) => {
+            if !assistant::is_local(&order[i], &settings.custom_url) {
+                if let Ok(c) = crate::db::conn() {
+                    let _ = crate::db::usage_bump(&c, &today(), &order[i]);
                 }
-                return Ok(text);
             }
-            Err(e) if i == 0 && tried.len() > 1 && assistant::worth_falling_back(&e) => last_err = e,
-            Err(e) => return Err(e),
+            on_delta(reply.text.clone());
+            Ok(reply.text)
         }
+        // As before: the stand-in's error when it failed too.
+        Err(mut errors) => Err(errors.pop().unwrap_or_default()),
     }
-    Err(last_err)
 }
 
-async fn complete_with(
-    app: &AppHandle,
-    chat: &Chat,
-    settings: &Settings,
-    prefs: &AssistantPrefs,
-    provider: &str,
-    prompt: String,
-    on_delta: &mut (impl FnMut(String) + Send),
-) -> Result<String, String> {
-    if provider == assistant::NONE {
-        return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
+/// The chat's error when its own brain and the stand-in both failed.
+fn fallback_error(mut errors: Vec<String>) -> String {
+    let first = errors.remove(0);
+    match errors.pop() {
+        Some(e2) => format!("{first}\n\n{}: {e2}", crate::i18n::t("The local fallback failed too")),
+        None => first,
     }
-    let provider = this_pc(settings, prefs, provider).await;
-    let provider = provider.as_str();
-    let model = model_for(settings, provider);
-    let reply = if keyed(provider) == Keyed::Claude {
-        claude::send(chat, &model, prompt, None).await?
-    } else if let Some(p) = openai_compat::provider(provider) {
-        openai_compat::send(chat, p, &model, prompt, None).await?
-    } else if keyed(provider) == Keyed::ThisPc {
-        let mut prefs = prefs.clone();
-        if !model.is_empty() {
-            prefs.local_model = model;
-        }
-        let url = crate::models::ensure_running(&prefs, Some(app)).await?;
-        let server = local_chat::Server { id: LLAMACPP, name: "Groovy local model", url, key: None };
-        let model = crate::models::running_model().unwrap_or_else(|| "local".into());
-        let r = local_chat::send_with(chat, &server, &model, prompt, None, |t| on_delta(t)).await;
-        crate::models::touch();
-        r?
-    } else if let Some(server) = local_chat::server(settings, provider) {
-        let model = if model.is_empty() { local_chat::first_model(&server).await? } else { model };
-        local_chat::send_with(chat, &server, &model, prompt, None, |t| on_delta(t)).await?
-    } else {
-        return Err(format!("Unknown chat provider: {provider}"));
-    };
-    on_delta(reply.text.clone());
-    Ok(reply.text)
 }
 
 /// The chat's own brain is an online one that isn't set up (no key), so the
@@ -531,58 +505,13 @@ fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, prov
 
 /// "auto", and "On this PC" in the chat while the local provider is "auto":
 /// Ollama when it answers, then LM Studio, then Groovy's own model (round 3D item 5).
-async fn this_pc(settings: &Settings, prefs: &AssistantPrefs, provider: &str) -> String {
+pub(crate) async fn this_pc(settings: &Settings, prefs: &AssistantPrefs, provider: &str) -> String {
     let auto = provider == local_chat::AUTO || (provider == LLAMACPP && prefs.local_provider == local_chat::AUTO);
     if auto {
         local_chat::resolve_auto(settings).await.to_string()
     } else {
         provider.to_string()
     }
-}
-
-/// One turn with exactly `provider`.
-async fn send_to(
-    app: &AppHandle,
-    chat: &Chat,
-    settings: &Settings,
-    prefs: &AssistantPrefs,
-    provider: &str,
-    query: String,
-    context: Option<ChatContext>,
-) -> Result<ChatReply, String> {
-    if provider == assistant::NONE {
-        return Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."));
-    }
-    let provider = this_pc(settings, prefs, provider).await;
-    let provider = provider.as_str();
-    let model = model_for(settings, provider);
-    if keyed(provider) == Keyed::Claude {
-        return claude::send(chat, &model, query, context).await;
-    }
-    if let Some(p) = openai_compat::provider(provider) {
-        return openai_compat::send(chat, p, &model, query, context).await;
-    }
-    if keyed(provider) == Keyed::ThisPc {
-        // A model picked above the chat box wins over the one in Settings.
-        let mut prefs = prefs.clone();
-        if !model.is_empty() {
-            prefs.local_model = model;
-        }
-        let url = crate::models::ensure_running(&prefs, Some(app)).await?;
-        let server = local_chat::Server { id: LLAMACPP, name: "Groovy local model", url, key: None };
-        let model = crate::models::running_model().unwrap_or_else(|| "local".into());
-        let result = local_chat::send(app, chat, &server, &model, query, context).await;
-        crate::models::touch();
-        return result;
-    }
-    if let Some(server) = local_chat::server(settings, provider) {
-        // No model picked yet: the first one the server has.
-        let model = if model.is_empty() { local_chat::first_model(&server).await? } else { model };
-        return local_chat::send(app, chat, &server, &model, query, context)
-            .await
-            .map_err(|e| if server.id == "ollama" && e.starts_with("Cannot reach") { local_chat::ollama_help() } else { e });
-    }
-    Err(format!("Unknown chat provider: {provider}"))
 }
 
 /// One turn of the phone's conversation (phone_link/chat_backend.rs): the same providers as
@@ -594,16 +523,18 @@ pub async fn send_for_phone(
     provider: &str,
     model: &str,
     query: String,
-    on_delta: impl FnMut(String),
+    on_delta: impl FnMut(String) + Send,
 ) -> Result<ChatReply, String> {
     let prefs = settings.assistant.clone().sanitised();
+    let on_delta = std::sync::Mutex::new(on_delta);
+    let delta = |t: &str| (*on_delta.lock().unwrap())(t.to_string());
     chat.set_instructions(&prefs.name, instructions(&prefs));
     // No key for the phone's online brain: the switcher answers (a signed-in subscription first).
     if needs_switcher(settings, provider) {
         if let Some(app) = crate::brain_ai::app_handle() {
-            let mut messages = chat.inner.lock().unwrap().plain.clone();
+            let mut messages = chat.plain();
             messages.push(json!({ "role": "user", "content": query }));
-            if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
+            if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, Some(&delta)).await {
                 let (text, used) = answer?;
                 let turn = chat.begin(used);
                 chat.commit(&turn, json!({ "role": "user", "content": query }), json!({ "role": "assistant", "content": text }), &query, &text);
@@ -611,16 +542,12 @@ pub async fn send_for_phone(
             }
         }
     }
-    if keyed(provider) == Keyed::Claude {
-        return claude::send(chat, model, query, None).await;
-    }
-    if let Some(p) = openai_compat::provider(provider) {
-        return openai_compat::send(chat, p, model, query, None).await;
-    }
-    if let Some(server) = local_chat::server(settings, provider) {
-        return local_chat::send_with(chat, &server, model, query, None, on_delta).await;
-    }
-    Err(format!("Unknown chat provider: {provider}"))
+    // The phone's own brain only, through the same interface (round 4D item 2).
+    let order = [provider.to_string()];
+    crate::brains::switch::chat(crate::brain_ai::app_handle(), settings, &prefs, chat, &order, Some(model), query, None, &delta)
+        .await
+        .map(|(reply, _)| reply)
+        .map_err(|mut errors| errors.swap_remove(0))
 }
 
 /// The models `provider` offers. Asked only when the user opens the picker on
@@ -809,5 +736,12 @@ mod tests {
             assert!(!is_inside(&inbox, &inbox.join("link.txt")));
         }
         let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn when_the_stand_in_fails_too_both_reasons_are_shown() {
+        assert_eq!(fallback_error(vec!["429 busy".into()]), "429 busy");
+        let both = fallback_error(vec!["429 busy".into(), "Cannot reach the local model".into()]);
+        assert!(both.starts_with("429 busy\n\n") && both.ends_with(": Cannot reach the local model"), "{both}");
     }
 }

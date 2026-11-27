@@ -257,6 +257,55 @@ pub async fn run(app: &AppHandle, s: &Settings, job: Job, req: Request<'_>) -> R
     ask(app, s, &prefs, order, req).await
 }
 
+/// One turn of the chat's own conversation (round 4D item 2): the brain picked
+/// above the chat box, then its stand-in (`assistant::route`: the model on this
+/// PC in hybrid mode), each through `Brain::chat`. The stand-in answers only
+/// when the first failed for a reason it can fix (`worth_falling_back`), as
+/// before. Returns the answer and the place in `order` that gave it, or every
+/// error in order.
+pub async fn chat(
+    app: Option<&AppHandle>,
+    s: &Settings,
+    prefs: &AssistantPrefs,
+    chat: &crate::chat::Chat,
+    order: &[String],
+    model: Option<&str>,
+    query: String,
+    context: Option<crate::chat::ChatContext>,
+    on_delta: &super::Delta<'_>,
+) -> Result<(crate::chat::ChatReply, usize), Vec<String>> {
+    let mut errors = Vec::new();
+    for (i, id) in order.iter().enumerate() {
+        let result = if id == crate::assistant::NONE {
+            Err(crate::i18n::t("Today's online limit is reached. Raise it in Groovy → Assistant, or choose local AI there."))
+        } else {
+            let id = crate::chat::this_pc(s, prefs, id).await;
+            match super::get(&id) {
+                None => Err(format!("Unknown chat provider: {id}")),
+                Some(brain) => {
+                    let model = model.map(str::to_string).unwrap_or_else(|| crate::chat::model_for(s, &id));
+                    let turn = super::ChatTurn { app, settings: s, prefs, chat, model, query: query.clone(), context: context.clone(), on_delta };
+                    brain.chat(turn).await.map_err(|e| e.message)
+                }
+            }
+        };
+        match result {
+            Ok(reply) => return Ok((reply, i)),
+            Err(e) => {
+                let next = i + 1 < order.len() && crate::assistant::worth_falling_back(&e);
+                if next {
+                    crate::log::line(format!("chat: {id} unavailable, answering with {}", order[i + 1]));
+                }
+                errors.push(e);
+                if !next {
+                    break;
+                }
+            }
+        }
+    }
+    Err(errors)
+}
+
 /// What a job needs of a brain, for the router.
 pub fn need(job: Job, with_tools: bool) -> super::Caps {
     super::Caps {
