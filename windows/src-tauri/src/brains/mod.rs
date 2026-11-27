@@ -1,11 +1,13 @@
 // One interface for every brain (round 4D item 1).
 //
 // Claude, the OpenAI-compatible services (Gemini, OpenAI, OpenRouter), the
-// subscriptions reached through their command-line tools (Claude Code, Codex)
-// and the model servers on this PC each implement `Brain`: what it can do
-// (`Caps`), how the user is known to it (`Auth`), and one turn of a
+// subscriptions reached through their command-line tools (Claude Code, Codex,
+// the Gemini tool) and the model servers on this PC each implement `Brain`:
+// what it can do (`Caps`), how the user is known to it (`Auth`), one turn of a
 // conversation in and out in the Messages shape the callers already use
-// (`{ content: [blocks], stop_reason }`). Each adapter converts inside itself.
+// (`{ content: [blocks], stop_reason }`), and one turn of the chat's own
+// conversation (`chat`, which keeps each brain's history format and streams).
+// Each adapter converts inside itself.
 //
 // Who answers, and in which order, is decided in switch.rs (cloud and
 // subscription first, this PC last, switching when a limit is hit); it asks
