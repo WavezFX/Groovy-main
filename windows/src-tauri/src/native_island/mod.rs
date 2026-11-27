@@ -47,7 +47,8 @@ static OPENING: Mutex<Option<Instant>> = Mutex::new(None);
 pub fn start(app: &AppHandle) -> bool {
     use tauri::{Listener, Manager};
     let (look, name, fraction) = {
-        let s = app.state::<crate::Shared>().settings.lock().unwrap();
+        let shared = app.state::<crate::Shared>();
+        let s = shared.settings.lock().unwrap();
         (s.groovy_look.clone(), s.assistant.name.clone(), s.island_x)
     };
     let handle = app.clone();
@@ -73,7 +74,8 @@ pub fn start(app: &AppHandle) -> bool {
     let handle = app.clone();
     app.listen_any("settings-changed", move |_| {
         let (look, name) = {
-            let s = handle.state::<crate::Shared>().settings.lock().unwrap();
+            let shared = handle.state::<crate::Shared>();
+            let s = shared.settings.lock().unwrap();
             (s.groovy_look.clone(), s.assistant.name.clone())
         };
         let _ = handle.run_on_main_thread(move || win::restyle(&look, &name));
