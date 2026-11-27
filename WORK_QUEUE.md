@@ -217,8 +217,15 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 6. Close `docs/LICENSING.md`
 - [ ] 7. Checks
 
+## 6. Round 6: `FIXES_ROUND6.md` (Discord by voice and on the island). **Approved by the owner, 27 Nov 2026.**
+- [ ] 1. The Discord connection over the local RPC pipe, lazily (fake-pipe tests)
+- [ ] 2. The Discord tile: muted, deafened, channel, who's speaking, Mute, Deafen, Leave call
+- [ ] 3. Voice and chat commands with no AI: mute, deafen, undeafen, who's in the call, leave the call
+- [ ] 4. Messages from Discord's Windows notifications; Reply and "message <name>" open Discord, and the user presses Enter
+- [ ] 5. Settings, translations, privacy note, checks
+
 ## Later (don't start yet)
 - `editions/studio/STUDIO_EDITION_BETA.md` goes on its own branch, `studio-edition-beta`, after everything above is done and green.
-- **Discord and Instagram messaging:** plans in `docs/plans/DISCORD.md` and `docs/plans/MESSAGING.md` (owner to approve first): Round 6 Discord, Round 7 Instagram.
+- **Instagram messaging:** plan in `docs/plans/MESSAGING.md` (owner to approve first): Round 7. Discord is Round 6 above (approved 27 Nov).
 - **Linux edition:** the owner wants Linux kept and expanded later. Don't remove or break the Linux code (`portal.rs`, `flow/os_linux.rs`, `platform/linux*.rs`, `linux/arch`); a Linux round comes after the Windows rounds.
 - The phone edition (Android smoothness, iOS and Mac): waiting on the owner for the Android app's source.
