@@ -125,6 +125,8 @@ pub fn parse(text: &str) -> Option<Vec<Step>> {
 
 /// What he says of a reply: up to step 2, with no tags (an unclosed tag at the
 /// end of a streaming reply is cut). The page does the same to the stream.
+// The page does the speaking; this copy is the tested reference for its rule.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn speakable(text: &str) -> String {
     let starts = step_starts(text);
     let cut = match starts.as_slice() {

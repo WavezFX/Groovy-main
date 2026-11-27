@@ -113,6 +113,11 @@ class DesktopMochi {
       this.schedule();
     });
     await emitToWindow(ISLAND, DESKTOP_EVENTS.ready);
+    // His window is made on first use: the events that showed him (and set him
+    // pointing) may have gone out before this page listened.
+    const now = await Bridge.desktopInfo();
+    if (now?.point && !this.engine.pointAt) this.engine.pointAt = { x: now.point[0], y: now.point[1] };
+    if (now?.shown && !this.visible) this.setVisible(true);
   }
 
   // ── State ───────────────────────────────────────────────────────────────────

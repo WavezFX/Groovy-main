@@ -909,6 +909,10 @@ export interface DesktopInfo {
   mode: DesktopMode;
   /** He was on the desktop when the app last quit. */
   onDesktop: boolean;
+  /** His window is on screen now (a page made after the event learns it here). */
+  shown?: boolean;
+  /** Pointing at a mark (round 4C item 5): [x, y], a unit vector. */
+  point?: [number, number] | null;
 }
 
 /** An event for one window only (island ⇄ desktop Groovy). Never throws. */

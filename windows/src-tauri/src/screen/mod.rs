@@ -656,10 +656,10 @@ pub fn marks_test(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(4));
-        // Desktop pixels: arrow (400, 300) → (600, 500), box (900, 300) 200×120.
+        // Desktop pixels: arrow (400, 300) → (600, 500), box (650, 300) 200×120 (CI screens are 1024×768).
         let marks = json!([
             { "shape": "arrow", "x": 200, "y": 150, "w": 100, "h": 100, "color": "red" },
-            { "shape": "box", "x": 450, "y": 150, "w": 100, "h": 60, "color": "green" }
+            { "shape": "box", "x": 325, "y": 150, "w": 100, "h": 60, "color": "green" }
         ]);
         let said = draw_marks(&app, &marks, true);
         crate::log::line(format!("marks test: {said}"));

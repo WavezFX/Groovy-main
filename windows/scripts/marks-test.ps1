@@ -1,7 +1,7 @@
 # Round 4C item 5: marks land where they were asked for. Starts Groovy with
 # GROOVY_MARKS_TEST: through a picture at half scale (as a 4K look would be
 # shrunk) it draws a red arrow from (400, 300) to (600, 500) and a green box at
-# (900, 300), 200 x 120, desktop pixels of the primary monitor, and Groovy flies
+# (650, 300), 200 x 120, desktop pixels of the primary monitor, and Groovy flies
 # over to point at the arrow. A black page sits behind them. Fails unless each
 # mark's colour is found within 10 px of where it belongs, and nowhere far away.
 #
@@ -66,15 +66,20 @@ $checks = @(
   @{ name = "arrow start (400, 300)"; x = 400; y = 300; test = ${function:IsRed} },
   @{ name = "arrow middle (500, 400)"; x = 500; y = 400; test = ${function:IsRed} },
   @{ name = "arrow tip (600, 500)"; x = 600; y = 500; test = ${function:IsRed} },
-  @{ name = "box top edge (1000, 300)"; x = 1000; y = 300; test = ${function:IsGreen} },
-  @{ name = "box left edge (900, 360)"; x = 900; y = 360; test = ${function:IsGreen} },
-  @{ name = "box bottom-right (1100, 420)"; x = 1100; y = 420; test = ${function:IsGreen} }
+  @{ name = "box top edge (750, 300)"; x = 750; y = 300; test = ${function:IsGreen} },
+  @{ name = "box left edge (650, 360)"; x = 650; y = 360; test = ${function:IsGreen} },
+  @{ name = "box bottom-right (850, 420)"; x = 850; y = 420; test = ${function:IsGreen} }
 )
 foreach ($c in $checks) {
   if (Near $c.x $c.y $c.test) { Write-Host "  [ok] $($c.name)" } else { Write-Host "  [FAIL] $($c.name): not within 10 px"; $failed++ }
 }
+# Groovy flew over to point at the arrow's tip: something is drawn beside it
+# (below and to the right, his window at about (636, 536), 120 px), not black.
+$him = 0
+for ($y = 540; $y -lt 650; $y += 6) { for ($x = 640; $x -lt 750; $x += 6) { $c = $bmp.GetPixel($x, $y); if ($c.R + $c.G + $c.B -gt 90) { $him++ } } }
+if ($him -gt 20) { Write-Host "  [ok] Groovy beside the arrow ($him lit samples)" } else { Write-Host "  [FAIL] Groovy isn't beside the arrow ($him lit samples)"; $failed++ }
 # Nothing drawn where nothing was asked for.
-foreach ($p in @(@(200, 800), @(1000, 360), @(1400, 700))) {
+foreach ($p in @(@(200, 700), @(750, 360), @(950, 650))) {
   if ((Near $p[0] $p[1] ${function:IsRed} 4) -or (Near $p[0] $p[1] ${function:IsGreen} 4)) { Write-Host "  [FAIL] a mark at ($($p[0]), $($p[1]))"; $failed++ }
 }
 $bmp.Dispose()

@@ -289,6 +289,11 @@ pub struct DesktopInfo {
     mode: &'static str,
     /// He was on the desktop when the app last quit.
     on_desktop: bool,
+    /// His window is on screen now: a page made after the `desktop-visible`
+    /// event (his window is made on first use) learns it here.
+    shown: bool,
+    /// Pointing at a mark (round 4C item 5): the unit vector, or None.
+    point: Option<(f64, f64)>,
 }
 
 pub fn window(app: &AppHandle) -> Option<WebviewWindow> {
@@ -762,7 +767,12 @@ pub fn desktop_mochi_info(app: AppHandle, desktop: State<Arc<Desktop>>) -> Deskt
         .try_state::<crate::Shared>()
         .map(|s| s.settings.lock().unwrap().desktop_mochi.on_desktop)
         .unwrap_or(false);
-    DesktopInfo { mode: desktop.mode.as_str(), on_desktop: on_desktop && desktop.mode != DesktopMode::Off }
+    DesktopInfo {
+        mode: desktop.mode.as_str(),
+        on_desktop: on_desktop && desktop.mode != DesktopMode::Off,
+        shown: desktop.inner.lock().unwrap().shown,
+        point: *POINT_DIR.lock().unwrap(),
+    }
 }
 
 /// Dragging Groovy out of the island: the window appears under the pointer
@@ -965,6 +975,8 @@ pub async fn desktop_mochi_fly_home(app: AppHandle, forget: bool) -> bool {
 /// Where he was before he went to point: `Some(true)` out on the desktop,
 /// `Some(false)` home in the island; `None` when he isn't pointing.
 static POINTING: Mutex<Option<bool>> = Mutex::new(None);
+/// Which way his wisp points while he points (for a page that loads late).
+static POINT_DIR: Mutex<Option<(f64, f64)>> = Mutex::new(None);
 
 /// He flies to the mark at `target` (physical desktop pixels) and points at it
 /// with his wisp. The same window and flight as always: no new WebView. False
@@ -994,6 +1006,7 @@ pub async fn point_at(app: &AppHandle, target: (f64, f64)) -> bool {
     if !fly(app, &d, spot, FLIGHT_MS, logic::ease_in_out).await {
         return false;
     }
+    *POINT_DIR.lock().unwrap() = Some(dir);
     let _ = app.emit_to(LABEL, "desktop-point", Some(serde_json::json!({ "x": dir.0, "y": dir.1 })));
     true
 }
@@ -1002,6 +1015,7 @@ pub async fn point_at(app: &AppHandle, target: (f64, f64)) -> bool {
 pub async fn point_done(app: &AppHandle) {
     let Some(was_out) = POINTING.lock().unwrap().take() else { return };
     let Some(d) = app.try_state::<Arc<Desktop>>().map(|d| d.inner().clone()) else { return };
+    POINT_DIR.lock().unwrap().take();
     let _ = app.emit_to(LABEL, "desktop-point", None::<serde_json::Value>);
     if !was_out {
         desktop_mochi_fly_home(app.clone(), false).await;
