@@ -70,6 +70,9 @@ pub struct AssistantPrefs {
     /// Flow's clean-up, the notes' and calls' summaries; "commands": « Hey Groovy »).
     /// A brain id puts that brain first for the job; missing or "auto": the Auto order.
     pub job_brains: std::collections::BTreeMap<String, String>,
+    /// The router plugin's program (round 4D item 5, docs/ROUTER_PLUGIN.md).
+    /// Defined but not enabled yet: empty, and the Settings row is disabled.
+    pub router_plugin: String,
 }
 
 impl Default for AssistantPrefs {
@@ -97,6 +100,7 @@ impl Default for AssistantPrefs {
             brain_order: Vec::new(),
             switch_on_limit: true,
             job_brains: std::collections::BTreeMap::new(),
+            router_plugin: String::new(),
         }
     }
 }

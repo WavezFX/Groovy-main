@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use tauri::AppHandle;
 
 use crate::assistant::{self, AssistantPrefs};
+use crate::brains::switch::{keyed, Keyed};
 use crate::settings::Settings;
 use crate::{claude, local_chat, memory, openai_compat, secrets};
 
@@ -217,7 +218,7 @@ pub fn plain_question(first: bool, context: Option<&ChatContext>, query: &str) -
 
 /// The model chosen for `provider`, or its default.
 pub fn model_for(settings: &Settings, provider: &str) -> String {
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         let m = settings.model.trim();
         return if m.is_empty() { claude::DEFAULT_MODEL.to_string() } else { m.to_string() };
     }
@@ -341,6 +342,20 @@ pub async fn send(
         && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
 
+    // The chat's own cloud brain isn't set up (no key): a signed-in
+    // subscription or another ready brain answers, in the switcher's order.
+    if needs_switcher(settings, &route.primary) {
+        let mut messages = chat.inner.lock().unwrap().plain.clone();
+        messages.push(json!({ "role": "user", "content": plain }));
+        if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
+            let (text, used) = answer?;
+            let turn = chat.begin(used);
+            chat.commit(&turn, json!({ "role": "user", "content": plain }), json!({ "role": "assistant", "content": text }), &plain, &text);
+            save_turn(chat, &prefs, &plain, &text, used);
+            return Ok(ChatReply::text(text));
+        }
+    }
+
     let first = send_to(app, chat, settings, &prefs, &route.primary, query.clone(), context.clone()).await;
     let (mut reply, used, note) = match (first, route.fallback) {
         (Ok(r), _) => (r, route.primary.clone(), route.note.map(crate::i18n::t)),
@@ -401,6 +416,20 @@ pub async fn complete(
     let limit_reached = prefs.daily_online_limit > 0
         && crate::db::conn().map(|c| crate::db::usage_online(&c, &today()) >= prefs.daily_online_limit).unwrap_or(false);
     let route = assistant::route(&prefs, picked, &settings.custom_url, limit_reached);
+    if needs_switcher(settings, &route.primary) {
+        let messages = [json!({ "role": "user", "content": prompt })];
+        // The answer so far reaches the caller as the brain writes it.
+        let answer = {
+            let streamed = std::sync::Mutex::new(&mut on_delta);
+            let delta = |t: &str| (*streamed.lock().unwrap())(t.to_string());
+            by_switcher(app, settings, system, &messages, Some(&delta)).await
+        };
+        if let Some(answer) = answer {
+            let (text, _) = answer?;
+            on_delta(text.clone());
+            return Ok(text);
+        }
+    }
     let mut tried = vec![route.primary.clone()];
     if let Some(f) = route.fallback.clone() {
         tried.push(f);
@@ -440,11 +469,11 @@ async fn complete_with(
     let provider = this_pc(settings, prefs, provider).await;
     let provider = provider.as_str();
     let model = model_for(settings, provider);
-    let reply = if provider == ANTHROPIC {
+    let reply = if keyed(provider) == Keyed::Claude {
         claude::send(chat, &model, prompt, None).await?
     } else if let Some(p) = openai_compat::provider(provider) {
         openai_compat::send(chat, p, &model, prompt, None).await?
-    } else if provider == LLAMACPP {
+    } else if keyed(provider) == Keyed::ThisPc {
         let mut prefs = prefs.clone();
         if !model.is_empty() {
             prefs.local_model = model;
@@ -463,6 +492,26 @@ async fn complete_with(
     };
     on_delta(reply.text.clone());
     Ok(reply.text)
+}
+
+/// The chat's own brain is an online one that isn't set up (no key), so the
+/// switcher answers instead (round 4D item 2): a signed-in subscription first.
+fn needs_switcher(settings: &Settings, primary: &str) -> bool {
+    primary != assistant::NONE
+        && !assistant::is_local(primary, &settings.custom_url)
+        && crate::brains::get(primary).is_some_and(|b| !b.caps().local && !b.auth().ready())
+}
+
+/// One chat turn through the switcher; None when no brain is ready at all, so
+/// the chat's own brain gives its usual "set me up" message.
+async fn by_switcher(app: &AppHandle, settings: &Settings, system: &str, messages: &[Value], on_delta: Option<&crate::brains::Delta<'_>>) -> Option<Result<(String, &'static str), String>> {
+    use crate::brains::switch::{order_for, run, Job, Kind, Weight};
+    let job = Job { kind: Kind::Chat, weight: Weight::Heavy };
+    if order_for(settings, job, false).is_empty() {
+        return None;
+    }
+    let req = crate::brains::Request { system, messages, tools: &[], max_tokens: 2048, timeout: std::time::Duration::from_secs(120), on_delta };
+    Some(run(app, settings, job, req).await.map(|(reply, id)| (crate::brains::text_of(&reply), id)))
 }
 
 fn save_turn(chat: &Chat, prefs: &AssistantPrefs, user: &str, answer: &str, provider: &str) {
@@ -504,13 +553,13 @@ async fn send_to(
     let provider = this_pc(settings, prefs, provider).await;
     let provider = provider.as_str();
     let model = model_for(settings, provider);
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         return claude::send(chat, &model, query, context).await;
     }
     if let Some(p) = openai_compat::provider(provider) {
         return openai_compat::send(chat, p, &model, query, context).await;
     }
-    if provider == LLAMACPP {
+    if keyed(provider) == Keyed::ThisPc {
         // A model picked above the chat box wins over the one in Settings.
         let mut prefs = prefs.clone();
         if !model.is_empty() {
@@ -546,7 +595,20 @@ pub async fn send_for_phone(
 ) -> Result<ChatReply, String> {
     let prefs = settings.assistant.clone().sanitised();
     chat.set_instructions(&prefs.name, instructions(&prefs));
-    if provider == ANTHROPIC {
+    // No key for the phone's online brain: the switcher answers (a signed-in subscription first).
+    if needs_switcher(settings, provider) {
+        if let Some(app) = crate::brain_ai::app_handle() {
+            let mut messages = chat.inner.lock().unwrap().plain.clone();
+            messages.push(json!({ "role": "user", "content": query }));
+            if let Some(answer) = by_switcher(app, settings, &chat.system_prompt(false), &messages, None).await {
+                let (text, used) = answer?;
+                let turn = chat.begin(used);
+                chat.commit(&turn, json!({ "role": "user", "content": query }), json!({ "role": "assistant", "content": text }), &query, &text);
+                return Ok(ChatReply::text(text));
+            }
+        }
+    }
+    if keyed(provider) == Keyed::Claude {
         return claude::send(chat, model, query, None).await;
     }
     if let Some(p) = openai_compat::provider(provider) {
@@ -563,7 +625,7 @@ pub async fn send_for_phone(
 /// address): nothing is sent anywhere before that.
 pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo>, String> {
     let no_key = || crate::i18n::t("No API key — add it in Settings.");
-    if provider == ANTHROPIC {
+    if keyed(provider) == Keyed::Claude {
         let key = secrets::get(claude::KEY).ok_or_else(no_key)?;
         return claude::models(&key).await;
     }
@@ -571,7 +633,7 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
         let key = secrets::get(p.key).ok_or_else(no_key)?;
         return openai_compat::models(p, &key).await;
     }
-    if provider == LLAMACPP {
+    if keyed(provider) == Keyed::ThisPc {
         let models = crate::models::discover(&crate::models::models_dir(), 2048);
         if models.is_empty() {
             return Err(crate::i18n::t("No local model yet: download one in Settings → Models."));

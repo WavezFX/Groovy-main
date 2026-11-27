@@ -20762,6 +20762,94 @@
    "pt-BR": "Conectado ao LiveKit.",
    "ru": "Подключено к LiveKit.",
    "id": "Terhubung ke LiveKit."
+  },
+  "Google account (Gemini)": {
+   "zh-Hans": "Google 账号（Gemini）",
+   "hi": "Google खाता (Gemini)",
+   "es": "Cuenta de Google (Gemini)",
+   "ar": "حساب Google (Gemini)",
+   "fr": "Compte Google (Gemini)",
+   "bn": "Google অ্যাকাউন্ট (Gemini)",
+   "pt-BR": "Conta Google (Gemini)",
+   "ru": "Аккаунт Google (Gemini)",
+   "id": "Akun Google (Gemini)"
+  },
+  "Used through the Gemini command-line tool": {
+   "zh-Hans": "通过 Gemini 命令行工具使用",
+   "hi": "Gemini कमांड-लाइन टूल से उपयोग",
+   "es": "Se usa con la herramienta de línea de comandos de Gemini",
+   "ar": "يُستخدم عبر أداة سطر أوامر Gemini",
+   "fr": "Utilisé via l'outil en ligne de commande Gemini",
+   "bn": "Gemini কমান্ড-লাইন টুলের মাধ্যমে ব্যবহৃত",
+   "pt-BR": "Usado pela ferramenta de linha de comando do Gemini",
+   "ru": "Через инструмент командной строки Gemini",
+   "id": "Digunakan lewat alat baris perintah Gemini"
+  },
+  "Sign in": {
+   "zh-Hans": "登录",
+   "hi": "साइन इन करें",
+   "es": "Iniciar sesión",
+   "ar": "تسجيل الدخول",
+   "fr": "Se connecter",
+   "bn": "সাইন ইন",
+   "pt-BR": "Entrar",
+   "ru": "Войти",
+   "id": "Masuk"
+  },
+  "Signed in": {
+   "zh-Hans": "已登录",
+   "hi": "साइन इन है",
+   "es": "Sesión iniciada",
+   "ar": "تم تسجيل الدخول",
+   "fr": "Connecté",
+   "bn": "সাইন ইন করা",
+   "pt-BR": "Conectado",
+   "ru": "Вход выполнен",
+   "id": "Sudah masuk"
+  },
+  "Key set": {
+   "zh-Hans": "已设置密钥",
+   "hi": "कुंजी सेट है",
+   "es": "Clave guardada",
+   "ar": "تم تعيين المفتاح",
+   "fr": "Clé définie",
+   "bn": "কী সেট করা",
+   "pt-BR": "Chave definida",
+   "ru": "Ключ задан",
+   "id": "Kunci diatur"
+  },
+  "Opens the tool's own sign-in in your browser. No password goes through Groovy.": {
+   "zh-Hans": "在浏览器中打开该工具自己的登录页面。密码不会经过 Groovy。",
+   "hi": "टूल का अपना साइन-इन आपके ब्राउज़र में खुलता है। कोई पासवर्ड Groovy से होकर नहीं जाता।",
+   "es": "Abre el inicio de sesión de la propia herramienta en tu navegador. Ninguna contraseña pasa por Groovy.",
+   "ar": "يفتح تسجيل الدخول الخاص بالأداة في متصفحك. لا تمر أي كلمة مرور عبر Groovy.",
+   "fr": "Ouvre la connexion propre à l'outil dans votre navigateur. Aucun mot de passe ne passe par Groovy.",
+   "bn": "টুলের নিজস্ব সাইন-ইন আপনার ব্রাউজারে খোলে। কোনো পাসওয়ার্ড Groovy-র মধ্য দিয়ে যায় না।",
+   "pt-BR": "Abre o login da própria ferramenta no navegador. Nenhuma senha passa pelo Groovy.",
+   "ru": "Открывает вход самого инструмента в браузере. Пароль не проходит через Groovy.",
+   "id": "Membuka halaman masuk milik alat itu di browser Anda. Tidak ada kata sandi yang melewati Groovy."
+  },
+  "Use an API key instead": {
+   "zh-Hans": "改用 API 密钥",
+   "hi": "इसके बजाय API कुंजी उपयोग करें",
+   "es": "Usar una clave de API en su lugar",
+   "ar": "استخدم مفتاح API بدلاً من ذلك",
+   "fr": "Utiliser une clé API à la place",
+   "bn": "এর বদলে API কী ব্যবহার করুন",
+   "pt-BR": "Usar uma chave de API",
+   "ru": "Использовать ключ API",
+   "id": "Gunakan kunci API saja"
+  },
+  "Install it with this command, then sign in:": {
+   "zh-Hans": "用此命令安装，然后登录：",
+   "hi": "इस कमांड से इंस्टॉल करें, फिर साइन इन करें:",
+   "es": "Instálalo con este comando y luego inicia sesión:",
+   "ar": "ثبّته بهذا الأمر، ثم سجّل الدخول:",
+   "fr": "Installez-le avec cette commande, puis connectez-vous :",
+   "bn": "এই কমান্ড দিয়ে ইনস্টল করুন, তারপর সাইন ইন করুন:",
+   "pt-BR": "Instale com este comando e depois entre:",
+   "ru": "Установите этой командой, затем войдите:",
+   "id": "Pasang dengan perintah ini, lalu masuk:"
   }
  }
 }

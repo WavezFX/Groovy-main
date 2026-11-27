@@ -7,12 +7,14 @@
 // conversation in and out in the Messages shape the callers already use
 // (`{ content: [blocks], stop_reason }`). Each adapter converts inside itself.
 //
-// Who answers, and in which order, is still decided in brain_ai.rs (cloud and
+// Who answers, and in which order, is decided in switch.rs (cloud and
 // subscription first, this PC last, switching when a limit is hit); it asks
 // the registry here for the brain and no longer cares which kind it is.
 // Adding a brain is one adapter and one line in `registry`.
 
 pub mod cli;
+pub mod router;
+pub mod switch;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -128,7 +130,13 @@ pub struct Request<'a> {
     pub tools: &'a [Value],
     pub max_tokens: u32,
     pub timeout: Duration,
+    /// Gets the answer so far as it is written, when the brain can stream
+    /// (round 4D item 3). Brains that answer all at once never call it.
+    pub on_delta: Option<&'a Delta<'a>>,
 }
+
+/// The answer so far, as it arrives.
+pub type Delta<'a> = dyn Fn(&str) + Send + Sync + 'a;
 
 /// What an adapter needs from the app to answer.
 #[derive(Clone, Copy)]
@@ -254,13 +262,14 @@ impl Brain for Local {
     }
 }
 
-static BRAINS: [&dyn Brain; 9] = [
+static BRAINS: [&dyn Brain; 10] = [
     &Anthropic,
     &Compat { id: "google", name: "Gemini" },
     &Compat { id: "openai", name: "OpenAI" },
     &Compat { id: "openrouter", name: "OpenRouter" },
     &cli::Cli { id: "claude-code", name: "Claude Code" },
     &cli::Cli { id: "codex", name: "Codex" },
+    &cli::Cli { id: "gemini-cli", name: "Gemini (sign-in)" },
     &Local { id: "ollama", name: "Ollama" },
     &Local { id: "lmstudio", name: "LM Studio" },
     &Local { id: "llamacpp", name: "Groovy local model" },
@@ -301,7 +310,7 @@ mod tests {
     #[test]
     fn every_stored_id_has_a_brain_and_no_id_is_used_twice() {
         let ids: Vec<&str> = registry().map(|b| b.id()).collect();
-        for id in ["anthropic", "google", "openai", "openrouter", "claude-code", "codex", "ollama", "lmstudio", "llamacpp", "custom"] {
+        for id in ["anthropic", "google", "openai", "openrouter", "claude-code", "codex", "gemini-cli", "ollama", "lmstudio", "llamacpp", "custom"] {
             assert!(get(id).is_some(), "{id}");
         }
         let mut unique = ids.clone();

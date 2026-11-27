@@ -1,4 +1,5 @@
-// The subscriptions (round 4D item 1): Claude Code and Codex answer through
+// The subscriptions (round 4D items 1 and 3): Claude Code, Codex and the
+// Gemini tool answer through
 // their own command-line tools, with the user's own account and plan, so no
 // API key is needed. The tool is run for one answer: no shell, the prompt on
 // stdin, in an empty folder, with the tool's own actions off.
@@ -36,17 +37,18 @@ impl Brain for Cli {
         self.name
     }
     fn caps(&self) -> Caps {
-        Caps { tools: true, vision: false, streaming: false, web_search: false, local: false, tier: Tier::Large }
+        Caps { tools: true, vision: false, streaming: true, web_search: false, local: false, tier: Tier::Large }
     }
     fn auth(&self) -> Auth {
-        // Installed is taken for signed in; the tool says so itself if it isn't.
-        Auth::Account { signed_in: path(self.id).is_some() }
+        // Signed in: the tool is here and its own sign-in file is (round 4D
+        // item 3). Only whether the file exists is looked at; it is never read.
+        Auth::Account { signed_in: path(self.id).is_some() && signed_in(self.id, &crate::platform::home_dir()) }
     }
     fn turn<'a>(&'a self, _ctx: Ctx<'a>, req: Request<'a>) -> Turn<'a> {
         Box::pin(async move {
             if req.tools.is_empty() {
-                let prompt = format!("{}\n\n{}", req.system, last_user_text(req.messages));
-                return complete(self.id, prompt, req.timeout).await.map(text_reply).map_err(BrainError::of);
+                let prompt = format!("{}\n\n{}", req.system, transcript(req.messages));
+                return complete_streaming(self.id, prompt, req.timeout, req.on_delta).await.map(text_reply).map_err(BrainError::of);
             }
             let names = tool_names(req.tools);
             let mut prompt = tool_prompt(req.system, req.messages, req.tools);
@@ -66,6 +68,21 @@ impl Brain for Cli {
             Ok(text_reply(String::new()))
         })
     }
+}
+
+/// The conversation so far for a tool that takes one prompt: the last
+/// question alone, or the earlier turns above it as plain text.
+pub fn transcript(messages: &[Value]) -> String {
+    if messages.len() <= 1 {
+        return last_user_text(messages);
+    }
+    let mut out = String::from("The conversation so far:\n");
+    for m in &messages[..messages.len() - 1] {
+        let who = if m["role"] == "assistant" { "Assistant" } else { "User" };
+        out.push_str(&format!("{who}: {}\n", result_text(&m["content"])));
+    }
+    out.push_str(&format!("\nAnswer this: {}", last_user_text(messages)));
+    out
 }
 
 /// How a subscription's tool asks for one of Groovy's tools.
@@ -168,51 +185,201 @@ pub fn path(tool: &str) -> Option<std::path::PathBuf> {
     match tool {
         "claude-code" => crate::skills::cli::which("claude"),
         "codex" => crate::skills::cli::which("codex"),
+        "gemini-cli" => crate::skills::cli::which("gemini"),
         _ => None,
     }
 }
+
+/// Where each tool keeps the user's sign-in, under the home folder. Groovy
+/// only checks that it exists: it never reads, copies, logs or sends it.
+pub fn sign_in_files(tool: &str) -> &'static [&'static str] {
+    match tool {
+        "claude-code" => &[".claude/.credentials.json"],
+        "codex" => &[".codex/auth.json"],
+        "gemini-cli" => &[".gemini/oauth_creds.json"],
+        _ => &[],
+    }
+}
+
+/// The user signed in to the tool with their own account.
+pub fn signed_in(tool: &str, home: &std::path::Path) -> bool {
+    // Codex keeps its files where CODEX_HOME says, when it is set.
+    if tool == "codex" {
+        if let Some(dir) = std::env::var_os("CODEX_HOME") {
+            if std::path::Path::new(&dir).join("auth.json").is_file() {
+                return true;
+            }
+        }
+    }
+    sign_in_files(tool).iter().any(|f| home.join(f).is_file())
+}
+
+/// The official install command, shown with Copy when the tool isn't here.
+pub fn install_command(tool: &str) -> Option<&'static str> {
+    match tool {
+        "claude-code" => Some("npm install -g @anthropic-ai/claude-code"),
+        "codex" => Some("npm install -g @openai/codex"),
+        "gemini-cli" => Some("npm install -g @google/gemini-cli"),
+        _ => None,
+    }
+}
+
+/// What starts the tool's own sign-in: it opens the user's browser itself.
+/// Groovy has no sign-in of its own and never asks for a password.
+pub fn sign_in_args(tool: &str) -> &'static [&'static str] {
+    match tool {
+        // Codex has a login command; Claude Code and the Gemini tool ask on first start.
+        "codex" => &["login"],
+        _ => &[],
+    }
+}
+
+/// One subscription's row on the Brains page.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    id: &'static str,
+    installed: bool,
+    signed_in: bool,
+    install: Option<&'static str>,
+}
+
+/// The three subscriptions: installed, signed in, and how to install each.
+#[tauri::command]
+pub async fn brain_accounts() -> Vec<Account> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let home = crate::platform::home_dir();
+        SUBSCRIPTIONS
+            .iter()
+            .map(|id| {
+                let installed = path(id).is_some();
+                Account { id, installed, signed_in: installed && signed_in(id, &home), install: install_command(id) }
+            })
+            .collect()
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Opens the tool's own sign-in in a window of its own.
+#[tauri::command]
+pub async fn brain_sign_in(id: String) -> Result<(), String> {
+    let tool = SUBSCRIPTIONS.iter().copied().find(|t| *t == id).ok_or("Unknown brain")?;
+    let exe = path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
+    let mut cmd = std::process::Command::new(exe);
+    cmd.args(sign_in_args(tool)).current_dir(crate::platform::home_dir());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+        cmd.creation_flags(CREATE_NEW_CONSOLE);
+    }
+    cmd.spawn().map(|_| ()).map_err(|e| format!("{tool} didn't start: {e}"))
+}
+
+/// The subscriptions, by the ids the settings store.
+pub const SUBSCRIPTIONS: [&str; 3] = ["claude-code", "codex", "gemini-cli"];
 
 /// A subscription's CLI answers one prompt, text only. No shell: the prompt
 /// goes in on stdin; Claude Code gets one turn (no tools), Codex a read-only
 /// sandbox in an empty folder.
 pub(crate) async fn complete(tool: &'static str, prompt: String, timeout: Duration) -> Result<String, String> {
+    complete_streaming(tool, prompt, timeout, None).await
+}
+
+/// The same, with the answer so far handed to `on_delta` as the tool writes
+/// it (round 4D item 3): whatever the tool prints, as soon as it prints it.
+pub(crate) async fn complete_streaming(tool: &'static str, prompt: String, timeout: Duration, on_delta: Option<&super::Delta<'_>>) -> Result<String, String> {
     let exe = path(tool).ok_or_else(|| format!("{tool} is not installed."))?;
-    tauri::async_runtime::spawn_blocking(move || {
-        use std::io::Write;
-        let dir = std::env::temp_dir().join("groovy-brain");
-        let _ = std::fs::create_dir_all(&dir);
+    let args: &'static [&'static str] = match tool {
+        "claude-code" => &["-p", "--output-format", "text", "--max-turns", "1"],
+        // Not a terminal and the prompt on stdin: the Gemini tool answers
+        // once and leaves; with no approval mode set, it runs none of its
+        // own tools that change anything.
+        "gemini-cli" => &[],
+        _ => &["exec", "--skip-git-repo-check", "-s", "read-only", "-"],
+    };
+    let dir = std::env::temp_dir().join("groovy-brain");
+    let _ = std::fs::create_dir_all(&dir);
+    run_tool(tool, exe, args, dir, prompt, timeout, on_delta).await
+}
+
+/// Runs one tool for one answer: the prompt on stdin, stdout read as it
+/// comes, killed (with everything it started) at `timeout`.
+pub(crate) async fn run_tool(
+    tool: &'static str,
+    exe: std::path::PathBuf,
+    args: &'static [&'static str],
+    dir: std::path::PathBuf,
+    prompt: String,
+    timeout: Duration,
+    on_delta: Option<&super::Delta<'_>>,
+) -> Result<String, String> {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
+    let job = tauri::async_runtime::spawn_blocking(move || -> Result<(bool, String), String> {
+        use std::io::{Read, Write};
         let mut cmd = std::process::Command::new(&exe);
-        match tool {
-            "claude-code" => cmd.args(["-p", "--output-format", "text", "--max-turns", "1"]),
-            _ => cmd.args(["exec", "--skip-git-repo-check", "-s", "read-only", "-"]),
-        };
-        cmd.current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
+        cmd.args(args).current_dir(&dir).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
         let mut child = crate::platform::no_console(&mut cmd).spawn().map_err(|e| format!("{tool} didn't start: {e}"))?;
         crate::platform::contain(&child);
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(prompt.as_bytes());
         }
+        let mut stdout = child.stdout.take().ok_or("no output")?;
+        let reader = std::thread::spawn(move || {
+            let mut buf = [0u8; 4096];
+            while let Ok(n) = stdout.read(&mut buf) {
+                if n == 0 || tx.send(buf[..n].to_vec()).is_err() {
+                    break;
+                }
+            }
+        });
+        let mut stderr = child.stderr.take();
+        let errs = std::thread::spawn(move || {
+            let mut e = String::new();
+            if let Some(s) = stderr.as_mut() {
+                let _ = s.read_to_string(&mut e);
+            }
+            e
+        });
         let started = std::time::Instant::now();
-        loop {
-            if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-                break;
+        let status = loop {
+            if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+                break status;
             }
             if started.elapsed() > timeout {
                 let _ = child.kill();
+                let _ = child.wait();
                 return Err(format!("{tool} took too long."));
             }
-            std::thread::sleep(Duration::from_millis(100));
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        let _ = reader.join();
+        Ok((status.success(), errs.join().unwrap_or_default()))
+    });
+    tokio::pin!(job);
+    let mut bytes: Vec<u8> = Vec::new();
+    let take = |chunk: Vec<u8>, bytes: &mut Vec<u8>| {
+        bytes.extend_from_slice(&chunk);
+        if let Some(f) = on_delta {
+            f(String::from_utf8_lossy(bytes).trim_start());
         }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if !out.status.success() || text.is_empty() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
+    };
+    let done = loop {
+        tokio::select! {
+            Some(chunk) = rx.recv() => take(chunk, &mut bytes),
+            r = &mut job => break r,
         }
-        Ok(text)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    };
+    while let Ok(chunk) = rx.try_recv() {
+        take(chunk, &mut bytes);
+    }
+    let (ok, err) = done.map_err(|e| e.to_string())??;
+    let text = String::from_utf8_lossy(&bytes).trim().to_string();
+    if !ok || text.is_empty() {
+        return Err(format!("{tool}: {}", err.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("no answer").trim()));
+    }
+    Ok(text)
 }
 
 #[cfg(test)]
@@ -221,6 +388,75 @@ mod tests {
 
     fn names() -> Vec<String> {
         vec!["music".to_string(), "open_app".to_string()]
+    }
+
+    #[test]
+    fn signed_in_is_only_whether_the_tools_own_file_exists() {
+        let home = std::env::temp_dir().join(format!("groovy-signin-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&home);
+        for tool in SUBSCRIPTIONS {
+            assert!(!signed_in(tool, &home), "{tool}");
+            assert!(install_command(tool).is_some_and(|c| c.starts_with("npm install -g ")));
+        }
+        std::fs::create_dir_all(home.join(".gemini")).unwrap();
+        std::fs::write(home.join(".gemini/oauth_creds.json"), "{}").unwrap();
+        assert!(signed_in("gemini-cli", &home));
+        assert!(!signed_in("claude-code", &home));
+        assert_eq!(sign_in_args("codex"), ["login"]);
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[cfg(unix)]
+    fn fake(script: &'static str, timeout_ms: u64, seen: std::sync::Arc<std::sync::Mutex<Vec<(std::time::Instant, String)>>>) -> Result<String, String> {
+        let dir = std::env::temp_dir();
+        tauri::async_runtime::block_on(async move {
+            let log = seen.clone();
+            let f = move |t: &str| log.lock().unwrap().push((std::time::Instant::now(), t.to_string()));
+            let args: &'static [&'static str] = Box::leak(Box::new(["-c", script]));
+            run_tool("fake-tool", "/bin/sh".into(), args, dir, "hello".into(), Duration::from_millis(timeout_ms), Some(&f)).await
+        })
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_streams_its_first_text_within_two_seconds_and_answers_whole() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let start = std::time::Instant::now();
+        let r = fake("read p; echo \"Hi $p,\"; sleep 2; echo there", 10_000, seen.clone());
+        assert_eq!(r.unwrap(), "Hi hello,\nthere", "the prompt went in on stdin and the whole answer came back");
+        let seen = seen.lock().unwrap();
+        let (at, first) = seen.first().expect("streamed");
+        assert_eq!(first.trim(), "Hi hello,");
+        assert!(at.duration_since(start) < Duration::from_millis(2000), "first text after {:?}", at.duration_since(start));
+        assert!(seen.last().unwrap().1.contains("there"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_that_takes_too_long_is_killed() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let start = std::time::Instant::now();
+        let r = fake("exec sleep 10", 300, seen);
+        assert_eq!(r.unwrap_err(), "fake-tool took too long.");
+        assert!(start.elapsed() < Duration::from_secs(3));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tool_that_fails_says_why() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let r = fake("echo 'Not logged in' >&2; exit 1", 5_000, seen);
+        assert_eq!(r.unwrap_err(), "fake-tool: Not logged in");
+    }
+
+    #[test]
+    fn a_conversation_goes_to_a_one_prompt_tool_as_plain_text() {
+        let one = [json!({ "role": "user", "content": "hi" })];
+        assert_eq!(transcript(&one), "hi");
+        let three = [json!({ "role": "user", "content": "my name is Sam" }), json!({ "role": "assistant", "content": "Hi Sam" }), json!({ "role": "user", "content": "what's my name?" })];
+        let t = transcript(&three);
+        assert!(t.contains("User: my name is Sam\nAssistant: Hi Sam\n"), "{t}");
+        assert!(t.ends_with("Answer this: what's my name?"));
     }
 
     #[test]

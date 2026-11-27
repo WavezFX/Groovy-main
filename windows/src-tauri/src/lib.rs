@@ -1622,6 +1622,8 @@ pub fn run() {
             speech::check::speech_check_cancel,
             speech::check::speech_check_stop,
             brain_ai::ai_clis,
+            brains::cli::brain_accounts,
+            brains::cli::brain_sign_in,
             flow::flow_status,
             flow::flow_set_prefs,
             flow::flow_history,
