@@ -60,6 +60,16 @@ pub enum Discord {
     Deafen,
     /// A discord:// link to a server, channel or DM.
     Link(String),
+    // Round 6: exact states over Discord's local RPC (discord.rs), the shortcut toggle without it.
+    SetMute(bool),
+    SetDeaf(bool),
+    /// "Who's in the call?"
+    Who,
+    /// "Leave the call."
+    Leave,
+    /// "Message Sam on Discord saying …", "reply …": opens the conversation
+    /// (None: the latest Discord notification's), drafts the text; the user presses Enter.
+    Message { to: Option<String>, text: String },
 }
 
 impl Action {
@@ -163,6 +173,51 @@ pub fn parse(t: &str, cased: &str) -> Option<Action> {
     }
     if one(&["deafen me on discord", "deafen on discord", "discord deafen", "deafen me", "undeafen me", "undeafen me on discord"]) {
         return Some(Action::Discord(Discord::Deafen));
+    }
+    // Round 6: everyday Discord voice commands, no AI.
+    if one(&["mute discord", "mute on discord", "mute my discord", "mute me in discord", "mute my mic in discord", "discord mute me"]) {
+        return Some(Action::Discord(Discord::SetMute(true)));
+    }
+    if one(&["unmute discord", "unmute on discord", "unmute my discord", "unmute me in discord", "unmute my mic in discord", "discord unmute me"]) {
+        return Some(Action::Discord(Discord::SetMute(false)));
+    }
+    if one(&["deafen", "deafen discord", "deafen me in discord", "discord deafen me"]) {
+        return Some(Action::Discord(Discord::SetDeaf(true)));
+    }
+    if one(&["undeafen", "undeafen discord", "undeafen me in discord", "discord undeafen", "discord undeafen me", "undeafen on discord"]) {
+        return Some(Action::Discord(Discord::SetDeaf(false)));
+    }
+    if one(&["who's in the call", "whos in the call", "who is in the call", "who's in the discord call", "who is in the discord call", "who's on the call", "who is on the call",
+        "who's in my call", "who's talking", "who is talking", "who's speaking", "who is speaking", "who's in discord", "who's in voice", "who's in the voice channel"])
+    {
+        return Some(Action::Discord(Discord::Who));
+    }
+    if one(&["leave the call", "leave call", "leave the discord call", "leave discord call", "leave the voice channel", "leave voice", "hang up discord", "disconnect from discord",
+        "disconnect from the call", "leave the discord voice channel", "hang up the discord call"])
+    {
+        return Some(Action::Discord(Discord::Leave));
+    }
+    // Round 6 item 4: messages, opened in Discord itself; the user presses Enter.
+    if one(&["reply", "reply on discord", "reply to discord", "reply in discord", "reply to the discord message", "message this person", "reply to this person", "reply to them", "message them on discord", "reply to that"]) {
+        return Some(Action::Discord(Discord::Message { to: None, text: String::new() }));
+    }
+    for lead in ["reply saying ", "reply with ", "reply on discord saying ", "reply on discord with ", "message this person saying ", "reply to this person saying ", "reply to them saying ", "reply to that saying "] {
+        if let Some(text) = t.strip_prefix(lead).filter(|x| !x.trim().is_empty()) {
+            return Some(Action::Discord(Discord::Message { to: None, text: typed(text) }));
+        }
+    }
+    for lead in ["message ", "dm ", "send a message to ", "send a discord message to "] {
+        let Some(rest) = t.strip_prefix(lead) else { continue };
+        let (who, text) = match rest.split_once(" on discord") {
+            Some((who, tail)) => (who, tail),
+            None if lead == "send a discord message to " => rest.split_once(" saying ").map(|(w, x)| (w, x)).unwrap_or((rest, "")),
+            None => continue,
+        };
+        let text = text.trim_start().strip_prefix("saying ").or_else(|| text.trim_start().strip_prefix("that ")).unwrap_or(text).trim();
+        let who = who.trim();
+        if !who.is_empty() && who.split_whitespace().count() <= 4 {
+            return Some(Action::Discord(Discord::Message { to: Some(typed(who)), text: if text.is_empty() { String::new() } else { typed(text) } }));
+        }
     }
     if one(&["open discord", "launch discord", "start discord"]) {
         return Some(Action::Discord(Discord::Open));
@@ -398,16 +453,90 @@ fn discord(d: &Discord) -> Result<String, String> {
             crate::platform::open_url(link);
             Ok(t("Opening it in Discord."))
         }
-        // Discord's own shortcuts, while its window is in front.
-        Discord::Mute | Discord::Deafen => {
+        // Round 6: the local RPC first (exact, and Discord needn't be in front);
+        // without it set up, Discord's own shortcuts below.
+        Discord::Message { to, text } => discord_message(to.clone(), text.clone()),
+        Discord::Who | Discord::Leave | Discord::Mute | Discord::Deafen | Discord::SetMute(_) | Discord::SetDeaf(_) => {
+            let v = rpc_first(d).expect("voice action");
+            let run = std::thread::spawn(move || tauri::async_runtime::block_on(crate::discord::act(v))).join().map_err(|_| t("Discord didn't answer."))?;
+            let keys = !matches!(d, Discord::Who | Discord::Leave);
+            match run {
+                Ok(said) => Ok(said),
+                Err(crate::discord::Fail::NotRunning) => Err(not_open("Discord")),
+                Err(f @ (crate::discord::Fail::NotSetUp | crate::discord::Fail::NeedsAuth | crate::discord::Fail::Refused(_))) if keys => {
+                    crate::log::line(format!("discord: no RPC ({}), using the shortcut", f.status()));
+                    shortcut(d)
+                }
+                Err(f) => Err(f.say()),
+            }
+        }
+    }
+}
+
+/// Opens a conversation in the Discord app through its quick switcher (Ctrl+K,
+/// the name, Enter), then drafts the text: typed when "Type for you" is
+/// allowed, else on the clipboard. Groovy never presses Enter on a message and
+/// never uses Discord's API or a user token (FIXES_ROUND6 item 4).
+pub fn discord_message(to: Option<String>, text: String) -> Result<String, String> {
+    const VK_CONTROL: u16 = 0x11;
+    const VK_RETURN: u16 = 0x0D;
+    let to = to.or_else(|| crate::discord::latest_query(None)).ok_or_else(|| t("There's no Discord message to reply to."))?;
+    let pause = |ms| std::thread::sleep(std::time::Duration::from_millis(ms));
+    if !os::switch_to("discord") {
+        crate::platform::open_url("discord://");
+        pause(2500);
+        if !os::switch_to("discord") {
+            return Err(not_open("Discord"));
+        }
+    }
+    pause(300);
+    crate::flow::os::send_chord(&[VK_CONTROL], 0x4B)?;
+    pause(350);
+    crate::flow::os::send_text(&to)?;
+    pause(700);
+    crate::flow::os::send_keys(&[VK_RETURN])?;
+    pause(500);
+    if text.is_empty() {
+        return Ok(tf("Discord is open on {name}: type your message and press Enter.", &[("name", &to)]));
+    }
+    let may_type = crate::db::conn().is_ok_and(|c| crate::tools::permission(&c, "type_text") == crate::tools::Perm::Allow);
+    if may_type {
+        crate::flow::os::send_text(&text)?;
+        return Ok(tf("Your message to {name} is typed in Discord: press Enter to send it.", &[("name", &to)]));
+    }
+    let mut cb = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    cb.set_text(text).map_err(|e| e.to_string())?;
+    Ok(tf("Discord is open on {name} and your message is on the clipboard: press Ctrl+V, then Enter.", &[("name", &to)]))
+}
+
+/// The RPC request a Discord action is, if any.
+fn rpc_first(d: &Discord) -> Option<crate::discord::Voice> {
+    use crate::discord::Voice;
+    Some(match d {
+        Discord::Mute => Voice::Mute(None),
+        Discord::Deafen => Voice::Deaf(None),
+        Discord::SetMute(b) => Voice::Mute(Some(*b)),
+        Discord::SetDeaf(b) => Voice::Deaf(Some(*b)),
+        Discord::Who => Voice::Who,
+        Discord::Leave => Voice::Leave,
+        Discord::Open | Discord::Link(_) | Discord::Message { .. } => return None,
+    })
+}
+
+/// Discord's own shortcuts (round 4 item 5), while its window is in front: they toggle.
+fn shortcut(d: &Discord) -> Result<String, String> {
+    match d {
+        Discord::Mute | Discord::Deafen | Discord::SetMute(_) | Discord::SetDeaf(_) => {
             if !os::switch_to("discord") {
                 return Err(not_open("Discord"));
             }
             std::thread::sleep(std::time::Duration::from_millis(250));
-            let key = if *d == Discord::Mute { 0x4D } else { 0x44 };
+            let mic = matches!(d, Discord::Mute | Discord::SetMute(_));
+            let key = if mic { 0x4D } else { 0x44 };
             crate::flow::os::send_chord(&[0x11, 0x10], key)?;
-            Ok(if *d == Discord::Mute { t("Discord: microphone muted or back on.") } else { t("Discord: deafened or back on.") })
+            Ok(if mic { t("Discord: microphone muted or back on.") } else { t("Discord: deafened or back on.") })
         }
+        _ => Err(t("Set up Discord in Settings → Discord first.")),
     }
 }
 
@@ -750,6 +879,36 @@ mod tests {
         assert_eq!(p("mute me on Discord"), Some(Action::Discord(Discord::Mute)));
         assert_eq!(p("deafen me"), Some(Action::Discord(Discord::Deafen)));
         assert_eq!(p("Open Discord"), Some(Action::Discord(Discord::Open)));
+        // Round 6: the owner's phrasings, exact over RPC.
+        for (said, want) in [
+            ("mute Discord", Discord::SetMute(true)),
+            ("mute my discord", Discord::SetMute(true)),
+            ("unmute Discord", Discord::SetMute(false)),
+            ("deafen", Discord::SetDeaf(true)),
+            ("Deafen Discord", Discord::SetDeaf(true)),
+            ("undeafen", Discord::SetDeaf(false)),
+            ("undeafen me in Discord", Discord::SetDeaf(false)),
+            ("who's in the call", Discord::Who),
+            ("who is in the discord call", Discord::Who),
+            ("who's talking", Discord::Who),
+            ("leave the call", Discord::Leave),
+            ("leave the Discord call", Discord::Leave),
+            ("hang up Discord", Discord::Leave),
+        ] {
+            assert_eq!(p(said), Some(Action::Discord(want)), "{said}");
+        }
+        // Round 6 item 4: messages open in Discord; nothing is sent for the user.
+        let m = |to: Option<&str>, text: &str| Some(Action::Discord(Discord::Message { to: to.map(str::to_string), text: text.into() }));
+        assert_eq!(p("message this person"), m(None, ""));
+        assert_eq!(p("reply"), m(None, ""));
+        assert_eq!(p("reply saying On my way!"), m(None, "On my way!"));
+        assert_eq!(p("message Sam on Discord saying See you at 8"), m(Some("Sam"), "See you at 8"));
+        assert_eq!(p("message Sam on Discord"), m(Some("Sam"), ""));
+        assert_eq!(p("DM Big Jo on discord that I'm late"), m(Some("Big Jo"), "I'm late"));
+        assert_eq!(p("send a discord message to Alex saying hi"), m(Some("Alex"), "hi"));
+        assert_eq!(p("message mum"), None, "without Discord it isn't a Discord message");
+        // Discord's sound still has its volume.
+        assert_eq!(p("turn Discord up"), Some(Action::AppVolume { app: "Discord".into(), change: Change::Up }));
         assert_eq!(p("play Daft Punk on Spotify"), Some(Action::SpotifyPlay("Daft Punk".into())));
         assert_eq!(p("play the latest Taylor Swift album"), Some(Action::SpotifyPlay("the latest Taylor Swift album".into())));
         assert_eq!(p("change the sound output"), Some(Action::OutputDevice));

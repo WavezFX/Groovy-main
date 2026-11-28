@@ -12,6 +12,7 @@ mod codex_plan;
 mod config_file;
 mod db;
 mod desktop;
+mod discord;
 mod files;
 mod flow;
 mod glass;
@@ -1695,6 +1696,14 @@ pub fn run() {
             island_tiles::mail_access,
             island_tiles::mail_open,
             instagram::instagram_open,
+            discord::discord_state,
+            discord::discord_watch,
+            discord::discord_configure,
+            discord::discord_has_secret,
+            discord::discord_authorise,
+            discord::discord_forget,
+            discord::discord_voice,
+            discord::discord_reply,
             speech::check::speech_check_start,
             speech::check::speech_check_reset,
             speech::check::speech_check_cancel,

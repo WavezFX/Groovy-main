@@ -1708,8 +1708,8 @@ fn every_secret_the_phone_link_stores_is_in_the_keystores_key_list() {
         assert!(crate::secrets::INTERNAL_KEYS.contains(&key), "{key} is not in secrets::INTERNAL_KEYS");
     }
     // And nothing in the list is a stray: each one is used by the phone link,
-    // apart from the Gmail app registration's secret (mail/oauth.rs).
-    assert_eq!(crate::secrets::INTERNAL_KEYS.iter().filter(|k| !k.starts_with("mail-")).count(), 6);
+    // apart from the Gmail app registration's secret (mail/oauth.rs) and Discord's (round 6).
+    assert_eq!(crate::secrets::INTERNAL_KEYS.iter().filter(|k| !k.starts_with("mail-") && !k.starts_with("discord-")).count(), 6);
 }
 
 #[test]

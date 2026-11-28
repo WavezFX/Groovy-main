@@ -1536,6 +1536,7 @@ const PAGE = {
   memory: once(() => import("./memory")),
   tasks: once(() => import("./tasks")),
   mail: once(() => import("./mail")),
+  discord: once(() => import("./discord")),
   about: once(() => import("./about")),
   system: once(() => import("./system")),
   wardrobe: once(() => import("./wardrobe")),
@@ -1635,7 +1636,7 @@ async function render() {
       const [{ islandPage }, { islandSection }] = await PAGE.island();
       return [await islandPage(settings, () => void save(), () => hub?.redraw(), (p) => hub?.navigate(p), connected), islandSection(settings, () => void save()), activePillsSection(connected)];
     },
-    accounts: async () => [(await PAGE.mail()).mailSection(), integrationsSection(present)],
+    accounts: async () => [(await PAGE.mail()).mailSection(), (await PAGE.discord()).discordSection(), integrationsSection(present)],
     memory: async () => [(await PAGE.memory()).memorySection(settings, () => void save(), toggle)],
     reminders: async () => [(await PAGE.tasks()).tasksSection()],
     music: async () => [(await PAGE.music()).musicSection()],

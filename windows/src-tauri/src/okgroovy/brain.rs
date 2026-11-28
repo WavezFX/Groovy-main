@@ -89,7 +89,7 @@ fn base_tools() -> Vec<Value> {
         }),
         json!({
             "name": "pc",
-            "description": "Control the user's PC. Actions: switch_to, close (an app; always asks the user first), minimise, maximise, snap_left, snap_right, other_monitor (the front window, or app's), volume (master, level 0-100), app_volume (app; change up/down/mute/unmute or level), output_device, discord_open, discord_mute, discord_deafen, discord_link (url), spotify_play (text = song, artist or playlist), open_recent (text = words in the file name, optional), dark_mode, light_mode, do_not_disturb, night_light, wifi (on), bluetooth (on), brightness (level, or change up/down), set_clipboard (text), type (text), memory_use.",
+            "description": "Control the user's PC. Actions: switch_to, close (an app; always asks the user first), minimise, maximise, snap_left, snap_right, other_monitor (the front window, or app's), volume (master, level 0-100), app_volume (app; change up/down/mute/unmute or level), output_device, discord_open, discord_mute, discord_deafen, discord_unmute, discord_undeafen, discord_who (who is in the voice call), discord_leave (leave the voice call), discord_link (url), spotify_play (text = song, artist or playlist), open_recent (text = words in the file name, optional), dark_mode, light_mode, do_not_disturb, night_light, wifi (on), bluetooth (on), brightness (level, or change up/down), set_clipboard (text), type (text), memory_use.",
             "input_schema": {
                 "type": "object",
                 "properties": {

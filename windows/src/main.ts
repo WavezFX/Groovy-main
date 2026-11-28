@@ -8,6 +8,7 @@ import { installErrorReporting } from "./views/toast";
 import { Mail, wantsMail, type MailNote } from "./views/tiles";
 import { Instagram, type InstagramDm } from "./instagram/store";
 import { currentTiles, isMailNotification } from "./core/tiles";
+import { Discord } from "./core/discord";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { migrateSettingsOutfit } from "./mochi/appearance";
@@ -220,6 +221,11 @@ async function main() {
     Instagram.push(d);
     State.notify();
     if (!State.settings.doNotDisturb) island.alert("home");
+  });
+  // Round 6: Discord's voice state and notifications (discord.rs), while the tile is used.
+  await onEvent<unknown>("discord-state", (s) => {
+    Discord.set(s);
+    State.notify();
   });
   // Connected mail accounts (mail/): the tile's unread count and the Mail panel.
   // Standby, Conversation or Offline (round 3D item 10): shown on the island's rim.

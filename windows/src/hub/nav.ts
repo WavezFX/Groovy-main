@@ -245,6 +245,7 @@ export const SETTINGS: SettingEntry[] = [
   s(N_("My island"), "island", "tiles layout preset order"),
   s(N_("Active pills"), "island", "pills main tool"),
   s(N_("Mail accounts"), "accounts", "gmail outlook icloud imap email"),
+  s("Discord", "accounts", "discord mute deafen voice call messages"),
   s(N_("Integrations"), "accounts", "github vercel neon resend notion stripe n8n cal"),
   s(N_("Music"), "music", "spotify folder songs"),
   s(N_("Reminders and to-dos"), "reminders", "task todo remind"),

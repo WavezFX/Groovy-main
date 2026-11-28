@@ -51,6 +51,8 @@ const OWN: { kind: Tile["kind"]; name: string; color: string; icon: string }[] =
   { kind: "agents", name: N_("Coding agents"), color: "#E8A27C", icon: "⌘" },
   { kind: "clipboard", name: N_("Clipboard"), color: "#60A5FA", icon: "📋" },
   { kind: "instagram", name: "Instagram", color: "#E1306C", icon: "◎" },
+  // Round 6: voice state and messages through the Discord app.
+  { kind: "discord", name: "Discord", color: "#5865F2", icon: "🎧" },
 ];
 
 export function tileName(x: Tile): string {

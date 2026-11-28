@@ -1,4 +1,4 @@
-# Discord on Groovy: plan (not started; owner to approve)
+# Discord on Groovy: plan (**APPROVED by the owner, 27 Nov 2026**; the work is `FIXES_ROUND6.md`)
 
 **Goal:** do everyday Discord things from the island: see and reply to messages, mute and deafen yourself, see who's talking, and join or leave voice, without breaking Discord's rules or risking the owner's account.
 
@@ -28,4 +28,4 @@
 
 ## Next step
 
-The owner approves this approach. Then add it as its own round (for example "Round 6: Discord") with tests, after the current queue.
+Approved by the owner on 27 Nov 2026. The work is Round 6, `FIXES_ROUND6.md`, listed in `WORK_QUEUE.md`. The optional server bot (point 4) is not part of Round 6.

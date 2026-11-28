@@ -100,7 +100,7 @@ export function pagesOf<T>(cells: T[], perPage: number, add: T): T[][] {
 // ── Tiles that expand (round 3D item 8, docs/design/settings-v2/IslandTiles) ──
 
 /** A tile grown in the island: Spotify to 4, the others to 6 (Mail to all 8). */
-export type Expanded = "music" | "mail" | "system" | "reminders" | "clipboard";
+export type Expanded = "music" | "mail" | "system" | "reminders" | "clipboard" | "discord";
 
 /** A grid spot: CSS grid-column / grid-row, 1-based in the 4 × 2 grid. */
 export interface Spot { col: string; row: string }
@@ -146,6 +146,8 @@ export function expandsTo(tile: Tile): Expanded | null {
       return "reminders";
     case "clipboard":
       return "clipboard";
+    case "discord":
+      return "discord";
     default:
       return null;
   }

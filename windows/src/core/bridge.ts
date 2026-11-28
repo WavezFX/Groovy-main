@@ -783,6 +783,17 @@ export const Bridge = {
   clipboardHistory: () => callOrThrow<{ text: string; at: number }[]>("clipboard_history"),
   clipboardClear: () => callOrThrow<void>("clipboard_clear"),
   clipboardCopy: (index: number) => callOrThrow<void>("clipboard_copy", { index }),
+  // Discord through its local RPC pipe (round 6, discord.rs).
+  discordState: () => call<unknown>("discord_state"),
+  /** The tile is visible: keep (or open) the connection for 20 s more. */
+  discordWatch: () => call<unknown>("discord_watch"),
+  discordVoice: (action: "mute" | "unmute" | "deafen" | "undeafen" | "leave") => callOrThrow<string>("discord_voice", { action }),
+  discordConfigure: (clientId: string, clientSecret: string | null) => callOrThrow<void>("discord_configure", { clientId, clientSecret }),
+  discordHasSecret: () => call<boolean>("discord_has_secret"),
+  discordAuthorise: () => callOrThrow<unknown>("discord_authorise"),
+  discordForget: () => callOrThrow<void>("discord_forget"),
+  /** Opens that message's conversation in Discord; the user types and presses Enter. */
+  discordReply: (id: number) => callOrThrow<string>("discord_reply", { id }),
   fullscreenBusy: () => call<boolean>("fullscreen_busy"),
   // Settings → Browser (round 4 item 4, browser.rs).
   browsers: () =>

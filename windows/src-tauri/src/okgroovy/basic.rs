@@ -212,6 +212,22 @@ mod tests {
     }
 
     #[test]
+    fn discord_needs_no_ai_and_bare_mute_stays_the_volume() {
+        use crate::pc::{Action, Discord};
+        let d = |s: &str| match parse(s) {
+            Some(Basic::Tool(Call::Pc(Action::Discord(x)))) => Some(x),
+            _ => None,
+        };
+        assert_eq!(d("Hey Groovy, mute Discord."), Some(Discord::SetMute(true)));
+        assert_eq!(d("please unmute Discord"), Some(Discord::SetMute(false)));
+        assert_eq!(d("Deafen!"), Some(Discord::SetDeaf(true)));
+        assert_eq!(d("undeafen please"), Some(Discord::SetDeaf(false)));
+        assert_eq!(d("Who's in the call?"), Some(Discord::Who));
+        assert_eq!(d("Groovy, leave the call."), Some(Discord::Leave));
+        assert_eq!(parse("Mute."), Some(Basic::Volume(Volume::Mute)));
+    }
+
+    #[test]
     fn real_questions_still_go_to_the_ai() {
         for q in [
             "what's the time in Tokyo",
