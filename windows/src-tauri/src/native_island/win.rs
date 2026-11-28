@@ -52,6 +52,7 @@ const WM_MOUSELEAVE: u32 = 0x02A3;
 const FRAME: usize = 1;
 const BLINK: usize = 2;
 const CLOCK: usize = 3;
+const NOTICE: usize = 4;
 const BLINK_EVERY_MS: u32 = 3400;
 
 struct Gdi {
@@ -82,6 +83,8 @@ struct State {
     frame_timer: bool,
     /// The last text drawn into the mask, and which font.
     text: Option<(String, usize, Mask)>,
+    /// A notice on the pill: its text and tint, until its timer ends.
+    notice: Option<(String, draw::Rgba)>,
     /// Frames drawn since start (logged, and read by tests on the PC).
     frames: u64,
 }
@@ -178,7 +181,7 @@ pub fn create(cfg: Config) -> bool {
             let _ = DestroyWindow(hwnd);
             return false;
         };
-        let text_size = ((220.0 * scale) as u32, (26.0 * scale) as u32);
+        let text_size = ((250.0 * scale) as u32, (26.0 * scale) as u32);
         let Some((text_dc, text_bitmap, text_bits)) = section(text_size.0, text_size.1) else {
             let _ = DestroyWindow(hwnd);
             return false;
@@ -202,6 +205,7 @@ pub fn create(cfg: Config) -> bool {
             shown: false,
             frame_timer: false,
             text: None,
+            notice: None,
             frames: 0,
         };
         STATE.with(|s| *s.borrow_mut() = Some(state));
@@ -225,7 +229,8 @@ pub fn show(on: bool) {
             arm_clock(s);
         } else {
             let _ = ShowWindow(s.hwnd, SW_HIDE);
-            for id in [FRAME, BLINK, CLOCK] {
+            s.notice = None;
+            for id in [FRAME, BLINK, CLOCK, NOTICE] {
                 let _ = KillTimer(Some(s.hwnd), id);
             }
             s.frame_timer = false;
@@ -242,6 +247,23 @@ pub fn restyle(look: &str, name: &str) {
         if s.shown {
             unsafe { render(s) };
         }
+    });
+}
+
+/// A notice on the pill for `seconds`: it opens, shows the text and a dot in
+/// the tint, blinks once, then folds back (unless the cursor is on it). A
+/// click opens the web island, where the notice and its button wait.
+pub fn notice(text: &str, tint: &str, seconds: u64) {
+    with(|s| unsafe {
+        if !s.shown {
+            return;
+        }
+        s.notice = Some((draw::notice_text(text), draw::hex(tint).unwrap_or(s.palette.eye)));
+        let t = now(s);
+        s.anim.set_open(t, true);
+        s.anim.blink(t + 0.2);
+        SetTimer(Some(s.hwnd), NOTICE, (seconds.clamp(3, 60) * 1000) as u32, None);
+        start_frames(s);
     });
 }
 
@@ -308,10 +330,13 @@ unsafe fn render(s: &mut State) {
     let open = s.anim.open(t);
     let (hour, minute, _) = (s.time)();
     let wide = s.anim.target() > 0.5;
-    let label = draw::label(hour, minute, &s.name, wide);
+    let label = match &s.notice {
+        Some((text, _)) => text.clone(),
+        None => draw::label(hour, minute, &s.name, wide),
+    };
     text_mask(s, &label, if open > 0.5 { 1 } else { 0 });
     let mask = s.text.as_ref().map(|(_, _, m)| m);
-    let scene = Scene { palette: s.palette, open, blink: s.anim.shut(t), scale: s.scale, text: mask };
+    let scene = Scene { palette: s.palette, open, blink: s.anim.shut(t), scale: s.scale, text: mask, dot: s.notice.as_ref().map(|n| n.1) };
     draw::draw(&mut s.canvas, &scene);
     std::ptr::copy_nonoverlapping(s.canvas.px.as_ptr(), s.gdi.bits, s.canvas.px.len());
     let size = SIZE { cx: s.canvas.w as i32, cy: s.canvas.h as i32 };
@@ -342,7 +367,9 @@ unsafe extern "system" fn proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
         WM_MOUSELEAVE => with(|s| {
             s.hovered = false;
             let t = now(s);
-            s.anim.set_open(t, false);
+            if s.notice.is_none() {
+                s.anim.set_open(t, false);
+            }
             let _ = KillTimer(Some(hwnd), BLINK);
             start_frames(s);
         }),
@@ -361,6 +388,14 @@ unsafe extern "system" fn proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
             BLINK => {
                 let t = now(s);
                 s.anim.blink(t);
+                start_frames(s);
+            }
+            NOTICE => {
+                let _ = KillTimer(Some(hwnd), NOTICE);
+                s.notice = None;
+                if !s.hovered {
+                    s.anim.set_open(now(s), false);
+                }
                 start_frames(s);
             }
             CLOCK => {

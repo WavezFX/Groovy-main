@@ -80,6 +80,20 @@ pub fn start(app: &AppHandle) -> bool {
         };
         let _ = handle.run_on_main_thread(move || win::restyle(&look, &name));
     });
+    // Notices are shown on the pill; they wait in island_sleep's queue for the
+    // web island (Held::Hold), where their buttons are.
+    let handle = app.clone();
+    app.listen_any("island-notice", move |event| {
+        let Ok(n) = serde_json::from_str::<serde_json::Value>(event.payload()) else { return };
+        let text = n.get("text").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let tint = n.get("tint").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let seconds = n.get("seconds").and_then(|v| v.as_u64()).unwrap_or(8);
+        if text.is_empty() || crate::island::window(&handle).is_some() {
+            return;
+        }
+        crate::log::line(format!("native island: notice shown on the pill ({seconds} s)"));
+        let _ = handle.run_on_main_thread(move || win::notice(&text, &tint, seconds));
+    });
     crate::log::line("native island: on (no WebView2 until it is clicked)".to_string());
     true
 }

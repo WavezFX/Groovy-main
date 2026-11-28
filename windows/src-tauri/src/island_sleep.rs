@@ -87,6 +87,8 @@ pub enum Held {
     Keep,
     /// Something to show or do: wakes the island, then is delivered.
     Wake,
+    /// Every one kept, none wakes it: a notice the native island shows itself.
+    Hold,
 }
 
 pub fn held(event: &str) -> Held {
@@ -103,7 +105,6 @@ pub fn held(event: &str) -> Held {
 /// whole WebView2, so every other event waits for the next opening.
 pub const NATIVE_OPENERS: &[&str] = &[
     "hook",
-    "island-notice",
     "mail-notification",
     "open-wardrobe",
     "reminder",
@@ -119,9 +120,16 @@ pub const NATIVE_OPENERS: &[&str] = &[
 /// `held` for the native island: a wake that isn't an opener is only kept.
 pub fn held_native(event: &str) -> Held {
     match held(event) {
+        // Shown on the pill (native_island::notice), delivered when it opens.
+        Held::Wake if event == "island-notice" => Held::Hold,
         Held::Wake if !NATIVE_OPENERS.contains(&event) => Held::Keep,
         h => h,
     }
+}
+
+/// `held`, or `held_native` while the native island stands in.
+fn how(event: &str) -> Held {
+    if crate::native_island::active() { held_native(event) } else { held(event) }
 }
 
 /// The events kept for a sleeping page, in the order to deliver them.
@@ -139,6 +147,12 @@ impl Queue {
     fn push_as(&mut self, event: &str, payload: &str, held: Held) -> bool {
         match held {
             Held::Drop => false,
+            Held::Hold => {
+                if self.items.len() < 512 {
+                    self.items.push((event.to_string(), payload.to_string()));
+                }
+                false
+            }
             Held::Keep => {
                 self.items.retain(|(name, _)| name != event);
                 self.items.push((event.to_string(), payload.to_string()));
@@ -262,8 +276,7 @@ pub fn init(app: &AppHandle) {
             if PHASE.load(Ordering::Relaxed) == AWAKE {
                 return;
             }
-            let how = if crate::native_island::active() { held_native(name) } else { held(name) };
-            let wake = QUEUE.lock().unwrap().push_as(name, event.payload(), how);
+            let wake = QUEUE.lock().unwrap().push_as(name, event.payload(), how(name));
             if wake {
                 wake_up(&handle, name);
             }
@@ -342,7 +355,7 @@ pub fn woke_without_page(_app: &AppHandle) {
 #[cfg_attr(not(windows), allow(dead_code))]
 fn fell_asleep(app: &AppHandle) {
     // Something may have arrived while he was falling asleep.
-    let pending = QUEUE.lock().unwrap().items.iter().any(|(name, _)| held(name) == Held::Wake);
+    let pending = QUEUE.lock().unwrap().items.iter().any(|(name, _)| how(name) == Held::Wake);
     PHASE.store(ASLEEP, Ordering::SeqCst);
     crate::log::line("island: asleep (webview suspended, working sets handed back)".to_string());
     if pending {
@@ -984,6 +997,12 @@ mod tests {
             assert_eq!(super::held_native(e), super::Held::Keep, "{e} waits for the next opening");
         }
         assert_eq!(super::held_native("cursor"), super::Held::Drop);
+        // A notice is shown on the pill and every one is kept for the opening.
+        assert_eq!(super::held_native("island-notice"), super::Held::Hold);
+        let mut q = super::Queue::default();
+        assert!(!q.push_as("island-notice", "1", super::Held::Hold));
+        assert!(!q.push_as("island-notice", "2", super::Held::Hold));
+        assert_eq!(q.take().len(), 2);
     }
 
     #[test]

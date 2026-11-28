@@ -27,6 +27,26 @@ pub struct Palette {
     pub glow: Rgba,
 }
 
+/// "#7C5CFF" (a notice's tint) as a colour; None for anything else.
+pub fn hex(tint: &str) -> Option<Rgba> {
+    let h = tint.strip_prefix('#')?;
+    if h.len() != 6 || !h.chars().all(|c| c.is_ascii_hexdigit()) {
+        return None;
+    }
+    let v = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).ok();
+    Some(Rgba::rgb8(v(0)?, v(2)?, v(4)?, 1.0))
+}
+
+/// A notice's text cut to what the open pill holds.
+pub fn notice_text(text: &str) -> String {
+    let text = text.trim();
+    if text.chars().count() <= 34 {
+        return text.to_string();
+    }
+    let cut: String = text.chars().take(33).collect();
+    format!("{}…", cut.trim_end())
+}
+
 pub fn palette(look: &str) -> Palette {
     match look {
         "ember" => Palette { eye: Rgba::rgb8(255, 190, 120, 1.0), glow: Rgba::rgb8(255, 120, 40, 0.95) },
@@ -234,6 +254,8 @@ pub struct Scene<'a> {
     pub blink: f32,
     pub scale: f32,
     pub text: Option<&'a Mask>,
+    /// A notice is showing: a dot in its tint at the pill's right end.
+    pub dot: Option<Rgba>,
 }
 
 const GLASS: Rgba = Rgba(0.07, 0.075, 0.085, 0.86);
@@ -261,6 +283,10 @@ pub fn draw(c: &mut Canvas, s: &Scene) -> Layout {
     if let Some(m) = s.text {
         let y = (l.text.1 - m.h as f32 / 2.0).round() as i32;
         c.mask(m, l.text.0.round() as i32, y, INK);
+    }
+    if let Some(d) = s.dot {
+        let r = 3.5 * s.scale;
+        c.ellipse(p.x + p.w - p.h * 0.5, p.h / 2.0, r, r, d);
     }
     if s.open < 0.05 {
         c.hit_band(l.hover);
@@ -354,7 +380,7 @@ mod tests {
 
     fn scene(open: f32, blink: f32) -> (Canvas, Layout) {
         let mut c = Canvas::new(WIN_W as u32, WIN_H as u32);
-        let l = draw(&mut c, &Scene { palette: palette("night"), open, blink, scale: 1.0, text: None });
+        let l = draw(&mut c, &Scene { palette: palette("night"), open, blink, scale: 1.0, text: None, dot: None });
         (c, l)
     }
 
@@ -415,10 +441,25 @@ mod tests {
     fn text_is_composited_in_the_ink_colour() {
         let mut c = Canvas::new(WIN_W as u32, WIN_H as u32);
         let m = Mask { w: 4, h: 4, a: vec![255; 16] };
-        let l = draw(&mut c, &Scene { palette: palette("frost"), open: 0.0, blink: 0.0, scale: 1.0, text: Some(&m) });
+        let l = draw(&mut c, &Scene { palette: palette("frost"), open: 0.0, blink: 0.0, scale: 1.0, text: Some(&m), dot: None });
         let (x, y) = (l.text.0 as u32 + 1, l.text.1 as u32);
         let i = ((y * c.w + x) * 4) as usize;
         assert!(c.px[i] > 200 && c.px[i + 1] > 200 && c.px[i + 2] > 200);
+    }
+
+    #[test]
+    fn a_notice_shows_its_tint_and_a_text_cut_to_fit() {
+        assert_eq!(hex("#7C5CFF"), Some(Rgba::rgb8(0x7C, 0x5C, 0xFF, 1.0)));
+        assert_eq!(hex("red"), None);
+        assert_eq!(hex("#12345"), None);
+        assert_eq!(notice_text(" Short "), "Short");
+        let long = notice_text("Choose Groovy's AI to start chatting, and much more besides");
+        assert!(long.ends_with('…') && long.chars().count() <= 34);
+        let mut c = Canvas::new(WIN_W as u32, WIN_H as u32);
+        let l = draw(&mut c, &Scene { palette: palette("night"), open: 1.0, blink: 0.0, scale: 1.0, text: None, dot: hex("#FF0000") });
+        let (x, y) = ((l.pill.x + l.pill.w - l.pill.h * 0.5) as u32, (l.pill.h / 2.0) as u32);
+        let i = ((y * c.w + x) * 4) as usize;
+        assert!(c.px[i + 2] > 200 && c.px[i + 1] < 60, "a red dot");
     }
 
     #[test]
