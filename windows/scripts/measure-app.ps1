@@ -3,14 +3,16 @@
 # process under it (its WebView2 processes included), after it has sat idle.
 # Used to put another app's numbers beside Groovy's, measured on the same runner.
 #
-#   ./scripts/measure-app.ps1 -Exe C:\path\app.exe -Label "Groovy"
+#   ./scripts/measure-app.ps1 -Exe C:\path\app.exe -Label "Groovy" [-ExtraArgs "--native-island"]
 
 param(
   [Parameter(Mandatory = $true)][string]$Exe,
   [Parameter(Mandatory = $true)][string]$Label,
   [int]$IdleSeconds = 30,
   [int]$CpuSeconds = 60,
-  [string]$Out = ""
+  [string]$Out = "",
+  # Extra command-line arguments, e.g. "--native-island" (docs/plan/NATIVE_ISLAND.md).
+  [string]$ExtraArgs = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,7 +33,7 @@ function Get-Tree([int]$root) {
 # A copy left running (an installer that starts the app) would be the single instance.
 Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($Exe)) -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
-$proc = Start-Process -FilePath $Exe -PassThru
+$proc = if ($ExtraArgs) { Start-Process -FilePath $Exe -ArgumentList $ExtraArgs -PassThru } else { Start-Process -FilePath $Exe -PassThru }
 Start-Sleep -Seconds $IdleSeconds
 $proc.Refresh()
 if ($proc.HasExited) { throw "$Label exited within $IdleSeconds s (code $($proc.ExitCode))" }

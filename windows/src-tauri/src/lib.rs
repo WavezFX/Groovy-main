@@ -29,6 +29,7 @@ mod identity;
 mod integrations;
 mod island;
 mod island_sleep;
+mod native_island;
 mod island_tiles;
 mod tile_icons;
 mod livekit;
@@ -295,6 +296,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
 #[tauri::command]
 fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width: f64, height: f64, radius: Option<f64>) {
     shared.gate.set_rect(island::IslandRect { x, y, w: width, h: height });
+    if native_island::active() {
+        native_island::page_ready(&app);
+    }
     if height > 0.0 {
         resources::loads::island_visible();
     }
@@ -1336,6 +1340,28 @@ fn use_small_async_runtime() {
     }
 }
 
+/// What the island's window needs once made: at launch, and when the native
+/// island (prototype) builds it on demand.
+pub(crate) fn prepare_island_window(handle: &AppHandle, win: &tauri::WebviewWindow, screen: &str) {
+    // Where Tauri takes the drop itself (Linux), its paths are the
+    // ones ingest_file may copy (files.rs).
+    let moved = handle.state::<Shared>().gate.clone();
+    win.on_window_event(move |event| match event {
+        tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
+            files::allow_dropped(paths.iter().map(|p| p.to_string_lossy().to_string()));
+        }
+        // The cursor poll's cached geometry (island.rs) is read again.
+        tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. } => moved.geometry_changed(),
+        _ => {}
+    });
+    platform::make_non_activating(win);
+    resources::webview::trim(win);
+    #[cfg(windows)]
+    webview_drop::install(handle);
+    island::apply_geometry(handle, screen, false);
+    let _ = win.show();
+}
+
 pub fn run() {
     // Round 3N item 2: a speech helper process serves its engine and exits, nothing else.
     if speech::helper::run_if_helper() {
@@ -1785,24 +1811,18 @@ pub fn run() {
             // Control Centre and the Studio are made only when opened.
             desktop::setup(&handle);
 
+            // The island's window (`"create": false` in tauri.conf.json, so it
+            // is made here), unless the native island prototype stands in for
+            // it (`--native-island`, docs/plan/NATIVE_ISLAND.md): then the web
+            // island is built only when the pill is clicked.
+            let native = native_island::requested() && native_island::start(&handle);
+            if !native {
+                if let Some(conf) = app.config().app.windows.iter().find(|w| w.label == island::WINDOW_LABEL).cloned() {
+                    WebviewWindowBuilder::from_config(&handle, &conf)?.build()?;
+                }
+            }
             if let Some(win) = island::window(&handle) {
-                // Where Tauri takes the drop itself (Linux), its paths are the
-                // ones ingest_file may copy (files.rs).
-                let moved = gate.clone();
-                win.on_window_event(move |event| match event {
-                    tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
-                        files::allow_dropped(paths.iter().map(|p| p.to_string_lossy().to_string()));
-                    }
-                    // The cursor poll's cached geometry (island.rs) is read again.
-                    tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. } => moved.geometry_changed(),
-                    _ => {}
-                });
-                platform::make_non_activating(&win);
-                resources::webview::trim(&win);
-                #[cfg(windows)]
-                webview_drop::install(&handle);
-                island::apply_geometry(&handle, &loaded.screen, false);
-                let _ = win.show();
+                prepare_island_window(&handle, &win, &loaded.screen);
             }
             gate.collapsed.store(false, Ordering::Relaxed);
             // Nothing drawn yet, so nothing takes the mouse until the page
@@ -1810,9 +1830,13 @@ pub fn run() {
             if !platform::CURSOR_POLL {
                 island::refresh_click_through(&handle, &gate);
             }
-            gate.set_active(true);
+            // The native pill watches its own cursor: the poll starts with the web island.
+            gate.set_active(!native);
             island::spawn_cursor_poll(handle.clone(), gate.clone());
             island_sleep::init(&handle);
+            if native {
+                island_sleep::start_asleep();
+            }
 
             log::line(format!("--- Groovy {} started ---", env!("CARGO_PKG_VERSION")));
             if let Ok(conn) = db::conn() {
