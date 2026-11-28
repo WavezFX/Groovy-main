@@ -132,6 +132,7 @@ pub struct Queue {
 
 impl Queue {
     /// Takes `event`; true when the island must wake for it.
+    #[cfg(test)]
     pub fn push(&mut self, event: &str, payload: &str) -> bool {
         self.push_as(event, payload, held(event))
     }

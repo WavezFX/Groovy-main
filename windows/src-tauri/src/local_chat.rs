@@ -15,10 +15,8 @@ use std::time::{Duration, Instant};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter};
 
 use crate::chat::{self, Chat, ChatContext, ChatReply, ModelInfo};
-use crate::island::WINDOW_LABEL;
 use crate::settings::Settings;
 use crate::i18n::{t, tf};
 use crate::{net, secrets};
@@ -362,22 +360,8 @@ fn quick_answers(mut body: Value, server_id: &str) -> Value {
     body
 }
 
-/// One chat turn with a model server; the island gets the streamed text as `chat-delta` events.
-pub async fn send(
-    app: &AppHandle,
-    chat: &Chat,
-    server: &Server,
-    model: &str,
-    query: String,
-    context: Option<ChatContext>,
-) -> Result<ChatReply, String> {
-    send_with(chat, server, model, query, context, |visible| {
-        let _ = app.emit_to(WINDOW_LABEL, "chat-delta", visible);
-    })
-    .await
-}
-
-/// The same turn, with the streamed text handed to `on_delta` instead (the phone link uses this).
+/// One chat turn with a model server, the streamed text handed to `on_delta` (the brains
+/// layer emits it to the island as `chat-delta` or to the phone link).
 pub async fn send_with(
     chat: &Chat,
     server: &Server,
