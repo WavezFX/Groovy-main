@@ -16,7 +16,7 @@ import { VoiceController, toInt16, type VoicePhase } from "../voice/controller";
 import { CallControl, MicLevel } from "../voice/call";
 import { BargeIn, LevelMeter, nextCallState, type CallEvent } from "../voice/call-state";
 import { power } from "../voice/vad";
-import { openMic, type Mic } from "../voice/mic";
+import { openRustMic, type Mic } from "../voice/mic";
 import { startLiveKit, type LiveKitSession } from "../voice/livekit";
 import { speak, stopSpeaking } from "../voice/speak";
 import { SentenceSpeaker, speakable } from "../voice/sentences";
@@ -69,7 +69,7 @@ export class VoiceHost {
     this.controller = new VoiceController(
       async (pcm, purpose) => {
         // The words so far while you speak (round 4 item 3): best effort, never an error.
-        if (purpose === "partial") return (await Bridge.voiceTranscribe(toInt16(pcm), false).catch(() => "")) ?? "";
+        if (purpose === "partial") return (await Bridge.voiceTranscribe(toInt16(pcm), false, true).catch(() => "")) ?? "";
         try {
           const text = await Bridge.voiceTranscribe(toInt16(pcm), purpose === "wake");
           if (purpose === "command") this.transcribeError = null;
@@ -160,7 +160,7 @@ export class VoiceHost {
           this.gaveUp = true;
           return false;
         }
-        this.mic = await openMic((frame) => this.frame(frame), 1024, State.settings.voiceMic ?? "", () => this.micLost());
+        this.mic = await openRustMic((frame) => this.frame(frame), 1024, State.settings.voiceMic ?? "", () => this.micLost());
         State.voiceProblem = null;
         this.controller.start();
         return true;

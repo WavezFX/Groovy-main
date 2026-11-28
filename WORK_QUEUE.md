@@ -174,7 +174,7 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [ ] 2. The lightest local voice and speech-to-text that still sound good; the owner picks from CI samples (S4 under 200 MB)
 - [ ] 3. Voice models exist only during a call; gone within 2 s of hang-up. **Built, not yet measured** (branch `elevate/4f-ram`): both helpers stopped at hang-up within 1.8 s. Steps 2 and 4 left for 4B (voice engine).
 - [ ] 4. One renderer instead of several (Settings and desktop Groovy under 150 MB). **Step 2 measured in CI, not shipped** (`--renderer-process-limit=1` beside the plain Settings idle test); step 3 not started.
-- [ ] 5. A cloud call under 150 MB (S3)
+- [x] 5. A cloud call under 150 MB (S3). Windows build run 46081728728 (ce8aad9): peak test "cloud call" **116.6 MB** at most (112 before), no local model or helper; gated at 135 MB
 - [ ] 6. Lighter WebView2 flags, each measured. **CI matrix built** (`flag-matrix.ps1`); no flag kept until its numbers are in `STATUS.md`.
 - [ ] 7. Nothing runs when nothing is happening (0 timers and frames in 30 s idle). **Built, not yet measured:** break reminders no longer poll; `quiet-test.ps1` counts callbacks by source.
 - [ ] 8. Settings fully unloaded when closed; no hidden page kept alive. **Built, not yet measured:** desktop window gone 8 s after he comes home (was 30), hand-back logged after a close, user-close phase in `settings-idle-test.ps1`.

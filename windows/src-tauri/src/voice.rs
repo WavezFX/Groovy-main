@@ -8,13 +8,18 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineWhisperModelConfig};
+use sherpa_onnx::{OfflineMoonshineModelConfig, OfflineRecognizer, OfflineRecognizerConfig, OfflineWhisperModelConfig};
 use tauri::{AppHandle, Emitter};
 
 /// The models Groovy offers. Anything else is refused. The ".en" ones only
 /// understand English; the others understand ~99 languages (Spanish, German,
 /// Punjabi, Hindi…), less accurately per size. All are int8.
-pub const MODELS: &[&str] = &["base", "base.en", "tiny", "tiny.en", "small"];
+pub const MODELS: &[&str] = &["base", "base.en", "tiny", "tiny.en", "small", "moonshine-tiny.en"];
+
+/// Moonshine rather than Whisper (round 4F item 2): English only, no language to set.
+pub fn is_moonshine(model: &str) -> bool {
+    model.starts_with("moonshine-")
+}
 
 /// Groovy's offline speech model by default (round 3D item 7): Whisper base,
 /// ~99 languages, its weights mapped from disk so Groovy stays under 400 MB.
@@ -224,8 +229,22 @@ fn mapped(path: String) -> String {
 
 fn load(model: &str, language: Option<&str>) -> Result<OfflineRecognizer, String> {
     let set = set_of(model)?;
-    let (encoder, decoder, tokens) = files(set, model);
     let mut config = OfflineRecognizerConfig::default();
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    if is_moonshine(model) {
+        config.model_config.moonshine = OfflineMoonshineModelConfig {
+            preprocessor: Some(mapped(set.path("preprocess.onnx"))),
+            encoder: Some(mapped(set.path("encode.int8.onnx"))),
+            uncached_decoder: Some(mapped(set.path("uncached_decode.int8.onnx"))),
+            cached_decoder: Some(mapped(set.path("cached_decode.int8.onnx"))),
+            ..Default::default()
+        };
+        config.model_config.tokens = Some(set.path("tokens.txt"));
+        config.model_config.num_threads = threads.clamp(1, 2) as i32;
+        config.model_config.provider = crate::speech::low_memory_provider();
+        return OfflineRecognizer::create(&config).ok_or_else(|| "The speech model couldn't be loaded.".to_string());
+    }
+    let (encoder, decoder, tokens) = files(set, model);
     config.model_config.whisper = OfflineWhisperModelConfig {
         encoder: Some(mapped(encoder)),
         decoder: Some(mapped(decoder)),
@@ -236,7 +255,6 @@ fn load(model: &str, language: Option<&str>) -> Result<OfflineRecognizer, String
         ..Default::default()
     };
     config.model_config.tokens = Some(tokens);
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
     config.model_config.num_threads = threads.clamp(1, 4) as i32;
     config.model_config.provider = crate::speech::low_memory_provider();
     OfflineRecognizer::create(&config).ok_or_else(|| "The speech model couldn't be loaded.".to_string())
@@ -266,7 +284,7 @@ pub(crate) fn run_here(model: &str, language: Option<&str>, pcm: &[f32], wake: b
     if guard.as_ref().map(|(k, _)| k.as_str()) != Some(key.as_str()) {
         // The one in memory goes first: never two Whispers at once.
         *guard = None;
-        crate::resources::ceiling::make_room("speech", crate::resources::ceiling::WHISPER_MB);
+        crate::resources::ceiling::make_room("speech", if is_moonshine(model) { crate::resources::ceiling::MOONSHINE_MB } else { crate::resources::ceiling::WHISPER_MB });
         crate::resources::loads::note(crate::resources::loads::Part::OfflineStt, "Whisper, for speech on this PC");
         crate::resources::register("whisper", free_if_idle);
         *guard = Some((key, load(model, language)?));
@@ -291,7 +309,7 @@ mod tests {
 
     #[test]
     fn every_offered_model_is_pinned_encoder_decoder_and_tokens() {
-        for m in MODELS {
+        for m in MODELS.iter().filter(|m| !is_moonshine(m)) {
             let set = set_of(m).unwrap();
             let (encoder, decoder, tokens) = files(set, m);
             for f in [encoder, decoder, tokens] {
@@ -350,5 +368,36 @@ mod tests {
         assert!(hear("dictation.wav").contains("send the report to sam"));
         assert!(hear("ok-groovy-time.wav").contains("groovy"));
         assert!(!hear("not-wake.wav").contains("groovy"));
+    }
+
+    /// Round 4F item 2: each offered speech model's memory while it transcribes CI's
+    /// clips, and its speed, in this process (Task Manager's private working set on
+    /// Windows). One model per process when asked (GROOVY_STT=base|moonshine-tiny.en…).
+    /// cargo test -p groovy speech_models_measured -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn speech_models_measured() {
+        let only = std::env::var("GROOVY_STT").ok();
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/audio");
+        for model in [DEFAULT_MODEL, "moonshine-tiny.en"].into_iter().filter(|m| only.as_deref().is_none_or(|o| o == *m)) {
+            tauri::async_runtime::block_on(crate::speech::fetch(set_of(model).unwrap(), &mut |_| {})).expect("download");
+            free_now();
+            crate::resources::ceiling::give_back();
+            let before = crate::resources::ceiling::own_mb();
+            let mut peak = before;
+            let mut heard = Vec::new();
+            for name in ["dictation.wav", "hey-groovy-time.wav", "ok-groovy-time.wav", "not-wake.wav"] {
+                let bytes = std::fs::read(dir.join(name)).unwrap();
+                let data = bytes.windows(4).position(|w| w == b"data").unwrap() + 8;
+                let pcm: Vec<f32> = bytes[data..].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect();
+                let started = std::time::Instant::now();
+                let text = run_here(model, Some("en"), &pcm, false).unwrap();
+                heard.push(format!("{name}: “{text}” in {:.2} s", started.elapsed().as_secs_f32()));
+                peak = peak.max(crate::resources::ceiling::own_mb());
+            }
+            println!("{model}: {before:.0} MB before, {peak:.0} MB at most while transcribing (+{:.0} MB); {}", peak - before, heard.join("; "));
+            assert!(heard[0].to_lowercase().contains("send the report to sam"), "{}", heard[0]);
+            free_now();
+        }
     }
 }

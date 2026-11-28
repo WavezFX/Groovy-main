@@ -5,6 +5,7 @@ mod agents;
 mod assistant;
 mod brain_ai;
 mod brains;
+mod callmic;
 mod chat;
 mod claude;
 mod codex_plan;
@@ -739,7 +740,7 @@ async fn ollama_setup(app: AppHandle, shared: State<'_, Shared>, model: Option<S
 
 /// One spoken segment to text, with the Whisper model chosen in Settings.
 #[tauri::command]
-async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
+async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Vec<i16>, wake: bool, partial: Option<bool>) -> Result<String, String> {
     let (model, language) = {
         let s = shared.settings.lock().unwrap();
         (s.voice_model.clone(), s.voice_language.clone())
@@ -757,12 +758,32 @@ async fn voice_transcribe(app: AppHandle, shared: State<'_, Shared>, samples: Ve
     } else {
         false
     };
+    // Round 4F item 5: a call in cloud mode loads no model on this PC. Its turns go to the
+    // cloud engine (the PC's only if that fails); the words-so-far while you speak are skipped,
+    // so no request or model is spent on them.
+    if !wake && cloud_speech(&app) {
+        if partial == Some(true) {
+            return Ok(String::new());
+        }
+        let pcm: Vec<f32> = samples.iter().map(|&s| s as f32 / 32768.0).collect();
+        let started = std::time::Instant::now();
+        if let Some((text, service)) = speech::cloud::transcribe(&pcm, &[], language.as_deref()).await {
+            speech::heard_by(service.name());
+            log::voice(format!("heard {:.1}s of speech in {:.1}s by {}: {} chars", pcm.len() as f64 / 16000.0, started.elapsed().as_secs_f64(), service.name(), text.len()));
+            return Ok(text.trim().to_string());
+        }
+    }
     let text = voice_words(&app, model, language, samples, wake).await?;
     // Heard by the spotter, written oddly by the engine: the wake phrase is put back.
     if spotted && okgroovy::wake::after_wake(&text).is_none() {
         return Ok(format!("Hey Groovy, {}", okgroovy::wake::drop_wake_words(&text, 2)).trim_end_matches([',', ' ']).to_string());
     }
     Ok(text)
+}
+
+/// Cloud speech answers first (Settings → Voice → "Cloud speech first", with a key).
+fn cloud_speech(app: &AppHandle) -> bool {
+    flow::get(app).is_some_and(|f| f.store.lock().unwrap().prefs.cloud_speech_first()) && !speech::cloud::available().is_empty()
 }
 
 async fn voice_words(app: &AppHandle, model: String, language: Option<String>, samples: Vec<i16>, wake: bool) -> Result<String, String> {
@@ -820,6 +841,11 @@ fn voice_status(app: AppHandle, shared: State<'_, Shared>) -> voice::VoiceStatus
         // Parakeet: the shared engine, always built in.
         status.available = true;
         status.ready = speech::is_ready();
+    }
+    // Cloud speech set up: a call needs no model on this PC (round 4F item 5).
+    if cloud_speech(&app) {
+        status.available = true;
+        status.ready = true;
     }
     status
 }
@@ -1485,6 +1511,8 @@ pub fn run() {
             island_move,
             island_track,
             voice_transcribe,
+            callmic::call_mic_start,
+            callmic::call_mic_stop,
             voice_status,
             voice_download_model,
             voice_delete_model,

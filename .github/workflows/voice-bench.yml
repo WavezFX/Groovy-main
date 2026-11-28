@@ -1,0 +1,58 @@
+name: Voice bench
+
+# Round 4F item 2: every candidate offline voice and speech-to-text engine through
+# sherpa-onnx 1.13.8 (the version Groovy's helpers use), each in its own process:
+# memory, time to first clause / transcript, real-time factor, word errors.
+# The artifact "voice-samples" holds one WAV per voice (the same three sentences)
+# for the owner to listen to and pick from, and bench.md with the table.
+# Linux only (the engine is the same; Windows' numbers come from voices_measured
+# and the peak test in windows-build.yml).
+
+on:
+  push:
+    branches: ['groovy-ai-*']
+    paths:
+      - 'windows/scripts/voice-bench.py'
+      - '.github/workflows/voice-bench.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: sherpa-onnx (Python, pinned)
+        run: pip install --target "$RUNNER_TEMP/sherpa-py" "sherpa-onnx==1.13.8" numpy
+      - name: Download the candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          m="$RUNNER_TEMP/models"; mkdir -p "$m"; cd "$m"
+          b=https://github.com/k2-fsa/sherpa-onnx/releases/download
+          for f in tts-models/vits-piper-en_US-libritts_r-medium tts-models/vits-piper-en_US-lessac-low \
+                   tts-models/vits-piper-en_US-amy-low tts-models/vits-piper-en_GB-alba-medium \
+                   tts-models/kitten-nano-en-v0_2-fp16 tts-models/matcha-icefall-en_US-ljspeech \
+                   asr-models/sherpa-onnx-whisper-tiny.en asr-models/sherpa-onnx-whisper-base.en \
+                   asr-models/sherpa-onnx-moonshine-tiny-en-int8 asr-models/sherpa-onnx-moonshine-base-en-int8; do
+            curl -sSLf --retry 3 "$b/$f.tar.bz2" | tar xj --exclude='*-encoder.onnx' --exclude='*-decoder.onnx'
+          done
+          curl -sSLf --retry 3 -o vocos-22khz-univ.onnx "$b/vocoder-models/vocos-22khz-univ.onnx"
+          du -sh "$m"
+      - name: Bench (2 threads, as Groovy runs them, and 1)
+        env:
+          SHERPA_PY: ${{ runner.temp }}/sherpa-py
+          BENCH_THREADS: '2,1'
+        run: |
+          PYTHONPATH="$SHERPA_PY" python3 -I windows/scripts/voice-bench.py "$RUNNER_TEMP/models" windows/src-tauri/tests/audio "$RUNNER_TEMP/out"
+          cat "$RUNNER_TEMP/out/bench.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: voice-samples
+          path: ${{ runner.temp }}/out
+          retention-days: 30

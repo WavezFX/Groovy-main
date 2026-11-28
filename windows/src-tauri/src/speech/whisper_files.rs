@@ -49,6 +49,21 @@ pub static WHISPER_SMALL: ModelSet = ModelSet {
     ],
 };
 
+/// Moonshine tiny (Useful Sensors, MIT), English only, int8 (round 4F item 2): about
+/// 200 MB less working memory than Whisper base and several times faster, because it
+/// reads the clip as it is instead of a padded 30 s window. Offered, not the default
+/// until the owner picks (STATUS.md, round 4F voice RAM).
+pub static MOONSHINE_TINY_EN: ModelSet = ModelSet {
+    id: "moonshine-tiny.en",
+    files: &[
+        ModelFile { name: "preprocess.onnx", url: "https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/bf2b762c076d8ea61e2af0b3851c9564fb77552e/preprocess.onnx", size: 6800738, sha256: "f33addce61a143460fe753b5ee5b7db255e5140b5b779c065b94f6c83ff0bf4e" },
+        ModelFile { name: "encode.int8.onnx", url: "https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/bf2b762c076d8ea61e2af0b3851c9564fb77552e/encode.int8.onnx", size: 18249187, sha256: "8774dfba578de027ec6595c2c654a0836434489bc963a0db124a7f181f571acb" },
+        ModelFile { name: "uncached_decode.int8.onnx", url: "https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/bf2b762c076d8ea61e2af0b3851c9564fb77552e/uncached_decode.int8.onnx", size: 53216096, sha256: "216737000dd5881a17aa043f6bbd286add33e4c3b0ae257153e2ec15438bdc41" },
+        ModelFile { name: "cached_decode.int8.onnx", url: "https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/bf2b762c076d8ea61e2af0b3851c9564fb77552e/cached_decode.int8.onnx", size: 45264830, sha256: "2aff28bba6a03d8dcf5c9feac45462629bae37317442299f28115ad09da773f6" },
+        ModelFile { name: "tokens.txt", url: "https://huggingface.co/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/bf2b762c076d8ea61e2af0b3851c9564fb77552e/tokens.txt", size: 436688, sha256: "1165c2aeb9f72f457a83be2d459a09054f27490acd9b41bd43794dfd25e296ea" },
+    ],
+};
+
 /// The set for a model Groovy offers ("base", "tiny.en"…).
 pub fn set(model: &str) -> Option<&'static ModelSet> {
     Some(match model {
@@ -57,6 +72,7 @@ pub fn set(model: &str) -> Option<&'static ModelSet> {
         "tiny" => &WHISPER_TINY,
         "tiny.en" => &WHISPER_TINY_EN,
         "small" => &WHISPER_SMALL,
+        "moonshine-tiny.en" => &MOONSHINE_TINY_EN,
         _ => return None,
     })
 }

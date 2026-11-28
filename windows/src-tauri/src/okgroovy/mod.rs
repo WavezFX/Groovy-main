@@ -1005,3 +1005,126 @@ mod with_models {
         assert!(heard.iter().any(|h| h.as_deref().is_some_and(|q| !q.is_empty())));
     }
 }
+
+/// Round 4B item 4: the listener's CPU and the reply's local times, logged in CI
+/// (`cargo test -p groovy listening_cpu_and_reply_times -- --ignored --nocapture`,
+/// after the models are downloaded). The audio is fed faster than real time through
+/// the same energy detector and spotter the listener runs; CPU is this process's
+/// CPU time per second of audio, as a share of the whole machine.
+#[cfg(test)]
+mod timings {
+    use std::time::Instant;
+
+    fn cpu_ms() -> u64 {
+        let mut sys = sysinfo::System::new();
+        let pid = sysinfo::Pid::from_u32(std::process::id());
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[pid]), true);
+        sys.process(pid).map_or(0, |p| p.accumulated_cpu_time())
+    }
+
+    fn clip(name: &str) -> Vec<f32> {
+        let bytes = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/audio").join(name)).unwrap();
+        let data = bytes.windows(4).position(|w| w == b"data").unwrap() + 8;
+        bytes[data..].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect()
+    }
+
+    /// Room noise, about -50 dBFS, the same every run.
+    fn noise(seconds: f32, seed: &mut u32) -> Vec<f32> {
+        (0..(seconds * 16_000.0) as usize)
+            .map(|_| {
+                *seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                ((*seed >> 8) as f32 / (1u32 << 24) as f32 - 0.5) * 0.01
+            })
+            .collect()
+    }
+
+    /// Feeds `audio` in 30 ms frames; returns CPU ms and, per stretch handed on,
+    /// (sample where it was handed on, whether the spotter heard a wake phrase, its ms).
+    fn listen(spotter: &crate::speech::kws::Spotter, audio: &[f32]) -> (u64, Vec<(usize, bool, f64)>) {
+        let mut vad = super::wake::Vad::default();
+        let mut out = Vec::new();
+        let cpu = cpu_ms();
+        for (i, chunk) in audio.chunks(super::wake::FRAME).enumerate() {
+            for segment in vad.feed(chunk) {
+                if segment.len() < 16_000 * 35 / 100 {
+                    continue;
+                }
+                let t = Instant::now();
+                let hit = spotter.heard(&segment).is_some();
+                out.push(((i + 1) * super::wake::FRAME, hit, t.elapsed().as_secs_f64() * 1000.0));
+            }
+        }
+        (cpu_ms() - cpu, out)
+    }
+
+    #[test]
+    #[ignore]
+    fn listening_cpu_and_reply_times() {
+        let mut lines = Vec::new();
+        let mut say = |line: String| {
+            println!("{line}");
+            lines.push(line);
+        };
+        let client = crate::speech::download_client().unwrap();
+        tauri::async_runtime::block_on(crate::speech::kws::download(&client)).expect("the spotter downloads");
+        let spotter = crate::speech::kws::Spotter::load().expect("the spotter loads");
+        let cores = std::thread::available_parallelism().map_or(1, |n| n.get()) as f64;
+        let share = |cpu: u64, seconds: f64| cpu as f64 / 1000.0 / seconds / cores * 100.0;
+        let mut seed = 7;
+        // P2: a quiet room for 60 s.
+        let quiet = noise(60.0, &mut seed);
+        let (cpu, stretches) = listen(&spotter, &quiet);
+        let p2 = share(cpu, 60.0);
+        say(format!("P2 listening, room quiet: {p2:.2} % of the machine ({} stretches handed on; target at most 1.0 %)", stretches.len()));
+        // P3: someone talking for 60 s, no wake phrase.
+        let mut talk = Vec::new();
+        while talk.len() < 60 * 16_000 {
+            for name in ["not-wake.wav", "dictation.wav"] {
+                talk.extend(clip(name));
+                talk.extend(noise(0.4, &mut seed));
+            }
+        }
+        talk.truncate(60 * 16_000);
+        let (cpu, stretches) = listen(&spotter, &talk);
+        let p3 = share(cpu, 60.0);
+        say(format!("P3 listening, someone talking: {p3:.2} % ({} stretches, {} heard as a wake; target at most 3.0 %)", stretches.len(), stretches.iter().filter(|s| s.1).count()));
+        // P4: end of the wake phrase to the moment the spotter has said yes (the listening cue follows at once).
+        let mut p4 = Vec::new();
+        for name in ["hey-groovy-time.wav", "hey-groovy-time.wav", "hey-groovy-time.wav"] {
+            let mut audio = noise(0.5, &mut seed);
+            audio.extend(clip(name));
+            let end = audio.len();
+            audio.extend(noise(2.0, &mut seed));
+            let (_, stretches) = listen(&spotter, &audio);
+            if let Some((at, _, ms)) = stretches.iter().find(|s| s.1 && s.0 >= end) {
+                p4.push((*at - end) as f64 / 16.0 + ms);
+            }
+        }
+        p4.sort_by(|a, b| a.total_cmp(b));
+        say(format!("P4 wake response: {} ms (end of the clip to the spotter's yes; target at most 500 ms p95)", p4.iter().map(|v| format!("{v:.0}")).collect::<Vec<_>>().join(", ")));
+        // P6: end of speech to transcript (today's model), plus the light voice's first clause.
+        tauri::async_runtime::block_on(crate::speech::fetch(crate::speech::whisper_set(crate::voice::DEFAULT_MODEL).unwrap(), &mut |_| {})).expect("Whisper downloads");
+        tauri::async_runtime::block_on(crate::speech::fetch(&crate::speech::tts::LIGHT, &mut |_| {})).expect("the light voice downloads");
+        let _ = crate::voice::transcribe_blocking(crate::voice::DEFAULT_MODEL, Some("en"), &clip("dictation.wav"));
+        let _ = crate::speech::tts::offline_at(crate::speech::tts::Offline::Light, "Hello.", "female", 1.0);
+        let mut p6 = Vec::new();
+        for _ in 0..3 {
+            let t = Instant::now();
+            let heard = crate::voice::transcribe_blocking(crate::voice::DEFAULT_MODEL, Some("en"), &clip("hey-groovy-time.wav")).unwrap();
+            let transcript = t.elapsed().as_secs_f64();
+            let t = Instant::now();
+            crate::speech::tts::offline_at(crate::speech::tts::Offline::Light, "It's a quarter past three,", "female", 1.0).expect("the light voice speaks");
+            let clause = t.elapsed().as_secs_f64();
+            assert!(heard.to_lowercase().contains("time"), "{heard}");
+            p6.push((transcript, clause));
+        }
+        let p6_sum: Vec<f64> = p6.iter().map(|(a, b)| a + b).collect();
+        say(format!("P6 local parts (models loaded): {} s (transcript + first clause: {}; target at most 1.0 s)", p6_sum.iter().map(|v| format!("{v:.2}")).collect::<Vec<_>>().join(", "), p6.iter().map(|(a, b)| format!("{a:.2}+{b:.2}")).collect::<Vec<_>>().join(", ")));
+        // P7: with a stub cloud brain that answers in 500 ms; the audio device's start is not counted.
+        let mut p7: Vec<f64> = p6_sum.iter().map(|v| v + 0.5).collect();
+        p7.sort_by(|a, b| a.total_cmp(b));
+        say(format!("P7 end of speech to first sound, stub brain 500 ms: {:.2} s p50 (target at most 2.5 s)", p7[p7.len() / 2]));
+        // Kept for CI's log and artifact: groovy-timings.txt in the temp folder.
+        let _ = std::fs::write(std::env::temp_dir().join("groovy-timings.txt"), lines.join("\n"));
+    }
+}

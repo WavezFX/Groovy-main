@@ -21,6 +21,7 @@ const MODELS: Array<[id: string, label: string]> = [
   ["tiny", "Tiny · 99 languages · fastest · 98 MB"],
   ["tiny.en", "Tiny · English · fastest · 98 MB"],
   ["small", "Small · 99 languages · most accurate · 358 MB"],
+  ["moonshine-tiny.en", "Moonshine tiny · English · lightest · 124 MB"],
 ];
 
 /** Languages to listen for with a multilingual model, by their own names. "" lets Whisper detect it. */
