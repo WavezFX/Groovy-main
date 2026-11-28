@@ -93,8 +93,13 @@ if ($done) {
     Write-Host ("  [{0}] {1} ({2} ms): {3}" -f $(if ($s.ok) { "PASS" } else { "FAIL" }), $s.name, $s.ms, $s.detail)
   }
   Write-Host ("  at the peak: " + (($done.peakParts | ForEach-Object { "$($_.kind) $([math]::Round($_.mb)) MB" }) -join ", "))
-  # Round 4F item 5 (S3): the cloud call's own peak, after the local models are let go. Not gating until it is met.
-  if ($done.cloudCallMb) { Write-Host ("  cloud call (stub cloud speech, brain and voice; no local model): {0} MB at most (S3 target: under 150)" -f $done.cloudCallMb) }
+  # Round 4F item 5 (S3): the cloud call's own peak, after the local models are let go.
+  # Gate: run 46081728728 read 116.6 MB; the gate is that plus a margin (WORK_QUEUE rule), under S3's 150.
+  if ($done.cloudCallMb) {
+    $cloudOk = $done.cloudCallMb -le 135
+    Write-Host ("  [{0}] cloud call (stub cloud speech, brain and voice; no local model): {1} MB at most (gate 135, S3 under 150)" -f $(if ($cloudOk) { "PASS" } else { "FAIL" }), $done.cloudCallMb)
+    $results["cloud call at most 135 MB"] = $cloudOk
+  }
 }
 $failed = 0
 foreach ($k in $results.Keys) {

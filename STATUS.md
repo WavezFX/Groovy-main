@@ -564,3 +564,19 @@ Numbers come only from the Windows build of the last commit (`[build]`); until t
 - **What the call page loaded:** besides the reply audio (already played in Rust since build 251), the island opened its own microphone: `getUserMedia` + a 16 kHz `AudioContext` + a `ScriptProcessor` (`voice/mic.ts`), which brings up WebView2's audio capture and media pipeline in the island's renderer (and its audio service process) for the whole call.
 - **Now:** the island's microphone is captured in Rust (`callmic.rs`, the same cpal capture dictation and « Hey Groovy » use, the mic picked for dictation), sent to the page as 1024-sample 16-bit frames ("call-mic-frame"); the page's VoiceController, level meter and barge-in are unchanged. The page's own microphone is only a fallback when Rust can't open one. Closed at hang-up. A sleeping island drops the frames.
 - **Not measured yet:** the peak test's calls run in Rust, so the renderer's growth across a page call isn't in CI (4A item 2 step 1 still open). Expected: the capture pipeline's share of the ~70 MB. Not proven on Windows with a microphone: the owner should make one call and check it hears him. Not ticked.
+### Windows build run 46081728728 (ce8aad9, 27 Nov): the numbers
+| | Before (build 251 / 4E run) | Now | Target |
+|---|---|---|---|
+| Peak test (meter / Windows) | 247.6 / 246.2 (light voice), 340 with Kokoro | **263.9 / 258.5 MB** (groovy.exe 151, WebView2 113 at the peak) | under 300 (met) |
+| Cloud call (new step) | — | **116.6 MB** at most, 112 before, no helper or local model | S3 under 150 (**met**; gated at 135) |
+| Speech model while transcribing (`speech_models_measured`) | Whisper base +154 MB, 0.5 s a clip | **Moonshine tiny +70 MB, 0.11 s a clip**, same words | owner picks |
+| Voice while speaking (`voices_measured`, one per process) | — | light voice +79–82 MB, 0.2 s a sentence; Kokoro +189–196 MB, 5.6–9 s | at most 80 (light, at the edge) |
+| P2 / P3 listening CPU | not measured | **0.02 % / 0.69 %** | ≤ 1.0 / ≤ 3.0 (met) |
+| P4 wake response | not measured | **671 ms** | ≤ 500 (**not met**: the detector's 750 ms hang-over) |
+| P6 local parts | not measured | 0.61–0.62 s (1.39 s cold) | ≤ 1.0 (met warm) |
+| P7 first sound, stub brain 500 ms | about 9.5 s | **1.12 s** p50 | ≤ 2.5 (met) |
+| Idle (smoke, portable / installed) | 107 / 113 | 103.6 / 110.2 | under 125 gate |
+
+- The peak rose 248 → 264 MB because the peak test now holds groovy.exe's in-process Whisper (151 MB) alongside the island; with Moonshine tiny as the speech model that part drops by about 84 MB (measured above), which would put the peak near 180 MB.
+- **4A item 2:** the island mic is in Rust now; the renderer's growth over a page call is still not in CI (the peak test's calls run in Rust). WebView2 at the peak read 113 MB (126 in the 4E run).
+- **Left:** the owner's picks (voice WAVs in the Voice bench artifact; Moonshine tiny for English), P4 (needs a shorter end-of-stretch for the wake phrase alone), 4A item 2's renderer measurement, the `cargo audit` failure (zip, chrono, paste, proc-macro-error advisories, also on groovy-ai-phase2; not ignored).
