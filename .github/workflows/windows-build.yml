@@ -161,7 +161,7 @@ jobs:
           "| Label | MB idle at 30 s | processes | renderers | CPU % | split |"
           "|---|---|---|---|---|---|"
           Get-Content $out
-          if (Test-Path $log) { Select-String -Path $log -Pattern "native island" | ForEach-Object { "log: " + $_.Line } }
+          if (Test-Path $log) { Select-String -Path $log -Pattern "native island|island: waking" | ForEach-Object { "log: " + $_.Line } }
 
       # Rounds 3F item 2 and 3G item 6: everything CI steers by environment
       # variable (GROOVY_SMOKE_VIEW, GROOVY_WORK_TEST, GROOVY_PEAK_TEST) is a

@@ -92,6 +92,32 @@ pub fn held(event: &str) -> Held {
     }
 }
 
+/// The events that open the web island when the native island stands in for
+/// it (`--native-island`): only what asks for the user. Opening it costs a
+/// whole WebView2, so every other event waits for the next opening.
+pub const NATIVE_OPENERS: &[&str] = &[
+    "hook",
+    "island-notice",
+    "mail-notification",
+    "open-wardrobe",
+    "reminder",
+    "screen-look-ask",
+    "shortcut",
+    "tray",
+    "voice-ask",
+    "voice-call-start",
+    "voice-say",
+    "voice-wake",
+];
+
+/// `held` for the native island: a wake that isn't an opener is only kept.
+pub fn held_native(event: &str) -> Held {
+    match held(event) {
+        Held::Wake if !NATIVE_OPENERS.contains(&event) => Held::Keep,
+        h => h,
+    }
+}
+
 /// The events kept for a sleeping page, in the order to deliver them.
 #[derive(Default)]
 pub struct Queue {
@@ -101,7 +127,11 @@ pub struct Queue {
 impl Queue {
     /// Takes `event`; true when the island must wake for it.
     pub fn push(&mut self, event: &str, payload: &str) -> bool {
-        match held(event) {
+        self.push_as(event, payload, held(event))
+    }
+
+    fn push_as(&mut self, event: &str, payload: &str, held: Held) -> bool {
+        match held {
             Held::Drop => false,
             Held::Keep => {
                 self.items.retain(|(name, _)| name != event);
@@ -226,7 +256,8 @@ pub fn init(app: &AppHandle) {
             if PHASE.load(Ordering::Relaxed) == AWAKE {
                 return;
             }
-            let wake = QUEUE.lock().unwrap().push(name, event.payload());
+            let how = if crate::native_island::active() { held_native(name) } else { held(name) };
+            let wake = QUEUE.lock().unwrap().push_as(name, event.payload(), how);
             if wake {
                 wake_up(&handle, name);
             }
@@ -935,6 +966,18 @@ mod tests {
             "the newest state update, then what woke him, in order; the cursor dropped"
         );
         assert!(q.take().is_empty());
+    }
+
+    #[test]
+    fn the_native_island_opens_the_web_island_only_for_what_asks_for_the_user() {
+        for e in super::NATIVE_OPENERS {
+            assert!(super::ISLAND_EVENTS.contains(e), "{e} is an island event");
+            assert_eq!(super::held_native(e), super::Held::Wake, "{e}");
+        }
+        for e in ["settings-changed", "spotify", "github-alerts", "recap-check", "screen-changed"] {
+            assert_eq!(super::held_native(e), super::Held::Keep, "{e} waits for the next opening");
+        }
+        assert_eq!(super::held_native("cursor"), super::Held::Drop);
     }
 
     #[test]
