@@ -120,6 +120,15 @@ pub fn parse(input: &Value, frame: (f64, (i32, i32), u32, u32)) -> (Vec<Mark>, u
     (out, dropped)
 }
 
+/// Where Groovy points for a mark (desktop pixels): an arrow's tip, else its middle.
+pub fn point_of(m: &Mark) -> (i32, i32) {
+    if m.shape == Shape::Arrow {
+        (m.x2, m.y2)
+    } else {
+        ((m.x + m.x2) / 2, (m.y + m.y2) / 2)
+    }
+}
+
 /// The desktop area the marks need (with a margin), to size the overlay.
 pub fn bounds(marks: &[Mark]) -> Option<(i32, i32, i32, i32)> {
     let mut it = marks.iter();

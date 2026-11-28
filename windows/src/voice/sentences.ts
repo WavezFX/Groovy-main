@@ -25,6 +25,23 @@ export function finishedSentences(text: string, from: number): { sentences: stri
 }
 
 /**
+ * Round 4C item 4: what is said of an answer about the screen. Marks come as
+ * tags (`[[arrow 1 2 3 4 red]]`) that are drawn, never read out, and only step 1
+ * of a "Step 1: … Step 2: …" answer is said ("next" says the others). An
+ * unfinished tag at the end of a streaming answer is cut. Mirrors
+ * `screen/steps.rs` (`speakable`).
+ */
+export function speakable(text: string): string {
+  const starts = [...text.matchAll(/(^|\n)[ *#]*step (\d+)[:.) -]/gi)];
+  let cut = text;
+  if (starts.length >= 2 && starts[0][2] === "1") cut = text.slice(0, starts[1].index! + starts[1][1].length);
+  cut = cut.replace(/\s*\[\[[^\]]*\]\]/g, "");
+  const open = cut.indexOf("[[");
+  if (open >= 0) cut = cut.slice(0, open);
+  return cut.replace(/\s+$/, "");
+}
+
+/**
  * Reads sentences one after another. `feed` takes the reply so far; `finish`
  * the whole reply, and resolves once everything has been said (or `stop`).
  */

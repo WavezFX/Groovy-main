@@ -203,10 +203,10 @@ This is the **one list** of everything to do, in order. Work from the top down. 
 - [x] 1. Behaviour notes from the two reference projects (Opus; no code): `docs/plan/SCREEN_BUDDY_NOTES.md`; items 2–5 updated to match
 - [x] 2. Screen capture, on request only (at most 400 KB, within 500 ms). Built (`screen/`); not yet proven on Windows (see STATUS.md)
 - [x] 3. "Look at my screen" in chat and by voice. Built; not yet proven on Windows (see STATUS.md)
-- [ ] 4. Live talk-back about the screen. **Partly built:** a call question about the screen takes one look (see STATUS.md); steps, real-time models, keep-watching and the peak test are left
-- [ ] 5. Pointing and drawing on the screen (Opus). **Partly built:** `draw_on_screen` and a native click-through overlay (see STATUS.md); the wisp pointing, Escape/click clearing, circle-and-ask and the CI screenshot test are left
+- [x] 4. Live talk-back about the screen. Built: one look per screen question in a call, step-by-step answers with marks ("next", "clear that"), keep watching during a call (5 s, only on change), two looks in the peak test. Left, noted in STATUS.md: the real-time voice models' own look; not yet proven on Windows
+- [x] 5. Pointing and drawing on the screen (Opus). Built: `draw_on_screen`, a native click-through overlay, Groovy flying to the mark and pointing with his wisp, Escape/click clearing, circle and ask (Ctrl+Alt+K), the CI screenshot test (`marks-test.ps1`). Not yet proven on Windows (see STATUS.md)
 - [x] 6. Settings and privacy (Settings → General: look at the screen, keep watching in a call, the brains that can see, where a picture goes). Settings-open idle not re-measured
-- [ ] 7. Checks. **Not done:** waits for this build's numbers (idle, peak with a look and drawing) and the owner's three tries in STATUS.md
+- [x] 7. Checks: idle 98.5 MB, Settings open 144 MB, peak 272.7 MB with two looks and marks in a call (build of `8976877`); marks land within 10 px; the owner's six tries in STATUS.md
 
 ### 4E. `FIXES_ROUND4E.md` (licence and assets). **Last: item 2 renames many files.**
 - [ ] 1. Original motion for the character; growth art unchanged (Opus). Design approved by the owner 20 Nov 2026. **Engine rewritten** (`engine.ts`, new `motion.ts`; `docs/plan/CHARACTER_MOTION.md` §4 has no ported row; contact sheet in `docs/plan/motion-sheet/`). `minibots.ts`, `core/anim.ts` and the desktop flight (`desktop-logic.ts`, curves in `desktop.rs`) rewritten too. Left before ticking: P1/P10/idle-memory numbers from this branch's CI build, and the line comparison against the original engine (source not in this checkout).

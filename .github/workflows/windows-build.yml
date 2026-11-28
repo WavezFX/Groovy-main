@@ -152,7 +152,7 @@ jobs:
         shell: pwsh
         run: |
           $has = { param($path, $text) [Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $path))).Contains($text) }
-          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW", "GROOVY_SLEEP_TEST", "GROOVY_HUB_IDLE_SECS"
+          $switches = "GROOVY_WORK_TEST", "GROOVY_PEAK_TEST", "GROOVY_SMOKE_VIEW", "GROOVY_SLEEP_TEST", "GROOVY_HUB_IDLE_SECS", "GROOVY_MARKS_TEST"
           foreach ($v in $switches) { if (& $has release/groovy.exe $v) { throw "the shipped groovy.exe reads $v" } }
           npx tauri build --no-bundle --features ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -165,6 +165,23 @@ jobs:
       - name: Nothing but the island is drawn, and it is frosted (F and E)
         shell: pwsh
         run: ./scripts/corner-test.ps1 -Exe release/test/groovy.exe -OutDir corner-shots
+
+      # Round 4C item 5: an arrow and a box drawn through a half-scale picture
+      # land within 10 px of where they were asked for.
+      - name: Marks on the screen land where they were asked for (4C)
+        # Reports only until its first green run on the runner.
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/marks-test.ps1 -Exe release/test/groovy.exe -OutDir marks-shots
+
+      - name: Upload the marks screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screen-marks
+          path: windows/marks-shots/
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Upload the corner screenshots
         if: always()

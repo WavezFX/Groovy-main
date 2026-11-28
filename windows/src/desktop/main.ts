@@ -103,7 +103,21 @@ class DesktopMochi {
       this.canvas.style.transition = "";
       this.canvas.style.opacity = "1";
     });
+    // Round 4C item 5: he points at a mark on the screen with his wisp (null: done).
+    await onEvent<{ x: number; y: number } | null>(DESKTOP_EVENTS.point, (p) => {
+      this.engine.pointAt = p;
+      if (p) {
+        this.wake();
+        this.engine.triggerEmote("happy", 0.6);
+      }
+      this.schedule();
+    });
     await emitToWindow(ISLAND, DESKTOP_EVENTS.ready);
+    // His window is made on first use: the events that showed him (and set him
+    // pointing) may have gone out before this page listened.
+    const now = await Bridge.desktopInfo();
+    if (now?.point && !this.engine.pointAt) this.engine.pointAt = { x: now.point[0], y: now.point[1] };
+    if (now?.shown && !this.visible) this.setVisible(true);
   }
 
   // ── State ───────────────────────────────────────────────────────────────────

@@ -112,6 +112,25 @@ pub mod logic {
         })
     }
 
+    /// Round 4C item 5: where he sits to point at `target` (desktop pixels), and
+    /// which way his wisp points (a unit vector from his centre to it). He sits
+    /// just below and to the right, so he never covers what he points at; where
+    /// there is no room he moves to the other side, inside the work area.
+    pub fn point_spot(target: (f64, f64), size: f64, work: Rect, margin: f64) -> ((f64, f64), (f64, f64)) {
+        let gap = size * 0.3;
+        let mut o = (target.0 + gap, target.1 + gap);
+        if o.0 + size > work.x + work.w - margin {
+            o.0 = target.0 - gap - size;
+        }
+        if o.1 + size > work.y + work.h - margin {
+            o.1 = target.1 - gap - size;
+        }
+        let o = clamp_origin(o, size, work, margin);
+        let (dx, dy) = (target.0 - (o.0 + size / 2.0), target.1 - (o.1 + size / 2.0));
+        let len = (dx * dx + dy * dy).sqrt().max(1.0);
+        (o, (dx / len, dy / len))
+    }
+
     fn dist2(a: (f64, f64), b: (f64, f64)) -> f64 {
         (a.0 - b.0).powi(2) + (a.1 - b.1).powi(2)
     }
@@ -270,6 +289,11 @@ pub struct DesktopInfo {
     mode: &'static str,
     /// He was on the desktop when the app last quit.
     on_desktop: bool,
+    /// His window is on screen now: a page made after the `desktop-visible`
+    /// event (his window is made on first use) learns it here.
+    shown: bool,
+    /// Pointing at a mark (round 4C item 5): the unit vector, or None.
+    point: Option<(f64, f64)>,
 }
 
 pub fn window(app: &AppHandle) -> Option<WebviewWindow> {
@@ -743,7 +767,12 @@ pub fn desktop_mochi_info(app: AppHandle, desktop: State<Arc<Desktop>>) -> Deskt
         .try_state::<crate::Shared>()
         .map(|s| s.settings.lock().unwrap().desktop_mochi.on_desktop)
         .unwrap_or(false);
-    DesktopInfo { mode: desktop.mode.as_str(), on_desktop: on_desktop && desktop.mode != DesktopMode::Off }
+    DesktopInfo {
+        mode: desktop.mode.as_str(),
+        on_desktop: on_desktop && desktop.mode != DesktopMode::Off,
+        shown: desktop.inner.lock().unwrap().shown,
+        point: *POINT_DIR.lock().unwrap(),
+    }
 }
 
 /// Dragging Groovy out of the island: the window appears under the pointer
@@ -941,6 +970,66 @@ pub async fn desktop_mochi_fly_home(app: AppHandle, forget: bool) -> bool {
     done
 }
 
+// ── Pointing at a mark (round 4C item 5) ─────────────────────────────────────
+
+/// Where he was before he went to point: `Some(true)` out on the desktop,
+/// `Some(false)` home in the island; `None` when he isn't pointing.
+static POINTING: Mutex<Option<bool>> = Mutex::new(None);
+/// Which way his wisp points while he points (for a page that loads late).
+static POINT_DIR: Mutex<Option<(f64, f64)>> = Mutex::new(None);
+
+/// He flies to the mark at `target` (physical desktop pixels) and points at it
+/// with his wisp. The same window and flight as always: no new WebView. False
+/// where his window can't go there (layer mode, off, being carried).
+pub async fn point_at(app: &AppHandle, target: (f64, f64)) -> bool {
+    let Some(d) = app.try_state::<Arc<Desktop>>().map(|d| d.inner().clone()) else { return false };
+    if !matches!(d.mode, DesktopMode::Poll | DesktopMode::Window) || d.inner.lock().unwrap().carry.is_some() || !ensure_window(app, &d) {
+        return false;
+    }
+    let Some(disp) = logic::display_near(target, &displays(app, &d)) else { return false };
+    let (spot, dir) = logic::point_spot(target, SIZE * disp.scale, disp.work, MARGIN * disp.scale);
+    let was_out = d.inner.lock().unwrap().shown;
+    {
+        let mut p = POINTING.lock().unwrap();
+        if p.is_none() {
+            *p = Some(was_out);
+        }
+    }
+    if !was_out {
+        let Some((cx, top, scale)) = island_anchor(app, &d) else { return false };
+        let _ = app.emit_to(island::WINDOW_LABEL, "desktop-mochi-pointing", true);
+        show(app, &d, logic::island_spot(cx, top, SIZE, scale));
+    }
+    d.inner.lock().unwrap().landed = false;
+    refresh(app, &d);
+    let _ = app.emit_to(LABEL, "desktop-flight", "out");
+    if !fly(app, &d, spot, FLIGHT_MS, logic::ease_in_out).await {
+        return false;
+    }
+    *POINT_DIR.lock().unwrap() = Some(dir);
+    let _ = app.emit_to(LABEL, "desktop-point", Some(serde_json::json!({ "x": dir.0, "y": dir.1 })));
+    true
+}
+
+/// The marks cleared: he stops pointing and goes back where he was.
+pub async fn point_done(app: &AppHandle) {
+    let Some(was_out) = POINTING.lock().unwrap().take() else { return };
+    let Some(d) = app.try_state::<Arc<Desktop>>().map(|d| d.inner().clone()) else { return };
+    POINT_DIR.lock().unwrap().take();
+    let _ = app.emit_to(LABEL, "desktop-point", None::<serde_json::Value>);
+    if !was_out {
+        desktop_mochi_fly_home(app.clone(), false).await;
+        let _ = app.emit_to(island::WINDOW_LABEL, "desktop-mochi-pointing", false);
+        return;
+    }
+    if let Some(spot) = target_spot(app, &d, true) {
+        if fly(app, &d, spot, FLIGHT_MS, logic::ease_in_out).await {
+            d.inner.lock().unwrap().landed = true;
+            refresh(app, &d);
+        }
+    }
+}
+
 /// The page dozed off (or woke up). Asleep, nothing polls.
 #[tauri::command]
 pub fn desktop_mochi_set_asleep(app: AppHandle, desktop: State<Arc<Desktop>>, asleep: bool) {
@@ -985,6 +1074,24 @@ mod tests {
         assert_eq!(clamp_origin((2000.0, 400.0), s, work, m).0, work.x + work.w - s - m, "too-right");
         assert_eq!(clamp_origin((400.0, -50.0), s, work, m).1, work.y + m, "too-high");
         assert_eq!(clamp_origin((400.0, 2000.0), s, work, m).1, work.y + work.h - s - m, "too-low: above the taskbar");
+    }
+
+    #[test]
+    fn he_points_from_beside_the_mark_and_never_leaves_the_work_area() {
+        let work = Rect { x: 0.0, y: 0.0, w: 1920.0, h: 1032.0 };
+        let (s, m) = (120.0, 24.0);
+        // In the middle: below and to the right, wisp pointing up-left.
+        let ((x, y), (dx, dy)) = point_spot((800.0, 400.0), s, work, m);
+        assert!(x > 800.0 && y > 400.0);
+        assert!(dx < 0.0 && dy < 0.0 && ((dx * dx + dy * dy) - 1.0).abs() < 1e-9);
+        // Bottom-right corner: he moves above and to the left, still pointing at it.
+        let ((x, y), (dx, dy)) = point_spot((1900.0, 1020.0), s, work, m);
+        assert!(x + s <= 1920.0 - m && y + s <= 1032.0 - m);
+        assert!(dx > 0.0 && dy > 0.0);
+        // A second monitor at 200 % with a negative origin.
+        let work2 = Rect { x: -3840.0, y: -200.0, w: 3840.0, h: 2064.0 };
+        let ((x, y), _) = point_spot((-3830.0, -190.0), 240.0, work2, 48.0);
+        assert!(x >= -3840.0 + 48.0 && y >= -200.0 + 48.0);
     }
 
     fn two_displays() -> Vec<Display> {

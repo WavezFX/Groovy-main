@@ -1,6 +1,7 @@
 // Round 4C items 2 and 6: the island's part in a look at the screen.
 // - "screen-look-ask": Allow / Not now, when Settings → Screen is "Ask each time".
 // - "screen-looking": an eye badge while the picture is taken and for 2 s after.
+// - "screen-watching": "Keep watching during a call" is on; the badge stays lit (round 4C item 4).
 // Nothing here is built until the first look; the picture never comes to this page.
 
 import { invoke } from "@tauri-apps/api/core";
@@ -18,6 +19,7 @@ const BASE =
 
 let badge: HTMLElement | null = null;
 let badgeTimer = 0;
+let watching = false;
 
 /** The eye badge: lit while looking, gone 2 s after. */
 export function showEye(on: boolean) {
@@ -33,7 +35,7 @@ export function showEye(on: boolean) {
   }
   clearTimeout(badgeTimer);
   badge.style.opacity = "1";
-  if (!on) {
+  if (!on && !watching) {
     badgeTimer = window.setTimeout(() => {
       badge?.remove();
       badge = null;
@@ -69,4 +71,8 @@ export function registerScreenLook() {
   if (!IS_TAURI) return;
   void onEvent<{ id: number }>("screen-look-ask", (a) => askToLook(a.id));
   void onEvent<{ on: boolean }>("screen-looking", (e) => showEye(e.on));
+  void onEvent<{ on: boolean }>("screen-watching", (e) => {
+    watching = e.on;
+    showEye(e.on);
+  });
 }

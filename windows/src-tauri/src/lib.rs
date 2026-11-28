@@ -634,14 +634,25 @@ async fn chat_send(
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
     chat.set_spoken(spoken.unwrap_or(false));
+    // Round 4C item 4: "next" and "clear that" about the marks, at once.
+    if let Some(words) = screen::spoken(&app, &query) {
+        return Ok(ChatReply::text(words));
+    }
     // Round 4C item 4: a question about the screen (typed or in a call) takes one look for it.
     let query = match screen::look_for_question(&app, &query).await {
         Some(note) => format!("{query}\n\n{note}"),
         None => query,
     };
-    let reply = chat::send(&app, &chat, &settings, query, context).await;
+    let looked = screen::chat_look_pending();
+    let mut reply = chat::send(&app, &chat, &settings, query, context).await;
     // Round 4C item 3: a picture of the screen goes with one message at most.
     screen::forget_chat_look();
+    // Round 4C items 4 and 5: its marks are drawn; a long answer comes in steps.
+    if let (true, Ok(r)) = (looked, reply.as_mut()) {
+        if let Some(words) = screen::after_reply(&app, &r.text) {
+            r.text = words;
+        }
+    }
     reply
 }
 
@@ -1669,6 +1680,7 @@ pub fn run() {
             screen::screen_look,
             screen::screen_look_answer,
             screen::screen_look_forget,
+            screen::screen_circle,
             okgroovy::okgroovy_status,
             quick_status,
             fullscreen_busy,
@@ -1847,6 +1859,8 @@ pub fn run() {
             growth_clock::start(&handle);
             #[cfg(feature = "worktest")]
             worktest::start(&handle);
+            #[cfg(feature = "ci")]
+            screen::marks_test(&handle);
             hooks::ensure_hook_exe(&handle);
             pipe::start_if_hooked(&handle);
             phone_link::start_if_enabled(&handle);

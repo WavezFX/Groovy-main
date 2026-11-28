@@ -2,10 +2,12 @@
 //! always-on-top layered window over the area that was looked at, painted with
 //! GDI (no WebView, so drawing adds almost nothing to memory). It is made on
 //! first use, on its own thread, and destroyed when the marks clear: after 6 s,
-//! on "clear that", or at the next request when asked to keep them (60 s at most).
+//! on "clear that", Escape or a click anywhere (the window stays click-through:
+//! a 40 ms timer reads the keys and buttons, only while marks show), or at the
+//! next request when asked to keep them (60 s at most).
 
 use super::marks::{Mark, Shape};
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::sync::{Mutex, Once};
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, RECT, WPARAM};
@@ -14,6 +16,7 @@ use windows::Win32::Graphics::Gdi::{
     CLIP_DEFAULT_PRECIS, DEFAULT_CHARSET, FW_BOLD, HGDIOBJ, NONANTIALIASED_QUALITY, NULL_BRUSH, OUT_DEFAULT_PRECIS, PAINTSTRUCT, PS_SOLID, TRANSPARENT,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_ESCAPE, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, PostMessageW, PostQuitMessage, RegisterClassW, SetLayeredWindowAttributes, SetTimer, ShowWindow, TranslateMessage,
     LWA_ALPHA, LWA_COLORKEY, MSG, SW_SHOWNOACTIVATE, WM_CLOSE, WM_DESTROY, WM_PAINT, WM_TIMER, WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
@@ -25,6 +28,11 @@ const KEY: u32 = 0x00010001;
 const CLASS: PCWSTR = w!("GroovyScreenMarks");
 
 static CURRENT: AtomicIsize = AtomicIsize::new(0);
+/// Bumped by every `show`: only the newest window's end counts as the marks clearing.
+static GEN: AtomicU64 = AtomicU64::new(0);
+/// The keys and buttons that were already down at the last look (a press is a change to down).
+static DOWN: Mutex<[bool; 4]> = Mutex::new([true; 4]);
+const POLL: usize = 2;
 /// What the window paints: the marks and the window's top-left on the desktop.
 static PAINT: Mutex<Option<(Vec<Mark>, (i32, i32))>> = Mutex::new(None);
 
@@ -38,11 +46,33 @@ pub fn clear() {
     }
 }
 
+/// Whether marks are on the screen.
+pub fn showing() -> bool {
+    CURRENT.load(Ordering::SeqCst) != 0
+}
+
 /// Draws `marks` over `area` (left, top, width, height in desktop pixels).
-pub fn show(marks: Vec<Mark>, area: (i32, i32, i32, i32), keep: bool) {
+/// `cleared` runs when these marks go and no newer ones took their place.
+pub fn show(marks: Vec<Mark>, area: (i32, i32, i32, i32), keep: bool, cleared: Box<dyn FnOnce() + Send>) {
+    let gen = GEN.fetch_add(1, Ordering::SeqCst) + 1;
     clear();
     *PAINT.lock().unwrap() = Some((marks, (area.0, area.1)));
-    std::thread::spawn(move || unsafe { run(area, if keep { 60_000 } else { 6_000 }) });
+    *DOWN.lock().unwrap() = [true; 4];
+    std::thread::spawn(move || {
+        unsafe { run(area, if keep { 60_000 } else { 6_000 }) };
+        if GEN.load(Ordering::SeqCst) == gen {
+            cleared();
+        }
+    });
+}
+
+/// Escape or a mouse button pressed since the last look (not one held from before).
+fn pressed() -> bool {
+    let now = [VK_ESCAPE, VK_LBUTTON, VK_RBUTTON, VK_MBUTTON].map(|k| unsafe { GetAsyncKeyState(k.0 as i32) } as u16 & 0x8000 != 0);
+    let mut before = DOWN.lock().unwrap();
+    let hit = now.iter().zip(before.iter()).any(|(n, b)| *n && !*b);
+    *before = now;
+    hit
 }
 
 unsafe fn run(area: (i32, i32, i32, i32), ms: u32) {
@@ -72,6 +102,7 @@ unsafe fn run(area: (i32, i32, i32, i32), ms: u32) {
     let _ = SetLayeredWindowAttributes(hwnd, COLORREF(KEY), 235, LWA_COLORKEY | LWA_ALPHA);
     let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE);
     SetTimer(Some(hwnd), 1, ms, None);
+    SetTimer(Some(hwnd), POLL, 40, None);
     let mut msg = MSG::default();
     while GetMessageW(&mut msg, None, 0, 0).as_bool() {
         let _ = TranslateMessage(&msg);
@@ -84,6 +115,12 @@ unsafe extern "system" fn proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
     match msg {
         WM_PAINT => {
             paint(hwnd);
+            LRESULT(0)
+        }
+        WM_TIMER if wparam.0 == POLL => {
+            if pressed() {
+                let _ = DestroyWindow(hwnd);
+            }
             LRESULT(0)
         }
         WM_TIMER | WM_CLOSE => {

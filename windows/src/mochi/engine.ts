@@ -364,6 +364,8 @@ export class BotEngine {
 
   lookX = 0;
   lookY = 0;
+  /** Round 4C item 5: pointing at a mark on the screen, a unit vector (y down); null when not. */
+  pointAt: { x: number; y: number } | null = null;
   private lastLook = { x: 0, y: 0, still: 0 };
 
   lastTime = now();
@@ -820,8 +822,8 @@ export class BotEngine {
     const shown: EyeShape = this.eyeOverride ?? this.cfg.eye;
 
     // Where he looks: the pointer, or what the state is doing.
-    let gx = this.lookX;
-    let gy = this.lookY;
+    let gx = this.pointAt ? this.pointAt.x * 0.8 : this.lookX;
+    let gy = this.pointAt ? this.pointAt.y * 0.8 : this.lookY;
     const moved = Math.abs(gx - this.lastLook.x) + Math.abs(gy - this.lastLook.y) > 0.004;
     this.lastLook.x = gx; this.lastLook.y = gy;
     this.lastLook.still = moved ? 0 : this.lastLook.still + dt;
@@ -1527,6 +1529,14 @@ export class BotEngine {
       // Two beats: up and out, then a curl back.
       w[1].x = lerp(w[1].x, 1.25, o.wave);
       w[1].y = lerp(w[1].y, -0.35, o.wave);
+    }
+    if (this.pointAt) {
+      // Pointing at a mark: the wisp on that side reaches out along the line, tip first.
+      const p = this.pointAt;
+      const i = p.x >= 0 ? 1 : 0;
+      w[i].x = (i ? 1 : -1) * 0.7 + p.x * 0.75;
+      w[i].y = 0.15 + p.y * 0.95;
+      w[i].r = Math.atan2(p.x, -p.y);
     }
     return w;
   }

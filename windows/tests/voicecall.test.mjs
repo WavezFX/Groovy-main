@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SentenceSpeaker, finishedSentences } from "../src/voice/sentences.ts";
+import { SentenceSpeaker, finishedSentences, speakable } from "../src/voice/sentences.ts";
 import { brainName, stageText } from "../src/voice/stages.ts";
 import { runVoiceTest } from "../src/settings/voicetest.ts";
 import { DEFAULT_ASSISTANT, DEFAULT_SETTINGS } from "../src/core/state.ts";
@@ -77,4 +77,20 @@ test("the voice test reports every stage, skipping only what needs a failed one"
   assert.deepEqual(bad.map((r) => [r.stage, r.ok]), [["mic", false], ["speech", null], ["brain", false], ["voice", false]]);
   assert.equal(bad[2].detail, "Local AI is off.");
   assert.equal(bad[3].detail, "No voice is installed");
+});
+
+// Round 4C item 4: marks are drawn, never read out; only step 1 is said first.
+test("an answer about the screen says step 1 and no tag", () => {
+  const reply = "Here's how.\nStep 1: Click File [[arrow 300 200 -80 -60 red File]] at the top.\nStep 2: Then Save as [[box 40 120 200 30 green]].";
+  assert.equal(speakable(reply), "Here's how.\nStep 1: Click File at the top.");
+  assert.equal(speakable("Click here [[arrow 1 2"), "Click here");
+  assert.equal(speakable("No steps at all."), "No steps at all.");
+  assert.equal(speakable("Take one step 2 the left."), "Take one step 2 the left.");
+  // Streaming: what is said only grows as the answer comes in.
+  const said = [];
+  const speaker = new SentenceSpeaker(async (s) => (said.push(s), null), () => {});
+  for (let n = 1; n <= reply.length; n += 7) speaker.feed(speakable(reply.slice(0, n)));
+  return speaker.finish(speakable(reply)).then(() => {
+    assert.deepEqual(said, ["Here's how.", "Step 1: Click File at the top."]);
+  });
 });

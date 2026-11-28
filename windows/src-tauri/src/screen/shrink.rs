@@ -20,6 +20,8 @@ pub struct Shot {
     pub origin: (i32, i32),
     /// Where the pointer was, in the picture's pixels (None when outside it).
     pub pointer: Option<(i32, i32)>,
+    /// 32×32 grey levels, to tell whether the screen changed (keep watching).
+    pub thumb: Vec<u8>,
 }
 
 /// The picture's size for a `w`×`h` capture, and the scale used.
@@ -83,6 +85,37 @@ pub fn encode(rgb: &[u8], w: u32, h: u32) -> Result<Vec<u8>, String> {
     Ok(last)
 }
 
+/// THUMB×THUMB grey levels of an RGB picture (box averages).
+pub const THUMB: u32 = 32;
+
+pub fn thumb(rgb: &[u8], w: u32, h: u32) -> Vec<u8> {
+    let mut out = vec![0u8; (THUMB * THUMB) as usize];
+    for ty in 0..THUMB {
+        let (y0, y1) = (ty * h / THUMB, ((ty + 1) * h / THUMB).max(ty * h / THUMB + 1).min(h));
+        for tx in 0..THUMB {
+            let (x0, x1) = (tx * w / THUMB, ((tx + 1) * w / THUMB).max(tx * w / THUMB + 1).min(w));
+            let (mut sum, mut n) = (0u64, 0u64);
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    let i = ((y * w + x) * 3) as usize;
+                    if i + 2 < rgb.len() {
+                        sum += (rgb[i] as u64 * 3 + rgb[i + 1] as u64 * 6 + rgb[i + 2] as u64) / 10;
+                        n += 1;
+                    }
+                }
+            }
+            out[(ty * THUMB + tx) as usize] = sum.checked_div(n).unwrap_or(0) as u8;
+        }
+    }
+    out
+}
+
+/// Whether two thumbnails show a changed screen: at least 3 of the 1024 cells
+/// moved by more than 12 levels (a blinking caret or a ticking clock is one or two).
+pub fn changed(a: &[u8], b: &[u8]) -> bool {
+    a.len() != b.len() || a.iter().zip(b).filter(|(x, y)| x.abs_diff(**y) > 12).count() >= 3
+}
+
 /// The whole step: a BGRA capture of the area at `origin` into a small JPEG.
 /// `pointer` is in desktop pixels.
 pub fn shot_from_bgra(src: &[u8], w: u32, h: u32, stride: usize, origin: (i32, i32), pointer: Option<(i32, i32)>) -> Result<Shot, String> {
@@ -96,7 +129,8 @@ pub fn shot_from_bgra(src: &[u8], w: u32, h: u32, stride: usize, origin: (i32, i
         let (x, y) = (((px - origin.0) as f64 * scale) as i32, ((py - origin.1) as f64 * scale) as i32);
         (x >= 0 && y >= 0 && x < tw as i32 && y < th as i32).then_some((x, y))
     });
-    Ok(Shot { jpeg, width: tw, height: th, scale, origin, pointer })
+    let thumb = thumb(&rgb, tw, th);
+    Ok(Shot { jpeg, width: tw, height: th, scale, origin, pointer, thumb })
 }
 
 #[cfg(test)]
@@ -132,6 +166,29 @@ mod tests {
         assert_eq!(&rgb[..3], &[255, 0, 255]);
         // A pointer on another monitor isn't in the picture.
         assert!(shot_from_bgra(&src, w, h, w as usize * 4, (0, 0), Some((-5, 10))).unwrap().pointer.is_none());
+    }
+
+    #[test]
+    fn a_changed_screen_is_told_from_a_blinking_caret() {
+        let (w, h) = (640u32, 360u32);
+        let mut rgb = vec![200u8; (w * h * 3) as usize];
+        let a = thumb(&rgb, w, h);
+        assert_eq!(a.len(), 1024);
+        assert!(!changed(&a, &a));
+        // A caret: a few pixels in one cell.
+        for y in 10..22 {
+            let i = ((y * w + 30) * 3) as usize;
+            rgb[i..i + 6].fill(0);
+        }
+        assert!(!changed(&a, &thumb(&rgb, w, h)), "a caret is not a change");
+        // A window opened over a quarter of the screen.
+        for y in 0..h / 2 {
+            for x in 0..w / 2 {
+                let i = ((y * w + x) * 3) as usize;
+                rgb[i..i + 3].fill(20);
+            }
+        }
+        assert!(changed(&a, &thumb(&rgb, w, h)));
     }
 
     #[test]
