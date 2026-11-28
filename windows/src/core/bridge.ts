@@ -534,6 +534,8 @@ export const Bridge = {
   islandPickFolder: () => callOrThrow<string | null>("island_pick_folder"),
   mailAccess: () => call<"allowed" | "denied" | "unspecified" | "unsupported">("mail_access"),
   mailOpen: (appId: string) => callOrThrow<void>("mail_open", { appId }),
+  /** Round 7: the chat with someone who wrote on Instagram, or the DMs list for "". */
+  instagramOpen: (who: string) => callOrThrow<string>("instagram_open", { who }),
   // Connected mail accounts (mail/): passwords and tokens go to Credential Manager and never come back.
   mailAccounts: () => call<MailAccount[]>("mail_accounts"),
   mailInboxes: () => call<MailInbox[]>("mail_inboxes"),

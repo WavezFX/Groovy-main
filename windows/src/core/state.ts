@@ -16,6 +16,7 @@ import { DEFAULT_SKIN, type Skin } from "../mochi/skins";
 import { pillColor } from "./pill-colors";
 import { currentTiles, withServices } from "./tiles";
 import { Spotify, musicPlaying } from "./spotify";
+import { DEFAULT_INSTAGRAM, type InstagramPrefs } from "../instagram/store";
 
 export type AgentSource = "claudeCode" | "n8n" | "agent";
 export type PillBadge = "approval" | "finished" | "error";
@@ -190,6 +191,8 @@ export interface Settings {
   screenWatch: boolean;
   /** Keep the last 20 copied texts in memory (off by default). */
   clipboardHistory: boolean;
+  /** Round 7: Instagram messages (off by default). */
+  instagram: InstagramPrefs;
   hooksInstalled: boolean;
   /** Claude model used by the chat. */
   model: string;
@@ -331,6 +334,7 @@ export const DEFAULT_SETTINGS: Settings = {
   screenLook: "ask",
   screenWatch: false,
   clipboardHistory: false,
+  instagram: { ...DEFAULT_INSTAGRAM },
   hooksInstalled: false,
   model: "claude-opus-5",
   showPlanInNotch: false,

@@ -47,6 +47,7 @@ pub const ISLAND_EVENTS: &[&str] = &[
     "live-state",
     "mail-inboxes",
     "mail-notification",
+    "instagram-message",
     "memory-pressure",
     "ollama-setup",
     "open-wardrobe",

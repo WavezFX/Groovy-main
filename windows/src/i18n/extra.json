@@ -20982,6 +20982,204 @@
    "pt-BR": "O Groovy só olha quando você pede. A imagem fica na memória, vai só para o cérebro que responde e é descartada após a resposta; nunca é salva.",
    "ru": "Groovy смотрит, только когда вы просите. Снимок хранится в памяти, уходит только мозгу, который отвечает, и удаляется после ответа; он никогда не сохраняется.",
    "id": "Groovy hanya melihat saat kamu minta. Gambarnya tetap di memori, hanya dikirim ke otak yang menjawab, dan dibuang setelah balasan; tidak pernah disimpan."
+  },
+  "I couldn't open Instagram: {error}": {
+   "zh-Hans": "无法打开 Instagram：{error}",
+   "hi": "मैं Instagram नहीं खोल सका: {error}",
+   "es": "No he podido abrir Instagram: {error}",
+   "ar": "تعذّر عليّ فتح Instagram: {error}",
+   "fr": "Je n'ai pas pu ouvrir Instagram : {error}",
+   "bn": "আমি Instagram খুলতে পারিনি: {error}",
+   "pt-BR": "Não consegui abrir o Instagram: {error}",
+   "ru": "Не удалось открыть Instagram: {error}",
+   "id": "Aku tidak bisa membuka Instagram: {error}"
+  },
+  "I've opened Instagram's new message search: pick {name} there.": {
+   "zh-Hans": "我已打开 Instagram 的新消息搜索：请在那里选择 {name}。",
+   "hi": "मैंने Instagram की नया संदेश खोज खोल दी है: वहाँ {name} चुनें।",
+   "es": "He abierto la búsqueda de mensaje nuevo de Instagram: elige a {name} ahí.",
+   "ar": "فتحتُ بحث الرسالة الجديدة في Instagram: اختر {name} هناك.",
+   "fr": "J'ai ouvert la recherche de nouveau message d'Instagram : choisissez {name}.",
+   "bn": "আমি Instagram-এর নতুন বার্তার খোঁজ খুলেছি: সেখানে {name} বেছে নিন।",
+   "pt-BR": "Abri a busca de nova mensagem do Instagram: escolha {name} lá.",
+   "ru": "Я открыл поиск новых сообщений в Instagram: выберите там {name}.",
+   "id": "Aku sudah membuka pencarian pesan baru Instagram: pilih {name} di sana."
+  },
+  "I've opened your chat with {name} on Instagram.": {
+   "zh-Hans": "我已在 Instagram 上打开你与 {name} 的聊天。",
+   "hi": "मैंने Instagram पर {name} के साथ आपकी चैट खोल दी है।",
+   "es": "He abierto tu chat con {name} en Instagram.",
+   "ar": "فتحتُ محادثتك مع {name} على Instagram.",
+   "fr": "J'ai ouvert votre discussion avec {name} sur Instagram.",
+   "bn": "আমি Instagram-এ {name}-এর সঙ্গে আপনার চ্যাট খুলেছি।",
+   "pt-BR": "Abri sua conversa com {name} no Instagram.",
+   "ru": "Я открыл ваш чат с {name} в Instagram.",
+   "id": "Aku sudah membuka obrolanmu dengan {name} di Instagram."
+  },
+  "I'm typing your message: check it, then press Send.": {
+   "zh-Hans": "我正在输入你的消息：检查一下，然后按“发送”。",
+   "hi": "मैं आपका संदेश टाइप कर रहा हूँ: इसे जाँचें, फिर भेजें दबाएँ।",
+   "es": "Estoy escribiendo tu mensaje: revísalo y pulsa Enviar.",
+   "ar": "أكتب رسالتك الآن: راجعها، ثم اضغط إرسال.",
+   "fr": "Je tape votre message : vérifiez-le, puis appuyez sur Envoyer.",
+   "bn": "আমি আপনার বার্তা টাইপ করছি: দেখে নিন, তারপর পাঠান চাপুন।",
+   "pt-BR": "Estou digitando sua mensagem: confira e depois toque em Enviar.",
+   "ru": "Я печатаю ваше сообщение: проверьте его и нажмите «Отправить».",
+   "id": "Aku sedang mengetik pesanmu: periksa, lalu tekan Kirim."
+  },
+  "Your message is on the clipboard: paste it with Ctrl+V, then press Send.": {
+   "zh-Hans": "你的消息已在剪贴板上：用 Ctrl+V 粘贴，然后按“发送”。",
+   "hi": "आपका संदेश क्लिपबोर्ड पर है: Ctrl+V से चिपकाएँ, फिर भेजें दबाएँ।",
+   "es": "Tu mensaje está en el portapapeles: pégalo con Ctrl+V y pulsa Enviar.",
+   "ar": "رسالتك في الحافظة: الصقها بـ Ctrl+V، ثم اضغط إرسال.",
+   "fr": "Votre message est dans le presse-papiers : collez-le avec Ctrl+V, puis appuyez sur Envoyer.",
+   "bn": "আপনার বার্তা ক্লিপবোর্ডে আছে: Ctrl+V দিয়ে পেস্ট করুন, তারপর পাঠান চাপুন।",
+   "pt-BR": "Sua mensagem está na área de transferência: cole com Ctrl+V e toque em Enviar.",
+   "ru": "Ваше сообщение в буфере обмена: вставьте его через Ctrl+V и нажмите «Отправить».",
+   "id": "Pesanmu ada di papan klip: tempel dengan Ctrl+V, lalu tekan Kirim."
+  },
+  "Instagram is off. Turn it on in Settings → General → Instagram.": {
+   "zh-Hans": "Instagram 已关闭。请在 设置 → 通用 → Instagram 中打开。",
+   "hi": "Instagram बंद है। इसे सेटिंग्स → सामान्य → Instagram में चालू करें।",
+   "es": "Instagram está desactivado. Actívalo en Ajustes → General → Instagram.",
+   "ar": "Instagram متوقف. شغّله من الإعدادات ← عام ← Instagram.",
+   "fr": "Instagram est désactivé. Activez-le dans Réglages → Général → Instagram.",
+   "bn": "Instagram বন্ধ আছে। সেটিংস → সাধারণ → Instagram-এ চালু করুন।",
+   "pt-BR": "O Instagram está desligado. Ative em Ajustes → Geral → Instagram.",
+   "ru": "Instagram выключен. Включите его в Настройки → Общие → Instagram.",
+   "id": "Instagram nonaktif. Aktifkan di Pengaturan → Umum → Instagram."
+  },
+  "Opening your Instagram messages.": {
+   "zh-Hans": "正在打开你的 Instagram 消息。",
+   "hi": "आपके Instagram संदेश खोल रहा हूँ।",
+   "es": "Abriendo tus mensajes de Instagram.",
+   "ar": "أفتح رسائلك على Instagram.",
+   "fr": "J'ouvre vos messages Instagram.",
+   "bn": "আপনার Instagram বার্তাগুলো খুলছি।",
+   "pt-BR": "Abrindo suas mensagens do Instagram.",
+   "ru": "Открываю ваши сообщения в Instagram.",
+   "id": "Membuka pesan Instagram-mu."
+  },
+  "There's no new Instagram message to reply to.": {
+   "zh-Hans": "没有可回复的新 Instagram 消息。",
+   "hi": "जवाब देने के लिए कोई नया Instagram संदेश नहीं है।",
+   "es": "No hay ningún mensaje nuevo de Instagram al que responder.",
+   "ar": "لا توجد رسالة Instagram جديدة للرد عليها.",
+   "fr": "Il n'y a aucun nouveau message Instagram auquel répondre.",
+   "bn": "উত্তর দেওয়ার মতো নতুন কোনো Instagram বার্তা নেই।",
+   "pt-BR": "Não há nenhuma mensagem nova do Instagram para responder.",
+   "ru": "Нет нового сообщения в Instagram, на которое можно ответить.",
+   "id": "Tidak ada pesan Instagram baru untuk dibalas."
+  },
+  "Writing your message to {name}…": {
+   "zh-Hans": "正在写给 {name} 的消息…",
+   "hi": "{name} के लिए आपका संदेश लिख रहा हूँ…",
+   "es": "Escribiendo tu mensaje para {name}…",
+   "ar": "أكتب رسالتك إلى {name}…",
+   "fr": "J'écris votre message pour {name}…",
+   "bn": "{name}-এর জন্য আপনার বার্তা লিখছি…",
+   "pt-BR": "Escrevendo sua mensagem para {name}…",
+   "ru": "Пишу ваше сообщение для {name}…",
+   "id": "Menulis pesanmu untuk {name}…"
+  },
+  "Turn on Instagram in Settings": {
+   "zh-Hans": "在设置中打开 Instagram",
+   "hi": "सेटिंग्स में Instagram चालू करें",
+   "es": "Activa Instagram en Ajustes",
+   "ar": "شغّل Instagram من الإعدادات",
+   "fr": "Activez Instagram dans Réglages",
+   "bn": "সেটিংসে Instagram চালু করুন",
+   "pt-BR": "Ative o Instagram em Ajustes",
+   "ru": "Включите Instagram в настройках",
+   "id": "Aktifkan Instagram di Pengaturan"
+  },
+  "New messages pop up here": {
+   "zh-Hans": "新消息会显示在这里",
+   "hi": "नए संदेश यहाँ दिखेंगे",
+   "es": "Los mensajes nuevos aparecen aquí",
+   "ar": "تظهر الرسائل الجديدة هنا",
+   "fr": "Les nouveaux messages s'affichent ici",
+   "bn": "নতুন বার্তা এখানে দেখা যাবে",
+   "pt-BR": "As mensagens novas aparecem aqui",
+   "ru": "Новые сообщения появятся здесь",
+   "id": "Pesan baru muncul di sini"
+  },
+  "Sent you a message": {
+   "zh-Hans": "给你发了一条消息",
+   "hi": "ने आपको एक संदेश भेजा",
+   "es": "Te ha enviado un mensaje",
+   "ar": "أرسل لك رسالة",
+   "fr": "Vous a envoyé un message",
+   "bn": "আপনাকে একটি বার্তা পাঠিয়েছে",
+   "pt-BR": "Enviou uma mensagem para você",
+   "ru": "Отправил вам сообщение",
+   "id": "Mengirimimu pesan"
+  },
+  "The Instagram app": {
+   "zh-Hans": "Instagram 应用",
+   "hi": "Instagram ऐप",
+   "es": "La app de Instagram",
+   "ar": "تطبيق Instagram",
+   "fr": "L'app Instagram",
+   "bn": "Instagram অ্যাপ",
+   "pt-BR": "O app do Instagram",
+   "ru": "Приложение Instagram",
+   "id": "Aplikasi Instagram"
+  },
+  "My default browser": {
+   "zh-Hans": "我的默认浏览器",
+   "hi": "मेरा डिफ़ॉल्ट ब्राउज़र",
+   "es": "Mi navegador predeterminado",
+   "ar": "متصفحي الافتراضي",
+   "fr": "Mon navigateur par défaut",
+   "bn": "আমার ডিফল্ট ব্রাউজার",
+   "pt-BR": "Meu navegador padrão",
+   "ru": "Мой браузер по умолчанию",
+   "id": "Browser bawaanku"
+  },
+  "Instagram messages": {
+   "zh-Hans": "Instagram 消息",
+   "hi": "Instagram संदेश",
+   "es": "Mensajes de Instagram",
+   "ar": "رسائل Instagram",
+   "fr": "Messages Instagram",
+   "bn": "Instagram বার্তা",
+   "pt-BR": "Mensagens do Instagram",
+   "ru": "Сообщения Instagram",
+   "id": "Pesan Instagram"
+  },
+  "Open Instagram in": {
+   "zh-Hans": "打开 Instagram 的方式",
+   "hi": "Instagram इसमें खोलें",
+   "es": "Abrir Instagram en",
+   "ar": "افتح Instagram في",
+   "fr": "Ouvrir Instagram dans",
+   "bn": "Instagram খুলুন",
+   "pt-BR": "Abrir o Instagram em",
+   "ru": "Открывать Instagram в",
+   "id": "Buka Instagram di"
+  },
+  "Type the name and message for me": {
+   "zh-Hans": "替我输入名字和消息",
+   "hi": "मेरे लिए नाम और संदेश टाइप करें",
+   "es": "Escribir el nombre y el mensaje por mí",
+   "ar": "اكتب الاسم والرسالة عني",
+   "fr": "Taper le nom et le message pour moi",
+   "bn": "আমার হয়ে নাম ও বার্তা টাইপ করুন",
+   "pt-BR": "Digitar o nome e a mensagem por mim",
+   "ru": "Вводить имя и сообщение за меня",
+   "id": "Ketikkan nama dan pesan untukku"
+  },
+  "Groovy reads only Instagram's notifications on this PC and keeps the last five in memory. He never signs in to Instagram or stores anything from it; he opens the chat and leaves your message ready. You press Send.": {
+   "zh-Hans": "Groovy 只读取这台电脑上的 Instagram 通知，并在内存中保留最近五条。他从不登录 Instagram，也不保存其中的任何内容；他会打开聊天并准备好你的消息。由你按“发送”。",
+   "hi": "Groovy इस PC पर केवल Instagram की सूचनाएँ पढ़ता है और आख़िरी पाँच मेमोरी में रखता है। वह कभी Instagram में साइन इन नहीं करता और उससे कुछ भी सहेजता नहीं; वह चैट खोलता है और आपका संदेश तैयार रखता है। भेजें आप दबाते हैं।",
+   "es": "Groovy solo lee las notificaciones de Instagram en este PC y guarda las cinco últimas en memoria. Nunca inicia sesión en Instagram ni guarda nada de él; abre el chat y deja tu mensaje listo. Tú pulsas Enviar.",
+   "ar": "لا يقرأ Groovy إلا إشعارات Instagram على هذا الكمبيوتر ويحتفظ بآخر خمسة في الذاكرة. لا يسجّل الدخول إلى Instagram أبدًا ولا يخزّن أي شيء منه؛ يفتح المحادثة ويجهّز رسالتك. أنت من يضغط إرسال.",
+   "fr": "Groovy lit seulement les notifications d'Instagram sur ce PC et garde les cinq dernières en mémoire. Il ne se connecte jamais à Instagram et n'en enregistre rien ; il ouvre la discussion et prépare votre message. C'est vous qui appuyez sur Envoyer.",
+   "bn": "Groovy এই পিসিতে শুধু Instagram-এর বিজ্ঞপ্তি পড়ে এবং শেষ পাঁচটি মেমোরিতে রাখে। সে কখনো Instagram-এ সাইন ইন করে না বা সেখান থেকে কিছু সংরক্ষণ করে না; সে চ্যাট খোলে এবং আপনার বার্তা তৈরি রাখে। পাঠান আপনি চাপেন।",
+   "pt-BR": "O Groovy só lê as notificações do Instagram neste PC e guarda as cinco últimas na memória. Ele nunca entra no Instagram nem guarda nada dele; abre a conversa e deixa sua mensagem pronta. Você toca em Enviar.",
+   "ru": "Groovy читает только уведомления Instagram на этом ПК и хранит последние пять в памяти. Он никогда не входит в Instagram и ничего оттуда не сохраняет; он открывает чат и готовит ваше сообщение. «Отправить» нажимаете вы.",
+   "id": "Groovy hanya membaca notifikasi Instagram di PC ini dan menyimpan lima terakhir di memori. Ia tidak pernah masuk ke Instagram atau menyimpan apa pun darinya; ia membuka obrolan dan menyiapkan pesanmu. Kamu yang menekan Kirim."
   }
  }
 }

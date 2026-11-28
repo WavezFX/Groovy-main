@@ -16,6 +16,8 @@ pub enum Basic {
     Time,
     Date,
     Tool(Call),
+    /// Round 7: "message Sam on Instagram…", "reply…", "open my Instagram messages".
+    Instagram(crate::instagram::command::Command),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,6 +80,10 @@ pub fn parse(text: &str) -> Option<Basic> {
     if t.is_empty() {
         return None;
     }
+    // Instagram first: its sentences always name Instagram (or answer a DM that just came).
+    if let Some(c) = crate::instagram::command::parse(text, crate::instagram::last_sender().as_deref()) {
+        return Some(Basic::Instagram(c));
+    }
     if any(t, &["what time is it", "what's the time", "whats the time", "what is the time", "tell me the time", "time", "what time is it now"]) {
         return Some(Basic::Time);
     }
@@ -125,6 +131,7 @@ pub fn run(app: &AppHandle, basic: &Basic) -> String {
             tf("Today is {date}.", &[("date", &format!("{}-{:02}-{:02}", now.year, now.month, now.day))])
         }
         Basic::Media(m) => media(app, *m),
+        Basic::Instagram(c) => crate::instagram::run(app, c),
         Basic::Volume(v) => {
             let (key, presses, said) = match v {
                 Volume::Up => (VK_VOLUME_UP, VOLUME_PRESSES, t("Volume up.")),

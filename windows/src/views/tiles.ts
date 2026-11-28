@@ -7,6 +7,7 @@ import { Bridge, type MailInbox, type MailMessage } from "../core/bridge";
 import type { IslandViewName } from "../core/layout";
 import { isAgentTask, pillDefinition } from "../core/pills";
 import { Spotify } from "../core/spotify";
+import { Instagram, INSTAGRAM_COLOR, instagramFace } from "../instagram/store";
 import { State } from "../core/state";
 import { currentTiles, shortAppName, type Tile } from "../core/tiles";
 import { t } from "../i18n/i18n";
@@ -206,6 +207,19 @@ export function face(tile: Tile, setView: (v: IslandViewName) => void): TileFace
         sub: latestClip ?? t("Nothing copied yet."),
         open: () => openPanel("clipboard", setView),
       };
+    case "instagram": {
+      const on = State.settings.instagram?.on === true;
+      const f = instagramFace(Instagram.dms, on, t);
+      const d = Instagram.dms[0];
+      return {
+        icon: "◎",
+        color: INSTAGRAM_COLOR,
+        title: f.title,
+        sub: f.sub,
+        // The newest sender's chat (straight to it when their username is known), else the DMs list.
+        open: () => void Bridge.instagramOpen(on && d ? d.username ?? d.sender : "").catch(showError),
+      };
+    }
     case "system":
       return {
         icon: "▤",

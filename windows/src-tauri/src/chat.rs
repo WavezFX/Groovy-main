@@ -329,6 +329,12 @@ pub async fn send(
         }
     }
 
+    // "Message Sam on Instagram saying…" (round 7): opened and drafted here, no AI unless asked to write it.
+    if let Some(cmd) = crate::instagram::command::parse(&query, crate::instagram::last_sender().as_deref()) {
+        let reply = crate::instagram::run(app, &cmd);
+        save_turn(chat, &prefs, &plain, &reply, "instagram");
+        return Ok(ChatReply::text(reply));
+    }
     // "Pause the music", "play my favourite songs"… run here, on this computer,
     // and the answer says what really happened.
     if let Some(cmd) = crate::music::parse_command(&query).filter(crate::music::worth_handling) {

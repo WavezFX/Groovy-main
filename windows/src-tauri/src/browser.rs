@@ -156,6 +156,18 @@ pub fn open(url: &str) -> Result<String, String> {
     }
 }
 
+/// Opens a web page in one browser by id ("edge", "chrome"), or as `open` does
+/// when that one isn't installed (round 7: Instagram's "Open in").
+pub fn open_in(id: &str, url: &str) -> Result<String, String> {
+    match installed().iter().find(|b| b.id == id) {
+        Some(b) if is_web(url) => {
+            os::launch(&b.launch, url)?;
+            Ok(b.name.to_string())
+        }
+        _ => open(url),
+    }
+}
+
 /// Searches the web for `query` with the chosen engine, in the chosen browser.
 pub fn search(query: &str) -> Result<String, String> {
     let (_, engine) = settings();
