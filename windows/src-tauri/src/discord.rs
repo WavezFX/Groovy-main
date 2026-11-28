@@ -763,6 +763,7 @@ async fn authorise() -> Result<(), String> {
 // ── Messages: Discord's Windows notifications (round 6 item 4) ───────────────
 
 /// A new Discord notification (island_tiles.rs's watch): the newest five, in memory only.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn note(id: u32, title: &str, body: &str) {
     let n = Note { id, title: title.chars().take(120).collect(), body: body.chars().take(400).collect() };
     with_state(|s| {
